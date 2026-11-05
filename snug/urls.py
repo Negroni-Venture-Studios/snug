@@ -11,5 +11,6 @@ urlpatterns = [
     path("admin/links/", include("snug.links.urls")),
     path("admin/rooms/", include("snug.rooms.urls")),
     path("admin/people/", include("snug.analytics.urls")),
+    path("admin/audit/", include("snug.audit.urls")),
     path("v/", include("snug.viewer.urls")),
 ]
