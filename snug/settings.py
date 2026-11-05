@@ -22,9 +22,29 @@ CSRF_TRUSTED_ORIGINS = [CONFIG.origin]
 # The Django admin is deliberately absent: it would not enforce TOTP, and it
 # is attack surface Snug does not need. ruff bans importing it.
 INSTALLED_APPS = [
+    "django.contrib.contenttypes",
+    "django.contrib.auth",
     "django.contrib.sessions",
     "django.contrib.staticfiles",
     "snug.core",
+    "snug.accounts",
+    "snug.audit",
+]
+
+AUTH_USER_MODEL = "accounts.Admin"
+
+# argon2id only (Django's defaults: 100 MiB, two passes, eight lanes). With a
+# single hasher there is no weaker algorithm for an old hash to fall back on.
+PASSWORD_HASHERS = ["django.contrib.auth.hashers.Argon2PasswordHasher"]
+
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 12},
+    },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 # Order matters. The header middleware comes first, so every response gets

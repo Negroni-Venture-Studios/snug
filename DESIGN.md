@@ -15,6 +15,8 @@ Agreed on 5 November 2026 unless noted.
 | Audit log | A minimal append-only audit table exists from step 1; viewing and CSV export arrive in step 6 | Admin logins must be audited from the first login. |
 | Lost second factor | One-time recovery codes issued at enrolment; `snug reset-2fa` on the server; any admin can reset another admin's second factor | The brief left this unspecified. |
 | Removing admins | An admin cannot delete themselves, and the last admin cannot be deleted | Avoids locking a company out of its own instance. |
+| Second factor | TOTP with a one-step window either side and replay protection (the last used step is stored). Codes must be ASCII digits. Ten recovery codes of 80 bits each, stored as SHA-256 hashes. TOTP keys stored unencrypted. | The window covers clock drift; replay protection stops a shoulder-surfed code being used twice. TOTP keys must be readable to check codes; the database stays on the founder's server, and backups are encrypted. |
+| Audit log storage | Append-only, refused by the model, its queryset and SQLite triggers | Not even raw SQL from inside Snug can rewrite history. |
 | Admin invites | Moved to step 3, when email exists | Invites need email. |
 | Rate limiting | A small database-backed limiter of our own, not a library | Shared correctly across server processes; easy to test. |
 | Client IP | `X-Forwarded-For` is trusted only from Caddy | Rate limits, UK-only mode and the audit log all depend on the real address. |

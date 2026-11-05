@@ -6,6 +6,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- Admin accounts:
+  - `snug createadmin`, with argon2id passwords, authenticator enrolment by QR code, and ten single-use recovery codes;
+  - `snug reset-2fa` for an admin who has lost their phone (`docs/admin-accounts.md`).
+- An append-only audit log, enforced by the database as well as the code. It records admin creation and second-factor resets.
 - The Django project skeleton:
   - configuration from environment variables, checked at start-up with every problem listed at once (`docs/configuration.md`);
   - SQLite in WAL mode;

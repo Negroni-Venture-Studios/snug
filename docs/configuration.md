@@ -44,6 +44,8 @@ uv run snug --env-file ~/snug-dev.env serve --bind 127.0.0.1:8000
 
 `snug serve` applies any pending database migrations, then starts the web server. Open <http://localhost:8000/healthz> to check it is running.
 
+To create an admin, run `uv run snug --env-file ~/snug-dev.env createadmin`. See [admin-accounts.md](admin-accounts.md).
+
 ## What Snug never logs
 
 Snug does not write a request access log. Viewer links carry their access token in the URL, and the security requirements forbid logging tokens, one-time codes, session identifiers or passwords.
