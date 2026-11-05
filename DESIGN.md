@@ -310,7 +310,11 @@ Steps 0 to 6 are done. What remains, including commitments made along the way th
 
 **Step 9.** README, `docs/deploy-digitalocean.md`, `docs/security.md` (including what watermarks, the NDA record and UK-only mode do not protect against), then a full deployment to a test droplet from the guide alone, using a wildcard DNS name such as `sslip.io` rather than a bought domain, and a restore onto a second fresh droplet. Both droplets are destroyed afterwards.
 
-**After the build.** Take the held Dependabot updates (#2 and #3).
+**Held Dependabot updates.** These stay open, never closed: closing a Dependabot pull request tells it to skip that version for good. Merge each once its release is two weeks old.
+- #31: docker/login-action 4.7.0 (eligible 6 November) and astral-sh/setup-uv 10.3.3 (eligible 11 November).
+- #2: uv-build 0.13.6 or later, the build backend (eligible 10 November).
+- #32: uv 0.13.7 in the image (eligible 17 November).
+- #33 proposes Python 3.15.0 for the image. **Do not merge it:** CI does not test 3.15, and 3.15.0 predates the 25 October security releases, so it would undo the two CVE fixes in 3.14.10. Moving to 3.15 is a deliberate change: add 3.15 to CI's test matrix, then take the newest 3.15 patch release. Dependabot now proposes Python patch releases only, and waits 14 days before proposing anything.
 
 ## 5. After version 1 (*proposed*)
 
