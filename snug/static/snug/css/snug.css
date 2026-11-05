@@ -292,6 +292,12 @@ input.code { font-family: var(--mono); font-size: 1.5rem; letter-spacing: 0.45em
 .page-frame svg { display: block; width: 100%; height: auto; }
 .page-frame img { display: block; width: 100%; height: auto; }
 .reader-controls .btn[aria-disabled="true"] { opacity: 0.45; cursor: default; }
+/* Disabled controls look disabled, so a box that will not tick never looks broken.
+   The hint beside it says why, and stays readable. */
+.check:has(input:disabled) { cursor: not-allowed; }
+.check:has(input:disabled) > span { color: var(--text-3); }
+.check input:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .reader-controls .jump { display: flex; gap: 0.4rem; }
 .nda-text { max-height: 22rem; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); padding: 1rem 1.15rem; margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.6; }
 .nda-text p + p { margin-top: 0.75rem; }
