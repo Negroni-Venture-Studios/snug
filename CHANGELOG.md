@@ -13,6 +13,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
   - revoking a link, and replacing it with a new one, which stops the old address working at once.
 
   Link tokens are stored only as hashes, so a copy of the database cannot be used to open them. Every link action is recorded in the audit log.
+- `SNUG_VIEWER_SESSION_DAYS`, how long a viewer stays verified on a link (7 days by default). The viewer pages that use it follow shortly.
 - Email through any SMTP provider, configured with `SNUG_COMPANY_NAME`, `SNUG_EMAIL_FROM` and the `SNUG_SMTP_*` settings. `docs/email.md` covers the provider, the SPF, DKIM and DMARC records, and DigitalOcean's blocked SMTP ports. On `localhost`, emails are written to an outbox folder instead.
 
 - A Documents section in the admin interface:
