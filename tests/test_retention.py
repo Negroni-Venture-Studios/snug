@@ -175,3 +175,29 @@ def test_the_server_runs_housekeeping_every_hour(monkeypatch: pytest.MonkeyPatch
         }
     ]
     assert gunicorn_conf.HOUSEKEEPING_EVERY == 3600
+
+
+def test_a_failed_run_never_stops_housekeeping(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    import subprocess as sp
+
+    from snug import gunicorn_conf
+
+    calls: list[int] = []
+
+    def run(*args: object, **kwargs: object) -> object:
+        calls.append(1)
+        if len(calls) == 1:
+            raise sp.TimeoutExpired(cmd="snug housekeeping", timeout=600)
+        if len(calls) == 2:
+            return sp.CompletedProcess(args=[], returncode=1)
+        raise SystemExit  # end the test's loop
+
+    monkeypatch.setattr("snug.gunicorn_conf.subprocess.run", run)
+    monkeypatch.setattr("snug.gunicorn_conf.time.sleep", lambda seconds: None)
+    with pytest.raises(SystemExit):
+        gunicorn_conf._housekeeping()
+    assert len(calls) == 3  # it kept going after a timeout and a failure
+    assert "Housekeeping failed: TimeoutExpired" in caplog.text
+    assert "Housekeeping failed: exit status 1" in caplog.text
