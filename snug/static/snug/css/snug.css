@@ -278,6 +278,10 @@ input.code { font-family: var(--mono); font-size: 1.5rem; letter-spacing: 0.45em
 .page-frame { width: 100%; border-radius: 2px; overflow: hidden; border: 1px solid var(--border); background: #ffffff;
     box-shadow: 0 1px 2px light-dark(rgba(28,25,23,0.05), rgba(0,0,0,0.3)), 0 12px 32px light-dark(rgba(28,25,23,0.07), rgba(0,0,0,0.35)); }
 .page-frame svg { display: block; width: 100%; height: auto; }
+.page-frame img { display: block; width: 100%; height: auto; }
+.reader-controls .btn[aria-disabled="true"] { opacity: 0.45; cursor: default; }
+.reader-controls .jump { display: flex; gap: 0.4rem; }
+.reader-note { max-width: 40rem; text-align: center; font-size: 0.8rem; color: var(--text-3); }
 .reader-controls { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: center; color: var(--text-2); font-size: 0.9rem; }
 .reader-controls .pos { min-width: 6.5rem; text-align: center; font-family: var(--mono); font-size: 0.85rem; }
 .reader-controls select { width: auto; padding: 0.4rem 0.6rem; font-size: 0.875rem; }
@@ -325,6 +329,9 @@ input.code { font-family: var(--mono); font-size: 1.5rem; letter-spacing: 0.45em
     .header-tools .who-am-i { display: none; }
     .v-head, .v-main { padding-left: 1rem; padding-right: 1rem; }
     .v-head .doc { display: none; }
+    /* Previous, the position and Next stay on one row; the picker goes below. */
+    .reader-controls { gap: 0.5rem; }
+    .reader-controls .jump { flex-basis: 100%; justify-content: center; }
     .gate-grid { margin-top: 1.5rem; }
 }
 

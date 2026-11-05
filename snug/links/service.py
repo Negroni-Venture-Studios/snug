@@ -69,7 +69,7 @@ def reissue(link: Link) -> Issued:
     return Issued(link=link, token=token)
 
 
-def revoke(link: Link, by: Admin) -> None:
+def revoke(link: Link, by: Admin | None) -> None:
     if link.revoked_at is None:
         link.revoked_at = timezone.now()
         link.revoked_by = by

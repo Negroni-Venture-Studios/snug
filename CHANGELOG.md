@@ -10,6 +10,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- The reader: once a viewer is in, each page is shown as an image, one at a time, with Previous, Next, the arrow keys and a page picker. Every page is watermarked for that viewer on each request, with their email address and the date across the page and a footer naming them, the date and the link. Watermarks are stamped in the same confined worker that renders pages.
+
 - A Settings page listing the admins, and inviting new ones. An invite is an emailed link that works once, for 72 hours, where the new admin chooses a password and sets up their authenticator app. Inviting asks for a fresh code from your own authenticator, and every admin is emailed when someone is invited.
 - Removing an admin, or cancelling an invite, and resetting another admin's second factor, from Settings. Both ask for a fresh code from your authenticator and email every admin. You cannot remove yourself, and the last admin can never be removed.
 

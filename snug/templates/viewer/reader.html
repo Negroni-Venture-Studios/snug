@@ -1,0 +1,34 @@
+{% extends "viewer/base.html" %}
+{% load static snug %}
+{% block title %}{{ document.title }}{% endblock %}
+{% block scripts %}<script src="{% static 'snug/js/viewer.js' %}" defer></script>{% if prefetch %}
+<link rel="prefetch" href="{{ prefetch }}" as="image">{% endif %}{% endblock %}
+{% block tools %}<span class="doc">{{ document.title }}</span>{% endblock %}
+{% block main %}
+{% if page %}
+<div class="reader">
+  <div class="page-frame">
+    <img src="{{ src }}" srcset="{{ srcset }}" sizes="(max-width: 1080px) 100vw, 1032px" width="{{ width }}" height="{{ height }}" alt="Page {{ page }} of {{ count }}">
+  </div>
+  <nav class="reader-controls" aria-label="Pages">
+    {% if previous %}<a class="btn" href="{{ here }}?page={{ previous }}" rel="prev" data-key="ArrowLeft">{% icon "caret-left" %}Previous</a>{% else %}<span class="btn" aria-disabled="true">{% icon "caret-left" %}Previous</span>{% endif %}
+    <span class="pos">{{ page }} of {{ count }}</span>
+    {% if next %}<a class="btn" href="{{ here }}?page={{ next }}" rel="next" data-key="ArrowRight">Next{% icon "caret-right" %}</a>{% else %}<span class="btn" aria-disabled="true">Next{% icon "caret-right" %}</span>{% endif %}
+    <form class="jump" method="get" action="{{ here }}">
+      <label class="visually-hidden" for="jump">Go to page</label>
+      <select id="jump" name="page" data-autosubmit>{% for n in pages_list %}<option value="{{ n }}"{% if n == page %} selected{% endif %}>Page {{ n }}</option>{% endfor %}</select>
+      <noscript><button class="btn" type="submit">Go</button></noscript>
+    </form>
+  </nav>
+  <p class="reader-note">Pages are shown as images, so a screen reader can only read their numbers. {% if link.allow_download %}Download the PDF to read it with a screen reader.{% else %}Ask the person who sent this link for a copy you can read with a screen reader.{% endif %}</p>
+</div>
+{% else %}
+<div class="gate-grid">
+  <div class="gate">
+    <h1>{{ document.title }}</h1>
+    <p class="lede">This document is not ready yet. Try again later, or ask the person who sent it.</p>
+  </div>
+  {% include "viewer/_about.html" %}
+</div>
+{% endif %}
+{% endblock %}

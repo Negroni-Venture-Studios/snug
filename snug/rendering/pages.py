@@ -14,6 +14,10 @@ from snug.documents.models import DocumentVersion
 from snug.rendering import sandbox
 
 DEFAULT_WIDTH = 1600
+# Geist Mono, vendored with the interface fonts (SIL OFL 1.1).
+WATERMARK_FONT = (
+    Path(__file__).resolve().parent.parent / "static/snug/fonts/GeistMono-Variable.woff2"
+)
 
 
 def page_image(version: DocumentVersion, page: int, width: int = DEFAULT_WIDTH) -> Path:
@@ -33,3 +37,11 @@ def page_image(version: DocumentVersion, page: int, width: int = DEFAULT_WIDTH) 
         Path(partial).unlink(missing_ok=True)
         raise
     return target
+
+
+def stamped_page(
+    version: DocumentVersion, page: int, width: int, *, email: str, date: str, ref: str
+) -> bytes:
+    """The page with a viewer's watermark, as WebP bytes. Stamped on every request."""
+    plain = page_image(version, page, width)
+    return sandbox.stamp(plain, WATERMARK_FONT, email=email, date=date, ref=ref)

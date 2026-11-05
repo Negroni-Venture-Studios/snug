@@ -53,7 +53,12 @@ def command(*args: str) -> list[str]:
 
 
 def run(
-    pdf: os.PathLike[str] | str, mode: str, *extra: str, timeout: float, limit: int = READ_LIMIT
+    pdf: os.PathLike[str] | str,
+    mode: str,
+    *extra: str,
+    timeout: float,
+    limit: int = READ_LIMIT,
+    also: tuple[os.PathLike[str] | str, ...] = (),
 ) -> bytes:
     """Run the worker on one PDF and return what it wrote. Raises WorkerError on any failure.
 
@@ -61,16 +66,18 @@ def run(
     than `limit` bytes, or runs past the deadline, its whole process group is
     killed at once: a compromised worker cannot exhaust Snug's memory.
     """
-    with open(pdf, "rb") as source:  # noqa: PTH123 - we need the raw descriptor
-        descriptor = source.fileno()
+    with contextlib.ExitStack() as files:
+        # `also` passes further files, such as a font, the same way: open.
+        opened = [files.enter_context(open(path, "rb")) for path in (pdf, *also)]  # noqa: PTH123
+        descriptors = tuple(handle.fileno() for handle in opened)
         process = subprocess.Popen(  # noqa: S603 - fixed argv, no shell
-            command(mode, str(descriptor), *extra),
+            command(mode, *(str(d) for d in descriptors), *extra),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             env=worker_env(),
             close_fds=True,
-            pass_fds=(descriptor,),
+            pass_fds=descriptors,
             start_new_session=True,
         )
     try:
@@ -161,6 +168,21 @@ def _error_code(output: bytes) -> str:
         return str(reported["error"])
     except (IndexError, KeyError, TypeError, json.JSONDecodeError):
         return "unreadable"
+
+
+def stamp(
+    page: os.PathLike[str] | str,
+    font: os.PathLike[str] | str,
+    *,
+    email: str,
+    date: str,
+    ref: str,
+) -> bytes:
+    """A rendered page with the viewer's watermark, as WebP, stamped in a confined worker."""
+    image = run(page, "stamp", email, date, ref, timeout=RENDER_TIMEOUT, also=(font,))
+    if len(image) > OUTPUT_BYTES or image[:4] != b"RIFF" or image[8:12] != b"WEBP":
+        raise WorkerError("unreadable")
+    return image
 
 
 def inspect(pdf: os.PathLike[str] | str) -> dict[str, Any]:

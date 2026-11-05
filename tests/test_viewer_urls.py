@@ -21,7 +21,9 @@ GATES = {"viewer:send_code", "viewer:verify_code", "viewer:open"}
 # Routes outside admin/ and v/. A viewer page anywhere else would escape the
 # checks below, so nothing may be added here lightly.
 OTHER_ROUTES = {""}
-ALLOWED_PARAMETERS = {"token", "document_token"}
+ALLOWED_PARAMETERS = {"token", "document_token", "page", "width"}
+# Integers only for positions within the document the token grants.
+INTEGER_PARAMETERS = {"page", "width"}
 
 
 def walk(
@@ -55,8 +57,9 @@ def test_every_viewer_url_is_checked(route: str, name: str, pattern: URLPattern)
 def test_viewer_urls_carry_no_database_keys(route: str, name: str, pattern: URLPattern) -> None:
     converters = pattern.pattern.converters
     assert set(converters) <= ALLOWED_PARAMETERS, route
-    for converter in converters.values():
-        assert type(converter).__name__ == "StringConverter", route
+    for parameter, converter in converters.items():
+        expected = "IntConverter" if parameter in INTEGER_PARAMETERS else "StringConverter"
+        assert type(converter).__name__ == expected, route
 
 
 def test_nothing_is_served_outside_admin_and_the_viewer() -> None:
@@ -79,11 +82,16 @@ def test_no_viewer_url_shows_a_document_without_a_session(
         allow_download=True,
         created_by=None,
     )
-    url = "/" + route.replace("<str:token>", issued.token).replace(
-        "<str:document_token>", document.token
+    url = "/" + (
+        route.replace("<str:token>", issued.token)
+        .replace("<str:document_token>", document.token)
+        .replace("<int:page>", "1")
+        .replace("<int:width>", "800")
     )
     browser = Client()
     for method in (browser.get, browser.post):
         response = method(url, secure=True)
         used = {template.name for template in response.templates}
-        assert "viewer/document.html" not in used, f"{method.__name__.upper()} {url}"
+        shown = f"{method.__name__.upper()} {url}"
+        assert "viewer/reader.html" not in used, shown
+        assert not response.get("Content-Type", "").startswith("image/"), shown
