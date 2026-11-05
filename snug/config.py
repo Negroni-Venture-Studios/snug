@@ -20,6 +20,8 @@ DEFAULT_DATA_DIR = "/var/lib/snug"
 DEFAULT_TRUSTED_PROXIES = "127.0.0.1/32, ::1/128"
 DEFAULT_MAX_UPLOAD_MB = 100
 MAX_UPLOAD_MB_CEILING = 1024
+DEFAULT_VIEWER_SESSION_DAYS = 7
+MAX_VIEWER_SESSION_DAYS = 90
 SMTP_SECURITY = ("starttls", "tls", "none")
 _EMAIL = re.compile(r"^[^@\s<>]+@[^@\s<>]+\.[^@\s<>]+$")
 
@@ -52,6 +54,7 @@ class Config:
     # Proxies whose X-Forwarded-For header is believed: Caddy, and only Caddy.
     trusted_proxies: tuple[IPNetwork, ...] = ()
     max_upload_mb: int = DEFAULT_MAX_UPLOAD_MB
+    viewer_session_days: int = DEFAULT_VIEWER_SESSION_DAYS
     company_name: str = ""
     email_from: str = ""
     smtp_host: str = ""
@@ -140,6 +143,17 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
                 f"{MAX_UPLOAD_MB_CEILING}, not {raw_upload!r}."
             )
 
+    raw_days = env.get("SNUG_VIEWER_SESSION_DAYS", "").strip()
+    viewer_session_days = DEFAULT_VIEWER_SESSION_DAYS
+    if raw_days:
+        if raw_days.isdecimal() and 1 <= int(raw_days) <= MAX_VIEWER_SESSION_DAYS:
+            viewer_session_days = int(raw_days)
+        else:
+            problems.append(
+                f"SNUG_VIEWER_SESSION_DAYS must be a whole number of days from 1 to "
+                f"{MAX_VIEWER_SESSION_DAYS}, not {raw_days!r}."
+            )
+
     company_name = " ".join(env.get("SNUG_COMPANY_NAME", "").split())
     if len(company_name) > 100:
         problems.append("SNUG_COMPANY_NAME must be 100 characters or fewer.")
@@ -190,6 +204,7 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         debug=debug,
         trusted_proxies=trusted_proxies,
         max_upload_mb=max_upload_mb,
+        viewer_session_days=viewer_session_days,
         company_name=company_name,
         email_from=email_from,
         smtp_host=smtp_host,

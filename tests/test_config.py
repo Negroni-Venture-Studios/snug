@@ -219,3 +219,16 @@ def test_tls_defaults_to_port_465() -> None:
 def test_bad_email_settings_are_refused(extra: dict[str, str], message: str) -> None:
     found = problems({**GOOD, **extra})
     assert any(message in p for p in found), found
+
+
+def test_viewer_sessions_last_seven_days_by_default() -> None:
+    assert load_config(GOOD).viewer_session_days == 7
+    assert load_config({**GOOD, "SNUG_VIEWER_SESSION_DAYS": "30"}).viewer_session_days == 30
+
+
+@pytest.mark.parametrize("value", ["0", "91", "a week", "-3", "1.5"])
+def test_viewer_session_days_must_be_sensible(value: str) -> None:
+    found = problems({**GOOD, "SNUG_VIEWER_SESSION_DAYS": value})
+    assert any(
+        "SNUG_VIEWER_SESSION_DAYS must be a whole number of days from 1 to 90" in p for p in found
+    )

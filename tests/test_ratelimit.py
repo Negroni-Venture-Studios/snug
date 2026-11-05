@@ -50,3 +50,11 @@ def test_purge_removes_old_windows() -> None:
 def test_default_clock() -> None:
     assert ratelimit.hit(LIMIT, "now") == 1
     assert ratelimit.purge_expired() == 0
+
+
+def test_allow_counts_first_then_decides() -> None:
+    # Counting before deciding means simultaneous requests cannot all see
+    # "under the limit": each sees the count its own attempt produced.
+    limit = ratelimit.Limit("test.allow", limit=2, window=60)
+    assert [ratelimit.allow(limit, "a", now=NOW) for _ in range(3)] == [True, True, False]
+    assert ratelimit.exceeded(limit, "a", now=NOW)
