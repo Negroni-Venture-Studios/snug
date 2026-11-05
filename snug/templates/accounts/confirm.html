@@ -1,0 +1,22 @@
+{% extends "snug/admin_base.html" %}
+{% load snug %}
+{% block title %}{% if action == "remove" %}Remove an admin{% else %}Reset a second factor{% endif %}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'accounts:settings' %}">Settings</a> / Admins</div>
+<div class="title-row"><div>
+{% if action == "remove" %}
+  <h1 class="page-title">Remove {{ target.email }}?</h1>
+  <div class="page-meta">{% if target.is_active %}They are signed out at once and can no longer sign in. Their links and uploads stay.{% else %}Their invite stops working at once.{% endif %} Every admin, and they, will be emailed.</div>
+{% else %}
+  <h1 class="page-title">Reset the second factor for {{ target.email }}?</h1>
+  <div class="page-meta">Their authenticator and recovery codes stop working, and they are signed out at once. They are emailed a link, which works for 72 hours, to set up their authenticator again. Their password does not change. Every admin will be emailed.</div>
+{% endif %}
+</div></div>
+<form class="panel form invite" method="post" action="{% if action == 'remove' %}{% url 'accounts:remove' %}{% else %}{% url 'accounts:reset' %}{% endif %}" novalidate>
+  {% csrf_token %}
+  <input type="hidden" name="email" value="{{ target.email }}">
+  <div class="field"><label for="code">Code from your authenticator app</label><input id="code" name="code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required autofocus{% if error %} aria-invalid="true" aria-describedby="code-error"{% endif %}>
+    {% if error %}<div class="error" id="code-error" role="alert">{% icon "warning-circle" %}{{ error }}</div>{% endif %}</div>
+  <div class="form-foot left"><a class="btn" href="{% url 'accounts:settings' %}">Cancel</a><button class="btn btn-primary" type="submit">{% if action == "remove" %}{% if target.is_active %}Remove admin{% else %}Cancel invite{% endif %}{% else %}Reset second factor{% endif %}</button></div>
+</form>
+{% endblock %}

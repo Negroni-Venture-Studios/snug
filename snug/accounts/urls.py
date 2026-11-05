@@ -11,5 +11,7 @@ urlpatterns = [
     path("logout", views.logout_view, name="logout"),
     path("settings/", admin_views.settings_view, name="settings"),
     path("settings/admins/invite", admin_views.invite_view, name="invite"),
+    path("settings/admins/remove", admin_views.remove_view, name="remove"),
+    path("settings/admins/reset", admin_views.reset_view, name="reset"),
     path("setup/<str:token>", admin_views.setup_view, name="setup"),
 ]

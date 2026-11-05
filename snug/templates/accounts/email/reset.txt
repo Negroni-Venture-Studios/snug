@@ -1,0 +1,7 @@
+{% autoescape off %}{{ by }} has reset your second factor for Snug. Your old authenticator and recovery codes no longer work. Your password has not changed.
+
+Set up your authenticator again here:
+{{ url }}
+
+The link works once, for {{ hours }} hours. If you were not expecting this, reply to reach {{ by }}.
+{% endautoescape %}
