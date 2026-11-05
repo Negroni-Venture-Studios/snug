@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -144,11 +145,16 @@ def test_errors_without_json_are_unreadable(deck: Path, monkeypatch: pytest.Monk
 # ---------------------------------------------------------------- confinement (Linux)
 
 
-def _confined(script: str, tmp_path: Path) -> subprocess.CompletedProcess[str]:
+def _confined(script: str, tmp_path: Path, setup: str = "") -> subprocess.CompletedProcess[str]:
+    """Run `setup`, then confine as the worker does, then run `script`.
+
+    Anything the script needs must be imported in `setup`: once confined, not
+    even Python's own library files can be opened.
+    """
     secret = tmp_path / "snug.sqlite3"
     secret.write_text("TOTP keys live here", encoding="utf-8")
     code = (
-        "from snug.rendering import worker; worker.preload(); print(worker.confine()); "
+        f"{setup}\nfrom snug.rendering import worker; worker.preload(); print(worker.confine())\n"
         f"SECRET = {str(secret)!r}\n" + script
     )
     return subprocess.run(
@@ -166,13 +172,12 @@ def test_a_confined_worker_cannot_open_files(tmp_path: Path) -> None:
 @linux_only
 def test_a_confined_worker_cannot_connect_out(tmp_path: Path) -> None:
     script = (
-        "import socket\n"
         "s = socket.socket(); s.settimeout(2)\n"
         "try:\n    s.connect(('127.0.0.1', 9))\n"
         "except PermissionError:\n    print('blocked')\n"
         "except OSError as e:\n    print('reached the network stack:', e)\n"
     )
-    result = _confined(script, tmp_path)
+    result = _confined(script, tmp_path, setup="import socket")
     abi = int(result.stdout.split()[1].lstrip("v"))
     if abi < 4:
         pytest.skip("Landlock network rules need ABI 4 (Linux 6.7)")
@@ -288,3 +293,21 @@ def test_gunicorn_master_makes_itself_undumpable(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(gunicorn_conf, "make_undumpable", spy)
     gunicorn_conf.on_starting(None)
     assert calls == [True]
+
+
+def test_a_flood_of_output_is_cut_off(deck: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # A compromised worker streaming endlessly must not fill Snug's memory.
+    flood = "import sys\nwhile True: sys.stdout.buffer.write(b'x' * 65536)"
+    monkeypatch.setattr(sandbox, "command", lambda *a: [sys.executable, "-c", flood])
+    started = time.monotonic()
+    with pytest.raises(sandbox.WorkerError) as caught:
+        sandbox.run(deck, "render", "1", "1600", timeout=30, limit=1024 * 1024)
+    assert caught.value.code == "unreadable"
+    assert time.monotonic() - started < 10
+
+
+def test_a_silent_hang_is_cut_off(deck: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    script = "import sys, time\nsys.stdout.write('x'); sys.stdout.flush(); time.sleep(30)"
+    monkeypatch.setattr(sandbox, "command", lambda *a: [sys.executable, "-c", script])
+    with pytest.raises(sandbox.WorkerError, match="took too long"):
+        sandbox.run(deck, "inspect", timeout=0.5)

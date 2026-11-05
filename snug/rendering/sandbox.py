@@ -5,17 +5,23 @@ its results through a pipe. It is never given a path, so with Landlock it has
 no filesystem access at all beyond reading system fonts.
 """
 
+import contextlib
 import json
 import os
+import selectors
 import signal
 import subprocess
 import sys
+import time
 from typing import Any
 
 from snug.rendering.worker import OUTPUT_BYTES
 
 INSPECT_TIMEOUT = 60
 RENDER_TIMEOUT = 30
+# Snug never holds more of the worker's output than this, however much it sends.
+READ_LIMIT = OUTPUT_BYTES + 64 * 1024
+CHUNK = 64 * 1024
 
 # What a user sees for each way a PDF can fail.
 MESSAGES = {
@@ -47,31 +53,75 @@ def command(*args: str) -> list[str]:
 
 
 def run(
-    pdf: os.PathLike[str] | str, mode: str, *extra: str, timeout: float
-) -> subprocess.CompletedProcess[bytes]:
-    """Run the worker on one PDF. Raises WorkerError for every kind of failure."""
+    pdf: os.PathLike[str] | str, mode: str, *extra: str, timeout: float, limit: int = READ_LIMIT
+) -> bytes:
+    """Run the worker on one PDF and return what it wrote. Raises WorkerError on any failure.
+
+    The output is read in chunks against a deadline. If the worker sends more
+    than `limit` bytes, or runs past the deadline, its whole process group is
+    killed at once: a compromised worker cannot exhaust Snug's memory.
+    """
     with open(pdf, "rb") as source:  # noqa: PTH123 - we need the raw descriptor
         descriptor = source.fileno()
-        try:
-            process = subprocess.run(  # noqa: S603 - fixed argv, no shell
-                command(mode, str(descriptor), *extra),
-                stdin=subprocess.DEVNULL,
-                capture_output=True,
-                timeout=timeout,
-                env=worker_env(),
-                close_fds=True,
-                pass_fds=(descriptor,),
-                start_new_session=True,
-                check=False,
-            )
-        except subprocess.TimeoutExpired as expired:
-            raise WorkerError("timeout") from expired
+        process = subprocess.Popen(  # noqa: S603 - fixed argv, no shell
+            command(mode, str(descriptor), *extra),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            env=worker_env(),
+            close_fds=True,
+            pass_fds=(descriptor,),
+            start_new_session=True,
+        )
+    try:
+        output = _read_bounded(process, timeout=timeout, limit=limit)
+    finally:
+        if process.poll() is None:
+            _kill(process)
+        if process.stdout is not None:
+            process.stdout.close()
 
     if process.returncode in (-signal.SIGKILL, -signal.SIGXCPU, -signal.SIGSEGV):
         raise WorkerError("memory" if process.returncode == -signal.SIGKILL else "unreadable")
     if process.returncode != 0:
-        raise WorkerError(_error_code(process.stdout))
-    return process
+        raise WorkerError(_error_code(output))
+    return output
+
+
+def _kill(process: subprocess.Popen[bytes]) -> None:
+    with contextlib.suppress(ProcessLookupError):
+        os.killpg(process.pid, signal.SIGKILL)  # its own session, so its whole group
+    process.wait()
+
+
+def _read_bounded(process: subprocess.Popen[bytes], *, timeout: float, limit: int) -> bytes:
+    assert process.stdout is not None  # noqa: S101 - Popen was given stdout=PIPE
+    deadline = time.monotonic() + timeout
+    chunks: list[bytes] = []
+    received = 0
+    with selectors.DefaultSelector() as selector:
+        selector.register(process.stdout, selectors.EVENT_READ)
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                _kill(process)
+                raise WorkerError("timeout")
+            if not selector.select(timeout=remaining):
+                continue
+            chunk = os.read(process.stdout.fileno(), CHUNK)
+            if not chunk:
+                break
+            received += len(chunk)
+            if received > limit:
+                _kill(process)
+                raise WorkerError("unreadable")
+            chunks.append(chunk)
+    try:
+        process.wait(timeout=max(deadline - time.monotonic(), 0.1))
+    except subprocess.TimeoutExpired as expired:
+        _kill(process)
+        raise WorkerError("timeout") from expired
+    return b"".join(chunks)
 
 
 def _error_code(output: bytes) -> str:
@@ -83,9 +133,9 @@ def _error_code(output: bytes) -> str:
 
 
 def inspect(pdf: os.PathLike[str] | str) -> dict[str, Any]:
-    process = run(pdf, "inspect", timeout=INSPECT_TIMEOUT)
+    output = run(pdf, "inspect", timeout=INSPECT_TIMEOUT)
     try:
-        facts: dict[str, Any] = json.loads(process.stdout.decode("utf-8").strip())
+        facts: dict[str, Any] = json.loads(output.decode("utf-8").strip())
         if not isinstance(facts.get("pages"), int) or len(facts.get("sizes", [])) != facts["pages"]:
             raise ValueError("inconsistent")
     except (UnicodeDecodeError, ValueError, AttributeError) as error:
@@ -95,7 +145,7 @@ def inspect(pdf: os.PathLike[str] | str) -> dict[str, Any]:
 
 def render(pdf: os.PathLike[str] | str, page: int, width: int) -> bytes:
     """The page as WebP bytes. Only the container format is checked; nothing is decoded."""
-    image = run(pdf, "render", str(page), str(width), timeout=RENDER_TIMEOUT).stdout
+    image = run(pdf, "render", str(page), str(width), timeout=RENDER_TIMEOUT)
     if len(image) > OUTPUT_BYTES or image[:4] != b"RIFF" or image[8:12] != b"WEBP":
         raise WorkerError("unreadable")
     return image
