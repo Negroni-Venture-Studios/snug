@@ -19,7 +19,7 @@ Agreed on 5 November 2026 unless noted.
 | Sign-in limits | Per address: 20 password, 20 code and 10 recovery attempts. Per account: 30 password attempts, 10 code attempts and 5 recovery attempts. All in 15-minute windows, held in SQLite so every process shares them. Each attempt is counted before it is checked (`ratelimit.allow`), so simultaneous requests cannot slip under a limit. 5 wrong codes after one correct password returns to the password step. | The account limit is generous on purpose: a low one lets anyone lock a founder out by typing wrong passwords, and a correct password only reaches the code step. |
 | Admin sessions | A new session id at each step. Five minutes from password to code. Ending after one hour idle or twelve hours absolute. The session hash covers the password and the TOTP key, so changing either signs out everywhere. | Fixation-proof, short-lived, and revocable without scanning the session table. |
 | PDF handling | Uploads stream to a temporary file in the data folder, with a size limit, a hash, and a `%PDF-` header check, then an inspection in the worker, before a rename into `originals/<random>.pdf`. The uploaded name is kept for display only. | The brief's file-handling rule: generated names, and paths from records only. |
-| Render worker | `python -I -m snug.rendering.worker`, with a clean environment (no `SNUG_*`), given the PDF as an open file descriptor, never a path, and returning results through a pipe, which Snug reads in bounded chunks: past 64 MB or the deadline, the worker's whole process group is killed. It limits itself to 1 GiB of memory (enforced on Linux), 60 s CPU, 64 MB output and 32 open files, then confines itself with Linux Landlock: no filesystem access except reading system fonts, and no network (Landlock ABI 4, Linux 6.7, or later). Timeouts are 60 s to inspect and 30 s to render. At most 2,000 pages; renders capped at 6.4 megapixels and 8,000 px a side. Snug's own processes (gunicorn and the `snug` command) mark themselves non-dumpable, so a compromised worker cannot read their `/proc` entries or environment. **Still to do (step 7):** run the worker as a separate, unprivileged user in the container, and have `snug doctor` report the confinement level. | A malformed or hostile PDF cannot take the server down. Even if it took over PDFium, it could not read the secret key, the database or other documents. Raised by an automated security review of step 2a. |
+| Render worker | `python -I -m snug.rendering.worker`, with a clean environment (no `SNUG_*`), given the PDF as an open file descriptor, never a path, and returning results through a pipe, which Snug reads in bounded chunks: past 64 MB or the deadline, the worker's whole process group is killed. It limits itself to 1 GiB of memory (enforced on Linux), 60 s CPU, 64 MB output and 32 open files, then confines itself with Linux Landlock: no filesystem access except reading system fonts, and no network (Landlock ABI 4, Linux 6.7, or later). Timeouts are 60 s to inspect and 30 s to render. At most 2,000 pages; renders capped at 6.4 megapixels and 8,000 px a side. Snug's own processes (gunicorn and the `snug` command) mark themselves non-dumpable, so a compromised worker cannot read their `/proc` entries or environment. *Decided 5 November 2026:* the worker runs as the same user as Snug, relying on Landlock and the limits above, not a separate user: switching users would need Snug to hold the power to switch to any user, root included, which a compromised Snug could use. `snug doctor` reports the confinement level (step 7). | A malformed or hostile PDF cannot take the server down. Even if it took over PDFium, it could not read the secret key, the database or other documents. Raised by an automated security review of step 2a. |
 | Render cache | Plain pages per version, page and width (800 or 1,600 px), as WebP, in `renders/`. Watermarks are stamped per request in step 4. | One cached page serves every viewer, and the cache can be deleted and rebuilt. |
 | Audit log storage | Append-only, refused by the model, its queryset and SQLite triggers | Not even raw SQL from inside Snug can rewrite history. |
 | Admin invites | An emailed setup link: 256-bit token, stored as a hash, one live link per admin, working once for 72 hours. The invitee chooses a password and adds the authenticator in the browser, then sees their recovery codes once. *Decided 5 November 2026.* Without email, admins are created with `snug createadmin`. | No password ever travels by chat. 72 hours spans a weekend without leaving a forgotten invite open. |
@@ -44,7 +44,7 @@ Agreed on 5 November 2026 unless noted.
 | Backups | Litestream for SQLite; an rclone sidecar container for uploaded originals; both encrypted with a key only the founder holds | Litestream only replicates SQLite. Negroni never holds data, and the bucket provider should not be able to read it either. |
 | GeoIP | DB-IP IP to Country Lite (CC BY 4.0, checked 5 November 2026), downloaded at deploy time and refreshed monthly; attribution in the docs and the admin interface | Bundling it in the image would go stale. The monthly fetch is documented; it is not telemetry. |
 | `snug doctor` email check | Sends a code and asks the operator to type it back | Snug cannot read the operator's inbox. |
-| Periodic work | A small background loop inside `snug serve` (code expiry, cache clean-up) | The container has no cron. |
+| Periodic work | `snug housekeeping`, run every hour by a thread in gunicorn's master process, each time as a fresh process: it deletes reading data past its retention period (audited as `system.reading_data_deleted`), and expired codes, viewer sessions, setup links and rate-limit windows. It reports counts only. | The container has no cron. A fresh process keeps the master free of Django, and a failure there never touches the processes serving requests. |
 | Coverage | A floor enforced in CI; no Codecov for now | One fewer third-party service and token. |
 | CI actions | Every third-party action pinned to a commit SHA, kept current by Dependabot | Supply-chain hardening. |
 | Changelog | A plain `CHANGELOG.md` with an `[Unreleased]` section | Vera's `changelog.d/` fragments solve a throughput problem we do not have. |
@@ -257,7 +257,7 @@ The founder's logo at the top left, and nothing competing with the document. It 
 4. **Playwright in CI.** *Decided 5 November 2026:* yes, from step 4.
 5. **A privacy notice for viewers.** Under UK GDPR the founder is the controller of investors' personal data: email address, IP address and reading behaviour. *Decided 5 November 2026:* the short statement shown in the mockup, plus an optional link to the founder's own privacy policy, set in Settings.
 6. **The logo and forks.** *Decided 5 November 2026:* the logo files stay under MIT with the code, and a short `TRADEMARKS.md` asks that forks distributed as their own product use a different name and icon.
-7. **How long to keep reading data.** Visits and time per page are kept for as long as the link exists, and deleted with it. The brief does not say whether founders should be able to set a shorter period, or whether Snug should delete reading data on its own after some time. *Open.*
+7. **How long to keep reading data.** *Decided 5 November 2026:* visits and time per page are deleted automatically a set number of months after their link is revoked or expires: 12 by default, set in Settings from 1 to 120 (some sectors, such as healthcare, need seven years). While a link works, its reading data is kept. The link and the audit log stay.
 
 ### 3.14 Logo
 
@@ -292,6 +292,22 @@ The Snug icon is a **half-glazed snug door**, chosen on 5 November 2026 from eig
 ## 4. Order of work
 
 As the brief, with step 0 added: repository guard rails, then branch protection. Each step lands as small pull requests that leave CI green.
+
+Steps 0 to 6 are done. What remains, including commitments made along the way that must not be lost:
+
+**Step 7: deployment.**
+- The container image, for amd64 and arm64, published to `ghcr.io/negroni-venture-studios/snug`: `:edge` on every merge to `main`, and `:x.y.z` and `:latest` on a version tag (decided 5 November 2026).
+- Docker Compose with Snug, Caddy and Litestream; an rclone sidecar for uploaded originals; backups encrypted with an age key generated during setup, which the founder must store (decided 5 November 2026).
+- cloud-init for a fresh Ubuntu LTS droplet.
+- `snug doctor`, checking DNS, TLS, email (send a code, type it back), the latest backup, the render worker's confinement level (Landlock), and housekeeping: it warns when `snug housekeeping` has not completed successfully in the last three hours. Housekeeping must record when it last succeeded for this.
+- The admin Overview's status line shows any problem `snug doctor` would report, including failing housekeeping, so a founder sees it without running a command.
+- `snug restore`, documented and tested.
+
+**Step 8.** UK-only mode, per link or per room (`authorise()` check 4), with DB-IP attribution; first-open email notifications to admins.
+
+**Step 9.** README, `docs/deploy-digitalocean.md`, `docs/security.md` (including what watermarks, the NDA record and UK-only mode do not protect against), then a full deployment to a test droplet from the guide alone, using a wildcard DNS name such as `sslip.io` rather than a bought domain, and a restore onto a second fresh droplet. Both droplets are destroyed afterwards.
+
+**After the build.** Take the held Dependabot updates (#2 and #3).
 
 ## 5. After version 1 (*proposed*)
 

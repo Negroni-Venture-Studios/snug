@@ -10,6 +10,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- Reading data is deleted automatically 12 months after its link is revoked or expires, a period you can change in Settings (from 1 to 120 months). `snug housekeeping`, which the server runs every hour, does it, and also clears expired codes, sessions, setup links and rate-limit counts.
+
 - An Audit log tab: every admin and viewer event, newest first, filtered by kind or by email address, 100 to a page, with a CSV export of the same selection. Cells a spreadsheet would run as a formula are defused, and every export is itself recorded.
 - The NDA: one agreement for the instance, written in Settings and versioned. A room, or a link to a single document, can ask for it before anything is shown. The viewer gives their name and ticks to accept; Snug records the name, email, link, time, IP address, browser and a fingerprint of the exact text, and asks again when the agreement changes. `docs/nda.md` says plainly that this is a record of acceptance, not a signature.
 

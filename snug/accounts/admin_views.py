@@ -16,6 +16,7 @@ from django.views.decorators.http import require_http_methods, require_POST, req
 
 from snug.accounts import limits, setup, totp
 from snug.accounts.models import Admin, AdminSetup
+from snug.analytics import retention
 from snug.audit.models import AuditEvent, record
 from snug.core import mail, ratelimit
 from snug.core.client import client_ip, user_agent
@@ -61,6 +62,7 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
             (k for k in ("invited", "removed", "reset", "saved") if request.GET.get(k) == "1"), ""
         ),
         "privacy_url": SiteSettings.load().privacy_url,
+        "retention_months": SiteSettings.load().reading_retention_months,
         "nda": nda_terms.current(),
         "nda_history": NdaVersion.objects.select_related("created_by")[:10],
         "values": {"email": ""},
@@ -164,6 +166,24 @@ def privacy_view(request: HttpRequest) -> HttpResponse:
         row.save(update_fields=["privacy_url"])
         _audit(request, "settings.privacy_link_changed", _admin(request).email, "", url=url)
     return redirect("/admin/settings/?saved=1")
+
+
+@never_cache
+@login_required
+@require_POST
+def retention_view(request: HttpRequest) -> HttpResponse:
+    """How many months reading data is kept after its link ends."""
+    raw = request.POST.get("months", "").strip()
+    if not raw.isdecimal() or not 1 <= int(raw) <= retention.MAX_MONTHS:
+        error = f"Enter a whole number of months, from 1 to {retention.MAX_MONTHS}."
+        return _settings_page(request, status=400, retention_error=error, retention_months=raw[:10])
+    row = SiteSettings.load()
+    months = int(raw)
+    if row.reading_retention_months != months:
+        row.reading_retention_months = months
+        row.save(update_fields=["reading_retention_months"])
+        _audit(request, "settings.retention_changed", _admin(request).email, "", months=months)
+    return redirect("/admin/settings/?saved=1#privacy")
 
 
 # ---------------------------------------------------------------- the NDA

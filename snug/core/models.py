@@ -27,6 +27,9 @@ class SiteSettings(models.Model):
     # A link to the founder's own privacy policy, shown to viewers (UK GDPR:
     # the founder is the controller of viewers' data). Only plain https URLs.
     privacy_url = models.URLField(max_length=500, blank=True)
+    # How long reading data (visits, time per page) is kept after its link is
+    # revoked or expires. 12 months by default; some founders need 7 years.
+    reading_retention_months = models.PositiveSmallIntegerField(default=12)
 
     class Meta:
         verbose_name_plural = "site settings"
