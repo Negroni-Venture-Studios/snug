@@ -1,0 +1,9 @@
+{% autoescape off %}{{ by }} has invited you to be an admin of {{ company|default:"a Snug data room" }}.
+
+Set up your account here:
+{{ url }}
+
+The link works once, for {{ hours }} hours. You will choose a password and add Snug to an authenticator app, such as 1Password, Google Authenticator or Authy.
+
+If you were not expecting this, you can ignore this email. Reply to reach {{ by }}.
+{% endautoescape %}

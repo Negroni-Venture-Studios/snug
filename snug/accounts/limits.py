@@ -20,3 +20,10 @@ RECOVERY_PER_ADMIN = Limit("login.recovery.admin", limit=5, window=WINDOW)
 
 # Wrong codes allowed after one correct password, before starting again.
 CODE_FAILURES_PER_PASSWORD = 5
+
+# Confirming an admin change (invite, remove, reset) with a fresh code.
+CONFIRM_PER_ADMIN = Limit("admin.confirm.admin", limit=10, window=WINDOW)
+
+# Submitting the setup page, from one address. Each submission may hash a
+# password, which is deliberately slow.
+SETUP_PER_IP = Limit("admin.setup.ip", limit=20, window=WINDOW)

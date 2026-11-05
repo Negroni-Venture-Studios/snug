@@ -1,0 +1,35 @@
+{% extends "snug/admin_base.html" %}
+{% load snug %}
+{% block title %}Snug settings{% endblock %}
+{% block content %}
+<div class="title-row"><div><h1 class="page-title">Settings</h1></div></div>
+<div class="section">
+<div class="section-head"><h2>Admins</h2><p>Every admin has the same rights, and every admin is emailed when one is invited.</p></div>
+<div class="rows admin-rows">
+  {% for row in admins %}
+  <div class="item">
+    <div class="who"><span class="email">{{ row.account.email }}</span>{% if row.account == request.user %}<span class="note">You</span>{% endif %}</div>
+    {% if row.account.is_active %}<span class="status status-ok">Active</span>{% elif row.setup %}<span class="status status-warn">Invited</span>{% else %}<span class="status status-off">Invite expired</span>{% endif %}
+    <span class="r muted num">{% if row.setup and not row.account.is_active %}Link works until {{ row.setup.expires_at|date:"j M, H:i" }}{% else %}Added {{ row.account.created_at|date:"j M Y" }}{% endif %}</span>
+  </div>
+  {% endfor %}
+</div>
+</div>
+
+<div class="section">
+<div class="section-head"><h2>Invite an admin</h2></div>
+{% if email_enabled %}
+<form class="panel form invite" method="post" action="{% url 'accounts:invite' %}" novalidate>
+  {% csrf_token %}
+  {% if invited %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Invite sent. The link works for 72 hours.</span></div>{% endif %}
+  <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="off" required value="{{ values.email }}"{% if invite_error %} aria-invalid="true" aria-describedby="email-error"{% endif %}>
+    {% if invite_error %}<div class="error" id="email-error" role="alert">{% icon "warning-circle" %}{{ invite_error }}</div>{% endif %}</div>
+  <div class="field"><label for="code">Code from your authenticator app</label><input id="code" name="code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required{% if code_error %} aria-invalid="true" aria-describedby="code-error"{% endif %}>
+    {% if code_error %}<div class="error" id="code-error" role="alert">{% icon "warning-circle" %}{{ code_error }}</div>{% else %}<div class="hint">Asked for every change to the admins, so nobody at an unlocked computer can add themselves.</div>{% endif %}</div>
+  <button class="btn btn-primary" type="submit">Send invite</button>
+</form>
+{% else %}
+<div class="panel"><p>Inviting needs email. See <code>docs/email.md</code>, or create admins on the server with <code>snug createadmin</code>.</p></div>
+{% endif %}
+</div>
+{% endblock %}

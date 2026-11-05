@@ -6,6 +6,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- A Settings page listing the admins, and inviting new ones. An invite is an emailed link that works once, for 72 hours, where the new admin chooses a password and sets up their authenticator app. Inviting asks for a fresh code from your own authenticator, and every admin is emailed when someone is invited.
+
 - Links, in the admin interface:
   - a link for one person to one document, with an optional note, an expiry date, and choices for verification and downloads. Downloads are on by default, and can be turned off for a link that must be view-only;
   - emailed to the recipient, or shown once to copy and send yourself, with a copy button;
