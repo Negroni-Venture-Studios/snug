@@ -63,7 +63,10 @@ def test_there_is_no_link_until_one_is_set() -> None:
 
 def test_setting_the_link_shows_it_to_viewers(client: Client) -> None:
     response = save(client, f"  {POLICY}  ")
-    assert response.status_code == 302 and response["Location"] == "/admin/settings/?saved=1"
+    assert (
+        response.status_code == 302
+        and response["Location"] == "/admin/settings/?saved=privacy#privacy"
+    )
     assert SiteSettings.load().privacy_url == POLICY
     page = viewer_page()
     assert f'href="{POLICY}"' in page and 'rel="noopener noreferrer"' in page

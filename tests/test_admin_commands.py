@@ -1,6 +1,8 @@
 """`snug createadmin` and `snug reset-2fa`, driven through a scripted terminal."""
 
+import time
 from collections.abc import Callable, Iterator
+from datetime import UTC, datetime
 from io import StringIO
 
 import pyotp
@@ -45,8 +47,15 @@ def terminal(monkeypatch: pytest.MonkeyPatch) -> Iterator[Terminal]:
     yield Terminal(monkeypatch)
 
 
+CODE_STEPS: list[int] = []
+
+
 def live_code() -> str:
-    return pyotp.TOTP(SECRET).now()
+    """A code from the app as it is typed, remembering which 30-second step it is from."""
+    totp = pyotp.TOTP(SECRET)
+    now = datetime.fromtimestamp(time.time(), tz=UTC)
+    CODE_STEPS.append(totp.timecode(now))
+    return totp.at(now)
 
 
 def run(command: str, *args: str) -> str:
@@ -68,7 +77,9 @@ def test_createadmin_creates_an_active_admin(terminal: Terminal) -> None:
     assert admin.is_active
     assert admin.totp_secret == SECRET
     assert admin.totp_confirmed_at is not None
-    assert admin.totp_last_step == pyotp.TOTP(SECRET).timecode(admin.totp_confirmed_at)
+    # The confirming code's own step, not the moment the account was saved:
+    # the argon2 hash between them can cross a 30-second boundary.
+    assert admin.totp_last_step == CODE_STEPS[-1]
     assert admin.password.startswith("argon2$argon2id$")
     assert check_password(PASSWORD, admin.password)
     assert PASSWORD not in output

@@ -201,3 +201,11 @@ def test_a_failed_run_never_stops_housekeeping(
     assert len(calls) == 3  # it kept going after a timeout and a failure
     assert "Housekeeping failed: TimeoutExpired" in caplog.text
     assert "Housekeeping failed: exit status 1" in caplog.text
+
+
+def test_saving_the_period_says_so_beside_it(client: Client) -> None:
+    page = client.post(
+        "/admin/settings/retention", {"months": "24"}, secure=True, follow=True
+    ).content.decode()
+    form = page[page.index('action="/admin/settings/retention"') :]
+    assert "Saved. Reading data is kept for 24 months" in form

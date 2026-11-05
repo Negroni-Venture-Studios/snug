@@ -261,3 +261,22 @@ def test_a_room_can_require_the_nda_only_once_there_is_one(document: Document) -
     browser.post(f"/admin/rooms/{room.token}/nda", {"require_nda": "on"}, secure=True)
     assert Room.objects.get(pk=room.pk).require_nda
     assert AuditEvent.objects.filter(action="room.nda_required").exists()
+
+
+def test_without_an_nda_the_option_is_disabled_and_says_where_to_write_one(
+    document: Document,
+) -> None:
+    browser = admin_client()
+    page = browser.get(f"/admin/links/for/{document.token}", secure=True).content.decode()
+    assert 'name="require_nda" disabled' in page
+    assert 'href="/admin/settings/#nda">Settings</a>' in page
+
+
+def test_saving_the_nda_says_so_in_its_own_section() -> None:
+    browser = admin_client()
+    response = browser.post("/admin/settings/nda", {"text": TEXT}, secure=True, follow=True)
+    page = response.content.decode()
+    nda_section = page[page.index('id="nda"') : page.index('id="privacy"')]
+    assert "Saved as version 1" in nda_section
+    privacy_section = page[page.index('id="privacy"') :]
+    assert "Saved." not in privacy_section  # each section confirms only its own save
