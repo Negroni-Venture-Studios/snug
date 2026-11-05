@@ -25,7 +25,7 @@ This code of conduct applies in all project spaces: issues, pull requests, discu
 
 ## Enforcement
 
-Report unacceptable behaviour to the project maintainer at **alasdair@babilim.co.uk**. Every complaint will be reviewed and investigated, and will receive a response appropriate to the circumstances.
+Report unacceptable behaviour to the project maintainer at **alasdair@negroniventurestudios.com**. Every complaint will be reviewed and investigated, and will receive a response appropriate to the circumstances.
 
 ## Attribution
 
