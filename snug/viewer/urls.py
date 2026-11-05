@@ -17,4 +17,5 @@ urlpatterns = [
     path("<str:token>/open", views.open_link, name="open"),
     path("<str:token>/pages/<int:page>-<int:width>.webp", views.page_image, name="page"),
     path("<str:token>/download", views.download, name="download"),
+    path("<str:token>/beat", views.beat, name="beat"),
 ]

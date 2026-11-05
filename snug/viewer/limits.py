@@ -25,5 +25,9 @@ CHECK_PER_IP = Limit("viewer.check.ip", limit=30, window=WINDOW)
 # Downloads of one link's document. Each one stamps the whole PDF in a worker.
 DOWNLOAD_PER_LINK = Limit("viewer.download.link", limit=30, window=60 * 60)
 
+# Reader heartbeats, from one address: one every 15 seconds per open tab is
+# about 60 in 15 minutes, so this allows ten tabs at once.
+BEAT_PER_IP = Limit("viewer.beat.ip", limit=600, window=WINDOW)
+
 # Opening a link that needs no verification, from one address.
 OPEN_PER_IP = Limit("viewer.open.ip", limit=30, window=WINDOW)

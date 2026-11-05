@@ -25,6 +25,7 @@ from django.utils.http import content_disposition_header
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
+from snug.analytics import reading
 from snug.audit.models import AuditEvent, record
 from snug.core import mail, ratelimit
 from snug.core.client import client_ip, user_agent
@@ -240,7 +241,19 @@ def entry(request: HttpRequest, access: Access, token: str) -> HttpResponse:
         url = reverse("viewer:page", kwargs={"token": token, "page": page, "width": width})
         return str(url)
 
+    visit, new = reading.page_shown(access, version, number)
+    if new:
+        _audit(
+            request,
+            "viewer.document_viewed",
+            access.link,
+            access.session.email,
+            version=version.number,
+        )
     context.update(
+        visit=visit.token,
+        beat_url=reverse("viewer:beat", kwargs={"token": token}),
+        beat_seconds=reading.BEAT_SECONDS,
         here=reverse("viewer:entry", kwargs={"token": token}),
         page=number,
         count=count,
@@ -281,6 +294,20 @@ def page_image(
     # Kept briefly, by this browser only. Revoking stops new pages at once.
     response["Cache-Control"] = "private, max-age=300"
     return response
+
+
+@require_POST
+@viewer_content()
+def beat(request: HttpRequest, access: Access, token: str) -> HttpResponse:
+    """A heartbeat from the reader while its tab is visible: see snug.analytics.reading."""
+    if not ratelimit.allow(limits.BEAT_PER_IP, _ip(request)):
+        return HttpResponse(status=429)
+    raw_page = request.POST.get("page", "")
+    if not raw_page.isdecimal() or not reading.heartbeat(
+        access, request.POST.get("visit", "")[:64], int(raw_page), request.POST.get("kind", "")
+    ):
+        return HttpResponse(status=400)
+    return HttpResponse(status=204)
 
 
 def _filename(title: str) -> str:
