@@ -1,0 +1,29 @@
+{% extends "viewer/base.html" %}
+{% load snug %}
+{% block title %}Your code for {{ document.title }}{% endblock %}
+{% block main %}
+<div class="gate-grid">
+  <div class="gate">
+    <h1>Check your email</h1>
+    <p class="lede">We sent a six-digit code to {% if shown %}{{ shown }}{% else %}your email address{% endif %}. It works for 10 minutes.</p>
+    {% if not spent %}
+    <form class="form" method="post" action="{% url 'viewer:verify_code' token=token %}" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="email" value="{{ shown }}">
+      <div class="field"><label for="code">Six-digit code</label>
+        <input id="code" name="code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="9" required autofocus{% if error %} aria-invalid="true" aria-describedby="code-error"{% endif %}>
+        {% if error %}<div class="error" id="code-error" role="alert">{% icon "warning-circle" %}{{ error }}</div>{% endif %}</div>
+      <button class="btn btn-brand" type="submit">Continue</button>
+    </form>
+    {% else %}
+    <div class="field"><div class="error" role="alert">{% icon "warning-circle" %}{{ error }}</div></div>
+    {% endif %}
+    <form class="form resend" method="post" action="{% url 'viewer:send_code' token=token %}">
+      {% csrf_token %}
+      <input type="hidden" name="email" value="{{ shown }}">
+      <p class="small">{% if spent %}<button class="btn" type="submit">Send a new code</button>{% else %}Nothing arrived? Check your spam folder, or <button class="linkish" type="submit">send a new code</button>.{% endif %}</p>
+    </form>
+  </div>
+  {% include "viewer/_about.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+"""Rate limits for the viewer's gate. Windows are 15 minutes unless noted.
+
+The daily cap on code checks per link lives in snug.viewer.codes, so that no
+page can skip it.
+"""
+
+from snug.core.ratelimit import Limit
+
+WINDOW = 15 * 60
+
+# Asking for a code. Every attempt from an address counts, right or wrong.
+SEND_PER_IP = Limit("viewer.send.ip", limit=20, window=WINDOW)
+# Codes actually sent: per link, and to one inbox across every link.
+SEND_PER_LINK = Limit("viewer.send.link", limit=5, window=WINDOW)
+SEND_PER_EMAIL = Limit("viewer.send.email", limit=10, window=60 * 60)
+
+# Entering a code, from one address.
+CHECK_PER_IP = Limit("viewer.check.ip", limit=30, window=WINDOW)
+
+# Opening a link that needs no verification, from one address.
+OPEN_PER_IP = Limit("viewer.open.ip", limit=30, window=WINDOW)

@@ -7,7 +7,7 @@ full link is shown once, when it is created or reissued.
 
 import hashlib
 import secrets
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from django.conf import settings
 from django.db import models
@@ -72,6 +72,17 @@ class Link(models.Model):
 
     def is_active(self, now: datetime | None = None) -> bool:
         return not self.is_revoked() and not self.is_expired(now)
+
+    @property
+    def last_day(self) -> date | None:
+        """The last day the link works, in the instance's time zone.
+
+        An expiry is stored as midnight at the start of the next day, so the
+        date to show people is the day before that moment.
+        """
+        if self.expires_at is None:
+            return None
+        return timezone.localtime(self.expires_at - timedelta(microseconds=1)).date()
 
     @property
     def status(self) -> str:

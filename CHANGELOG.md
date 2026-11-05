@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Fixed
+
+- Link expiry dates are shown as the last day the link works. The links list and the link email showed the day after.
+
 ### Added
 
 - Links, in the admin interface:
@@ -13,7 +17,13 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
   - revoking a link, and replacing it with a new one, which stops the old address working at once.
 
   Link tokens are stored only as hashes, so a copy of the database cannot be used to open them. Every link action is recorded in the audit log.
-- `SNUG_VIEWER_SESSION_DAYS`, how long a viewer stays verified on a link (7 days by default). The viewer pages that use it follow shortly.
+- The viewer's first pages, at each link's address:
+  - a landing page naming the document, with an *About this link* panel;
+  - for links that need verification, an emailed six-digit code, with clear messages for a wrong address, a wrong code and tries left;
+  - for links that do not, a single *Open* button, so an email scanner visiting the link starts nothing;
+  - one page for unknown, expired and revoked links alike.
+
+  Code requests and checks are rate limited per address, per link and per inbox, and every step is recorded in the audit log. `SNUG_VIEWER_SESSION_DAYS` sets how long a viewer stays verified (7 days by default). The reader arrives in step 4.
 - Email through any SMTP provider, configured with `SNUG_COMPANY_NAME`, `SNUG_EMAIL_FROM` and the `SNUG_SMTP_*` settings. `docs/email.md` covers the provider, the SPF, DKIM and DMARC records, and DigitalOcean's blocked SMTP ports. On `localhost`, emails are written to an outbox folder instead.
 
 - A Documents section in the admin interface:
