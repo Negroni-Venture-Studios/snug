@@ -44,7 +44,7 @@ Agreed on 5 November 2026 unless noted.
 | Backups | Litestream for SQLite; an rclone sidecar container for uploaded originals; both encrypted with a key only the founder holds | Litestream only replicates SQLite. Negroni never holds data, and the bucket provider should not be able to read it either. |
 | GeoIP | DB-IP IP to Country Lite (CC BY 4.0, checked 5 November 2026), downloaded at deploy time and refreshed monthly; attribution in the docs and the admin interface | Bundling it in the image would go stale. The monthly fetch is documented; it is not telemetry. |
 | `snug doctor` email check | Sends a code and asks the operator to type it back | Snug cannot read the operator's inbox. |
-| Periodic work | A small background loop inside `snug serve` (code expiry, cache clean-up) | The container has no cron. |
+| Periodic work | `snug housekeeping`, run every hour by a thread in gunicorn's master process, each time as a fresh process: it deletes reading data past its retention period (audited as `system.reading_data_deleted`), and expired codes, viewer sessions, setup links and rate-limit windows. It reports counts only. | The container has no cron. A fresh process keeps the master free of Django, and a failure there never touches the processes serving requests. |
 | Coverage | A floor enforced in CI; no Codecov for now | One fewer third-party service and token. |
 | CI actions | Every third-party action pinned to a commit SHA, kept current by Dependabot | Supply-chain hardening. |
 | Changelog | A plain `CHANGELOG.md` with an `[Unreleased]` section | Vera's `changelog.d/` fragments solve a throughput problem we do not have. |
@@ -257,7 +257,7 @@ The founder's logo at the top left, and nothing competing with the document. It 
 4. **Playwright in CI.** *Decided 5 November 2026:* yes, from step 4.
 5. **A privacy notice for viewers.** Under UK GDPR the founder is the controller of investors' personal data: email address, IP address and reading behaviour. *Decided 5 November 2026:* the short statement shown in the mockup, plus an optional link to the founder's own privacy policy, set in Settings.
 6. **The logo and forks.** *Decided 5 November 2026:* the logo files stay under MIT with the code, and a short `TRADEMARKS.md` asks that forks distributed as their own product use a different name and icon.
-7. **How long to keep reading data.** Visits and time per page are kept for as long as the link exists, and deleted with it. The brief does not say whether founders should be able to set a shorter period, or whether Snug should delete reading data on its own after some time. *Open.*
+7. **How long to keep reading data.** *Decided 5 November 2026:* visits and time per page are deleted automatically a set number of months after their link is revoked or expires: 12 by default, set in Settings from 1 to 120 (some sectors, such as healthcare, need seven years). While a link works, its reading data is kept. The link and the audit log stay.
 
 ### 3.14 Logo
 
