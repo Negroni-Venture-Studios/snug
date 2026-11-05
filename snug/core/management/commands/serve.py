@@ -22,6 +22,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser: ArgumentParser) -> None:
         parser.add_argument("--bind", default="0.0.0.0:8000", help="Address to listen on.")
         parser.add_argument("--workers", type=int, default=2, help="gunicorn worker processes.")
+        parser.add_argument("--threads", type=int, default=4, help="Threads in each worker.")
 
     def handle(self, *args: Any, **options: Any) -> None:
         data_dir = settings.CONFIG.data_dir
@@ -41,6 +42,14 @@ class Command(BaseCommand):
             options["bind"],
             "--workers",
             str(options["workers"]),
+            # Threaded workers park idle keep-alive connections, such as the
+            # spare sockets a browser opens in advance, instead of blocking on
+            # them. Sync workers each wait on one socket, and two idle ones
+            # stalled the server until gunicorn's timeout killed a worker.
+            "--worker-class",
+            "gthread",
+            "--threads",
+            str(options["threads"]),
             "--worker-tmp-dir",
             # Heartbeat files in memory, not on the container's disk.
             "/dev/shm" if Path("/dev/shm").is_dir() else "/tmp",  # noqa: S108
