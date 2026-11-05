@@ -1,0 +1,27 @@
+{% extends "snug/admin_base.html" %}
+{% load snug %}
+{% block title %}Snug rooms{% endblock %}
+{% block content %}
+<div class="title-row">
+  <div><h1 class="page-title">Rooms</h1><div class="page-meta">A room gathers documents, in folders if you like, to share with one link.</div></div>
+  {% if rooms %}<div class="actions"><a class="btn btn-primary" href="{% url 'rooms:new' %}">{% icon "plus" %}New room</a></div>{% endif %}
+</div>
+{% if rooms %}
+<div class="rows doc-rows">
+  {% for room in rooms %}
+  <div class="item">
+    <div class="who"><a class="email" href="{% url 'rooms:detail' room.token %}">{{ room.name }}</a></div>
+    <span class="muted num">{% with n=room.entries.all|length %}{{ n }} document{{ n|pluralize }}{% endwith %}</span>
+    <span class="muted num">{% with n=room.folders.all|length %}{% if n %}{{ n }} folder{{ n|pluralize }}{% endif %}{% endwith %}</span>
+    <span class="r muted num">{{ room.created_at|date:"j M Y" }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <h2>No rooms yet</h2>
+  <p>Create a room to share several documents with one link, such as everything for a funding round.</p>
+  <p class="empty-action"><a class="btn btn-primary" href="{% url 'rooms:new' %}">{% icon "plus" %}New room</a></p>
+</div>
+{% endif %}
+{% endblock %}
