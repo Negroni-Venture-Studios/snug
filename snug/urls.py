@@ -7,4 +7,5 @@ urlpatterns = [
     path("", RedirectView.as_view(pattern_name="core:overview", permanent=False)),
     path("admin/", include("snug.core.urls")),
     path("admin/", include("snug.accounts.urls")),
+    path("admin/documents/", include("snug.documents.urls")),
 ]

@@ -1,0 +1,6 @@
+{% extends "snug/auth_base.html" %}
+{% block title %}File too large{% endblock %}
+{% block card %}
+<h1>This file is too large</h1>
+<p class="lede">This instance accepts PDFs of up to {{ limit_mb }} MB. Go back and choose a smaller file, or export the PDF again with images compressed.</p>
+{% endblock %}

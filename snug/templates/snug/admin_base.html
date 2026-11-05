@@ -14,6 +14,7 @@
   </div>
   <nav class="tabs" aria-label="Sections">
     <a href="{% url 'core:overview' %}"{% if tab == "overview" %} aria-current="page"{% endif %}>Overview</a>
+    <a href="{% url 'documents:list' %}"{% if tab == "documents" %} aria-current="page"{% endif %}>Documents</a>
   </nav>
 </header>
 <main class="admin">
