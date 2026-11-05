@@ -17,7 +17,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from snug.accounts import recovery, totp
-from snug.accounts.models import Admin, AdminSetup
+from snug.accounts.models import Admin, AdminSetup, RecoveryCode
 from snug.core import mail
 
 SETUP_HOURS = 72
@@ -43,9 +43,13 @@ def find(token: str) -> AdminSetup | None:
     )
 
 
-def issue(admin: Admin, purpose: str, by: Admin | None) -> str:
+def new_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def issue(admin: Admin, purpose: str, by: Admin | None, token: str | None = None) -> str:
     """A new setup link for this admin, replacing any other. Returns the token, once."""
-    token = secrets.token_urlsafe(32)
+    token = token or new_token()
     with transaction.atomic():
         AdminSetup.objects.filter(admin=admin).delete()
         AdminSetup.objects.create(
@@ -111,6 +115,45 @@ def complete(row: AdminSetup, *, password: str | None, secret: str, step: int) -
         return recovery.issue(admin)
 
 
+def remove(target: Admin) -> bool:
+    """Remove an admin. Refuses, changing nothing, if no working admin would remain.
+
+    The check follows the delete in one transaction, so two admins removing
+    each other at the same moment cannot leave the instance with none.
+    """
+    with transaction.atomic():
+        Admin.objects.filter(pk=target.pk).delete()
+        if not Admin.objects.filter(is_active=True).exists():
+            transaction.set_rollback(True)
+            return False
+    return True
+
+
+def reset_second_factor(target: Admin, token: str, by: Admin) -> None:
+    """Clear an admin's authenticator and recovery codes, and give them a setup link.
+
+    Clearing the key also signs them out everywhere, because each session
+    holds a hash of it.
+    """
+    with transaction.atomic():
+        Admin.objects.filter(pk=target.pk).update(
+            totp_secret="", totp_confirmed_at=None, totp_last_step=0
+        )
+        RecoveryCode.objects.filter(admin=target).delete()
+        issue(target, AdminSetup.Purpose.RESET, by, token=token)
+
+
+def send_reset(admin: Admin, token: str, by: Admin) -> bool:
+    context = {"by": by.email, "url": setup_url(token), "hours": SETUP_HOURS}
+    return mail.send(
+        to=admin.email,
+        subject="Set up your authenticator for Snug again",
+        text=render_to_string("accounts/email/reset.txt", context),
+        html=render_to_string("accounts/email/reset.html", context),
+        reply_to=by.email,
+    )
+
+
 def send_invite(admin: Admin, token: str, by: Admin) -> bool:
     company = settings.CONFIG.company_name
     context = {
@@ -128,11 +171,17 @@ def send_invite(admin: Admin, token: str, by: Admin) -> bool:
     )
 
 
-def alert_admins(*, subject: str, what: str) -> None:
-    """Tell every working admin about a change to the admins. Best effort."""
+def alert_admins(*, subject: str, what: str, also: str = "") -> None:
+    """Tell every working admin about a change to the admins. Best effort.
+
+    `also` adds one more address, such as an admin who has just been removed.
+    """
     company = settings.CONFIG.company_name
     context = {"what": what, "company": company, "origin": settings.CONFIG.origin}
     text = render_to_string("accounts/email/alert.txt", context)
     html = render_to_string("accounts/email/alert.html", context)
-    for email in Admin.objects.filter(is_active=True).values_list("email", flat=True):
+    recipients = set(Admin.objects.filter(is_active=True).values_list("email", flat=True))
+    if also:
+        recipients.add(also)
+    for email in sorted(recipients):
         mail.send(to=email, subject=f"{company or 'Snug'}: {subject}", text=text, html=html)

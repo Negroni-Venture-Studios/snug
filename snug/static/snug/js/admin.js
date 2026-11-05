@@ -2,6 +2,13 @@
 'use strict';
 
 (function () {
+  // On a narrow screen the tabs scroll sideways. Start with the current one
+  // in view, so the page says where you are.
+  var current = document.querySelector('nav.tabs [aria-current="page"]');
+  if (current && current.parentElement.scrollWidth > current.parentElement.clientWidth) {
+    current.parentElement.scrollLeft = current.offsetLeft - current.parentElement.offsetLeft - 16;
+  }
+
   // Copy buttons: <button data-copy="element-id"><span class="label">Copy</span></button>.
   // If the browser will not let the page write to the clipboard, the text is
   // selected instead, so it can be copied by hand. It never fails silently.

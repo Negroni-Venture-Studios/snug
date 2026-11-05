@@ -9,7 +9,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
@@ -54,7 +54,7 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
         "tab": "settings",
         "admins": admins,
         "email_enabled": mail.enabled(),
-        "invited": request.GET.get("invited") == "1",
+        "done": next((k for k in ("invited", "removed", "reset") if request.GET.get(k) == "1"), ""),
         "values": {"email": ""},
         **extra,
     }
@@ -114,12 +114,109 @@ def invite_view(request: HttpRequest) -> HttpResponse:
     _audit(request, "admin.invited", by.email, email)
     setup.alert_admins(
         subject=f"{email} was invited as an admin",
-        what=(
-            f"{by.email} invited {email} to be an admin, "
-            f"at {timezone.localtime():%H:%M on %d %B %Y}."
-        ),
+        what=(f"{by.email} invited {email} to be an admin, at {_now()}."),
     )
     return redirect("/admin/settings/?invited=1")
+
+
+# ---------------------------------------------------------------- removing and resetting
+
+
+def _now() -> str:
+    return f"{timezone.localtime():%H:%M on %d %B %Y}"
+
+
+def _change_page(
+    request: HttpRequest, target: Admin, action: str, *, error: str = "", status: int = 200
+) -> HttpResponse:
+    context = {"tab": "settings", "target": target, "action": action, "error": error}
+    return render(request, "accounts/confirm.html", context, status=status)
+
+
+def _target(request: HttpRequest) -> Admin:
+    source = request.POST if request.method == "POST" else request.GET
+    email = Admin.objects.normalize_email(source.get("email", ""))[:254]
+    return get_object_or_404(Admin, email=email)
+
+
+def _refused(request: HttpRequest, target: Admin, action: str) -> HttpResponse | None:
+    refused = _confirmed(request, action)
+    if refused is None:
+        return None
+    status = 429 if refused == TOO_MANY else 400
+    return _change_page(request, target, action, error=refused, status=status)
+
+
+@never_cache
+@login_required
+@require_http_methods(["GET", "POST"])
+def remove_view(request: HttpRequest) -> HttpResponse:
+    by = _admin(request)
+    target = _target(request)
+    if request.method == "GET":
+        return _change_page(request, target, "remove")
+    if target == by:
+        error = "You cannot remove yourself. Ask another admin to remove you."
+        return _change_page(request, target, "remove", error=error, status=400)
+    refused = _refused(request, target, "remove")
+    if refused:
+        return refused
+
+    email = target.email
+    if not setup.remove(target):
+        error = "That would leave no admins. The last admin cannot be removed."
+        return _change_page(request, target, "remove", error=error, status=400)
+    _audit(request, "admin.removed", by.email, email)
+    setup.alert_admins(
+        subject=f"{email} was removed as an admin",
+        what=f"{by.email} removed {email} as an admin, at {_now()}.",
+        also=email,
+    )
+    return redirect("/admin/settings/?removed=1")
+
+
+@never_cache
+@login_required
+@require_http_methods(["GET", "POST"])
+def reset_view(request: HttpRequest) -> HttpResponse:
+    by = _admin(request)
+    target = _target(request)
+    if request.method == "GET":
+        return _change_page(request, target, "reset")
+    if target == by:
+        error = (
+            "To replace your own authenticator, sign in with a recovery code, "
+            "or ask another admin to reset it."
+        )
+        return _change_page(request, target, "reset", error=error, status=400)
+    if target.totp_confirmed_at is None:
+        error = f"{target.email} has not finished setting up. Invite them again instead."
+        return _change_page(request, target, "reset", error=error, status=400)
+    if not mail.enabled():
+        error = (
+            "Resetting needs email, to send them a setup link. On the server, use snug reset-2fa."
+        )
+        return _change_page(request, target, "reset", error=error, status=503)
+    refused = _refused(request, target, "reset")
+    if refused:
+        return refused
+
+    # Send first: if the email fails, nothing changes, rather than leaving
+    # them with no authenticator and no way to set up a new one.
+    token = setup.new_token()
+    if not setup.send_reset(target, token, by):
+        error = "The email could not be sent, so nothing has changed. Try again."
+        return _change_page(request, target, "reset", error=error, status=503)
+    setup.reset_second_factor(target, token, by)
+    _audit(request, "admin.second_factor_reset", by.email, target.email)
+    setup.alert_admins(
+        subject=f"The second factor for {target.email} was reset",
+        what=(
+            f"{by.email} reset the second factor for {target.email}, at {_now()}. "
+            f"They have been emailed a link to set up their authenticator again."
+        ),
+    )
+    return redirect("/admin/settings/?reset=1")
 
 
 # ---------------------------------------------------------------- setup

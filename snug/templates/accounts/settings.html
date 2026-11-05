@@ -4,13 +4,15 @@
 {% block content %}
 <div class="title-row"><div><h1 class="page-title">Settings</h1></div></div>
 <div class="section">
-<div class="section-head"><h2>Admins</h2><p>Every admin has the same rights, and every admin is emailed when one is invited.</p></div>
+<div class="section-head"><h2>Admins</h2><p>Every admin has the same rights, and every admin is emailed about any change.</p></div>
+{% if done == "removed" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Removed. Every admin has been emailed.</span></div>{% elif done == "reset" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Second factor reset. They have been emailed a link to set it up again.</span></div>{% endif %}
 <div class="rows admin-rows">
   {% for row in admins %}
   <div class="item">
     <div class="who"><span class="email">{{ row.account.email }}</span>{% if row.account == request.user %}<span class="note">You</span>{% endif %}</div>
-    {% if row.account.is_active %}<span class="status status-ok">Active</span>{% elif row.setup %}<span class="status status-warn">Invited</span>{% else %}<span class="status status-off">Invite expired</span>{% endif %}
-    <span class="r muted num">{% if row.setup and not row.account.is_active %}Link works until {{ row.setup.expires_at|date:"j M, H:i" }}{% else %}Added {{ row.account.created_at|date:"j M Y" }}{% endif %}</span>
+    {% if row.account.is_active and row.account.totp_confirmed_at %}<span class="status status-ok">Active</span>{% elif row.account.is_active %}<span class="status status-warn">Resetting</span>{% elif row.setup %}<span class="status status-warn">Invited</span>{% else %}<span class="status status-off">Invite expired</span>{% endif %}
+    <span class="r muted num">{% if row.setup %}Link works until {{ row.setup.expires_at|date:"j M, H:i" }}{% else %}Added {{ row.account.created_at|date:"j M Y" }}{% endif %}</span>
+    <span class="r link-actions">{% if row.account != request.user %}{% if row.account.totp_confirmed_at %}<a class="btn btn-quiet" href="{% url 'accounts:reset' %}?email={{ row.account.email|urlencode:'@' }}">Reset second factor</a>{% endif %}<a class="btn btn-quiet btn-danger" href="{% url 'accounts:remove' %}?email={{ row.account.email|urlencode:'@' }}">{% if row.account.is_active %}Remove{% else %}Cancel invite{% endif %}</a>{% endif %}</span>
   </div>
   {% endfor %}
 </div>
@@ -21,7 +23,7 @@
 {% if email_enabled %}
 <form class="panel form invite" method="post" action="{% url 'accounts:invite' %}" novalidate>
   {% csrf_token %}
-  {% if invited %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Invite sent. The link works for 72 hours.</span></div>{% endif %}
+  {% if done == "invited" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Invite sent. The link works for 72 hours.</span></div>{% endif %}
   <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="off" required value="{{ values.email }}"{% if invite_error %} aria-invalid="true" aria-describedby="email-error"{% endif %}>
     {% if invite_error %}<div class="error" id="email-error" role="alert">{% icon "warning-circle" %}{{ invite_error }}</div>{% endif %}</div>
   <div class="field"><label for="code">Code from your authenticator app</label><input id="code" name="code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required{% if code_error %} aria-invalid="true" aria-describedby="code-error"{% endif %}>

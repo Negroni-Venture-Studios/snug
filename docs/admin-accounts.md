@@ -32,6 +32,18 @@ The link takes them to a page where they choose a password, scan a QR code with 
 
 Inviting needs email. Without it, create each admin on the server with `snug createadmin`, as above.
 
+## Removing an admin
+
+In **Settings**, choose **Remove** beside the admin, then enter a fresh code from your authenticator. They are signed out at once and can no longer sign in. The links and documents they created stay. Every admin, and the person removed, is emailed.
+
+You cannot remove yourself, and Snug never lets the last admin be removed. For a pending invite, the same button reads **Cancel invite**.
+
+## Resetting another admin's second factor
+
+If another admin has lost their phone and their recovery codes, choose **Reset second factor** beside them in **Settings**, and enter a fresh code from your own authenticator. Their old authenticator and recovery codes stop working at once, and they are signed out everywhere. They are emailed a link, which works for 72 hours, to set up their authenticator again. Their password does not change. Every admin is emailed.
+
+To replace your own authenticator, sign in with a recovery code, or ask another admin.
+
 ## Signing in
 
 Go to `/admin/` on your Snug domain. Enter your email address and password, then the six-digit code from your app. The code must follow within five minutes of the password.
