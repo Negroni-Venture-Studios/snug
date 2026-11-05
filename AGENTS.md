@@ -88,3 +88,5 @@ Write the test that proves the change, and confirm it fails for the reason you e
 ### Versions
 
 Pin new dependencies, tools and GitHub Actions to releases at least two weeks old. Pin Actions by commit SHA, with the version in a comment.
+
+The exception is a **security release from an upstream we already depend on**, such as a Django patch release that fixes a CVE. Take it at once, and say so in the pull request.

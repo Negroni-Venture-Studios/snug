@@ -18,9 +18,15 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Topic :: Office/Business",
 ]
-# Runtime dependencies arrive with step 1 (Django, argon2-cffi, pyotp, segno,
-# gunicorn, whitenoise). Ask before adding one: see CONTRIBUTING.md.
-dependencies = []
+# Ask before adding a dependency: see CONTRIBUTING.md and DESIGN.md section 2.
+dependencies = [
+    "django>=6.1.3,<6.2",
+    "gunicorn>=26.2,<27",
+    "whitenoise>=6.12,<7",
+]
+
+[project.scripts]
+snug = "snug.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/Negroni-Venture-Studios/snug"
@@ -29,12 +35,14 @@ Changelog = "https://github.com/Negroni-Venture-Studios/snug/blob/main/CHANGELOG
 
 [dependency-groups]
 dev = [
+    "django-stubs>=6.1.2,<6.2",
     "mypy>=2.4",
     "pip-audit>=2.10",
     "pip-licenses>=5.5",
     "pre-commit>=4.7",
     "pytest>=9.2",
     "pytest-cov>=7.1",
+    "pytest-django>=4.14,<5",
     "ruff>=0.17",
 ]
 
@@ -65,9 +73,13 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]   # assert is how pytest tests
+"tests/**" = ["S101", "S603"]  # assert is how pytest tests; tests run fixed commands
 "scripts/**" = ["S603"] # scripts run fixed, trusted commands
 "docs/design/**" = ["E501", "S101"]  # design mockup generators: long SVG paths, build-time asserts
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"django.contrib.admin".msg = "Snug does not use the Django admin: it would bypass TOTP. See DESIGN.md."
+"pickle".msg = "Never unpickle: it runs code. Use JSON."
 
 [tool.ruff.format]
 quote-style = "double"
@@ -78,10 +90,16 @@ python_version = "3.12"
 strict = true
 warn_unreachable = true
 files = ["snug", "tests", "scripts"]
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "tests.settings"
 
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
+DJANGO_SETTINGS_MODULE = "tests.settings"
 addopts = "-ra --strict-markers --strict-config"
 xfail_strict = true
 filterwarnings = ["error"]

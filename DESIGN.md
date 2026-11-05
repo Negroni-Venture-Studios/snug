@@ -31,6 +31,9 @@ Agreed on 5 November 2026 unless noted.
 | Coverage | A floor enforced in CI; no Codecov for now | One fewer third-party service and token. |
 | CI actions | Every third-party action pinned to a commit SHA, kept current by Dependabot | Supply-chain hardening. |
 | Changelog | A plain `CHANGELOG.md` with an `[Unreleased]` section | Vera's `changelog.d/` fragments solve a throughput problem we do not have. |
+| Security headers | Strict CSP from `default-src 'none'`; `Referrer-Policy: no-referrer`; `__Host-` cookies; HSTS for one year, without subdomains or preload; Permissions-Policy and Cross-Origin-Resource-Policy | Viewer URLs carry tokens, so no Referer may ever leave a page. Subdomains and preload are the founder's choices, not Snug's. |
+| Logging | No request access log, in Snug or in gunicorn | Viewer URLs carry tokens. |
+| Health check | `/healthz` is answered before the host check | Docker and Caddy probe the container by its internal name. |
 | Commit trailer | `Co-Authored-By: Claude <noreply@anthropic.invalid>` | As Vera: the `.com` address resolves to an unrelated GitHub account. |
 | Branding | The Negroni brand kit is inspiration and palette, not a rulebook. No commercial brand fonts; Geist and Geist Mono (OFL) instead. | PP Hatton and NB Grotesk Pro Mono need commercial licences and cannot ship in an MIT repository or a public image. |
 | Front end | Revision 2 (section 3): Negroni palette, Geist type, Phosphor icons, the reading heatmap; its stylesheet seeds `base.css` | Revision 1 was calm but bland. |
@@ -208,7 +211,7 @@ The founder's logo at the top left, and nothing competing with the document. It 
 - **Stylesheets.** `base.css` holds tokens and components, with small `admin.css` and `viewer.css` layers and the generated `/brand.css`. Static files are fingerprinted by `ManifestStaticFilesStorage` and served by whitenoise. Fonts and icons are served from the instance.
 - **Charts.** Server-rendered inline SVG. Geometry is set by attributes, which the CSP allows, and colour comes from CSS classes. The reading grid's chart and per-viewer strips share one 18-slot coordinate system, which keeps them aligned at any width.
 - **JavaScript**, as separate files: `theme-init.js` (blocking, tiny, in `<head>`), then deferred `theme.js` (the toggle), `admin.js` (copy, upload progress) and `reader.js` (page turns, prefetch, keys, analytics beacons sent only while the tab is visible). The reader still works without JavaScript.
-- **CSP.** `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'`.
+- **CSP.** `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'`. The default is `'none'`, so anything not listed is refused.
 
 ### 3.11 Empty, loading and error states
 

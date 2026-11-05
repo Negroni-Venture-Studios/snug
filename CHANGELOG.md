@@ -6,6 +6,13 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- The Django project skeleton:
+  - configuration from environment variables, checked at start-up with every problem listed at once (`docs/configuration.md`);
+  - SQLite in WAL mode;
+  - strict security headers on every response, and no CORS;
+  - a `/healthz` check;
+  - `snug serve`, which applies migrations, then starts gunicorn.
+
 - Repository guard rails: CI for lint, type checking, tests on Python 3.12 and 3.14, secret scanning, dependency audit, licence checks and a software bill of materials; CodeQL; Dependabot; pre-commit hooks.
 - Project documents: README, contributing guide, security policy, code of conduct, trademarks note, and agent instructions.
 - DESIGN.md, recording the architecture, the agreed decisions and the front-end design, with clickable mockups and the Snug logo in `docs/design/`.
