@@ -116,7 +116,7 @@ def link_new(request: HttpRequest, document_token: str) -> HttpResponse:
         "tab": "documents",
         "document": document,
         "email_enabled": mail.enabled(),
-        "values": {"require_verification": True},
+        "values": {"require_verification": True, "allow_download": True},
     }
     if request.method == "GET":
         return render(request, "links/new.html", context)

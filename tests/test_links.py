@@ -162,6 +162,18 @@ def test_link_settings_are_saved(client: Client, document: Document) -> None:
     assert timezone.localtime(link.expires_at).hour == 0
 
 
+def test_downloads_are_allowed_by_default(client: Client, document: Document) -> None:
+    page = client.get(f"/admin/links/for/{document.token}", secure=True).content.decode()
+    assert '<input type="checkbox" name="allow_download" checked>' in page
+    assert "The original PDF, stamped with their email address" in page
+    assert Link(email=INVESTOR, document=document).allow_download
+
+
+def test_downloads_can_be_turned_off(client: Client, document: Document) -> None:
+    create(client, document)  # the form posts no allow_download when it is unticked
+    assert not Link.objects.get().allow_download
+
+
 def test_verification_can_be_turned_off(client: Client, document: Document) -> None:
     client.post(f"/admin/links/for/{document.token}", {"email": INVESTOR}, secure=True)
     assert not Link.objects.get().require_verification

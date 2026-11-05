@@ -7,7 +7,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 ### Added
 
 - Links, in the admin interface:
-  - a link for one person to one document, with an optional note, an expiry date, and choices for verification and downloads;
+  - a link for one person to one document, with an optional note, an expiry date, and choices for verification and downloads. Downloads are on by default, and can be turned off for a link that must be view-only;
   - emailed to the recipient, or shown once to copy and send yourself, with a copy button;
   - a Links page listing every link, and the links for each document on its page;
   - revoking a link, and replacing it with a new one, which stops the old address working at once.
