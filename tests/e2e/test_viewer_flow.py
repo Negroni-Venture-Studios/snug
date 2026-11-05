@@ -110,3 +110,21 @@ def test_the_theme_toggle_works_without_inline_script(
     before = toggle.get_attribute("aria-label")
     toggle.click()
     expect(toggle).not_to_have_attribute("aria-label", before or "")
+
+
+def test_reading_time_reaches_the_server(live_server: Any, page: Page, document: Document) -> None:
+    from snug.analytics.models import PageView
+
+    issued = issue(document, verify=False)
+    page.clock.install()
+    page.goto(f"{live_server.url}/v/{issued.token}")
+    page.get_by_role("button", name="Open Seed deck").click()
+    expect_page(page, 1, 3)
+    # Fast-forward the page's own clock past one heartbeat; the beacon goes
+    # through the CSP and CSRF checks like any real one.
+    with page.expect_request(lambda request: request.url.endswith("/beat")) as sent:
+        page.clock.run_for(16_000)
+    assert sent.value.method == "POST"
+    response = sent.value.response()
+    assert response is not None and response.status == 204
+    assert PageView.objects.get(page=1).seconds > 0
