@@ -1,0 +1,19 @@
+{% extends "viewer/base.html" %}
+{% block title %}{{ room.name }}{% endblock %}
+{% block main %}
+<div class="gate-grid">
+  <div class="gate room-index">
+    <h1>{{ room.name }}</h1>
+    {% if empty %}
+    <p class="lede">Nothing has been added to this room yet. Try again later, or ask the person who sent it.</p>
+    {% else %}
+    {% include "viewer/_room_list.html" with documents=top %}
+    {% for name, documents in folders %}{% if documents %}
+    <h2>{{ name }}</h2>
+    {% include "viewer/_room_list.html" with documents=documents %}
+    {% endif %}{% endfor %}
+    {% endif %}
+  </div>
+  {% include "viewer/_about.html" %}
+</div>
+{% endblock %}

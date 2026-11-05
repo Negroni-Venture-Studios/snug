@@ -1,12 +1,12 @@
 {% extends "snug/admin_base.html" %}
 {% block title %}{% if action == "revoke" %}Revoke link{% else %}Send a new link{% endif %}{% endblock %}
 {% block content %}
-<div class="crumbs"><a href="{% url 'documents:list' %}">Documents</a> / <a href="{% url 'documents:detail' link.document.token %}">{{ link.document.title }}</a> / <span class="mono">{{ link.label }}</span></div>
+<div class="crumbs"><a href="{% url 'links:list' %}">Links</a> / <a href="{{ link.target_url }}">{{ link.target_title }}</a> / <span class="mono">{{ link.label }}</span></div>
 {% if action == "revoke" %}
-<div class="title-row"><div><h1 class="page-title">Revoke the link for {{ link.email }}?</h1><div class="page-meta">They lose access to {{ link.document.title }} at once, including any page they have open. This cannot be undone, but you can create a new link later.</div></div></div>
-<form class="form-foot left" method="post" action="{% url 'links:revoke' link.ref %}">{% csrf_token %}<a class="btn" href="{% url 'documents:detail' link.document.token %}">Cancel</a><button class="btn btn-primary" type="submit">Revoke link</button></form>
+<div class="title-row"><div><h1 class="page-title">Revoke the link for {{ link.email }}?</h1><div class="page-meta">They lose access to {{ link.target_title }} at once, including any page they have open. This cannot be undone, but you can create a new link later.</div></div></div>
+<form class="form-foot left" method="post" action="{% url 'links:revoke' link.ref %}">{% csrf_token %}<a class="btn" href="{{ link.target_url }}">Cancel</a><button class="btn btn-primary" type="submit">Revoke link</button></form>
 {% else %}
-<div class="title-row"><div><h1 class="page-title">Send a new link to {{ link.email }}?</h1><div class="page-meta">The current link for {{ link.document.title }} stops working at once. Its settings and history carry over.</div></div></div>
-<form class="form-foot left" method="post" action="{% url 'links:reissue' link.ref %}">{% csrf_token %}<a class="btn" href="{% url 'documents:detail' link.document.token %}">Cancel</a><button class="btn" type="submit" name="action" value="copy">New link to copy</button>{% if email_enabled %}<button class="btn btn-primary" type="submit" name="action" value="email">New link by email</button>{% endif %}</form>
+<div class="title-row"><div><h1 class="page-title">Send a new link to {{ link.email }}?</h1><div class="page-meta">The current link for {{ link.target_title }} stops working at once. Its settings and history carry over.</div></div></div>
+<form class="form-foot left" method="post" action="{% url 'links:reissue' link.ref %}">{% csrf_token %}<a class="btn" href="{{ link.target_url }}">Cancel</a><button class="btn" type="submit" name="action" value="copy">New link to copy</button>{% if email_enabled %}<button class="btn btn-primary" type="submit" name="action" value="email">New link by email</button>{% endif %}</form>
 {% endif %}
 {% endblock %}

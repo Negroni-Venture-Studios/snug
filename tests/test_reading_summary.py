@@ -48,6 +48,7 @@ def link_for(document: Document, email: str, note: str = "") -> Link:
 
 def read(link: Link, seconds: dict[int, float], at: datetime = WHEN) -> Visit:
     """One visit to the link's document, with these seconds per page."""
+    assert link.document is not None
     visit = Visit.objects.create(
         token=f"t{Visit.objects.count()}",
         link=link,

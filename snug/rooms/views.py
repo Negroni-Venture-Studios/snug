@@ -53,6 +53,7 @@ def _detail(request: HttpRequest, room: Room, *, status: int = 200, **extra: Any
         "top": [e for e in entries if e.folder_id is None],
         "by_folder": [(f, [e for e in entries if e.folder_id == f.pk]) for f in folders],
         "addable": Document.objects.exclude(pk__in=in_room),
+        "links": room.links.select_related("room"),
         **extra,
     }
     return render(request, "rooms/detail.html", context, status=status)

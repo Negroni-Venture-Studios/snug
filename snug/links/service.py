@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
@@ -12,6 +13,9 @@ from snug.accounts.models import Admin
 from snug.core import mail
 from snug.documents.models import Document
 from snug.links.models import Link, new_ref
+
+if TYPE_CHECKING:
+    from snug.rooms.models import Room
 
 VIEWER_PREFIX = "/v/"
 
@@ -32,7 +36,8 @@ class Issued:
 
 def create(
     *,
-    document: Document,
+    document: Document | None = None,
+    room: "Room | None" = None,
     email: str,
     note: str,
     expires_at: datetime | None,
@@ -40,12 +45,15 @@ def create(
     allow_download: bool,
     created_by: Admin | None,
 ) -> Issued:
+    if (document is None) == (room is None):
+        raise ValueError("A link shares one document or one room.")
     for _ in range(5):
         link = Link(
             ref=new_ref(),
             email=email,
             note=note,
             document=document,
+            room=room,
             expires_at=expires_at,
             require_verification=require_verification,
             allow_download=allow_download,
@@ -81,14 +89,15 @@ def send_link_email(issued: Issued, sender: Admin) -> bool:
     context = {
         "company": company,
         "document": issued.link.document,
+        "title": issued.link.target_title,
         "url": issued.url,
         "link": issued.link,
         "sender": sender.email,
     }
     subject = (
-        f"{company} has shared {issued.link.document.title} with you"
+        f"{company} has shared {issued.link.target_title} with you"
         if company
-        else f"{issued.link.document.title} has been shared with you"
+        else f"{issued.link.target_title} has been shared with you"
     )
     return mail.send(
         to=issued.link.email,

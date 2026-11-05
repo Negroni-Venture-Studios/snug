@@ -12,6 +12,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_safe
@@ -23,6 +24,7 @@ from snug.core.client import client_ip, user_agent
 from snug.documents.models import Document
 from snug.links import service
 from snug.links.models import Link
+from snug.rooms.models import Room
 
 ISSUED = "snug.issued_link"
 ISSUED_COOKIE = f"{'__Host-' if settings.CONFIG.https else ''}snug-issued"
@@ -43,7 +45,7 @@ def _audit(request: HttpRequest, action: str, link: Link, **details: Any) -> Non
         target=link.email,
         ip_address=client_ip(request),
         user_agent=user_agent(request),
-        details={"link": link.label, "document": link.document.token, **details},
+        details={"link": link.label, **link.target_details(), **details},
     )
 
 
@@ -112,9 +114,42 @@ def _parse_expiry(raw: str) -> tuple[datetime | None, str | None]:
 @require_http_methods(["GET", "POST"])
 def link_new(request: HttpRequest, document_token: str) -> HttpResponse:
     document = get_object_or_404(Document, token=document_token)
+    target = {
+        "title": document.title,
+        "url": reverse("documents:detail", kwargs={"token": document.token}),
+        "action": reverse("links:new", kwargs={"document_token": document.token}),
+        "section": "Documents",
+        "section_url": reverse("documents:list"),
+    }
+    return _new_link(request, target, document=document)
+
+
+@never_cache
+@login_required
+@require_http_methods(["GET", "POST"])
+def link_new_room(request: HttpRequest, room_token: str) -> HttpResponse:
+    room = get_object_or_404(Room, token=room_token)
+    target = {
+        "title": room.name,
+        "url": reverse("rooms:detail", kwargs={"token": room.token}),
+        "action": reverse("links:new_room", kwargs={"room_token": room.token}),
+        "section": "Rooms",
+        "section_url": reverse("rooms:list"),
+    }
+    return _new_link(request, target, room=room, tab="rooms")
+
+
+def _new_link(
+    request: HttpRequest,
+    target: dict[str, str],
+    *,
+    document: Document | None = None,
+    room: Room | None = None,
+    tab: str = "documents",
+) -> HttpResponse:
     context: dict[str, Any] = {
-        "tab": "documents",
-        "document": document,
+        "tab": tab,
+        "target": target,
         "email_enabled": mail.enabled(),
         "values": {"require_verification": True, "allow_download": True},
     }
@@ -144,6 +179,7 @@ def link_new(request: HttpRequest, document_token: str) -> HttpResponse:
 
     issued = service.create(
         document=document,
+        room=room,
         email=email,
         note=note,
         expires_at=expires_at,
@@ -191,12 +227,12 @@ def link_issued(request: HttpRequest) -> HttpResponse:
 @login_required
 @require_safe
 def link_list(request: HttpRequest) -> HttpResponse:
-    links = Link.objects.select_related("document")
+    links = Link.objects.select_related("document", "room")
     return render(request, "links/list.html", {"tab": "links", "links": links})
 
 
 def _confirm(request: HttpRequest, ref: str, action: str) -> tuple[Link, HttpResponse | None]:
-    link = get_object_or_404(Link.objects.select_related("document"), ref=ref)
+    link = get_object_or_404(Link.objects.select_related("document", "room"), ref=ref)
     if request.method == "GET":
         context = {"tab": "links", "link": link, "action": action, "email_enabled": mail.enabled()}
         return link, render(request, "links/confirm.html", context)
@@ -213,7 +249,7 @@ def link_revoke(request: HttpRequest, ref: str) -> HttpResponse:
     if not link.is_revoked():
         service.revoke(link, _admin(request))
         _audit(request, "link.revoked", link)
-    return redirect("documents:detail", token=link.document.token)
+    return redirect(link.target_url())
 
 
 @never_cache
@@ -224,7 +260,7 @@ def link_reissue(request: HttpRequest, ref: str) -> HttpResponse:
     if page:
         return page
     if link.is_revoked():
-        return redirect("documents:detail", token=link.document.token)
+        return redirect(link.target_url())
     issued = service.reissue(link)
     _audit(request, "link.reissued", link)
     wanted = request.POST.get("action") == "email" and mail.enabled()

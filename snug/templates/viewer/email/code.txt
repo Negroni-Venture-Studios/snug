@@ -1,4 +1,4 @@
-{% autoescape off %}Your code to open {{ document.title }}{% if company %} from {{ company }}{% endif %} is:
+{% autoescape off %}Your code to open {{ title }}{% if company %} from {{ company }}{% endif %} is:
 
 {{ code }}
 
