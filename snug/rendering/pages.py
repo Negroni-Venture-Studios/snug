@@ -54,5 +54,5 @@ def stamped_pdf(version: DocumentVersion, *, email: str, date: str, ref: str) ->
     # Stamping adds a little to each page; twice the largest upload is ample.
     limit = 2 * max(settings.MAX_UPLOAD_BYTES, version.size_bytes) + 1024 * 1024
     return sandbox.stamp_pdf(
-        storage.original_path(version), email=email, date=date, ref=ref, limit=limit
+        storage.original_path(version), WATERMARK_FONT, email=email, date=date, ref=ref, limit=limit
     )
