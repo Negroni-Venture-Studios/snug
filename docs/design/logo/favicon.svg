@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Snug favicon: the door simplified for 16 and 32 px. -->
+  <rect width="200" height="200" fill="#FF6200"/>
+  <g fill="none" stroke="#FFE2CE" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M56 174 V30 H144 V174"/>
+    <path d="M30 174 H170"/>
+  </g>
+  <rect x="80" y="54" width="40" height="50" rx="5" fill="#FFE2CE"/>
+  <circle cx="122" cy="130" r="10" fill="#FFE2CE"/>
+</svg>

@@ -1,0 +1,32 @@
+# Weekly dependency updates, one grouped pull request per ecosystem, so the
+# lockfile is rebased once rather than once per package under branch protection.
+version: 2
+updates:
+  # The uv ecosystem updates pyproject.toml and uv.lock together, which keeps
+  # the `uv lock --check` step in CI green.
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "deps"
+    labels: ["dependencies"]
+    open-pull-requests-limit: 5
+    groups:
+      python:
+        patterns: ["*"]
+
+  # GitHub Actions, which CI pins to commit SHAs.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "ci"
+    labels: ["ci"]
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns: ["*"]

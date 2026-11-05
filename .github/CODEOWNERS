@@ -1,0 +1,6 @@
+# Reviews are requested automatically from the owners below.
+* @aallan
+
+# The authorisation path and its tests get extra scrutiny once they exist.
+.github/ @aallan
+pyproject.toml @aallan

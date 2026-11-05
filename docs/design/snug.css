@@ -1,0 +1,340 @@
+/* Snug stylesheet, design mockup v2 (the seed of snug/static/css/base.css).
+
+   Two palettes. The admin is Snug's own and borrows from the Negroni brand:
+   Vermouth neutrals and text, Campari for action, Citrus and Campari for
+   reading intensity, PCB for "all good". The viewer belongs to the founder,
+   so it uses plain stone neutrals that any brand colour sits on.
+
+   Light and dark come from light-dark() and color-scheme, so each token is
+   written once. Every text pairing passes WCAG AA (checked by a test).
+   No inline styles anywhere: the strict CSP forbids them. */
+
+@font-face {
+    font-family: 'Geist';
+    src: url('fonts/Geist-Variable.woff2') format('woff2');
+    font-weight: 100 900; font-style: normal; font-display: swap;
+}
+@font-face {
+    font-family: 'Geist Mono';
+    src: url('fonts/GeistMono-Variable.woff2') format('woff2');
+    font-weight: 100 900; font-style: normal; font-display: swap;
+}
+
+:root {
+    color-scheme: dark;
+
+    /* Admin neutrals, from Vermouth. light-dark() resolves by color-scheme, set below. */
+    --bg:            light-dark(#fdfbf9, #1A0B00);
+    --surface:       light-dark(#ffffff, #241307);
+    --tint:          light-dark(#f7efe8, #2e1b0d);
+    --border:        light-dark(#ece3db, #3a2516);
+    --border-strong: light-dark(#d8cabe, #553a26);
+    --text:          light-dark(#1A0B00, #f6e8dc);
+    --text-2:        light-dark(#6a5141, #d2b9a5);
+    --text-3:        light-dark(#7a6253, #ad927e);
+
+    /* Action and state */
+    --link:      light-dark(#B24400, #FF8133);   /* Campari 500 / 200 */
+    --action:    #FF6200;                        /* Campari 300, both themes */
+    --on-action: #1A0B00;                        /* Vermouth 500: 6.4:1 */
+    --focus:     light-dark(#B24400, #FF8133);
+    --ok:        light-dark(#127D47, #1ABC6B);   /* PCB 400 / 200 */
+    --ok-tint:   light-dark(rgba(18,125,71,0.09), rgba(26,188,107,0.12));
+    --warn:      light-dark(#8a5a00, #FFAB1A);
+    --warn-tint: light-dark(rgba(255,171,26,0.16), rgba(255,171,26,0.12));
+    --danger:    light-dark(#a8322b, #f08a7e);
+    --danger-tint: light-dark(rgba(168,50,43,0.08), rgba(240,138,126,0.12));
+
+    /* Reading intensity: Citrus into Campari */
+    --heat-0: light-dark(#f1e8e0, #2e1b0d);
+    --heat-1: light-dark(#F9E1B8, #4d2c0e);
+    --heat-2: light-dark(#FFAB1A, #8f4a08);
+    --heat-3: light-dark(#FF6200, #d65a00);
+    --heat-4: light-dark(#B24400, #FF8133);
+
+    /* Brand chrome, from the Negroni document template */
+    --chrome-1: #FF6200;  /* Campari 300 */
+    --chrome-2: #FFAB1A;  /* Citrus 300 */
+    --chrome-3: #169C59;  /* PCB 300 */
+
+    /* One radius rule: 8px for everything rectangular, 4px for small inline
+       labels, 2px for document pages, full round only for the theme toggle. */
+    --r: 8px;
+    --r-sm: 4px;
+
+    --font: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+/* Dark is the default. Light and auto are explicit choices, saved by the toggle. */
+:root:not([data-theme]), :root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="auto"]  { color-scheme: light dark; }
+
+/* Viewer pages: neutral stone, so any founder colour sits well on them */
+.v {
+    --bg:            light-dark(#fafaf9, #1c1917);
+    --surface:       light-dark(#ffffff, #262220);
+    --tint:          light-dark(#f5f5f4, #2c2826);
+    --border:        light-dark(#e7e5e4, #3a3532);
+    --border-strong: light-dark(#d6d3d1, #57534e);
+    --text:          light-dark(#1c1917, #f5f5f4);
+    --text-2:        light-dark(#57534e, #d6d3d1);
+    --text-3:        light-dark(#6b6661, #a8a29e);
+    /* The founder's brand. In the product these come from /brand.css,
+       chosen by the server so both pass 4.5:1. Here: a sample navy. */
+    --brand:      light-dark(#1f5f8b, #4f9fd6);
+    --brand-text: light-dark(#1f5f8b, #7fb8e0);
+    --on-brand:   light-dark(#ffffff, #0b1a24);
+    --focus:      var(--brand-text);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+    font-family: var(--font); font-size: 15px; line-height: 1.55; font-weight: 400;
+    background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'ss01';
+}
+a { color: var(--link); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--r-sm); }
+.num { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--mono); font-size: 0.82em; letter-spacing: 0; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+svg.icon { width: 1rem; height: 1rem; flex: none; }
+
+/* ---------- Mockup-only screen switcher (not part of the product) ---------- */
+.mock-switch {
+    position: sticky; top: 0; z-index: 10; display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center;
+    padding: 0.5rem 1rem; background: light-dark(#efe9e3, #120800); border-bottom: 1px dashed var(--border-strong);
+    font-size: 0.8rem; color: var(--text-2);
+}
+.mock-switch .spacer { flex: 1; }
+.mock-switch button[aria-pressed="true"] { border-color: var(--text); }
+
+/* ---------- Admin chrome ---------- */
+.screen { min-height: 100dvh; background: var(--bg); color: var(--text); }
+.chrome { height: 4px; background: var(--chrome-1); border-bottom: 2px solid var(--chrome-2); box-sizing: content-box; }
+.admin-header { max-width: 1160px; margin: 0 auto; padding: 1.25rem 2rem 0; }
+.header-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.9rem; }
+.product { display: flex; align-items: center; gap: 0.6rem; font-size: 1.15rem; }
+.product .name { font-weight: 600; letter-spacing: -0.01em; }
+.product .company { color: var(--text-2); font-weight: 400; padding-left: 0.6rem; border-left: 1px solid var(--border-strong); }
+.header-tools { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; color: var(--text-2); }
+nav.tabs { display: flex; gap: 1.5rem; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+nav.tabs a {
+    padding: 0.55rem 0; font-size: 0.9rem; color: var(--text-2); text-decoration: none; white-space: nowrap;
+    border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s;
+}
+nav.tabs a:hover { color: var(--text); }
+nav.tabs a[aria-current="page"] { color: var(--text); border-bottom-color: var(--action); font-weight: 500; }
+
+main.admin { max-width: 1160px; margin: 0 auto; padding: 1.75rem 2rem 3.5rem; }
+.crumbs { font-size: 0.85rem; color: var(--text-3); margin-bottom: 0.4rem; }
+.crumbs a { color: var(--text-2); text-decoration: none; }
+.crumbs a:hover { text-decoration: underline; }
+.title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem 2rem; flex-wrap: wrap; margin-bottom: 2rem; }
+h1.page-title { font-size: 2.1rem; font-weight: 300; letter-spacing: -0.025em; line-height: 1.15; }
+.page-meta { margin-top: 0.4rem; display: flex; gap: 1.25rem; flex-wrap: wrap; color: var(--text-2); font-size: 0.85rem; }
+.actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* ---------- Buttons ---------- */
+.btn {
+    display: inline-flex; align-items: center; gap: 0.45rem; font: inherit; font-size: 0.875rem; font-weight: 500;
+    padding: 0.5rem 0.95rem; border-radius: var(--r); cursor: pointer; text-decoration: none; white-space: nowrap;
+    background: var(--surface); color: var(--text); border: 1px solid var(--border-strong);
+    transition: background 0.15s, transform 0.08s;
+}
+.btn:hover { background: var(--tint); }
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--action); color: var(--on-action); border-color: var(--action); }
+.btn-primary:hover { background: var(--action); filter: brightness(1.06); }
+.btn-quiet { background: none; border-color: transparent; color: var(--text-2); padding-inline: 0.5rem; }
+.btn-quiet:hover { background: var(--tint); color: var(--text); }
+.btn-danger { color: var(--danger); }
+.btn-brand { background: var(--brand); color: var(--on-brand); border-color: var(--brand); width: 100%; justify-content: center; padding: 0.7rem 1rem; font-size: 0.95rem; }
+.btn-brand:hover { background: var(--brand); filter: brightness(1.08); }
+.round-btn {
+    width: 2.1rem; height: 2.1rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.round-btn:hover { background: var(--tint); color: var(--text); }
+
+/* ---------- Stat strip: figures in plain layout, no boxes ---------- */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 2.75rem; }
+.stat { padding: 1.1rem 1.25rem 1.2rem; }
+.stat + .stat { border-left: 1px solid var(--border); }
+.stat:first-child { padding-left: 0; }
+.stat .value { font-size: 2.1rem; font-weight: 300; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .value small { font-size: 0.55em; font-weight: 400; color: var(--text-2); letter-spacing: 0; margin-left: 0.15em; }
+.stat .label { font-size: 0.85rem; color: var(--text-2); margin-top: 0.35rem; }
+
+/* ---------- Sections ---------- */
+.section { margin-bottom: 3rem; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.section-head h2 { font-size: 1.1rem; font-weight: 500; letter-spacing: -0.01em; }
+.section-head p { font-size: 0.85rem; color: var(--text-2); }
+
+/* ---------- Reading matrix: one aligned grid for the chart and every viewer ---------- */
+.matrix { display: grid; grid-template-columns: minmax(13rem, 1.25fr) minmax(15rem, 2fr) 5rem 8rem 9rem; align-items: stretch; }
+.matrix > .row { display: contents; }
+.matrix .cell { padding: 0.7rem 0; border-bottom: 1px solid var(--border); min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.matrix .cell + .cell { padding-left: 1.5rem; }
+.matrix .cell.r { align-items: flex-end; }
+.matrix .row:last-child .cell { border-bottom: none; }
+.matrix .head .cell { font-size: 0.8rem; color: var(--text-3); padding-top: 0; padding-bottom: 0.5rem; }
+.matrix .avg .cell { border-bottom-color: var(--border-strong); padding-bottom: 0.4rem; }
+.matrix .r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.matrix .avg .label { font-size: 0.85rem; color: var(--text-2); justify-content: flex-end; }
+.matrix .head .pages-axis { display: grid; }
+.who .email { display: block; overflow-wrap: anywhere; }
+.who .note { display: block; font-size: 0.82rem; color: var(--text-3); }
+.new { font-size: 0.75rem; font-weight: 500; color: var(--link); margin-left: 0.4rem; }
+.pages-axis { display: grid; grid-template-columns: repeat(18, 1fr); font-family: var(--mono); font-size: 0.68rem; text-align: center; }
+.pages-axis span:nth-child(even) { visibility: hidden; }
+svg.strip, svg.bars { display: block; width: 100%; }
+svg.strip { height: 16px; }
+svg.bars { height: 64px; }
+.h0 { fill: var(--heat-0); } .h1 { fill: var(--heat-1); } .h2 { fill: var(--heat-2); } .h3 { fill: var(--heat-3); } .h4 { fill: var(--heat-4); }
+.legend { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-3); }
+.legend svg { width: 90px; height: 10px; }
+.matrix-note { font-size: 0.85rem; color: var(--text-2); margin-top: 0.9rem; }
+
+/* ---------- Plain list rows (links) ---------- */
+.rows { border-top: 1px solid var(--border); }
+.rows .item { display: grid; grid-template-columns: minmax(13rem, 1.25fr) 6rem minmax(10rem, 1.2fr) 7.5rem 5.5rem; gap: 1.5rem; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+.rows .r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rows .muted { color: var(--text-2); font-size: 0.875rem; }
+.status { justify-self: start; font-size: 0.78rem; font-weight: 500; padding: 0.12rem 0.45rem; border-radius: var(--r-sm); }
+.status-ok { color: var(--ok); background: var(--ok-tint); }
+.status-warn { color: var(--warn); background: var(--warn-tint); }
+.status-off { color: var(--text-2); background: var(--tint); }
+
+/* ---------- Forms ---------- */
+.form { display: grid; gap: 1.25rem; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.5rem; }
+.field label, .field .label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.4rem; }
+.field .hint { font-size: 0.82rem; color: var(--text-3); margin-top: 0.35rem; }
+.field .error { display: flex; gap: 0.4rem; align-items: center; font-size: 0.85rem; color: var(--danger); margin-top: 0.45rem; }
+input[type="text"], input[type="email"], input[type="date"], select, textarea {
+    width: 100%; font: inherit; font-size: 0.95rem; color: var(--text); background: var(--surface);
+    border: 1px solid var(--border-strong); border-radius: var(--r); padding: 0.6rem 0.75rem;
+}
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--focus); outline-offset: -1px; }
+input[aria-invalid="true"] { border-color: var(--danger); }
+.check { display: grid; grid-template-columns: 1.1rem 1fr; gap: 0.65rem; font-size: 0.92rem; cursor: pointer; }
+.check input { margin-top: 0.22rem; accent-color: var(--action); width: 1rem; height: 1rem; }
+.v .check input { accent-color: var(--brand); }
+.check .hint { display: block; font-size: 0.82rem; color: var(--text-3); }
+.choices { display: grid; gap: 0.85rem; }
+.form-foot { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 1.25rem; }
+.split { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 2.5rem; align-items: start; }
+.link-out {
+    display: flex; align-items: center; gap: 0.75rem; background: var(--tint); border-radius: var(--r);
+    padding: 0.65rem 0.75rem 0.65rem 0.9rem; font-family: var(--mono); font-size: 0.8rem; overflow-wrap: anywhere;
+}
+.link-out span { flex: 1; }
+.notice { display: flex; gap: 0.55rem; align-items: flex-start; font-size: 0.9rem; padding: 0.75rem 0.9rem; border-radius: var(--r); }
+.notice-ok { background: var(--ok-tint); color: var(--ok); }
+.side-note { font-size: 0.9rem; color: var(--text-2); }
+.side-note h2 { font-size: 1rem; font-weight: 500; color: var(--text); margin-bottom: 0.75rem; }
+
+/* ---------- Admin footer ---------- */
+footer.admin-foot { max-width: 1160px; margin: 0 auto; padding: 0 2rem 2rem; font-size: 0.8rem; color: var(--text-3); }
+footer.admin-foot .rule { height: 2px; background: var(--chrome-3); margin-bottom: 0.9rem; width: 3rem; }
+footer.admin-foot .row { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+footer.admin-foot a { color: var(--text-3); }
+
+/* ---------- Viewer ---------- */
+.v-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: 1080px; margin: 0 auto; padding: 1.25rem 1.5rem; }
+.founder-logo { display: flex; align-items: center; gap: 0.6rem; font-weight: 600; font-size: 1.05rem; letter-spacing: -0.01em; }
+.founder-logo svg { width: 1.7rem; height: 1.7rem; }
+.founder-logo .mark { fill: var(--brand); }
+.v-head .doc { font-size: 0.875rem; color: var(--text-2); }
+.v-tools { display: flex; align-items: center; gap: 1rem; }
+.v-main { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem 3rem; }
+.gate-grid { display: grid; grid-template-columns: minmax(0, 27rem) minmax(0, 22rem); justify-content: space-between; gap: 3rem; margin-top: 3rem; }
+.gate h1 { text-wrap: balance; font-size: 1.65rem; font-weight: 400; letter-spacing: -0.02em; line-height: 1.25; margin-bottom: 0.6rem; }
+.gate h1 strong { font-weight: 600; }
+.gate .lede { color: var(--text-2); margin-bottom: 1.75rem; }
+.gate .small { font-size: 0.85rem; color: var(--text-3); margin-top: 1.1rem; }
+.gate .small a { color: var(--brand-text); }
+.gate + .gate { margin-top: 3rem; padding-top: 2.5rem; border-top: 1px solid var(--border); }
+input.code { font-family: var(--mono); font-size: 1.5rem; letter-spacing: 0.45em; padding: 0.6rem 0.4rem 0.6rem 0.85rem; text-align: center; }
+.about { border: 1px solid var(--border); border-radius: var(--r); padding: 1.25rem 1.35rem; font-size: 0.9rem; align-self: start; background: var(--surface); }
+.about h2 { font-size: 0.95rem; font-weight: 500; margin-bottom: 0.9rem; }
+.about dl { display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem; }
+.about dt { color: var(--text-3); }
+.about dd { color: var(--text); }
+.about .cover { margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--text); }
+.about .cover .from { display: block; margin-top: 0.4rem; color: var(--text-3); font-size: 0.85rem; }
+.about .privacy { margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--text-2); font-size: 0.85rem; }
+
+.reader { display: grid; gap: 1.1rem; justify-items: center; }
+.page-frame { width: 100%; border-radius: 2px; overflow: hidden; border: 1px solid var(--border); background: #ffffff;
+    box-shadow: 0 1px 2px light-dark(rgba(28,25,23,0.05), rgba(0,0,0,0.3)), 0 12px 32px light-dark(rgba(28,25,23,0.07), rgba(0,0,0,0.35)); }
+.page-frame svg { display: block; width: 100%; height: auto; }
+.reader-controls { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: center; color: var(--text-2); font-size: 0.9rem; }
+.reader-controls .pos { min-width: 6.5rem; text-align: center; font-family: var(--mono); font-size: 0.85rem; }
+.reader-controls select { width: auto; padding: 0.4rem 0.6rem; font-size: 0.875rem; }
+.v-foot { text-align: center; font-size: 0.8rem; color: var(--text-3); padding: 0 1.5rem 2rem; }
+
+/* Stand-in slide artwork (in the product: a rendered PDF page image) */
+.slide-bg { fill: #ffffff; }
+.slide-kicker { fill: #1f5f8b; font: 600 20px var(--font); letter-spacing: 3px; }
+.slide-title { fill: #10283a; font: 600 54px var(--font); letter-spacing: -1px; }
+.slide-body { fill: #3d4a55; font: 400 26px var(--font); }
+.slide-axis { fill: #6b7a86; font: 400 18px var(--font); }
+.slide-bar { fill: #1f5f8b; } .slide-bar-2 { fill: #8fb3cc; }
+.wm-text { fill: #1c1917; opacity: 0.07; font: 500 26px var(--font); }
+.wm-foot-bg { fill: #f5f5f4; }
+.wm-foot { fill: #57534e; font: 400 17px var(--mono); }
+
+/* ---------- Motion: static by design, and respectful ---------- */
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } .btn:active { transform: none; } }
+
+/* ---------- Narrow screens: explicit collapse ---------- */
+@media (max-width: 860px) {
+    .split, .gate-grid { grid-template-columns: 1fr; }
+    .matrix { grid-template-columns: auto 1fr; }
+    .matrix .head { display: none; }
+    .matrix .cell + .cell { padding-left: 0; }
+    .matrix .row > .cell { border-bottom: none; padding: 0.15rem 0; }
+    .matrix .row > .who { grid-column: 1 / -1; padding-top: 0.9rem; border-top: 1px solid var(--border); }
+    .matrix .row > .strip-cell { grid-column: 1 / -1; padding: 0.4rem 0; }
+    .matrix .row > .r { flex-direction: row; justify-content: flex-start; align-items: baseline; white-space: pre; padding-bottom: 0.9rem; font-size: 0.85rem; color: var(--text-2); }
+    .matrix .row > .r.first { padding-right: 1rem; }
+    .matrix .r.first .visually-hidden { position: static; width: auto; height: auto; clip: auto; overflow: visible; margin-left: 0.3em; }
+    .matrix .row > .last { display: none; }
+    .matrix .avg > .label { grid-column: 1 / -1; border-top: none; padding-top: 0; }
+    .matrix .avg > .r { display: none; }
+    .rows .item { grid-template-columns: 1fr auto; gap: 0.35rem 1rem; }
+    .rows .item > .muted, .rows .item > .exp { display: none; }
+}
+@media (max-width: 640px) {
+    .admin-header, main.admin, footer.admin-foot { padding-left: 1rem; padding-right: 1rem; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stat:nth-child(3) { border-left: none; padding-left: 0; }
+    .stat:nth-child(n+3) { border-top: 1px solid var(--border); }
+    .stat .value { font-size: 1.7rem; }
+    h1.page-title { font-size: 1.75rem; }
+    .header-tools .who-am-i { display: none; }
+    .v-head, .v-main { padding-left: 1rem; padding-right: 1rem; }
+    .v-head .doc { display: none; }
+    .gate-grid { margin-top: 1.5rem; }
+}
+
+/* ---------- Brand lockup: a square Campari tile, as the Negroni site does it ---------- */
+.brand { display: inline-flex; align-items: center; gap: 0.65rem; color: var(--text); text-decoration: none; }
+.brand-tile { width: 2.5rem; height: 2.5rem; display: block; flex: none; color: #FFE2CE; }
+.brand-tile .tile { fill: #FF6200; }
+
+/* ---------- Theme toggle (from agentlanguages.dev): dark, light, auto ---------- */
+.theme-toggle {
+    display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; padding: 0;
+    border: 1px solid var(--border-strong); border-radius: 999px; background: none; color: var(--text-2);
+    cursor: pointer; transition: color 0.15s, border-color 0.15s;
+}
+.theme-toggle:hover { color: var(--text); border-color: var(--text-3); }
+.theme-toggle svg { width: 16px; height: 16px; display: none; }
+:root:not([data-theme]) .theme-toggle .moon, :root[data-theme="dark"] .theme-toggle .moon,
+:root[data-theme="light"] .theme-toggle .sun, :root[data-theme="auto"] .theme-toggle .auto { display: block; }

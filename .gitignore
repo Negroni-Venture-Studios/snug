@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+
+# Tooling caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Local configuration and data: never commit secrets or a real instance's data
+.env
+*.env
+!deploy/snug.env.example
+data/
+*.sqlite3
+*.sqlite3-*
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+
+# Local Claude Code settings (preview servers, personal permissions)
+.claude/launch.json
+.claude/settings.local.json
