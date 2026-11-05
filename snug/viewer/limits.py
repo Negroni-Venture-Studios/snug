@@ -10,6 +10,11 @@ WINDOW = 15 * 60
 
 # Asking for a code. Every attempt from an address counts, right or wrong.
 SEND_PER_IP = Limit("viewer.send.ip", limit=20, window=WINDOW)
+# Wrong addresses typed on one link, from anywhere. The page says plainly
+# when an address is wrong (decided 5 November 2026), so guessing is capped
+# per link as well as per IP. Past the cap, every request on the link is
+# refused, the right address included, so a late guess learns nothing.
+WRONG_EMAIL_PER_LINK = Limit("viewer.wrong_email.link", limit=10, window=60 * 60)
 # Codes actually sent: per link, and to one inbox across every link.
 SEND_PER_LINK = Limit("viewer.send.link", limit=5, window=WINDOW)
 SEND_PER_EMAIL = Limit("viewer.send.email", limit=10, window=60 * 60)

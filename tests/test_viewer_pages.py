@@ -173,6 +173,25 @@ def test_code_requests_are_rate_limited_per_link(browser: Client, issued: servic
 
 
 @pytest.mark.usefixtures("email_on")
+def test_wrong_addresses_are_capped_per_link(issued: service.Issued) -> None:
+    # Guesses from many addresses still meet a ceiling on each link. Past it,
+    # even the right address is refused, so a late guess learns nothing.
+    statuses = [
+        post(
+            Client(REMOTE_ADDR=f"198.51.100.{n + 1}"),
+            path(issued, "/code/send"),
+            {"email": f"guess{n}@northfield.example"},
+        ).status_code
+        for n in range(11)
+    ]
+    assert statuses[:10] == [400] * 10 and statuses[10] == 429
+    right = post(
+        Client(REMOTE_ADDR="198.51.100.99"), path(issued, "/code/send"), {"email": INVESTOR}
+    )
+    assert right.status_code == 429 and django_mail.outbox == []
+
+
+@pytest.mark.usefixtures("email_on")
 def test_code_requests_are_rate_limited_per_address(browser: Client, document: Document) -> None:
     links = [issue(document) for _ in range(21)]
     statuses = [

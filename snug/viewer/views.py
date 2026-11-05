@@ -198,10 +198,16 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
     if not mail.enabled() or not link.require_verification:
         return _gate_page(request, link, token, typed=typed, status=503)
 
-    if not ratelimit.allow(limits.SEND_PER_IP, _ip(request)):
+    if not ratelimit.allow(limits.SEND_PER_IP, _ip(request)) or ratelimit.exceeded(
+        limits.WRONG_EMAIL_PER_LINK, str(link.pk)
+    ):
         return _send_refused(request, link, token, typed)
 
     if not _matches(typed, link):
+        # Counted first, so a guess past the cap gets the same refusal as
+        # every other request, never the plain answer.
+        if not ratelimit.allow(limits.WRONG_EMAIL_PER_LINK, str(link.pk)):
+            return _send_refused(request, link, token, typed)
         _audit(request, "viewer.code_refused", link, typed, reason="wrong_email")
         error = (
             "That is not the address this link was sent to. "
