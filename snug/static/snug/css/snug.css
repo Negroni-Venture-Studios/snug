@@ -408,6 +408,10 @@ form.inline { display: inline; }
 .inline-form { display: flex; gap: 0.4rem; align-items: center; }
 .inline-form select { width: auto; }
 .inline-form input[type="number"] { width: 6rem; }
+/* A label, a box and the rest of the sentence on one line, wrapping on a phone. */
+.inline-form.sentence { flex-wrap: wrap; column-gap: 0.6rem; }
+.inline-form.sentence label { margin-bottom: 0; }
+.inline-form.sentence span { font-size: 0.875rem; font-weight: 500; }
 .form.retention { margin-top: 1rem; }
 .folder { margin-top: 1.5rem; }
 .folder h3 { font-size: 0.95rem; font-weight: 500; }
