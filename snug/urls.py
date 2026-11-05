@@ -10,5 +10,6 @@ urlpatterns = [
     path("admin/documents/", include("snug.documents.urls")),
     path("admin/links/", include("snug.links.urls")),
     path("admin/rooms/", include("snug.rooms.urls")),
+    path("admin/people/", include("snug.analytics.urls")),
     path("v/", include("snug.viewer.urls")),
 ]

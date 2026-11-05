@@ -1,0 +1,36 @@
+"""The admin's People page: everyone who has read anything, and what they read."""
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import render
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_safe
+
+from snug.analytics import charts, summary
+
+
+@never_cache
+@login_required
+@require_safe
+def people(request: HttpRequest) -> HttpResponse:
+    rows = [
+        {
+            "email": person.email,
+            "note": person.note,
+            "last_seen": person.last_seen,
+            "total": charts.duration(person.total_seconds),
+            "documents": [
+                {
+                    "title": read.title,
+                    "token": read.token,
+                    "strip": charts.strip(read.seconds, read.seen, f"{person.email}, {read.title}"),
+                    "visits": read.visits,
+                    "total": charts.duration(read.total_seconds),
+                    "last_seen": read.last_seen,
+                }
+                for read in person.documents
+            ],
+        }
+        for person in summary.for_people()
+    ]
+    return render(request, "analytics/people.html", {"tab": "people", "people": rows})
