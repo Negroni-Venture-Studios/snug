@@ -2,10 +2,14 @@
 
     python -I -m snug.rendering.worker inspect FD
     python -I -m snug.rendering.worker render FD PAGE WIDTH
+    python -I -m snug.rendering.worker stamp FD FONT_FD EMAIL DATE REF
 
 Snug opens the PDF and passes the open file as descriptor FD; the worker is
 never given a path. `inspect` prints one line of JSON. `render` writes the
-WebP image to standard output. Errors print {"error": ...} and exit with 3.
+WebP image to standard output. `stamp` reads a rendered page (as FD) and a
+font, and writes the page with the viewer's watermark: a page rendered from
+an untrusted PDF is never decoded outside a confined worker. Errors print
+{"error": ...} and exit with 3.
 
 Before it touches the PDF, the worker
   - imports everything it will need,
@@ -32,6 +36,13 @@ MAX_PAGES = 2000
 MAX_PIXELS = 1600 * 4000
 MAX_SIDE = 8000
 FONT_DIRS = ("/usr/share/fonts", "/usr/local/share/fonts", "/etc/fonts")
+MAX_STAMP_TEXT = 254
+_REF_CHARACTERS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-")
+# The watermark: a faint diagonal mark across the page, and a footer band.
+MARK_ANGLE = 22
+MARK_COLOUR = (96, 96, 96, 72)
+FOOTER_BACKGROUND = (245, 245, 244)
+FOOTER_TEXT = (87, 83, 78)
 
 
 def _is_linux() -> bool:
@@ -64,6 +75,8 @@ def apply_limits() -> None:
 def preload() -> None:
     """Import now everything rendering needs: after confine(), nothing can be loaded."""
     import PIL.Image
+    import PIL.ImageDraw
+    import PIL.ImageFont
     import PIL.WebPImagePlugin
     import pypdfium2
     import pypdfium2.raw
@@ -192,16 +205,81 @@ def render(data: bytes, page: int, width: int) -> bytes:
     return out.getvalue()
 
 
+def _stamp_text(email: str, date: str, ref: str) -> tuple[str, str, str]:
+    for text in (email, date):
+        if not text or len(text) > MAX_STAMP_TEXT or not text.isprintable():
+            raise _Refused("usage")
+    if not ref or len(ref) > 12 or not set(ref) <= _REF_CHARACTERS:
+        raise _Refused("usage")
+    return email, date, ref
+
+
+def stamp(data: bytes, font: bytes, email: str, date: str, ref: str) -> bytes:
+    """The page with the viewer's watermark: a diagonal mark, and a footer band."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    email, date, ref = _stamp_text(email, date, ref)
+    with Image.open(io.BytesIO(data), formats=["WEBP"]) as source:
+        width, height = source.size
+        if max(width, height) > MAX_SIDE or width * height > MAX_PIXELS:
+            raise _Refused("unreadable")
+        page = source.convert("RGB")
+
+    # The diagonal mark: rows of "email  date", drawn on a square big enough
+    # to cover the page at any angle, rotated, then cut to the page.
+    size = max(14, round(width * 0.018))
+    mark_font = ImageFont.truetype(io.BytesIO(font), size)
+    side = int((width**2 + height**2) ** 0.5) + 1
+    layer = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    text = f"{email}   {date}"
+    step_x = int(draw.textlength(text, font=mark_font)) + size * 4
+    step_y = size * 7
+    for row, y in enumerate(range(0, side, step_y)):
+        for x in range(-step_x + (row % 2) * step_x // 2, side, step_x):
+            draw.text((x, y), text, font=mark_font, fill=MARK_COLOUR)
+    layer = layer.rotate(MARK_ANGLE, resample=Image.Resampling.BICUBIC)
+    left, top = (side - width) // 2, (side - height) // 2
+    marked = Image.alpha_composite(
+        page.convert("RGBA"), layer.crop((left, top, left + width, top + height))
+    )
+
+    # The footer: who it was shared with, the date, and the link, in three columns.
+    band = max(28, round(width * 0.03))
+    out = Image.new("RGB", (width, height + band), FOOTER_BACKGROUND)
+    out.paste(marked.convert("RGB"), (0, 0))
+    foot_font = ImageFont.truetype(io.BytesIO(font), max(11, round(band * 0.42)))
+    foot = ImageDraw.Draw(out)
+    middle = height + band // 2
+    margin = round(band * 0.8)
+    foot.text(
+        (margin, middle), f"Shared with {email}", font=foot_font, fill=FOOTER_TEXT, anchor="lm"
+    )
+    foot.text((width // 2, middle), date, font=foot_font, fill=FOOTER_TEXT, anchor="mm")
+    foot.text(
+        (width - margin, middle), f"Link {ref}", font=foot_font, fill=FOOTER_TEXT, anchor="rm"
+    )
+
+    result = io.BytesIO()
+    out.save(result, "WEBP", quality=85, method=4)
+    return result.getvalue()
+
+
 def main(argv: list[str], *, confined: bool = True) -> int:
     if confined:
         apply_limits()
     preload()
     try:
         page = width = 0
+        font = b""
         if len(argv) == 2 and argv[0] == "inspect":
             mode = "inspect"
         elif len(argv) == 4 and argv[0] == "render":
             mode, page, width = "render", int(argv[2]), int(argv[3])
+        elif len(argv) == 6 and argv[0] == "stamp":
+            mode = "stamp"
+            with os.fdopen(int(argv[2]), "rb") as font_file:
+                font = font_file.read()
         else:
             return _fail("usage")
         with os.fdopen(int(argv[1]), "rb") as source:
@@ -211,8 +289,13 @@ def main(argv: list[str], *, confined: bool = True) -> int:
         if mode == "inspect":
             sys.stdout.write(json.dumps(inspect(data)) + "\n")
         else:
+            output = (
+                render(data, page, width)
+                if mode == "render"
+                else stamp(data, font, argv[3], argv[4], argv[5])
+            )
             sys.stdout.flush()
-            sys.stdout.buffer.write(render(data, page, width))
+            sys.stdout.buffer.write(output)
     except _Refused as refused:
         return _fail(refused.code)
     except MemoryError:

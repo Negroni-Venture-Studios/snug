@@ -78,7 +78,7 @@ def test_an_unknown_token_is_unavailable() -> None:
 def test_a_revoked_link_with_an_open_session_is_unavailable(issued: service.Issued) -> None:
     request = verified_browser(issued.link)
     assert authorise(request, issued.token).link == issued.link
-    service.revoke(issued.link, by=None)  # type: ignore[arg-type]
+    service.revoke(issued.link, by=None)
     with pytest.raises(Unavailable):
         authorise(request, issued.token)
 
@@ -184,7 +184,7 @@ def test_a_document_outside_the_link_is_unavailable(issued: service.Issued) -> N
 def test_the_checks_run_in_order(issued: service.Issued) -> None:
     # A revoked link is unavailable before the session is even looked at, so a
     # stranger learns nothing about whether anyone has verified.
-    service.revoke(issued.link, by=None)  # type: ignore[arg-type]
+    service.revoke(issued.link, by=None)
     with pytest.raises(Unavailable):
         authorise(browser(), issued.token)
 

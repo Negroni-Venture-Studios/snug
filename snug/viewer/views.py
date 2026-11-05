@@ -15,17 +15,21 @@ from functools import wraps
 from typing import Any
 
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
 from snug.audit.models import AuditEvent, record
 from snug.core import mail, ratelimit
 from snug.core.client import client_ip, user_agent
+from snug.documents.storage import RENDER_WIDTHS
 from snug.links.models import Link
+from snug.rendering import pages as rendering
+from snug.rendering.sandbox import WorkerError
 from snug.viewer import codes, limits, sessions
 from snug.viewer.access import Access, NotVerified, Unavailable, authorise, find_link
 from snug.viewer.models import VerificationCode
@@ -200,12 +204,79 @@ def _send_refused(request: HttpRequest, link: Link, token: str, typed: str) -> H
 # ---------------------------------------------------------------- pages
 
 
+def _page_number(raw: str, count: int) -> int:
+    """The page asked for, or the first page for anything odd."""
+    if raw.isdecimal() and 1 <= int(raw) <= count:
+        return int(raw)
+    return 1
+
+
+def _footer_band(width: int) -> int:
+    # As the worker draws it: see snug.rendering.worker.stamp.
+    return max(28, round(width * 0.03))
+
+
 @never_cache
 @require_safe
 @viewer_content(not_verified=_gate_page)
 def entry(request: HttpRequest, access: Access, token: str) -> HttpResponse:
-    # The reader replaces this page in step 4.
-    return render(request, "viewer/document.html", _context(access.link, token))
+    """The reader: one page at a time, each a watermarked image."""
+    context = _context(access.link, token)
+    version = access.document.latest_version()
+    if version is None:
+        return render(request, "viewer/reader.html", context)
+    count = version.page_count
+    number = _page_number(request.GET.get("page", ""), count)
+    sizes = version.page_sizes
+    # Every upload records its page sizes; a 16:9 page if one is somehow missing.
+    page_width, page_height = sizes[number - 1] if len(sizes) >= number else (16, 9)
+    big = max(RENDER_WIDTHS)
+
+    def image(page: int, width: int) -> str:
+        url = reverse("viewer:page", kwargs={"token": token, "page": page, "width": width})
+        return str(url)
+
+    context.update(
+        here=reverse("viewer:entry", kwargs={"token": token}),
+        page=number,
+        count=count,
+        pages_list=range(1, count + 1),
+        src=image(number, big),
+        srcset=", ".join(f"{image(number, w)} {w}w" for w in RENDER_WIDTHS),
+        width=big,
+        height=round(big * page_height / page_width) + _footer_band(big),
+        previous=number - 1 if number > 1 else None,
+        next=number + 1 if number < count else None,
+        prefetch=image(number + 1, big) if number < count else None,
+    )
+    return render(request, "viewer/reader.html", context)
+
+
+@require_safe
+@viewer_content()
+def page_image(
+    request: HttpRequest, access: Access, token: str, page: int, width: int
+) -> HttpResponse:
+    """One page, stamped for this viewer on every request."""
+    version = access.document.latest_version()
+    if version is None or width not in RENDER_WIDTHS or not 1 <= page <= version.page_count:
+        raise Http404
+    today = timezone.localdate()
+    try:
+        data = rendering.stamped_page(
+            version,
+            page,
+            width,
+            email=access.session.email,
+            date=f"{today.day} {today:%b %Y}",
+            ref=access.link.ref,
+        )
+    except WorkerError:
+        return HttpResponse("This page could not be shown.", status=503, content_type="text/plain")
+    response = HttpResponse(data, content_type="image/webp")
+    # Kept briefly, by this browser only. Revoking stops new pages at once.
+    response["Cache-Control"] = "private, max-age=300"
+    return response
 
 
 @never_cache

@@ -24,7 +24,12 @@ STRANGER = "sam@eastgate.example"
 def document() -> Document:
     deck = Document.objects.create(title="Seed deck")
     DocumentVersion.objects.create(
-        document=deck, number=1, size_bytes=1, sha256="0" * 64, page_count=18
+        document=deck,
+        number=1,
+        size_bytes=1,
+        sha256="0" * 64,
+        page_count=18,
+        page_sizes=[[960, 540]] * 18,
     )
     return deck
 
@@ -108,7 +113,7 @@ def test_revoked_and_expired_links_look_the_same(browser: Client, document: Docu
     from django.utils import timezone
 
     revoked = issue(document)
-    service.revoke(revoked.link, by=None)  # type: ignore[arg-type]
+    service.revoke(revoked.link, by=None)
     expired = issue(document, expires_at=timezone.now() + timedelta(days=1))
     Link.objects.filter(pk=expired.link.pk).update(expires_at=timezone.now() - timedelta(days=1))
     unknown = get(browser, "/v/not-a-real-token").content
@@ -314,7 +319,7 @@ def test_the_right_code_opens_the_document(browser: Client, issued: service.Issu
     assert response.status_code == 303 and response["Location"] == path(issued)
     assert sessions.COOKIE in browser.cookies
     page = get(browser, path(issued)).content.decode()
-    assert "<h1>Seed deck</h1>" in page and "Send code" not in page
+    assert 'alt="Page 1 of 18"' in page and "Send code" not in page
     assert AuditEvent.objects.filter(action="viewer.verified", actor=INVESTOR).exists()
 
 
@@ -372,7 +377,7 @@ def test_a_verified_viewer_skips_the_gate_on_return(
 @pytest.mark.usefixtures("email_on")
 def test_revoking_ends_an_open_session(browser: Client, issued: service.Issued) -> None:
     verify(browser, issued)
-    service.revoke(issued.link, by=None)  # type: ignore[arg-type]
+    service.revoke(issued.link, by=None)
     assert get(browser, path(issued)).status_code == 404
 
 
@@ -387,7 +392,7 @@ def test_an_unverified_link_needs_one_click(browser: Client, document: Document)
 
     response = post(browser, path(issued, "/open"))
     assert response.status_code == 303 and response["Location"] == path(issued)
-    assert "<h1>Seed deck</h1>" in get(browser, path(issued)).content.decode()
+    assert 'alt="Page 1 of 18"' in get(browser, path(issued)).content.decode()
     assert AuditEvent.objects.filter(action="viewer.opened", actor=INVESTOR).exists()
 
 
