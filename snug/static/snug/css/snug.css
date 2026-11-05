@@ -401,6 +401,8 @@ form.inline { display: inline; }
 .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
 .filters select, .filters input { width: auto; }
 .pager { display: flex; gap: 1rem; align-items: center; justify-content: center; margin-top: 1.5rem; }
+.activity-rows .item { grid-template-columns: minmax(14rem, 1.3fr) minmax(12rem, 1.5fr) 6.5rem 7rem; }
+.what .note { display: block; font-size: 0.82rem; color: var(--text-3); }
 .room-rows .item { grid-template-columns: minmax(14rem, 1.6fr) minmax(12rem, 1fr) auto; }
 .inline-form { display: flex; gap: 0.4rem; align-items: center; }
 .inline-form select { width: auto; }

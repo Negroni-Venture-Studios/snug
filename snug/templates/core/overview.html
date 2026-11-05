@@ -1,9 +1,38 @@
 {% extends "snug/admin_base.html" %}
+{% load snug %}
 {% block title %}Snug overview{% endblock %}
 {% block content %}
 <div class="title-row"><div><h1 class="page-title">Overview</h1></div></div>
+{% if not documents %}
 <div class="empty">
   <h2>Nothing to show yet</h2>
-  <p>Documents, links and reading activity will appear here once you start sharing.</p>
+  <p>Upload a document, then share it with a link. Who read what will appear here.</p>
+  <p class="empty-action"><a class="btn btn-primary" href="{% url 'documents:new' %}">{% icon "upload-simple" %}Upload a PDF</a></p>
 </div>
+{% else %}
+<div class="stats">
+  <div class="stat"><div class="value">{{ documents }}</div><div class="label">Documents</div></div>
+  <div class="stat"><div class="value">{{ stats.links }}</div><div class="label">Active links</div></div>
+  <div class="stat"><div class="value">{{ stats.people }}</div><div class="label">People who have read</div></div>
+  <div class="stat"><div class="value">{{ stats.week }}</div><div class="label">Visits in the last 7 days</div></div>
+</div>
+
+<section class="section">
+  <div class="section-head"><h2>Recent activity</h2><p>The latest visits, with first opens marked New. Everyone who has read anything is on <a href="{% url 'analytics:people' %}">People</a>.</p></div>
+  {% if recent %}
+  <div class="rows activity-rows">
+    {% for row in recent %}
+    <div class="item">
+      <div class="who"><span class="email">{{ row.visit.email }}{% if row.visit.first %}<span class="new">New</span>{% endif %}</span></div>
+      <div class="what"><a href="{% url 'documents:detail' token=row.visit.document.token %}">{{ row.visit.document.title }}</a>{% if row.visit.room_name %}<span class="note">in {{ row.visit.room_name }}</span>{% endif %}</div>
+      <span class="r muted num">{{ row.time }}</span>
+      <span class="r muted num">{{ row.visit.started_at|date:"j M, H:i" }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="panel"><p>Nobody has opened a link yet. Create one from a document's page.</p></div>
+  {% endif %}
+</section>
+{% endif %}
 {% endblock %}
