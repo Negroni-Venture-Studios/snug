@@ -88,3 +88,78 @@ def for_document(document: Document) -> DocumentReading | None:
         read_all=sum(1 for r in readers if r.read_all),
         averages=averages,
     )
+
+
+@dataclass
+class PersonDocument:
+    title: str
+    token: str
+    pages: int
+    visits: int = 0
+    last_seen: datetime | None = None
+    seconds: list[float] = field(default_factory=list)
+    seen: list[bool] = field(default_factory=list)
+
+    @property
+    def total_seconds(self) -> float:
+        return sum(self.seconds)
+
+
+@dataclass
+class Person:
+    email: str
+    note: str = ""
+    last_seen: datetime | None = None
+    documents: list[PersonDocument] = field(default_factory=list)
+
+    @property
+    def total_seconds(self) -> float:
+        return sum(d.total_seconds for d in self.documents)
+
+
+def for_people() -> list[Person]:
+    """Everyone who has opened anything, most recent first, with what they read."""
+    visits = list(Visit.objects.select_related("link", "document").order_by("started_at"))
+    if not visits:
+        return []
+    page_counts: dict[int, int] = {}
+    for visit in visits:
+        if visit.document_id not in page_counts:
+            latest = visit.document.latest_version()
+            page_counts[visit.document_id] = latest.page_count if latest else 0
+    views = list(PageView.objects.values("visit_id", "page", "seconds"))
+    document_of = {visit.pk: visit.document_id for visit in visits}
+    for view in views:
+        document_id = document_of[view["visit_id"]]
+        page_counts[document_id] = max(page_counts[document_id], view["page"])
+
+    people: dict[str, Person] = {}
+    reads: dict[tuple[str, int], PersonDocument] = {}
+    owner: dict[int, tuple[str, int]] = {}
+    for visit in visits:
+        person = people.setdefault(visit.email, Person(visit.email))
+        person.note = visit.link.note or person.note
+        person.last_seen = max(filter(None, [person.last_seen, visit.last_seen_at]))
+        key = (visit.email, visit.document_id)
+        pages = page_counts[visit.document_id]
+        if key not in reads:
+            reads[key] = PersonDocument(
+                visit.document.title,
+                visit.document.token,
+                pages,
+                seconds=[0.0] * pages,
+                seen=[False] * pages,
+            )
+            person.documents.append(reads[key])
+        read = reads[key]
+        read.visits += 1
+        read.last_seen = max(filter(None, [read.last_seen, visit.last_seen_at]))
+        owner[visit.pk] = key
+    for view in views:
+        read = reads[owner[view["visit_id"]]]
+        read.seconds[view["page"] - 1] += view["seconds"]
+        read.seen[view["page"] - 1] = True
+
+    for person in people.values():
+        person.documents.sort(key=lambda d: d.last_seen or datetime.min, reverse=True)
+    return sorted(people.values(), key=lambda p: p.last_seen or datetime.min, reverse=True)

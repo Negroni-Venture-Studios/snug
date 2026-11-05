@@ -1,0 +1,31 @@
+{% extends "snug/admin_base.html" %}
+{% block title %}People in Snug{% endblock %}
+{% block content %}
+<div class="title-row"><div><h1 class="page-title">People</h1><div class="page-meta">Everyone who has opened a document, most recent first.</div></div></div>
+{% for person in people %}
+<section class="section person">
+  <div class="section-head"><h2>{{ person.email }}</h2><p>{% if person.note %}{{ person.note }}. {% endif %}{{ person.total }} in all, last seen {{ person.last_seen|date:"j M, H:i" }}</p></div>
+  <div class="matrix">
+    <div class="row head">
+      <div class="cell">Document</div>
+      <div class="cell">Pages</div>
+      <div class="cell r">Visits</div><div class="cell r">Time</div><div class="cell r last">Last seen</div>
+    </div>
+    {% for read in person.documents %}
+    <div class="row">
+      <div class="cell who"><a class="email" href="{% url 'documents:detail' read.token %}">{{ read.title }}</a></div>
+      <div class="cell strip-cell">{{ read.strip }}</div>
+      <div class="cell r first">{{ read.visits }}<span class="visually-hidden"> visit{{ read.visits|pluralize }}</span></div>
+      <div class="cell r">{{ read.total }}</div>
+      <div class="cell r last">{{ read.last_seen|date:"j M, H:i" }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% empty %}
+<div class="empty">
+  <h2>Nobody has opened anything yet</h2>
+  <p>Once someone opens a link, what they read appears here.</p>
+</div>
+{% endfor %}
+{% endblock %}
