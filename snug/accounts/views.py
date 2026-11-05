@@ -67,18 +67,17 @@ def login_view(request: HttpRequest) -> HttpResponse:
     context.update(email=email, next=request.POST.get("next", ""))
     ip = _identity(request)
 
-    if ratelimit.exceeded(limits.PASSWORD_PER_IP, ip) or ratelimit.exceeded(
+    # Count, then decide: simultaneous requests cannot all slip under.
+    if not ratelimit.allow(limits.PASSWORD_PER_IP, ip) or not ratelimit.allow(
         limits.PASSWORD_PER_ACCOUNT, email
     ):
         _audit(request, "admin.login_failed", email, step="password", reason="rate_limited")
         return render(request, "accounts/login.html", {**context, "error": TOO_MANY}, status=429)
-    ratelimit.hit(limits.PASSWORD_PER_IP, ip)
 
     # authenticate() hashes a dummy password for unknown addresses, so a wrong
     # address takes as long to refuse as a wrong password.
     admin = authenticate(request, username=email, password=password)
     if not isinstance(admin, Admin) or admin.totp_confirmed_at is None:
-        ratelimit.hit(limits.PASSWORD_PER_ACCOUNT, email)
         _audit(request, "admin.login_failed", email, step="password", reason="wrong")
         error = "That email address and password do not match an admin."
         return render(request, "accounts/login.html", {**context, "error": error})
@@ -107,10 +106,9 @@ def _second_step(
         return redirect("accounts:login")
 
     ip = _identity(request)
-    if ratelimit.exceeded(per_ip, ip) or ratelimit.exceeded(per_admin, str(admin.pk)):
+    if not ratelimit.allow(per_ip, ip) or not ratelimit.allow(per_admin, str(admin.pk)):
         _audit(request, "admin.login_failed", admin.email, step=method, reason="rate_limited")
         return render(request, template, {"error": TOO_MANY}, status=429)
-    ratelimit.hit(per_ip, ip)
 
     submitted = request.POST.get("code", "")
     if method == "totp":
@@ -127,7 +125,6 @@ def _second_step(
         ok = recovery.use(admin, submitted)
 
     if not ok:
-        ratelimit.hit(per_admin, str(admin.pk))
         _audit(request, "admin.login_failed", admin.email, step=method, reason="wrong")
         if sessions.record_code_failure(request, pending) >= limits.CODE_FAILURES_PER_PASSWORD:
             sessions.clear_pending(request)

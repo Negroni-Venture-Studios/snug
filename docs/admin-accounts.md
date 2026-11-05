@@ -29,9 +29,11 @@ Go to `/admin/` on your Snug domain. Enter your email address and password, then
 - **Sessions end** after an hour without activity, and after twelve hours whatever happens.
 - **Too many attempts pause signing in for 15 minutes.** The limits are:
   - 20 password attempts from one address;
-  - 30 wrong passwords against one account, from anywhere;
-  - 10 wrong codes against one account;
+  - 30 password attempts against one account, from anywhere;
+  - 10 code attempts against one account;
   - 5 wrong codes after one correct password, which then takes you back to the password.
+
+  Every attempt counts, right or wrong. You will only meet these limits if something is wrong.
 
   The account limit is deliberately generous, so that someone typing wrong passwords cannot easily lock you out.
 - **Changing your password, or resetting your second factor, signs you out everywhere.**
