@@ -1,0 +1,22 @@
+{% extends "viewer/base.html" %}
+{% load snug %}
+{% block title %}Before you read {{ title }}{% endblock %}
+{% block main %}
+<div class="gate-grid">
+  <div class="gate nda">
+    <h1>Before you read <strong>{{ title }}</strong></h1>
+    <p class="lede">{% if company %}{{ company }} asks{% else %}You are asked{% endif %} that you accept this agreement first.</p>
+    <div class="nda-text" tabindex="0" aria-label="The agreement">{{ nda.text|linebreaks }}</div>
+    <form class="form" method="post" action="{% url 'viewer:nda' token=token %}" novalidate>
+      {% csrf_token %}
+      <div class="field"><label for="name">Your full name</label><input id="name" name="name" type="text" autocomplete="name" maxlength="200" required value="{{ name }}"{% if errors.name %} aria-invalid="true" aria-describedby="name-error"{% endif %}>
+        {% if errors.name %}<div class="error" id="name-error" role="alert">{% icon "warning-circle" %}{{ errors.name }}</div>{% endif %}</div>
+      <div class="field"><label class="check"><input type="checkbox" name="accept"{% if errors.accept %} aria-invalid="true" aria-describedby="accept-error"{% endif %}><span>I accept this agreement</span></label>
+        {% if errors.accept %}<div class="error" id="accept-error" role="alert">{% icon "warning-circle" %}{{ errors.accept }}</div>{% endif %}</div>
+      <p class="small">Snug records your name, your email address, the time, your IP address and browser, and a fingerprint of this exact text. This is a record of acceptance, not a signature.</p>
+      <button class="btn btn-brand" type="submit">Accept and continue</button>
+    </form>
+  </div>
+  {% include "viewer/_about.html" %}
+</div>
+{% endblock %}

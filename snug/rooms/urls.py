@@ -10,6 +10,7 @@ urlpatterns = [
     path("new", views.room_new, name="new"),
     path("<str:token>", views.room_detail, name="detail"),
     path("<str:token>/rename", views.room_rename, name="rename"),
+    path("<str:token>/nda", views.room_nda, name="nda"),
     path("<str:token>/folders", views.folder_add, name="folder_add"),
     path("<str:token>/folders/<int:folder_id>/remove", views.folder_remove, name="folder_remove"),
     path("<str:token>/documents", views.document_add, name="document_add"),

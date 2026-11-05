@@ -35,6 +35,17 @@
 {% endif %}
 </div>
 
+<div class="section" id="nda">
+<div class="section-head"><h2>NDA</h2><p>One agreement for every room and link that asks for it. {% if nda %}Version {{ nda.number }}, {{ nda.created_at|date:"j M Y" }}.{% else %}None yet.{% endif %}</p></div>
+<form class="panel form" method="post" action="{% url 'accounts:nda' %}" novalidate>
+  {% csrf_token %}
+  <div class="field"><label for="nda-text">Agreement</label><textarea id="nda-text" name="text" rows="10"{% if nda_error %} aria-invalid="true" aria-describedby="nda-error"{% endif %}>{% if nda_draft %}{{ nda_draft }}{% elif nda %}{{ nda.text }}{% endif %}</textarea>
+    {% if nda_error %}<div class="error" id="nda-error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% else %}<div class="hint">Saving changed text makes a new version: everyone asked to accept the agreement accepts the new one on their next visit. Earlier acceptances stay on record. Viewers are told this is a record of acceptance, not a signature.</div>{% endif %}</div>
+  <button class="btn btn-primary" type="submit">Save agreement</button>
+</form>
+{% if nda_history|length > 1 %}<p class="page-meta">Earlier versions: {% for version in nda_history %}{% if not forloop.first %}version {{ version.number }} ({{ version.created_at|date:"j M Y" }}){% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}.</p>{% endif %}
+</div>
+
 <div class="section">
 <div class="section-head"><h2>Privacy</h2><p>Viewers are told what Snug records about them. You can add a link to your own privacy policy.</p></div>
 <form class="panel form invite" method="post" action="{% url 'accounts:privacy' %}" novalidate>

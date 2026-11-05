@@ -10,6 +10,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- The NDA: one agreement for the instance, written in Settings and versioned. A room, or a link to a single document, can ask for it before anything is shown. The viewer gives their name and ticks to accept; Snug records the name, email, link, time, IP address, browser and a fingerprint of the exact text, and asks again when the agreement changes. `docs/nda.md` says plainly that this is a record of acceptance, not a signature.
+
 - Rooms, in the admin interface: create and rename a room, add folders (one level), and add, move and remove documents. A document can be in any number of rooms. Every change is recorded in the audit log.
 - Sharing a room: one link opens a page listing the room's documents under their folders, each opening in the reader with its own downloads and reading time. Removing a document from the room stops the link reaching it at once.
 - A People page: everyone who has opened a document, most recent first, with what each of them read in the same page strips.

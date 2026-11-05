@@ -18,6 +18,7 @@ urlpatterns = [
     path("<str:token>/pages/<int:page>-<int:width>.webp", views.page_image, name="page"),
     path("<str:token>/download", views.download, name="download"),
     path("<str:token>/beat", views.beat, name="beat"),
+    path("<str:token>/nda", views.nda, name="nda"),
     # A room link's documents.
     path("<str:token>/d/<str:document_token>", views.entry, name="room_document"),
     path(

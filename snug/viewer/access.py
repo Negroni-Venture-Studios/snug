@@ -5,7 +5,8 @@ Every viewer request for content calls authorise(), which checks, in order:
 1. the link exists, is not revoked and has not expired;
 2. this browser has a session bound to this link and this email address,
    verified if the link requires verification;
-3. the NDA has been accepted, if one is required (rooms and NDAs: step 6);
+3. the current NDA has been accepted on this link, if the link or its room
+   requires it;
 4. the geographic restriction is met, if one is set (step 8);
 5. the requested document belongs to the link's document, or to its room.
 
@@ -21,6 +22,7 @@ from django.http import HttpRequest
 
 from snug.documents.models import Document
 from snug.links.models import Link
+from snug.nda import terms
 from snug.rooms.models import RoomDocument
 from snug.viewer import sessions
 from snug.viewer.models import ViewerSession
@@ -36,6 +38,14 @@ class Unavailable(Denied):
 
 class NotVerified(Denied):
     """The link is fine, but this browser has no session for it."""
+
+    def __init__(self, link: Link) -> None:
+        super().__init__(link.label)
+        self.link = link
+
+
+class NeedsNda(Denied):
+    """The session is fine, but the NDA must be accepted on this link first."""
 
     def __init__(self, link: Link) -> None:
         super().__init__(link.label)
@@ -58,8 +68,18 @@ def find_link(token: str) -> Link:
     return link
 
 
-def authorise(request: HttpRequest, token: str, *, document_token: str | None = None) -> Access:
-    """Allow a request for viewer content, or raise Denied. See the module docstring."""
+def authorise(
+    request: HttpRequest,
+    token: str,
+    *,
+    document_token: str | None = None,
+    check_nda: bool = True,
+) -> Access:
+    """Allow a request for viewer content, or raise Denied. See the module docstring.
+
+    Only the NDA page itself passes check_nda=False: it is where the NDA is
+    accepted, so it cannot require that it already has been.
+    """
     link = find_link(token)
 
     session = sessions.lookup(request, link)
@@ -69,6 +89,13 @@ def authorise(request: HttpRequest, token: str, *, document_token: str | None = 
         or (link.require_verification and not session.verified)
     ):
         raise NotVerified(link)
+
+    if check_nda and terms.required(link):
+        version = terms.current()
+        if version is not None and not terms.accepted(link, version):
+            raise NeedsNda(link)
+
+    # Check 4, the geographic restriction, arrives in step 8.
 
     # Check 5: the document belongs to the link's document, or to its room.
     # Room membership is looked up on every request, so removing a document
