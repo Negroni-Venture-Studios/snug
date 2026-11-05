@@ -83,9 +83,35 @@ def test_missing_env_file_is_explained_in_process(
     assert "cannot read the environment file" in capsys.readouterr().err
 
 
+@pytest.mark.django_db
 def test_main_runs_management_commands(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["check"]) == 0
     assert "no issues" in capsys.readouterr().out
+
+
+def test_main_creates_a_private_data_folder(tmp_path: Path) -> None:
+    env_file = write_env(tmp_path)
+    result = run_snug("--env-file", str(env_file), "check")
+    assert result.returncode == 0, result.stderr
+    data_dir = tmp_path / "data"
+    assert data_dir.is_dir()
+    assert data_dir.stat().st_mode & 0o777 == 0o700
+
+
+def test_unwritable_data_folder_is_explained(tmp_path: Path) -> None:
+    blocker = tmp_path / "a-file"
+    blocker.write_text("not a folder", encoding="utf-8")
+    env_file = tmp_path / "snug.env"
+    env_file.write_text(
+        f"SNUG_SECRET_KEY={secrets.token_urlsafe(64)}\n"
+        "SNUG_DOMAIN=room.example.com\n"
+        f"SNUG_DATA_DIR={blocker / 'data'}\n",
+        encoding="utf-8",
+    )
+    result = run_snug("--env-file", str(env_file), "check")
+    assert result.returncode == 2
+    assert "cannot create the data folder" in result.stderr
+    assert "Traceback" not in result.stderr
 
 
 def test_wsgi_application_loads() -> None:
