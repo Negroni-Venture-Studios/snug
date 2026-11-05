@@ -217,13 +217,23 @@ svg.bars { height: 64px; }
 .field label, .field .label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.4rem; }
 .field .hint { font-size: 0.82rem; color: var(--text-3); margin-top: 0.35rem; }
 .field .error { display: flex; gap: 0.4rem; align-items: center; font-size: 0.85rem; color: var(--danger); margin-top: 0.45rem; }
-input[type="text"], input[type="email"], input[type="password"], input[type="date"], select, textarea {
+input[type="text"], input[type="email"], input[type="password"], input[type="date"],
+input[type="search"], input[type="url"], input[type="number"], select, textarea {
     width: 100%; font: inherit; font-size: 0.95rem; color: var(--text); background: var(--surface);
     border: 1px solid var(--border-strong); border-radius: var(--r); padding: 0.6rem 0.75rem;
 }
+/* Our own arrow: the browser's sits hard against the right edge and cannot be moved.
+   Mid-grey, so it reads in both themes (Phosphor caret-down, MIT). */
+select {
+    appearance: none; padding-right: 2.4rem;
+    background-image: url("../icons/caret-down.svg"); background-repeat: no-repeat;
+    background-position: right 0.85rem center; background-size: 0.85rem;
+}
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--focus); outline-offset: -1px; }
 input[aria-invalid="true"] { border-color: var(--danger); }
-.check { display: grid; grid-template-columns: 1.1rem 1fr; gap: 0.65rem; font-size: 0.92rem; cursor: pointer; }
+/* label.check, not .check: a tick box inside a .field must not take the
+   field caption's block layout (.field label), which drops the gap. */
+label.check { display: grid; grid-template-columns: 1.1rem 1fr; gap: 0.65rem; font-size: 0.92rem; font-weight: 400; margin-bottom: 0; cursor: pointer; }
 .check input { margin-top: 0.22rem; accent-color: var(--action); width: 1rem; height: 1rem; }
 .v .check input { accent-color: var(--brand); }
 .check .hint { display: block; font-size: 0.82rem; color: var(--text-3); }
