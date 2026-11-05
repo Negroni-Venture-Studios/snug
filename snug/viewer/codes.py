@@ -25,6 +25,8 @@ CODE_MINUTES = 10
 MAX_FAILURES = 5
 # With five tries per code, this allows ten codes' worth of guesses a day: a
 # one-in-20,000 chance of guessing right, and each new code emails the owner.
+# Only checks against a live code count, so using up the day takes about ten
+# codes, each emailed to the link's owner and rate limited per link.
 CHECKS_PER_LINK_PER_DAY = ratelimit.Limit("viewer.code.check.link", limit=50, window=24 * 60 * 60)
 _CODE = re.compile(r"[0-9]{6}")
 # People paste codes with spaces, or type them in two groups of three.
@@ -59,13 +61,13 @@ def issue(link: Link) -> str:
 
 def check(link: Link, typed: str) -> Result:
     """Try a code. A correct code is used up; a wrong one counts against it."""
-    identity = str(link.pk)
-    if ratelimit.exceeded(CHECKS_PER_LINK_PER_DAY, identity):
-        return Result(ok=False, tries_left=0, limited=True)
-    ratelimit.hit(CHECKS_PER_LINK_PER_DAY, identity)
     live = VerificationCode.objects.filter(link=link).first()
     if live is None:
+        # Nothing to guess, so nothing is counted: posting codes to a link
+        # with no live code must not lock out the person it was sent to.
         return Result(ok=False, tries_left=0)
+    if not ratelimit.allow(CHECKS_PER_LINK_PER_DAY, str(link.pk)):
+        return Result(ok=False, tries_left=0, limited=True)
     return _attempt(link, live, typed)
 
 

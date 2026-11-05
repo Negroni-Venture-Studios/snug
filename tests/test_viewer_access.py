@@ -303,6 +303,15 @@ def test_checks_per_link_are_capped_each_day(issued: service.Issued) -> None:
     assert not result.ok and result.limited
 
 
+def test_checks_without_a_live_code_do_not_use_up_the_day(issued: service.Issued) -> None:
+    # Anyone with the link can post codes. Without a live code there is
+    # nothing to guess, so those posts must not lock the real person out.
+    for _ in range(codes.CHECKS_PER_LINK_PER_DAY.limit + 5):
+        assert not codes.check(issued.link, "000000").limited
+    code = codes.issue(issued.link)
+    assert codes.check(issued.link, code).ok
+
+
 def test_an_expired_code_is_refused(issued: service.Issued) -> None:
     code = codes.issue(issued.link)
     VerificationCode.objects.update(expires_at=timezone.now() - timedelta(seconds=1))

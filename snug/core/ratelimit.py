@@ -1,8 +1,10 @@
 """A small rate limiter kept in SQLite, so every server process shares it.
 
 Fixed windows: a key may be hit `limit` times in each `window` seconds.
-Callers check `exceeded()` before doing expensive or sensitive work, and call
-`hit()` for each attempt they want counted.
+`allow()` counts an attempt and then decides from the count, so simultaneous
+requests cannot all slip under the limit; prefer it for new code. The older
+pattern, `exceeded()` before the work and `hit()` for each attempt counted,
+suits limits that count only failures.
 """
 
 import hashlib
@@ -42,6 +44,11 @@ def hit(limit: Limit, identity: str, now: float | None = None) -> int:
         # Earlier windows for this key can never matter again.
         RateLimitWindow.objects.filter(key=key, window_start__lt=start).delete()
     return row.count
+
+
+def allow(limit: Limit, identity: str, now: float | None = None) -> bool:
+    """Count one attempt, then say whether it is within the limit."""
+    return hit(limit, identity, now) <= limit.limit
 
 
 def exceeded(limit: Limit, identity: str, now: float | None = None) -> bool:
