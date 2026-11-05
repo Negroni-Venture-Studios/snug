@@ -206,6 +206,9 @@ svg.bars { height: 64px; }
 .form { display: grid; gap: 1.25rem; }
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.5rem; }
 .form.invite { max-width: 30rem; }
+/* Settings forms share one width, wide enough for the NDA text at a
+   comfortable line length. */
+.form.settings-form { max-width: 40rem; }
 /* QR codes need dark modules on light, in either theme. */
 .qr-tile { width: min(100%, 13rem); background: #fff; border-radius: var(--r); padding: 0.25rem; margin: 0.35rem 0 0.5rem; }
 /* Sized by its viewBox, so it shrinks to fit a phone. */
@@ -217,13 +220,23 @@ svg.bars { height: 64px; }
 .field label, .field .label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.4rem; }
 .field .hint { font-size: 0.82rem; color: var(--text-3); margin-top: 0.35rem; }
 .field .error { display: flex; gap: 0.4rem; align-items: center; font-size: 0.85rem; color: var(--danger); margin-top: 0.45rem; }
-input[type="text"], input[type="email"], input[type="password"], input[type="date"], select, textarea {
+input[type="text"], input[type="email"], input[type="password"], input[type="date"],
+input[type="search"], input[type="url"], input[type="number"], select, textarea {
     width: 100%; font: inherit; font-size: 0.95rem; color: var(--text); background: var(--surface);
     border: 1px solid var(--border-strong); border-radius: var(--r); padding: 0.6rem 0.75rem;
 }
+/* Our own arrow: the browser's sits hard against the right edge and cannot be moved.
+   Mid-grey, so it reads in both themes (Phosphor caret-down, MIT). */
+select {
+    appearance: none; padding-right: 2.4rem;
+    background-image: url("../icons/caret-down.svg"); background-repeat: no-repeat;
+    background-position: right 0.85rem center; background-size: 0.85rem;
+}
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--focus); outline-offset: -1px; }
 input[aria-invalid="true"] { border-color: var(--danger); }
-.check { display: grid; grid-template-columns: 1.1rem 1fr; gap: 0.65rem; font-size: 0.92rem; cursor: pointer; }
+/* label.check, not .check: a tick box inside a .field must not take the
+   field caption's block layout (.field label), which drops the gap. */
+label.check { display: grid; grid-template-columns: 1.1rem 1fr; gap: 0.65rem; font-size: 0.92rem; font-weight: 400; margin-bottom: 0; cursor: pointer; }
 .check input { margin-top: 0.22rem; accent-color: var(--action); width: 1rem; height: 1rem; }
 .v .check input { accent-color: var(--brand); }
 .check .hint { display: block; font-size: 0.82rem; color: var(--text-3); }
@@ -282,6 +295,12 @@ input.code { font-family: var(--mono); font-size: 1.5rem; letter-spacing: 0.45em
 .page-frame svg { display: block; width: 100%; height: auto; }
 .page-frame img { display: block; width: 100%; height: auto; }
 .reader-controls .btn[aria-disabled="true"] { opacity: 0.45; cursor: default; }
+/* Disabled controls look disabled, so a box that will not tick never looks broken.
+   The hint beside it says why, and stays readable. */
+.check:has(input:disabled) { cursor: not-allowed; }
+.check:has(input:disabled) > span { color: var(--text-3); }
+.check input:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .reader-controls .jump { display: flex; gap: 0.4rem; }
 .nda-text { max-height: 22rem; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); padding: 1rem 1.15rem; margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.6; }
 .nda-text p + p { margin-top: 0.75rem; }
@@ -385,10 +404,16 @@ form.inline { display: inline; }
 .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
 .filters select, .filters input { width: auto; }
 .pager { display: flex; gap: 1rem; align-items: center; justify-content: center; margin-top: 1.5rem; }
+.activity-rows .item { grid-template-columns: minmax(14rem, 1.3fr) minmax(12rem, 1.5fr) 6.5rem 7rem; }
+.what .note { display: block; font-size: 0.82rem; color: var(--text-3); }
 .room-rows .item { grid-template-columns: minmax(14rem, 1.6fr) minmax(12rem, 1fr) auto; }
 .inline-form { display: flex; gap: 0.4rem; align-items: center; }
 .inline-form select { width: auto; }
 .inline-form input[type="number"] { width: 6rem; }
+/* A label, a box and the rest of the sentence on one line, wrapping on a phone. */
+.inline-form.sentence { flex-wrap: wrap; column-gap: 0.6rem; }
+.inline-form.sentence label { margin-bottom: 0; }
+.inline-form.sentence span { font-size: 0.875rem; font-weight: 500; }
 .form.retention { margin-top: 1rem; }
 .folder { margin-top: 1.5rem; }
 .folder h3 { font-size: 0.95rem; font-weight: 500; }

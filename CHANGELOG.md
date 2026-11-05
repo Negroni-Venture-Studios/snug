@@ -7,9 +7,12 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 ### Fixed
 
 - Link expiry dates are shown as the last day the link works. The links list and the link email showed the day after.
+- The server no longer stalls, and then answers "Internal Server Error", when a browser holds connections open without using them. `snug serve` now runs threaded workers (`--threads`, 4 by default).
+- An unexpected error is now logged with its traceback. Link and setup tokens in any log line are replaced with `[redacted]`.
 
 ### Added
 
+- The Overview: how many documents, active links, people who have read and visits this week, then the ten latest visits, with a person's first open of a document marked New.
 - A container image, `ghcr.io/negroni-venture-studios/snug`, for amd64 and arm64: `:edge` from `main`, and a version tag and `:latest` from each release. It runs as an unprivileged user, and its render worker is confined by Landlock.
 
 - Reading data is deleted automatically 12 months after its link is revoked or expires, a period you can change in Settings (from 1 to 120 months). `snug housekeeping`, which the server runs every hour, does it, and also clears expired codes, sessions, setup links and rate-limit counts.
@@ -27,7 +30,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 - An optional link to your own privacy policy, set in Settings and shown to viewers beside the statement of what Snug records about them.
 
 - The reader: once a viewer is in, each page is shown as an image, one at a time, with Previous, Next, the arrow keys and a page picker. Every page is watermarked for that viewer on each request, with their email address and the date across the page and a footer naming them, the date and the link. Watermarks are stamped in the same confined worker that renders pages.
-- Downloads: when a link allows them (the default), the reader offers the original PDF, with a line naming the viewer, the date and the link on every page and the same details in the file's properties. The text stays selectable and searchable. Each download is recorded in the audit log with a fingerprint of the exact file sent.
+- Downloads: when a link allows them (the default), the reader offers the original PDF, marked on every page with the reader's faint diagonal watermark (the viewer's email address and the date) and a line naming them, the date and the link, with the same details in the file's properties. The text stays selectable and searchable. Each download is recorded in the audit log with a fingerprint of the exact file sent.
 
 - A Settings page listing the admins, and inviting new ones. An invite is an emailed link that works once, for 72 hours, where the new admin chooses a password and sets up their authenticator app. Inviting asks for a fresh code from your own authenticator, and every admin is emailed when someone is invited.
 - Removing an admin, or cancelling an invite, and resetting another admin's second factor, from Settings. Both ask for a fresh code from your authenticator and email every admin. You cannot remove yourself, and the last admin can never be removed.

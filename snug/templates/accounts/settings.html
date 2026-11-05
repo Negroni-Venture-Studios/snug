@@ -21,7 +21,7 @@
 <div class="section">
 <div class="section-head"><h2>Invite an admin</h2></div>
 {% if email_enabled %}
-<form class="panel form invite" method="post" action="{% url 'accounts:invite' %}" novalidate>
+<form class="panel form settings-form" method="post" action="{% url 'accounts:invite' %}" novalidate>
   {% csrf_token %}
   {% if done == "invited" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Invite sent. The link works for 72 hours.</span></div>{% endif %}
   <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="off" required value="{{ values.email }}"{% if invite_error %} aria-invalid="true" aria-describedby="email-error"{% endif %}>
@@ -37,8 +37,9 @@
 
 <div class="section" id="nda">
 <div class="section-head"><h2>NDA</h2><p>One agreement for every room and link that asks for it. {% if nda %}Version {{ nda.number }}, {{ nda.created_at|date:"j M Y" }}.{% else %}None yet.{% endif %}</p></div>
-<form class="panel form" method="post" action="{% url 'accounts:nda' %}" novalidate>
+<form class="panel form settings-form" method="post" action="{% url 'accounts:nda' %}" novalidate>
   {% csrf_token %}
+  {% if saved == "nda" and nda %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved as version {{ nda.number }}. Anyone asked for the NDA accepts this version on their next visit.</span></div>{% endif %}
   <div class="field"><label for="nda-text">Agreement</label><textarea id="nda-text" name="text" rows="10"{% if nda_error %} aria-invalid="true" aria-describedby="nda-error"{% endif %}>{% if nda_draft %}{{ nda_draft }}{% elif nda %}{{ nda.text }}{% endif %}</textarea>
     {% if nda_error %}<div class="error" id="nda-error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% else %}<div class="hint">Saving changed text makes a new version: everyone asked to accept the agreement accepts the new one on their next visit. Earlier acceptances stay on record. Viewers are told this is a record of acceptance, not a signature.</div>{% endif %}</div>
   <button class="btn btn-primary" type="submit">Save agreement</button>
@@ -48,17 +49,18 @@
 
 <div class="section" id="privacy">
 <div class="section-head"><h2>Privacy</h2><p>Viewers are told what Snug records about them. You can add a link to your own privacy policy.</p></div>
-<form class="panel form invite" method="post" action="{% url 'accounts:privacy' %}" novalidate>
+<form class="panel form settings-form" method="post" action="{% url 'accounts:privacy' %}" novalidate>
   {% csrf_token %}
-  {% if done == "saved" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved.</span></div>{% endif %}
+  {% if saved == "privacy" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved.</span></div>{% endif %}
   <div class="field"><label for="privacy_url">Privacy policy address</label><input id="privacy_url" name="privacy_url" type="url" inputmode="url" autocomplete="off" placeholder="https://example.com/privacy" value="{{ privacy_url }}"{% if privacy_error %} aria-invalid="true" aria-describedby="privacy-error"{% endif %}>
     {% if privacy_error %}<div class="error" id="privacy-error" role="alert">{% icon "warning-circle" %}{{ privacy_error }}</div>{% else %}<div class="hint">Shown to viewers beside the statement of what is recorded. Leave empty for none.</div>{% endif %}</div>
   <button class="btn btn-primary" type="submit">Save</button>
 </form>
-<form class="panel form invite retention" method="post" action="{% url 'accounts:retention' %}" novalidate>
+<form class="panel form settings-form retention" id="retention" method="post" action="{% url 'accounts:retention' %}" novalidate>
   {% csrf_token %}
-  <div class="field"><label for="months">Keep reading data for</label>
-    <div class="inline-form"><input id="months" name="months" type="number" min="1" max="120" value="{{ retention_months }}"{% if retention_error %} aria-invalid="true" aria-describedby="retention-error"{% endif %}><span>months after a link ends</span></div>
+  {% if saved == "retention" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved. Reading data is kept for {{ retention_months }} months after a link ends.</span></div>{% endif %}
+  <div class="field">
+    <div class="inline-form sentence"><label for="months">Keep reading data for</label><input id="months" name="months" type="number" min="1" max="120" value="{{ retention_months }}"{% if retention_error %} aria-invalid="true" aria-describedby="retention-error"{% endif %}><span>months after a link ends</span></div>
     {% if retention_error %}<div class="error" id="retention-error" role="alert">{% icon "warning-circle" %}{{ retention_error }}</div>{% else %}<div class="hint">Which pages each person read, and for how long, is deleted this long after their link is revoked or expires. While a link works, its reading data is kept. The audit log is kept regardless. Some sectors need longer: seven years is 84 months.</div>{% endif %}</div>
   <button class="btn btn-primary" type="submit">Save</button>
 </form>

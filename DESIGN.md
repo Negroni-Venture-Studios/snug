@@ -56,9 +56,9 @@ Agreed on 5 November 2026 unless noted.
 | Front end | Revision 2 (section 3): Negroni palette, Geist type, Phosphor icons, the reading heatmap; its stylesheet seeds `base.css` | Revision 1 was calm but bland. |
 | Logo | The half-glazed snug door (section 3.14) | Door, monogram and Negroni sparkle; a snug is a pub's private room. |
 | Link tokens | 256-bit random tokens, stored only as SHA-256 hashes. The full link is shown once, at creation; afterwards the founder can issue a new link, which stops the old one. Each link also has a short, non-secret reference (like `L-7Q2K`) for watermarks and the audit log. | A leaked database or backup exposes no working links. |
-| Downloads | Allowed by default on every link, for every file type; the founder can turn them off on a link that must be view-only. A PDF download is the original file, so its text can be selected and searched, stamped in the confined worker with a line on every page ("Shared with *email*", the date and the link reference) and the same details in its document properties. The audit log records each download with a hash of the exact file sent. *Decided 5 November 2026; the brief had downloads off by default and an image-only PDF.* | Investors want the working file, and find view-only rooms frustrating. An image-only PDF cannot be searched or quoted and is many times larger. The stamp, like the watermark, deters casual forwarding and identifies a leaked copy, but cannot stop a determined copier. |
+| Downloads | Allowed by default on every link, for every file type; the founder can turn them off on a link that must be view-only. A PDF download is the original file, so its text can be selected and searched, stamped in the confined worker with the reader's faint diagonal mark (email and date) on every page, drawn as an image layer so the document's own text stays clean to copy, a line at the foot of every page ("Shared with *email*", the date and the link reference), and the same details in its document properties. *The diagonal mark was added on 5 November 2026, after a hand test showed the footer line alone was easy to miss.* The audit log records each download with a hash of the exact file sent. *Decided 5 November 2026; the brief had downloads off by default and an image-only PDF.* | Investors want the working file, and find view-only rooms frustrating. An image-only PDF cannot be searched or quoted and is many times larger. The stamp, like the watermark, deters casual forwarding and identifies a leaked copy, but cannot stop a determined copier. |
 | Trademarks | Logo files are MIT with the code; `TRADEMARKS.md` asks forks shipped as separate products to rename | Keeps "Snug" meaning the Negroni project without heavy policy. |
-| Theme | Dark by default; a dark, light and auto toggle in every header | Agreed 5 November 2026. |
+| Theme | Dark by default; a light, dark and system toggle in every header, cycling in that order (changed from dark, light, auto on 5 November 2026) | Agreed 5 November 2026. |
 
 ## 2. Dependencies
 
@@ -122,7 +122,7 @@ On the taste skill's dials: variance 3 (orderly, aligned, few surprises), motion
 
 Each token is written once with CSS `light-dark()`, resolved by `color-scheme` on the root element, so there are no duplicated dark-mode blocks.
 
-**Dark is the default** on both surfaces. A round three-state toggle in every header cycles dark, light and auto (auto follows the operating system). It is the toggle from agentlanguages.dev: a moon, a sun, and a half-filled circle. Its label names the current state, and the choice is saved per browser. A small `theme-init.js` in `<head>` applies the saved choice before first paint; it is a file, not an inline script, because of the CSP. Contrast figures below are the lowest measured against any surface the token is used on.
+**Dark is the default** on both surfaces. A round three-state toggle in every header cycles light, dark and system (system follows the operating system). It is the toggle from agentlanguages.dev: a moon, a sun, and a half-filled circle. Its label names the current state, and the choice is saved per browser. A small `theme-init.js` in `<head>` applies the saved choice before first paint; it is a file, not an inline script, because of the CSP. Contrast figures below are the lowest measured against any surface the token is used on.
 
 **Admin palette** (Negroni).
 
@@ -175,7 +175,7 @@ Real URLs, not hash routing, because every action is a CSRF-protected form post.
 
 **Header.** The chrome bar, then the Snug lockup (section 3.14) with the company name beside it, the admin's email address and *Sign out*. The tabs are **Overview**, **Documents**, **Rooms**, **Links**, **People**, **Audit log** and **Settings**. The active tab is underlined in Campari.
 
-- **Overview.** A stat strip, recent activity with first opens marked "New", and a status line. The status line names any problem from the `snug doctor` checks, such as an old backup or failing email.
+- **Overview.** A stat strip, recent activity with first opens marked "New", and a status line. The strip counts documents, active links, people who have read anything, and visits in the last 7 days. Recent activity lists the ten latest visits: who, which document (and room), reading time and when. The status line names any problem from the `snug doctor` checks, such as an old backup or failing email.
 - **Documents.**
   - The list shows name, current version, page count, number of links and last viewed.
   - The page title is set in Geist Light, with the version, page count and upload date beneath it.
@@ -298,17 +298,28 @@ Steps 0 to 6 are done. What remains, including commitments made along the way th
 **Step 7: deployment.**
 - The container image, for amd64 and arm64, published to `ghcr.io/negroni-venture-studios/snug`: `:edge` on every merge to `main`, and `:x.y.z` and `:latest` on a version tag (decided 5 November 2026).
   - *Done:* the Dockerfile (Python 3.14 slim, pinned by digest; one unprivileged `snug` user; Landlock confirmed active in the container) and the `Image` workflow.
-  - *To do (Alasdair):* after the first publish, make the `snug` package public in the organisation's package settings, so founders can pull it without logging in. GitHub offers no API for this.
+  - *Done:* the package is public (5 November 2026), after the organisation allowed public packages.
+  - **Documentation comes before publishing.** No version tag (`v0.1.0`, which publishes `:latest`) until the README's quick start and `docs/deploy-digitalocean.md` describe that release and have been followed on a fresh droplet. Until then the README says plainly that `:edge` is a test build.
   - *To do:* add `image smoke test` to `main`'s required checks once it has passed on `main`.
 - Docker Compose with Snug, Caddy and Litestream; an rclone sidecar for uploaded originals; backups encrypted with an age key generated during setup, which the founder must store (decided 5 November 2026).
 - cloud-init for a fresh Ubuntu LTS droplet.
 - `snug doctor`, checking DNS, TLS, email (send a code, type it back), the latest backup, the render worker's confinement level (Landlock), and housekeeping: it warns when `snug housekeeping` has not completed successfully in the last three hours. Housekeeping must record when it last succeeded for this.
-- The admin Overview's status line shows any problem `snug doctor` would report, including failing housekeeping, so a founder sees it without running a command.
+- The admin Overview's status line shows any problem `snug doctor` would report, including failing housekeeping, so a founder sees it without running a command. (The Overview's stat strip and recent activity were missed from the plan and built on 5 November 2026; the status line is what remains.)
 - `snug restore`, documented and tested.
+
+**Before step 7 continues: forgotten passwords** (asked for 5 November 2026, because people forget).
+- A "Forgotten your password?" link on the sign-in page. It asks for an email address and always gives the same reply, so it never reveals who is an admin; rate limited per address and per account.
+- An emailed one-time link, working for one hour, reusing the setup links (hashed). The second factor is unchanged: the authenticator is still needed to sign in, so access to the mailbox alone is not enough.
+- Changing the password signs the admin out everywhere and emails them that it changed; the request and the change are audited.
+- Without email, the page says to ask another admin or use `snug reset-password` on the server: an audited command, replacing Django's `changepassword`, which writes nothing to the audit log. `docs/admin-accounts.md` covers both.
+
+**Writing the NDA where it is needed** (found while testing, 5 November 2026). With no NDA yet, the "Ask for the NDA" option on a new link, and the room's NDA switch, show the agreement's text box inline, so a founder can write version 1 there instead of leaving the form for Settings and losing what they typed.
+
+**Links that work when trying Snug locally** (found while testing, 5 November 2026). With `SNUG_DOMAIN=localhost`, the links Snug shows and emails have no port, so `http://localhost/v/...` fails when the container is published on port 8000. Let a local instance know its port (for example `SNUG_DOMAIN=localhost:8000`, allowed only for `localhost`), and use it in the README's trial command.
 
 **Step 8.** UK-only mode, per link or per room (`authorise()` check 4), with DB-IP attribution; first-open email notifications to admins.
 
-**Step 9.** README, `docs/deploy-digitalocean.md`, `docs/security.md` (including what watermarks, the NDA record and UK-only mode do not protect against), then a full deployment to a test droplet from the guide alone, using a wildcard DNS name such as `sslip.io` rather than a bought domain, and a restore onto a second fresh droplet. Both droplets are destroyed afterwards.
+**Step 9.** README, `docs/using-snug.md` (how to use the admin interface and what investors see, with annotated screenshots generated by the Playwright tests, so rebuilding the guide refreshes them; asked for 5 November 2026), `docs/deploy-digitalocean.md`, `docs/security.md` (including what watermarks, the NDA record and UK-only mode do not protect against), then a full deployment to a test droplet from the guide alone, using a wildcard DNS name such as `sslip.io` rather than a bought domain, and a restore onto a second fresh droplet. Both droplets are destroyed afterwards.
 
 **Held Dependabot updates.** These stay open, never closed: closing a Dependabot pull request tells it to skip that version for good. Merge each once its release is two weeks old.
 - #31: docker/login-action 4.7.0 (eligible 6 November) and astral-sh/setup-uv 10.3.3 (eligible 11 November).
