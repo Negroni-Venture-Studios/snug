@@ -49,15 +49,23 @@ Still being built: the production setup (Docker Compose with Caddy for HTTPS and
 
 You need Docker. This runs Snug on `localhost` only, over plain HTTP, which Snug allows for `localhost` and nowhere else.
 
+First make a settings file holding a new secret key, and keep it. Snug signs sessions with the key and protects viewers' one-time codes with it, so a container started with a different key signs everyone out and cancels any code in flight.
+
+```bash
+python3 -c 'import secrets; print("SNUG_SECRET_KEY=" + secrets.token_urlsafe(64))' > snug.env
+chmod 600 snug.env
+```
+
+Then start Snug:
+
 ```bash
 docker run --detach --name snug --publish 127.0.0.1:8000:8000 \
-  --env SNUG_DOMAIN=localhost --env SNUG_HTTPS=false \
-  --env SNUG_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(64))')" \
+  --env-file snug.env --env SNUG_DOMAIN=localhost --env SNUG_HTTPS=false \
   --volume snug-data:/var/lib/snug \
   ghcr.io/negroni-venture-studios/snug:edge
 ```
 
-Then create the first admin, which asks for a password and shows a QR code for your authenticator app:
+Create the first admin, which asks for a password and shows a QR code for your authenticator app:
 
 ```bash
 docker exec --interactive --tty snug snug createadmin --email you@example.com
@@ -65,7 +73,27 @@ docker exec --interactive --tty snug snug createadmin --email you@example.com
 
 and sign in at <http://localhost:8000/admin/>. Without email settings, emails such as viewers' codes are written to files in the container instead of being sent; read them with `docker exec snug ls /var/lib/snug/outbox`. [docs/configuration.md](docs/configuration.md) lists every setting.
 
-To remove it all: `docker rm --force snug && docker volume rm snug-data`.
+**Updating.** Your documents and everything else live in the `snug-data` volume, so the container can be replaced at any time. Pull the new image, remove the container, then run the same `docker run` command as above, from the folder holding `snug.env`:
+
+```bash
+docker pull ghcr.io/negroni-venture-studios/snug:edge
+docker rm --force snug
+```
+
+If you started Snug before these instructions said to keep `snug.env`, save its key from the running container first:
+
+```bash
+docker inspect snug --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^SNUG_SECRET_KEY=' > snug.env
+chmod 600 snug.env
+```
+
+**A forgotten password.** Set a new one from the command line; the authenticator app keeps working as before:
+
+```bash
+docker exec --interactive --tty snug snug changepassword you@example.com
+```
+
+To remove it all: `docker rm --force snug && docker volume rm snug-data`, then delete `snug.env`.
 
 ## How it is built
 
