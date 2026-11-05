@@ -10,6 +10,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- Rooms, in the admin interface: create and rename a room, add folders (one level), and add, move and remove documents. A document can be in any number of rooms. Every change is recorded in the audit log. Sharing a room with a link follows.
 - A People page: everyone who has opened a document, most recent first, with what each of them read in the same page strips.
 
 - How a document was read, on its page: viewers, visits, median reading time and how many read every page, then one grid with the average time per page above a strip for each viewer, shaded by time on each page, with their visits, total time and when they were last seen.

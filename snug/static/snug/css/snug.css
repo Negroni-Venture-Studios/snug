@@ -371,6 +371,11 @@ form.inline { display: inline; }
 /* ---------- Documents ---------- */
 .doc-rows .item, .version-rows .item { grid-template-columns: minmax(14rem, 1.6fr) 7rem 7rem 8rem; }
 .admin-rows .item { grid-template-columns: minmax(14rem, 1.6fr) 6rem 11rem minmax(12rem, auto); }
+.room-rows .item { grid-template-columns: minmax(14rem, 1.6fr) minmax(12rem, 1fr) auto; }
+.inline-form { display: flex; gap: 0.4rem; align-items: center; }
+.inline-form select { width: auto; }
+.folder { margin-top: 1.5rem; }
+.folder h3 { font-size: 0.95rem; font-weight: 500; }
 .version-rows .item { grid-template-columns: minmax(10rem, 1fr) minmax(8rem, auto) 10rem; }
 .doc-rows a.email { color: var(--text); text-decoration: none; font-weight: 500; }
 .doc-rows a.email:hover { text-decoration: underline; }
