@@ -1,0 +1,13 @@
+{% extends "snug/admin_base.html" %}
+{% load snug %}
+{% block title %}New room{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'rooms:list' %}">Rooms</a> / New room</div>
+<div class="title-row"><div><h1 class="page-title">New room</h1></div></div>
+<form class="panel form invite" method="post" action="{% url 'rooms:new' %}" novalidate>
+  {% csrf_token %}
+  <div class="field"><label for="name">Name</label><input id="name" name="name" type="text" maxlength="120" required autofocus value="{{ name }}"{% if error %} aria-invalid="true" aria-describedby="name-error"{% endif %}>
+    {% if error %}<div class="error" id="name-error" role="alert">{% icon "warning-circle" %}{{ error }}</div>{% else %}<div class="hint">Viewers see this, for example "Fernlea Robotics seed round".</div>{% endif %}</div>
+  <div class="form-foot left"><a class="btn" href="{% url 'rooms:list' %}">Cancel</a><button class="btn btn-primary" type="submit">Create room</button></div>
+</form>
+{% endblock %}

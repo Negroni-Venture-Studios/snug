@@ -1,0 +1,16 @@
+{% if entries %}
+<div class="rows room-rows">
+  {% for entry in entries %}
+  <div class="item">
+    <div class="who"><a class="email" href="{% url 'documents:detail' entry.document.token %}">{{ entry.document.title }}</a></div>
+    <form class="inline-form" method="post" action="{% url 'rooms:document_move' room.token entry.document.token %}">
+      {% csrf_token %}
+      <label class="visually-hidden" for="move-{{ entry.pk }}">Folder for {{ entry.document.title }}</label>
+      <select id="move-{{ entry.pk }}" name="folder"><option value="">At the top</option>{% for folder in folders %}<option value="{{ folder.pk }}"{% if entry.folder_id == folder.pk %} selected{% endif %}>{{ folder.name }}</option>{% endfor %}</select>
+      <button class="btn btn-quiet" type="submit">Move</button>
+    </form>
+    <form class="r" method="post" action="{% url 'rooms:document_remove' room.token entry.document.token %}">{% csrf_token %}<button class="btn btn-quiet btn-danger" type="submit">Remove</button></form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

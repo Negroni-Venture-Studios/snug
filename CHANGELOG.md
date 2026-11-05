@@ -10,6 +10,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- Rooms, in the admin interface: create and rename a room, add folders (one level), and add, move and remove documents. A document can be in any number of rooms. Every change is recorded in the audit log. Sharing a room with a link follows.
+
 - How a document was read, on its page: viewers, visits, median reading time and how many read every page, then one grid with the average time per page above a strip for each viewer, shaded by time on each page, with their visits, total time and when they were last seen.
 
 - Reading time: each page a viewer is shown, and how long it was in view, measured by Snug from heartbeats sent only while the tab is visible. Visits end after 30 minutes away. Each new visit is recorded in the audit log. Nothing is sent anywhere outside the instance.

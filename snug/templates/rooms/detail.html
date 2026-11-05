@@ -1,0 +1,56 @@
+{% extends "snug/admin_base.html" %}
+{% load snug %}
+{% block title %}{{ room.name }} in Snug{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'rooms:list' %}">Rooms</a> / {{ room.name }}</div>
+<div class="title-row"><div><h1 class="page-title">{{ room.name }}</h1></div></div>
+
+<section class="section">
+  <div class="section-head"><h2>Documents</h2></div>
+  {% if not top and not folders %}<p class="empty-line">No documents yet. Add one below.</p>{% endif %}
+  {% include "rooms/_entries.html" with entries=top %}
+  {% for folder, entries in by_folder %}
+  <div class="folder">
+    <div class="section-head"><h3>{{ folder.name }}</h3>
+      <form method="post" action="{% url 'rooms:folder_remove' room.token folder.pk %}">{% csrf_token %}<button class="btn btn-quiet btn-danger" type="submit">Remove folder</button></form></div>
+    {% include "rooms/_entries.html" with entries=entries %}
+    {% if not entries %}<p class="empty-line">Empty.</p>{% endif %}
+  </div>
+  {% endfor %}
+</section>
+
+<div class="doc-split">
+  <section class="section">
+    <div class="section-head"><h2>Add a document</h2></div>
+    {% if addable %}
+    <form class="panel form" method="post" action="{% url 'rooms:document_add' room.token %}">
+      {% csrf_token %}
+      <div class="field"><label for="document">Document</label><select id="document" name="document">{% for document in addable %}<option value="{{ document.token }}">{{ document.title }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="folder">Folder</label><select id="folder" name="folder"><option value="">None, at the top</option>{% for folder in folders %}<option value="{{ folder.pk }}">{{ folder.name }}</option>{% endfor %}</select>
+        {% if add_error %}<div class="error" role="alert">{% icon "warning-circle" %}{{ add_error }}</div>{% endif %}</div>
+      <div class="form-foot"><button class="btn btn-primary" type="submit">{% icon "plus" %}Add to room</button></div>
+    </form>
+    {% else %}<p class="empty-line">Every document is already in this room. <a href="{% url 'documents:new' %}">Upload another</a>.</p>{% endif %}
+  </section>
+  <div>
+    <section class="section">
+      <div class="section-head"><h2>Add a folder</h2></div>
+      <form class="panel form" method="post" action="{% url 'rooms:folder_add' room.token %}" novalidate>
+        {% csrf_token %}
+        <div class="field"><label for="folder-name">Name</label><input id="folder-name" name="name" type="text" maxlength="80" required{% if folder_error %} aria-invalid="true" aria-describedby="folder-error"{% endif %}>
+          {% if folder_error %}<div class="error" id="folder-error" role="alert">{% icon "warning-circle" %}{{ folder_error }}</div>{% else %}<div class="hint">One level only. Viewers see folders as headings.</div>{% endif %}</div>
+        <div class="form-foot"><button class="btn" type="submit">Add folder</button></div>
+      </form>
+    </section>
+    <section class="section">
+      <div class="section-head"><h2>Rename</h2></div>
+      <form class="panel form" method="post" action="{% url 'rooms:rename' room.token %}" novalidate>
+        {% csrf_token %}
+        <div class="field"><label for="room-name">Name</label><input id="room-name" name="name" type="text" maxlength="120" required value="{{ room.name }}"{% if rename_error %} aria-invalid="true" aria-describedby="rename-error"{% endif %}>
+          {% if rename_error %}<div class="error" id="rename-error" role="alert">{% icon "warning-circle" %}{{ rename_error }}</div>{% endif %}</div>
+        <div class="form-foot"><button class="btn" type="submit">Rename</button></div>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}
