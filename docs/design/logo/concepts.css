@@ -1,0 +1,36 @@
+/* Concept sheet only. Colourways set the tile and the glyph colour. */
+svg.defs { position: absolute; width: 0; height: 0; }
+.line { fill: none; stroke: currentColor; stroke-width: 13; stroke-linecap: round; stroke-linejoin: round; }
+.fill { fill: currentColor; }
+
+/* Knock strokes are drawn in the tile colour, to cut a shape out of a fill.
+   The colour travels as a custom property, because selectors cannot reach
+   inside an SVG <use> copy but inherited properties can. */
+.knock { fill: none; stroke: var(--tile); stroke-linecap: round; stroke-linejoin: round; }
+.knock.mid { stroke-width: 8; }
+.knock.thin { stroke-width: 4; }
+
+.cw-campari  { color: #FFE2CE; --tile: #FF6200; } .cw-campari  .tile { fill: #FF6200; }
+.cw-vermouth { color: #FF6200; --tile: #1A0B00; } .cw-vermouth .tile { fill: #1A0B00; }
+.cw-citrus   { color: #1A0B00; --tile: #FFAB1A; } .cw-citrus   .tile { fill: #FFAB1A; }
+
+h2.round { font-size: 0.95rem; font-weight: 500; color: var(--text-2); margin: 2rem 0 0.25rem; }
+
+.sheet { max-width: 1000px; margin: 0 auto; padding: 2.5rem 2rem 4rem; }
+.sheet h1 { font-size: 2rem; font-weight: 300; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+.intro { color: var(--text-2); max-width: 62ch; margin-bottom: 2.5rem; }
+.concept { border-top: 1px solid var(--border); padding: 1.75rem 0 2rem; }
+.concept h3 { font-size: 1.1rem; font-weight: 500; margin-bottom: 0.35rem; }
+.concept p { color: var(--text-2); max-width: 62ch; margin-bottom: 1.25rem; }
+.ways { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
+.tile-lg { width: 160px; height: 160px; display: block; }
+.sizes { display: flex; gap: 1rem; align-items: flex-end; margin-left: 1rem; }
+.s64 { width: 64px; height: 64px; } .s32 { width: 32px; height: 32px; } .s16 { width: 16px; height: 16px; }
+
+/* The lockup, as the Negroni site does it: a tile flush in the corner,
+   then the word in its own cell. */
+.lockup { display: inline-flex; align-items: stretch; margin-top: 1.25rem; border: 1px solid var(--border); background: var(--surface); }
+.lockup svg { width: 48px; height: 48px; display: block; }
+.lockup .word { display: flex; align-items: center; padding: 0 1rem; font-size: 1.25rem; font-weight: 500; letter-spacing: -0.01em; border-right: 1px solid var(--border); }
+.lockup .co { display: flex; align-items: center; padding: 0 1rem; color: var(--text-2); }
+.ref img { display: block; }

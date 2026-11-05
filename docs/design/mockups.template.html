@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snug: front-end mockups v2</title>
+<script src="theme-init.js"></script>
+<link rel="icon" href="logo/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="snug.css">
+<script src="mockups.js" defer></script>
+</head>
+<body>
+
+<!-- Mockup only: switch between screens. Not part of the product. -->
+<div class="mock-switch" role="toolbar" aria-label="Mockup screens">
+  <button class="btn" type="button" data-screen="admin-doc" aria-pressed="true">Admin: document</button>
+  <button class="btn" type="button" data-screen="admin-link" aria-pressed="false">Admin: new link</button>
+  <button class="btn" type="button" data-screen="viewer-gate" aria-pressed="false">Viewer: verify</button>
+  <button class="btn" type="button" data-screen="viewer-reader" aria-pressed="false">Viewer: reader</button>
+  <span class="spacer"></span>
+</div>
+
+<!-- ============================================================ ADMIN: DOCUMENT -->
+<div class="screen" data-screen-id="admin-doc">
+<div class="chrome"></div>
+<header class="admin-header">
+  <div class="header-row">
+    <div class="product"><a class="brand" href="#">{{logo:A}}<span class="name">Snug</span></a><span class="company">Fernlea Robotics</span></div>
+    <div class="header-tools">
+      <span class="who-am-i">ruth@fernlea.example</span>
+      {{toggle}}<a class="btn btn-quiet" href="#">{{icon:sign-out}}Sign out</a>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <a href="#">Overview</a><a href="#" aria-current="page">Documents</a><a href="#">Rooms</a><a href="#">Links</a><a href="#">People</a><a href="#">Audit log</a><a href="#">Settings</a>
+  </nav>
+</header>
+
+<main class="admin">
+  <div class="crumbs"><a href="#">Documents</a> / Seed deck</div>
+  <div class="title-row">
+    <div>
+      <h1 class="page-title">Seed deck</h1>
+      <div class="page-meta num"><span>Version 3</span><span>18 pages</span><span>Uploaded 2 Nov 2026</span></div>
+    </div>
+    <div class="actions">
+      <a class="btn" href="#">{{icon:upload-simple}}Upload new version</a>
+      <a class="btn btn-primary" href="#">{{icon:plus}}New link</a>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="value">{{VIEWERS}}</div><div class="label">Viewers</div></div>
+    <div class="stat"><div class="value">{{VISITS}}</div><div class="label">Visits</div></div>
+    <div class="stat"><div class="value">{{MEDIAN_MIN}}<small>min</small> {{MEDIAN_S}}<small>s</small></div><div class="label">Median reading time</div></div>
+    <div class="stat"><div class="value">{{READALL}}<small>of {{VIEWERS}}</small></div><div class="label">Read every page</div></div>
+  </div>
+
+  <section class="section">
+    <div class="section-head"><h2>How it was read</h2>{{LEGEND}}</div>
+    <div class="matrix">
+      <div class="row head">
+        <div class="cell">Viewer</div>
+        <div class="cell pages-axis" aria-hidden="true">{{AXIS}}</div>
+        <div class="cell r">Visits</div><div class="cell r">Time</div><div class="cell r last">Last seen</div>
+      </div>
+      <div class="row avg">
+        <div class="cell label">Average per page</div>
+        <div class="cell strip-cell">{{BARS}}</div>
+        <div class="cell r"></div><div class="cell r"></div><div class="cell r last"></div>
+      </div>
+      {{ROWS}}
+    </div>
+    <p class="matrix-note">Longest average time: {{LONGEST}}. Averages count only the viewers who reached each page.</p>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Links to this document</h2><a href="#">All links</a></div>
+    <div class="rows">
+      <div class="item">
+        <div class="who"><span class="email">priya@northfield.example</span><span class="note">Partner, Northfield Capital</span></div>
+        <span class="status status-ok">Active</span>
+        <span class="muted">Verification on, no downloads</span>
+        <span class="r muted exp">Expires 30 Nov</span>
+        <span class="r"><a class="btn btn-quiet btn-danger" href="#">Revoke</a></span>
+      </div>
+      <div class="item">
+        <div class="who"><span class="email">lena@foxglove.example</span><span class="note">Foxglove Ventures</span></div>
+        <span class="status status-warn">Expired</span>
+        <span class="muted">Verification on, no downloads</span>
+        <span class="r muted exp">Expired 1 Nov</span>
+        <span class="r"><a class="btn btn-quiet" href="#">Extend</a></span>
+      </div>
+      <div class="item">
+        <div class="who"><span class="email">c.wright@example.org</span><span class="note">Former adviser</span></div>
+        <span class="status status-off">Revoked</span>
+        <span class="muted">Verification on, downloads allowed</span>
+        <span class="r muted exp">Revoked 28 Oct</span>
+        <span class="r"></span>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="admin-foot"><div class="rule"></div><div class="row"><span>Snug, from Negroni Venture Studios</span><a href="#">Source on GitHub</a></div></footer>
+</div>
+
+<!-- ============================================================ ADMIN: NEW LINK -->
+<div class="screen" data-screen-id="admin-link" hidden>
+<div class="chrome"></div>
+<header class="admin-header">
+  <div class="header-row">
+    <div class="product"><a class="brand" href="#">{{logo:B}}<span class="name">Snug</span></a><span class="company">Fernlea Robotics</span></div>
+    <div class="header-tools"><span class="who-am-i">ruth@fernlea.example</span>{{toggle}}<a class="btn btn-quiet" href="#">{{icon:sign-out}}Sign out</a></div>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <a href="#">Overview</a><a href="#">Documents</a><a href="#">Rooms</a><a href="#" aria-current="page">Links</a><a href="#">People</a><a href="#">Audit log</a><a href="#">Settings</a>
+  </nav>
+</header>
+<main class="admin">
+  <div class="crumbs"><a href="#">Links</a> / New link</div>
+  <div class="title-row"><div><h1 class="page-title">New link</h1><div class="page-meta">One link for one person, who must be able to read this inbox.</div></div></div>
+  <div class="split">
+    <form class="panel form" action="#" method="post">
+      <div class="field"><label for="l-email">Email address</label><input id="l-email" type="email" value="sam@kittiwake.example" autocomplete="off"></div>
+      <div class="field"><label for="l-note">Note for yourself</label><input id="l-note" type="text" value="Kittiwake Partners"><div class="hint">Only admins see this.</div></div>
+      <div class="field"><label for="l-target">Share</label>
+        <select id="l-target"><option>Seed deck</option><option>Series A data room</option></select></div>
+      <div class="field"><label for="l-exp">Expires</label><input id="l-exp" type="date" value="2026-12-05"><div class="hint">Leave empty for no expiry. You can revoke the link at any time.</div></div>
+      <div class="field"><span class="label">Options</span>
+        <div class="choices">
+          <label class="check"><input type="checkbox" checked><span>Require email verification<span class="hint">Recommended. A forwarded link is then useless to anyone else.</span></span></label>
+          <label class="check"><input type="checkbox"><span>Allow download<span class="hint">A watermarked PDF built from the same pages.</span></span></label>
+          <label class="check"><input type="checkbox"><span>Require NDA acceptance</span></label>
+          <label class="check"><input type="checkbox"><span>UK only<span class="hint">Blocks viewers outside the UK. A VPN gets round this.</span></span></label>
+        </div></div>
+      <div class="form-foot"><button class="btn" type="button">Create and copy</button><button class="btn btn-primary" type="button">Create and email</button></div>
+    </form>
+    <div class="side-note">
+      <h2>After you create it</h2>
+      <div class="form">
+        <div class="notice notice-ok">{{icon:check}}<span>Link created and emailed to sam@kittiwake.example.</span></div>
+        <div class="link-out"><span>https://room.fernlea.example/v/q8Zt3mVhR2xK7pNw4LcJ9sYb6dFgA1eU5oTiWnE0rHs</span>
+          <button class="btn" type="button">{{icon:copy}}Copy</button></div>
+        <p>If links are stored hashed (an open question), this is the only time the full address is shown. You can resend the email or issue a new link later.</p>
+      </div>
+    </div>
+  </div>
+</main>
+<footer class="admin-foot"><div class="rule"></div><div class="row"><span>Snug, from Negroni Venture Studios</span><a href="#">Source on GitHub</a></div></footer>
+</div>
+
+<!-- ============================================================ VIEWER: VERIFY -->
+<div class="screen v" data-screen-id="viewer-gate" hidden>
+  <header class="v-head">
+    <div class="founder-logo"><svg viewBox="0 0 32 32" aria-hidden="true"><path class="mark" d="M16 2c7.7 0 14 6.3 14 14s-6.3 14-14 14S2 23.7 2 16 8.3 2 16 2Zm0 6a8 8 0 1 0 8 8h-8V8Z"/></svg>Fernlea Robotics</div>
+    <div class="v-tools">{{toggle}}</div>
+  </header>
+  <main class="v-main">
+    <div class="gate-grid">
+      <div>
+        <div class="gate">
+          <h1><strong>Fernlea Robotics</strong> has shared <strong>Seed deck</strong> with you</h1>
+          <p class="lede">Enter the email address this link was sent to. We will email you a six-digit code.</p>
+          <form class="form" action="#" method="post">
+            <div class="field"><label for="v-email">Email address</label><input id="v-email" type="email" autocomplete="email" inputmode="email"></div>
+            <button class="btn btn-brand" type="button">Send code</button>
+          </form>
+        </div>
+        <div class="gate">
+          <h1>Check your email</h1>
+          <p class="lede">We sent a code to priya@northfield.example.</p>
+          <form class="form" action="#" method="post">
+            <div class="field"><label for="v-code">Six-digit code</label>
+              <input id="v-code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" value="482931" aria-invalid="true" aria-describedby="v-code-err">
+              <div class="error" id="v-code-err">{{icon:warning-circle}}That code is not right. You have 4 tries left.</div></div>
+            <button class="btn btn-brand" type="button">Continue</button>
+          </form>
+          <p class="small">Nothing arrived? Check your spam folder, or <a href="#">send a new code</a>.</p>
+        </div>
+      </div>
+      <aside class="about" aria-label="About this link">
+        <h2>About this link</h2>
+        <dl>
+          <dt>From</dt><dd>Ruth Ellery, Fernlea Robotics</dd>
+          <dt>Document</dt><dd>Seed deck, 18 pages</dd>
+          <dt>Access</dt><dd>View in the browser</dd>
+          <dt>Expires</dt><dd>30 Nov 2026</dd>
+        </dl>
+        <div class="cover">Thanks for taking the time. The appendix on page 18 has the cap table you asked about.<span class="from">Ruth Ellery, CEO</span></div>
+        <p class="privacy">Fernlea Robotics will see when you open this document and how long you spend on each page. Every page shows your email address as a watermark.</p>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<!-- ============================================================ VIEWER: READER -->
+<div class="screen v" data-screen-id="viewer-reader" hidden>
+  <header class="v-head">
+    <div class="founder-logo"><svg viewBox="0 0 32 32" aria-hidden="true"><path class="mark" d="M16 2c7.7 0 14 6.3 14 14s-6.3 14-14 14S2 23.7 2 16 8.3 2 16 2Zm0 6a8 8 0 1 0 8 8h-8V8Z"/></svg>Fernlea Robotics</div>
+    <div class="v-tools"><span class="doc">Seed deck</span>{{toggle}}</div>
+  </header>
+  <main class="v-main">
+    <div class="reader">
+      <div class="page-frame">
+        <!-- In the product: <img width height src=".../p/5.webp" alt="Page 5 of 18">, watermark baked in by Pillow. Slide content is sample data. -->
+        <svg viewBox="0 0 1600 948" role="img" aria-label="Page 5 of 18">
+          <defs>
+            <pattern id="wm" patternUnits="userSpaceOnUse" width="560" height="190" patternTransform="rotate(-22)">
+              <text class="wm-text" x="0" y="70">priya@northfield.example  5 Nov 2026</text>
+              <text class="wm-text" x="-280" y="165">priya@northfield.example  5 Nov 2026</text>
+            </pattern>
+          </defs>
+          <rect class="slide-bg" width="1600" height="948"/>
+          <text class="slide-kicker" x="110" y="130">MARKET</text>
+          <text class="slide-title" x="110" y="205">A £2.4bn retrofit market, underserved</text>
+          <text class="slide-body" x="110" y="290">2,300 UK food plants run lines built before 2005.</text>
+          <text class="slide-body" x="110" y="332">Fewer than 4% have any automated picking.</text>
+          <rect class="slide-bar-2" x="900" y="640" width="70" height="140"/><rect class="slide-bar-2" x="1000" y="600" width="70" height="180"/>
+          <rect class="slide-bar-2" x="1100" y="550" width="70" height="230"/><rect class="slide-bar" x="1200" y="480" width="70" height="300"/>
+          <rect class="slide-bar" x="1300" y="400" width="70" height="380"/><rect class="slide-bar" x="1400" y="310" width="70" height="470"/>
+          <text class="slide-axis" x="935" y="815" text-anchor="middle">2025</text><text class="slide-axis" x="1135" y="815" text-anchor="middle">2027</text><text class="slide-axis" x="1335" y="815" text-anchor="middle">2029</text>
+          <text class="slide-body" x="110" y="560">Serviceable market by 2030</text>
+          <text class="slide-title" x="110" y="640">£2.4bn</text>
+          <text class="slide-axis" x="110" y="690">Source: company analysis, ONS 2025</text>
+          <rect width="1600" height="900" fill="url(#wm)"/>
+          <rect class="wm-foot-bg" y="900" width="1600" height="48"/>
+          <text class="wm-foot" x="40" y="930">Shared with priya@northfield.example</text>
+          <text class="wm-foot" x="800" y="930" text-anchor="middle">5 Nov 2026</text>
+          <text class="wm-foot" x="1560" y="930" text-anchor="end">Link 7Q2K</text>
+        </svg>
+      </div>
+      <div class="reader-controls">
+        <button class="btn" type="button">{{icon:caret-left}}Previous</button>
+        <span class="pos">5 of 18</span>
+        <button class="btn" type="button">Next{{icon:caret-right}}</button>
+        <label class="visually-hidden" for="jump">Go to page</label>
+        <select id="jump"><option>Go to page</option><option>1</option><option>18</option></select>
+      </div>
+    </div>
+  </main>
+  <footer class="v-foot">Viewing as priya@northfield.example. The arrow keys turn pages.</footer>
+</div>
+
+</body>
+</html>

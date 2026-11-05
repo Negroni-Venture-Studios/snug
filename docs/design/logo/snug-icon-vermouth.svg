@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Snug">
+  <rect width="200" height="200" fill="#1A0B00"/>
+  <defs>
+    <mask id="snug-pane-vermouth" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+      <rect x="78" y="58" width="44" height="54" rx="6" fill="#fff"/>
+      <path d="M112 73 C109.5 68.5 105 66.5 100 66.5 C93.5 66.5 89 69.5 89 74.5 C89 85.5 112 81 112 93 C112 98.5 106.5 102.5 100 102.5 C94.5 102.5 90 100.5 87.5 96" fill="none" stroke="#000" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <path d="M40 26 Q42.5 43.5 60 46 Q42.5 48.5 40 66 Q37.5 48.5 20 46 Q37.5 43.5 40 26 Z" fill="#FF6200"/>
+  <g fill="none" stroke="#FF6200" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M64 162 V44 H136 V162"/>
+    <path d="M46 162 H154"/>
+  </g>
+  <rect x="78" y="58" width="44" height="54" rx="6" fill="#FF6200" mask="url(#snug-pane-vermouth)"/>
+  <circle cx="119" cy="134" r="6.5" fill="#FF6200"/>
+</svg>

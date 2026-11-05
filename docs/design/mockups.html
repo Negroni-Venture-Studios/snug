@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snug: front-end mockups v2</title>
+<script src="theme-init.js"></script>
+<link rel="icon" href="logo/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="snug.css">
+<script src="mockups.js" defer></script>
+</head>
+<body>
+
+<!-- Mockup only: switch between screens. Not part of the product. -->
+<div class="mock-switch" role="toolbar" aria-label="Mockup screens">
+  <button class="btn" type="button" data-screen="admin-doc" aria-pressed="true">Admin: document</button>
+  <button class="btn" type="button" data-screen="admin-link" aria-pressed="false">Admin: new link</button>
+  <button class="btn" type="button" data-screen="viewer-gate" aria-pressed="false">Viewer: verify</button>
+  <button class="btn" type="button" data-screen="viewer-reader" aria-pressed="false">Viewer: reader</button>
+  <span class="spacer"></span>
+</div>
+
+<!-- ============================================================ ADMIN: DOCUMENT -->
+<div class="screen" data-screen-id="admin-doc">
+<div class="chrome"></div>
+<header class="admin-header">
+  <div class="header-row">
+    <div class="product"><a class="brand" href="#"><svg class="brand-tile" viewBox="0 0 200 200" aria-hidden="true"><rect class="tile" width="200" height="200"/><defs>
+    <mask id="snug-pane-A" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+      <rect x="78" y="58" width="44" height="54" rx="6" fill="#fff"/>
+      <path d="M112 73 C109.5 68.5 105 66.5 100 66.5 C93.5 66.5 89 69.5 89 74.5 C89 85.5 112 81 112 93 C112 98.5 106.5 102.5 100 102.5 C94.5 102.5 90 100.5 87.5 96" fill="none" stroke="#000" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <path d="M40 26 Q42.5 43.5 60 46 Q42.5 48.5 40 66 Q37.5 48.5 20 46 Q37.5 43.5 40 26 Z" fill="currentColor"/>
+  <g fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M64 162 V44 H136 V162"/>
+    <path d="M46 162 H154"/>
+  </g>
+  <rect x="78" y="58" width="44" height="54" rx="6" fill="currentColor" mask="url(#snug-pane-A)"/>
+  <circle cx="119" cy="134" r="6.5" fill="currentColor"/></svg><span class="name">Snug</span></a><span class="company">Fernlea Robotics</span></div>
+    <div class="header-tools">
+      <span class="who-am-i">ruth@fernlea.example</span>
+      <button class="theme-toggle" type="button" aria-label="Theme: dark" title="Theme: dark"><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg></button><a class="btn btn-quiet" href="#"><svg class="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M112,216a8,8,0,0,1-8,8H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h56a8,8,0,0,1,0,16H48V208h56A8,8,0,0,1,112,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L196.69,120H104a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,221.66,122.34Z"/></svg>Sign out</a>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <a href="#">Overview</a><a href="#" aria-current="page">Documents</a><a href="#">Rooms</a><a href="#">Links</a><a href="#">People</a><a href="#">Audit log</a><a href="#">Settings</a>
+  </nav>
+</header>
+
+<main class="admin">
+  <div class="crumbs"><a href="#">Documents</a> / Seed deck</div>
+  <div class="title-row">
+    <div>
+      <h1 class="page-title">Seed deck</h1>
+      <div class="page-meta num"><span>Version 3</span><span>18 pages</span><span>Uploaded 2 Nov 2026</span></div>
+    </div>
+    <div class="actions">
+      <a class="btn" href="#"><svg class="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M224,152v56a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V152a8,8,0,0,1,16,0v56H208V152a8,8,0,0,1,16,0ZM93.66,85.66,120,59.31V152a8,8,0,0,0,16,0V59.31l26.34,26.35a8,8,0,0,0,11.32-11.32l-40-40a8,8,0,0,0-11.32,0l-40,40A8,8,0,0,0,93.66,85.66Z"/></svg>Upload new version</a>
+      <a class="btn btn-primary" href="#"><svg class="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/></svg>New link</a>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="value">6</div><div class="label">Viewers</div></div>
+    <div class="stat"><div class="value">14</div><div class="label">Visits</div></div>
+    <div class="stat"><div class="value">10<small>min</small> 24<small>s</small></div><div class="label">Median reading time</div></div>
+    <div class="stat"><div class="value">3<small>of 6</small></div><div class="label">Read every page</div></div>
+  </div>
+
+  <section class="section">
+    <div class="section-head"><h2>How it was read</h2><span class="legend">Less<svg viewBox="0 0 90 10" aria-hidden="true"><rect class="h0" x="0" y="0" width="16" height="10" rx="2"/><rect class="h1" x="18" y="0" width="16" height="10" rx="2"/><rect class="h2" x="36" y="0" width="16" height="10" rx="2"/><rect class="h3" x="54" y="0" width="16" height="10" rx="2"/><rect class="h4" x="72" y="0" width="16" height="10" rx="2"/></svg>More</span></div>
+    <div class="matrix">
+      <div class="row head">
+        <div class="cell">Viewer</div>
+        <div class="cell pages-axis" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span></div>
+        <div class="cell r">Visits</div><div class="cell r">Time</div><div class="cell r last">Last seen</div>
+      </div>
+      <div class="row avg">
+        <div class="cell label">Average per page</div>
+        <div class="cell strip-cell"><svg class="bars" viewBox="0 0 360 64" preserveAspectRatio="none" role="img" aria-label="Average time on each page, among viewers who reached it"><rect class="h2" x="3" y="49.5" width="14" height="14.5" rx="1.5"><title>Page 1: 30 s on average</title></rect><rect class="h3" x="23" y="41.4" width="14" height="22.6" rx="1.5"><title>Page 2: 47 s on average</title></rect><rect class="h2" x="43" y="45.2" width="14" height="18.8" rx="1.5"><title>Page 3: 39 s on average</title></rect><rect class="h2" x="63" y="52.7" width="14" height="11.3" rx="1.5"><title>Page 4: 24 s on average</title></rect><rect class="h4" x="83" y="10.100000000000001" width="14" height="53.9" rx="1.5"><title>Page 5: 1 min 52 s on average</title></rect><rect class="h3" x="103" y="30.200000000000003" width="14" height="33.8" rx="1.5"><title>Page 6: 1 min 10 s on average</title></rect><rect class="h2" x="123" y="42.7" width="14" height="21.3" rx="1.5"><title>Page 7: 44 s on average</title></rect><rect class="h2" x="143" y="45.9" width="14" height="18.1" rx="1.5"><title>Page 8: 38 s on average</title></rect><rect class="h4" x="163" y="3.799999999999997" width="14" height="60.2" rx="1.5"><title>Page 9: 2 min 6 s on average</title></rect><rect class="h3" x="183" y="35.2" width="14" height="28.8" rx="1.5"><title>Page 10: 1 min on average</title></rect><rect class="h2" x="203" y="53.2" width="14" height="10.8" rx="1.5"><title>Page 11: 22 s on average</title></rect><rect class="h1" x="223" y="55.4" width="14" height="8.6" rx="1.5"><title>Page 12: 18 s on average</title></rect><rect class="h3" x="243" y="34.6" width="14" height="29.4" rx="1.5"><title>Page 13: 1 min 1 s on average</title></rect><rect class="h2" x="263" y="43.2" width="14" height="20.8" rx="1.5"><title>Page 14: 43 s on average</title></rect><rect class="h3" x="283" y="26.4" width="14" height="37.6" rx="1.5"><title>Page 15: 1 min 18 s on average</title></rect><rect class="h2" x="303" y="46.6" width="14" height="17.4" rx="1.5"><title>Page 16: 36 s on average</title></rect><rect class="h1" x="323" y="54.6" width="14" height="9.4" rx="1.5"><title>Page 17: 20 s on average</title></rect><rect class="h4" x="343" y="2.0" width="14" height="62.0" rx="1.5"><title>Page 18: 2 min 9 s on average</title></rect></svg></div>
+        <div class="cell r"></div><div class="cell r"></div><div class="cell r last"></div>
+      </div>
+
+      <div class="row">
+        <div class="cell who"><span class="email">sam@kittiwake.example<span class="new">New</span></span><span class="note">Kittiwake Partners</span></div>
+        <div class="cell strip-cell"><svg class="strip" viewBox="0 0 360 16" preserveAspectRatio="none" role="img" aria-label="sam@kittiwake.example: saw 2 of 18 pages"><rect class="h2" x="1" y="0" width="18" height="16" rx="2"><title>Page 1: 24 s</title></rect><rect class="h1" x="21" y="0" width="18" height="16" rx="2"><title>Page 2: 16 s</title></rect><rect class="h0" x="41" y="0" width="18" height="16" rx="2"><title>Page 3: not seen</title></rect><rect class="h0" x="61" y="0" width="18" height="16" rx="2"><title>Page 4: not seen</title></rect><rect class="h0" x="81" y="0" width="18" height="16" rx="2"><title>Page 5: not seen</title></rect><rect class="h0" x="101" y="0" width="18" height="16" rx="2"><title>Page 6: not seen</title></rect><rect class="h0" x="121" y="0" width="18" height="16" rx="2"><title>Page 7: not seen</title></rect><rect class="h0" x="141" y="0" width="18" height="16" rx="2"><title>Page 8: not seen</title></rect><rect class="h0" x="161" y="0" width="18" height="16" rx="2"><title>Page 9: not seen</title></rect><rect class="h0" x="181" y="0" width="18" height="16" rx="2"><title>Page 10: not seen</title></rect><rect class="h0" x="201" y="0" width="18" height="16" rx="2"><title>Page 11: not seen</title></rect><rect class="h0" x="221" y="0" width="18" height="16" rx="2"><title>Page 12: not seen</title></rect><rect class="h0" x="241" y="0" width="18" height="16" rx="2"><title>Page 13: not seen</title></rect><rect class="h0" x="261" y="0" width="18" height="16" rx="2"><title>Page 14: not seen</title></rect><rect class="h0" x="281" y="0" width="18" height="16" rx="2"><title>Page 15: not seen</title></rect><rect class="h0" x="301" y="0" width="18" height="16" rx="2"><title>Page 16: not seen</title></rect><rect class="h0" x="321" y="0" width="18" height="16" rx="2"><title>Page 17: not seen</title></rect><rect class="h0" x="341" y="0" width="18" height="16" rx="2"><title>Page 18: not seen</title></rect></svg></div>
+        <div class="cell r first">1<span class="visually-hidden"> visit</span></div>
+        <div class="cell r">40 s</div>
+        <div class="cell r last">Today 11:05</div>
+      </div>
+      <div class="row">
+        <div class="cell who"><span class="email">priya@northfield.example</span><span class="note">Partner, Northfield Capital</span></div>
+        <div class="cell strip-cell"><svg class="strip" viewBox="0 0 360 16" preserveAspectRatio="none" role="img" aria-label="priya@northfield.example: saw 18 of 18 pages"><rect class="h2" x="1" y="0" width="18" height="16" rx="2"><title>Page 1: 38 s</title></rect><rect class="h3" x="21" y="0" width="18" height="16" rx="2"><title>Page 2: 1 min 11 s</title></rect><rect class="h3" x="41" y="0" width="18" height="16" rx="2"><title>Page 3: 52 s</title></rect><rect class="h2" x="61" y="0" width="18" height="16" rx="2"><title>Page 4: 31 s</title></rect><rect class="h4" x="81" y="0" width="18" height="16" rx="2"><title>Page 5: 2 min 42 s</title></rect><rect class="h4" x="101" y="0" width="18" height="16" rx="2"><title>Page 6: 1 min 36 s</title></rect><rect class="h3" x="121" y="0" width="18" height="16" rx="2"><title>Page 7: 58 s</title></rect><rect class="h3" x="141" y="0" width="18" height="16" rx="2"><title>Page 8: 49 s</title></rect><rect class="h4" x="161" y="0" width="18" height="16" rx="2"><title>Page 9: 2 min 51 s</title></rect><rect class="h3" x="181" y="0" width="18" height="16" rx="2"><title>Page 10: 1 min 24 s</title></rect><rect class="h2" x="201" y="0" width="18" height="16" rx="2"><title>Page 11: 33 s</title></rect><rect class="h2" x="221" y="0" width="18" height="16" rx="2"><title>Page 12: 27 s</title></rect><rect class="h3" x="241" y="0" width="18" height="16" rx="2"><title>Page 13: 1 min 28 s</title></rect><rect class="h3" x="261" y="0" width="18" height="16" rx="2"><title>Page 14: 1 min 3 s</title></rect><rect class="h4" x="281" y="0" width="18" height="16" rx="2"><title>Page 15: 1 min 44 s</title></rect><rect class="h3" x="301" y="0" width="18" height="16" rx="2"><title>Page 16: 52 s</title></rect><rect class="h2" x="321" y="0" width="18" height="16" rx="2"><title>Page 17: 29 s</title></rect><rect class="h4" x="341" y="0" width="18" height="16" rx="2"><title>Page 18: 3 min 34 s</title></rect></svg></div>
+        <div class="cell r first">4<span class="visually-hidden"> visits</span></div>
+        <div class="cell r">23 min 42 s</div>
+        <div class="cell r last">Today 09:42</div>
+      </div>
+      <div class="row">
+        <div class="cell who"><span class="email">tom@harbourcap.example</span><span class="note">Associate, Harbour Capital</span></div>
+        <div class="cell strip-cell"><svg class="strip" viewBox="0 0 360 16" preserveAspectRatio="none" role="img" aria-label="tom@harbourcap.example: saw 18 of 18 pages"><rect class="h2" x="1" y="0" width="18" height="16" rx="2"><title>Page 1: 41 s</title></rect><rect class="h3" x="21" y="0" width="18" height="16" rx="2"><title>Page 2: 1 min 6 s</title></rect><rect class="h3" x="41" y="0" width="18" height="16" rx="2"><title>Page 3: 47 s</title></rect><rect class="h2" x="61" y="0" width="18" height="16" rx="2"><title>Page 4: 28 s</title></rect><rect class="h4" x="81" y="0" width="18" height="16" rx="2"><title>Page 5: 1 min 58 s</title></rect><rect class="h3" x="101" y="0" width="18" height="16" rx="2"><title>Page 6: 1 min 13 s</title></rect><rect class="h2" x="121" y="0" width="18" height="16" rx="2"><title>Page 7: 44 s</title></rect><rect class="h2" x="141" y="0" width="18" height="16" rx="2"><title>Page 8: 39 s</title></rect><rect class="h4" x="161" y="0" width="18" height="16" rx="2"><title>Page 9: 2 min 16 s</title></rect><rect class="h3" x="181" y="0" width="18" height="16" rx="2"><title>Page 10: 1 min 1 s</title></rect><rect class="h2" x="201" y="0" width="18" height="16" rx="2"><title>Page 11: 22 s</title></rect><rect class="h1" x="221" y="0" width="18" height="16" rx="2"><title>Page 12: 19 s</title></rect><rect class="h3" x="241" y="0" width="18" height="16" rx="2"><title>Page 13: 57 s</title></rect><rect class="h2" x="261" y="0" width="18" height="16" rx="2"><title>Page 14: 41 s</title></rect><rect class="h3" x="281" y="0" width="18" height="16" rx="2"><title>Page 15: 1 min 20 s</title></rect><rect class="h2" x="301" y="0" width="18" height="16" rx="2"><title>Page 16: 36 s</title></rect><rect class="h1" x="321" y="0" width="18" height="16" rx="2"><title>Page 17: 18 s</title></rect><rect class="h4" x="341" y="0" width="18" height="16" rx="2"><title>Page 18: 2 min</title></rect></svg></div>
+        <div class="cell r first">3<span class="visually-hidden"> visits</span></div>
+        <div class="cell r">17 min 26 s</div>
+        <div class="cell r last">Yesterday 16:20</div>
+      </div>
+      <div class="row">
+        <div class="cell who"><span class="email">j.ortiz@example.com</span><span class="note">Adviser</span></div>
+        <div class="cell strip-cell"><svg class="strip" viewBox="0 0 360 16" preserveAspectRatio="none" role="img" aria-label="j.ortiz@example.com: saw 18 of 18 pages"><rect class="h2" x="1" y="0" width="18" height="16" rx="2"><title>Page 1: 22 s</title></rect><rect class="h3" x="21" y="0" width="18" height="16" rx="2"><title>Page 2: 47 s</title></rect><rect class="h2" x="41" y="0" width="18" height="16" rx="2"><title>Page 3: 31 s</title></rect><rect class="h1" x="61" y="0" width="18" height="16" rx="2"><title>Page 4: 19 s</title></rect><rect class="h3" x="81" y="0" width="18" height="16" rx="2"><title>Page 5: 1 min 14 s</title></rect><rect class="h3" x="101" y="0" width="18" height="16" rx="2"><title>Page 6: 52 s</title></rect><rect class="h2" x="121" y="0" width="18" height="16" rx="2"><title>Page 7: 36 s</title></rect><rect class="h2" x="141" y="0" width="18" height="16" rx="2"><title>Page 8: 30 s</title></rect><rect class="h3" x="161" y="0" width="18" height="16" rx="2"><title>Page 9: 1 min 23 s</title></rect><rect class="h3" x="181" y="0" width="18" height="16" rx="2"><title>Page 10: 47 s</title></rect><rect class="h1" x="201" y="0" width="18" height="16" rx="2"><title>Page 11: 14 s</title></rect><rect class="h1" x="221" y="0" width="18" height="16" rx="2"><title>Page 12: 12 s</title></rect><rect class="h2" x="241" y="0" width="18" height="16" rx="2"><title>Page 13: 39 s</title></rect><rect class="h2" x="261" y="0" width="18" height="16" rx="2"><title>Page 14: 26 s</title></rect><rect class="h3" x="281" y="0" width="18" height="16" rx="2"><title>Page 15: 51 s</title></rect><rect class="h2" x="301" y="0" width="18" height="16" rx="2"><title>Page 16: 21 s</title></rect><rect class="h1" x="321" y="0" width="18" height="16" rx="2"><title>Page 17: 12 s</title></rect><rect class="h3" x="341" y="0" width="18" height="16" rx="2"><title>Page 18: 54 s</title></rect></svg></div>
+        <div class="cell r first">3<span class="visually-hidden"> visits</span></div>
+        <div class="cell r">11 min 10 s</div>
+        <div class="cell r last">4 Nov 2026</div>
+      </div>
+      <div class="row">
+        <div class="cell who"><span class="email">a.mensah@quarry.example</span><span class="note">Quarry Angels</span></div>
+        <div class="cell strip-cell"><svg class="strip" viewBox="0 0 360 16" preserveAspectRatio="none" role="img" aria-label="a.mensah@quarry.example: saw 12 of 18 pages"><rect class="h2" x="1" y="0" width="18" height="16" rx="2"><title>Page 1: 30 s</title></rect><rect class="h3" x="21" y="0" width="18" height="16" rx="2"><title>Page 2: 52 s</title></rect><rect class="h2" x="41" y="0" width="18" height="16" rx="2"><title>Page 3: 44 s</title></rect><rect class="h2" x="61" y="0" width="18" height="16" rx="2"><title>Page 4: 27 s</title></rect><rect class="h4" x="81" y="0" width="18" height="16" rx="2"><title>Page 5: 1 min 36 s</title></rect><rect class="h3" x="101" y="0" width="18" height="16" rx="2"><title>Page 6: 1 min 1 s</title></rect><rect class="h2" x="121" y="0" width="18" height="16" rx="2"><title>Page 7: 40 s</title></rect><rect class="h2" x="141" y="0" width="18" height="16" rx="2"><title>Page 8: 33 s</title></rect><rect class="h4" x="161" y="0" width="18" height="16" rx="2"><title>Page 9: 1 min 52 s</title></rect><rect class="h3" x="181" y="0" width="18" height="16" rx="2"><title>Page 10: 48 s</title></rect><rect class="h2" x="201" y="0" width="18" height="16" rx="2"><title>Page 11: 21 s</title></rect><rect class="h1" x="221" y="0" width="18" height="16" rx="2"><title>Page 12: 14 s</title></rect><rect class="h0" x="241" y="0" width="18" height="16" rx="2"><title>Page 13: not seen</title></rect><rect class="h0" x="261" y="0" width="18" height="16" rx="2"><title>Page 14: not seen</title></rect><rect class="h0" x="281" y="0" width="18" height="16" rx="2"><title>Page 15: not seen</title></rect><rect class="h0" x="301" y="0" width="18" height="16" rx="2"><title>Page 16: not seen</title></rect><rect class="h0" x="321" y="0" width="18" height="16" rx="2"><title>Page 17: not seen</title></rect><rect class="h0" x="341" y="0" width="18" height="16" rx="2"><title>Page 18: not seen</title></rect></svg></div>
+        <div class="cell r first">2<span class="visually-hidden"> visits</span></div>
+        <div class="cell r">9 min 38 s</div>
+        <div class="cell r last">3 Nov 2026</div>
+      </div>
+      <div class="row">
+        <div class="cell who"><span class="email">lena@foxglove.example</span><span class="note">Foxglove Ventures</span></div>
+        <div class="cell strip-cell"><svg class="strip" viewBox="0 0 360 16" preserveAspectRatio="none" role="img" aria-label="lena@foxglove.example: saw 4 of 18 pages"><rect class="h2" x="1" y="0" width="18" height="16" rx="2"><title>Page 1: 26 s</title></rect><rect class="h2" x="21" y="0" width="18" height="16" rx="2"><title>Page 2: 31 s</title></rect><rect class="h2" x="41" y="0" width="18" height="16" rx="2"><title>Page 3: 22 s</title></rect><rect class="h1" x="61" y="0" width="18" height="16" rx="2"><title>Page 4: 13 s</title></rect><rect class="h0" x="81" y="0" width="18" height="16" rx="2"><title>Page 5: not seen</title></rect><rect class="h0" x="101" y="0" width="18" height="16" rx="2"><title>Page 6: not seen</title></rect><rect class="h0" x="121" y="0" width="18" height="16" rx="2"><title>Page 7: not seen</title></rect><rect class="h0" x="141" y="0" width="18" height="16" rx="2"><title>Page 8: not seen</title></rect><rect class="h0" x="161" y="0" width="18" height="16" rx="2"><title>Page 9: not seen</title></rect><rect class="h0" x="181" y="0" width="18" height="16" rx="2"><title>Page 10: not seen</title></rect><rect class="h0" x="201" y="0" width="18" height="16" rx="2"><title>Page 11: not seen</title></rect><rect class="h0" x="221" y="0" width="18" height="16" rx="2"><title>Page 12: not seen</title></rect><rect class="h0" x="241" y="0" width="18" height="16" rx="2"><title>Page 13: not seen</title></rect><rect class="h0" x="261" y="0" width="18" height="16" rx="2"><title>Page 14: not seen</title></rect><rect class="h0" x="281" y="0" width="18" height="16" rx="2"><title>Page 15: not seen</title></rect><rect class="h0" x="301" y="0" width="18" height="16" rx="2"><title>Page 16: not seen</title></rect><rect class="h0" x="321" y="0" width="18" height="16" rx="2"><title>Page 17: not seen</title></rect><rect class="h0" x="341" y="0" width="18" height="16" rx="2"><title>Page 18: not seen</title></rect></svg></div>
+        <div class="cell r first">1<span class="visually-hidden"> visit</span></div>
+        <div class="cell r">1 min 32 s</div>
+        <div class="cell r last">2 Nov 2026</div>
+      </div>
+    </div>
+    <p class="matrix-note">Longest average time: page 18 (2 min 9 s) and page 9 (2 min 6 s). Averages count only the viewers who reached each page.</p>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Links to this document</h2><a href="#">All links</a></div>
+    <div class="rows">
+      <div class="item">
+        <div class="who"><span class="email">priya@northfield.example</span><span class="note">Partner, Northfield Capital</span></div>
+        <span class="status status-ok">Active</span>
+        <span class="muted">Verification on, no downloads</span>
+        <span class="r muted exp">Expires 30 Nov</span>
+        <span class="r"><a class="btn btn-quiet btn-danger" href="#">Revoke</a></span>
+      </div>
+      <div class="item">
+        <div class="who"><span class="email">lena@foxglove.example</span><span class="note">Foxglove Ventures</span></div>
+        <span class="status status-warn">Expired</span>
+        <span class="muted">Verification on, no downloads</span>
+        <span class="r muted exp">Expired 1 Nov</span>
+        <span class="r"><a class="btn btn-quiet" href="#">Extend</a></span>
+      </div>
+      <div class="item">
+        <div class="who"><span class="email">c.wright@example.org</span><span class="note">Former adviser</span></div>
+        <span class="status status-off">Revoked</span>
+        <span class="muted">Verification on, downloads allowed</span>
+        <span class="r muted exp">Revoked 28 Oct</span>
+        <span class="r"></span>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="admin-foot"><div class="rule"></div><div class="row"><span>Snug, from Negroni Venture Studios</span><a href="#">Source on GitHub</a></div></footer>
+</div>
+
+<!-- ============================================================ ADMIN: NEW LINK -->
+<div class="screen" data-screen-id="admin-link" hidden>
+<div class="chrome"></div>
+<header class="admin-header">
+  <div class="header-row">
+    <div class="product"><a class="brand" href="#"><svg class="brand-tile" viewBox="0 0 200 200" aria-hidden="true"><rect class="tile" width="200" height="200"/><defs>
+    <mask id="snug-pane-B" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+      <rect x="78" y="58" width="44" height="54" rx="6" fill="#fff"/>
+      <path d="M112 73 C109.5 68.5 105 66.5 100 66.5 C93.5 66.5 89 69.5 89 74.5 C89 85.5 112 81 112 93 C112 98.5 106.5 102.5 100 102.5 C94.5 102.5 90 100.5 87.5 96" fill="none" stroke="#000" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <path d="M40 26 Q42.5 43.5 60 46 Q42.5 48.5 40 66 Q37.5 48.5 20 46 Q37.5 43.5 40 26 Z" fill="currentColor"/>
+  <g fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M64 162 V44 H136 V162"/>
+    <path d="M46 162 H154"/>
+  </g>
+  <rect x="78" y="58" width="44" height="54" rx="6" fill="currentColor" mask="url(#snug-pane-B)"/>
+  <circle cx="119" cy="134" r="6.5" fill="currentColor"/></svg><span class="name">Snug</span></a><span class="company">Fernlea Robotics</span></div>
+    <div class="header-tools"><span class="who-am-i">ruth@fernlea.example</span><button class="theme-toggle" type="button" aria-label="Theme: dark" title="Theme: dark"><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg></button><a class="btn btn-quiet" href="#"><svg class="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M112,216a8,8,0,0,1-8,8H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h56a8,8,0,0,1,0,16H48V208h56A8,8,0,0,1,112,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L196.69,120H104a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,221.66,122.34Z"/></svg>Sign out</a></div>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <a href="#">Overview</a><a href="#">Documents</a><a href="#">Rooms</a><a href="#" aria-current="page">Links</a><a href="#">People</a><a href="#">Audit log</a><a href="#">Settings</a>
+  </nav>
+</header>
+<main class="admin">
+  <div class="crumbs"><a href="#">Links</a> / New link</div>
+  <div class="title-row"><div><h1 class="page-title">New link</h1><div class="page-meta">One link for one person, who must be able to read this inbox.</div></div></div>
+  <div class="split">
+    <form class="panel form" action="#" method="post">
+      <div class="field"><label for="l-email">Email address</label><input id="l-email" type="email" value="sam@kittiwake.example" autocomplete="off"></div>
+      <div class="field"><label for="l-note">Note for yourself</label><input id="l-note" type="text" value="Kittiwake Partners"><div class="hint">Only admins see this.</div></div>
+      <div class="field"><label for="l-target">Share</label>
+        <select id="l-target"><option>Seed deck</option><option>Series A data room</option></select></div>
+      <div class="field"><label for="l-exp">Expires</label><input id="l-exp" type="date" value="2026-12-05"><div class="hint">Leave empty for no expiry. You can revoke the link at any time.</div></div>
+      <div class="field"><span class="label">Options</span>
+        <div class="choices">
+          <label class="check"><input type="checkbox" checked><span>Require email verification<span class="hint">Recommended. A forwarded link is then useless to anyone else.</span></span></label>
+          <label class="check"><input type="checkbox"><span>Allow download<span class="hint">A watermarked PDF built from the same pages.</span></span></label>
+          <label class="check"><input type="checkbox"><span>Require NDA acceptance</span></label>
+          <label class="check"><input type="checkbox"><span>UK only<span class="hint">Blocks viewers outside the UK. A VPN gets round this.</span></span></label>
+        </div></div>
+      <div class="form-foot"><button class="btn" type="button">Create and copy</button><button class="btn btn-primary" type="button">Create and email</button></div>
+    </form>
+    <div class="side-note">
+      <h2>After you create it</h2>
+      <div class="form">
+        <div class="notice notice-ok"><svg class="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg><span>Link created and emailed to sam@kittiwake.example.</span></div>
+        <div class="link-out"><span>https://room.fernlea.example/v/q8Zt3mVhR2xK7pNw4LcJ9sYb6dFgA1eU5oTiWnE0rHs</span>
+          <button class="btn" type="button"><svg class="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"/></svg>Copy</button></div>
+        <p>If links are stored hashed (an open question), this is the only time the full address is shown. You can resend the email or issue a new link later.</p>
+      </div>
+    </div>
+  </div>
+</main>
+<footer class="admin-foot"><div class="rule"></div><div class="row"><span>Snug, from Negroni Venture Studios</span><a href="#">Source on GitHub</a></div></footer>
+</div>
+
+<!-- ============================================================ VIEWER: VERIFY -->
+<div class="screen v" data-screen-id="viewer-gate" hidden>
+  <header class="v-head">
+    <div class="founder-logo"><svg viewBox="0 0 32 32" aria-hidden="true"><path class="mark" d="M16 2c7.7 0 14 6.3 14 14s-6.3 14-14 14S2 23.7 2 16 8.3 2 16 2Zm0 6a8 8 0 1 0 8 8h-8V8Z"/></svg>Fernlea Robotics</div>
+    <div class="v-tools"><button class="theme-toggle" type="button" aria-label="Theme: dark" title="Theme: dark"><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg></button></div>
+  </header>
+  <main class="v-main">
+    <div class="gate-grid">
+      <div>
+        <div class="gate">
+          <h1><strong>Fernlea Robotics</strong> has shared <strong>Seed deck</strong> with you</h1>
+          <p class="lede">Enter the email address this link was sent to. We will email you a six-digit code.</p>
+          <form class="form" action="#" method="post">
+            <div class="field"><label for="v-email">Email address</label><input id="v-email" type="email" autocomplete="email" inputmode="email"></div>
+            <button class="btn btn-brand" type="button">Send code</button>
+          </form>
+        </div>
+        <div class="gate">
+          <h1>Check your email</h1>
+          <p class="lede">We sent a code to priya@northfield.example.</p>
+          <form class="form" action="#" method="post">
+            <div class="field"><label for="v-code">Six-digit code</label>
+              <input id="v-code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" value="482931" aria-invalid="true" aria-describedby="v-code-err">
+              <div class="error" id="v-code-err"><svg class="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z"/></svg>That code is not right. You have 4 tries left.</div></div>
+            <button class="btn btn-brand" type="button">Continue</button>
+          </form>
+          <p class="small">Nothing arrived? Check your spam folder, or <a href="#">send a new code</a>.</p>
+        </div>
+      </div>
+      <aside class="about" aria-label="About this link">
+        <h2>About this link</h2>
+        <dl>
+          <dt>From</dt><dd>Ruth Ellery, Fernlea Robotics</dd>
+          <dt>Document</dt><dd>Seed deck, 18 pages</dd>
+          <dt>Access</dt><dd>View in the browser</dd>
+          <dt>Expires</dt><dd>30 Nov 2026</dd>
+        </dl>
+        <div class="cover">Thanks for taking the time. The appendix on page 18 has the cap table you asked about.<span class="from">Ruth Ellery, CEO</span></div>
+        <p class="privacy">Fernlea Robotics will see when you open this document and how long you spend on each page. Every page shows your email address as a watermark.</p>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<!-- ============================================================ VIEWER: READER -->
+<div class="screen v" data-screen-id="viewer-reader" hidden>
+  <header class="v-head">
+    <div class="founder-logo"><svg viewBox="0 0 32 32" aria-hidden="true"><path class="mark" d="M16 2c7.7 0 14 6.3 14 14s-6.3 14-14 14S2 23.7 2 16 8.3 2 16 2Zm0 6a8 8 0 1 0 8 8h-8V8Z"/></svg>Fernlea Robotics</div>
+    <div class="v-tools"><span class="doc">Seed deck</span><button class="theme-toggle" type="button" aria-label="Theme: dark" title="Theme: dark"><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg></button></div>
+  </header>
+  <main class="v-main">
+    <div class="reader">
+      <div class="page-frame">
+        <!-- In the product: <img width height src=".../p/5.webp" alt="Page 5 of 18">, watermark baked in by Pillow. Slide content is sample data. -->
+        <svg viewBox="0 0 1600 948" role="img" aria-label="Page 5 of 18">
+          <defs>
+            <pattern id="wm" patternUnits="userSpaceOnUse" width="560" height="190" patternTransform="rotate(-22)">
+              <text class="wm-text" x="0" y="70">priya@northfield.example  5 Nov 2026</text>
+              <text class="wm-text" x="-280" y="165">priya@northfield.example  5 Nov 2026</text>
+            </pattern>
+          </defs>
+          <rect class="slide-bg" width="1600" height="948"/>
+          <text class="slide-kicker" x="110" y="130">MARKET</text>
+          <text class="slide-title" x="110" y="205">A £2.4bn retrofit market, underserved</text>
+          <text class="slide-body" x="110" y="290">2,300 UK food plants run lines built before 2005.</text>
+          <text class="slide-body" x="110" y="332">Fewer than 4% have any automated picking.</text>
+          <rect class="slide-bar-2" x="900" y="640" width="70" height="140"/><rect class="slide-bar-2" x="1000" y="600" width="70" height="180"/>
+          <rect class="slide-bar-2" x="1100" y="550" width="70" height="230"/><rect class="slide-bar" x="1200" y="480" width="70" height="300"/>
+          <rect class="slide-bar" x="1300" y="400" width="70" height="380"/><rect class="slide-bar" x="1400" y="310" width="70" height="470"/>
+          <text class="slide-axis" x="935" y="815" text-anchor="middle">2025</text><text class="slide-axis" x="1135" y="815" text-anchor="middle">2027</text><text class="slide-axis" x="1335" y="815" text-anchor="middle">2029</text>
+          <text class="slide-body" x="110" y="560">Serviceable market by 2030</text>
+          <text class="slide-title" x="110" y="640">£2.4bn</text>
+          <text class="slide-axis" x="110" y="690">Source: company analysis, ONS 2025</text>
+          <rect width="1600" height="900" fill="url(#wm)"/>
+          <rect class="wm-foot-bg" y="900" width="1600" height="48"/>
+          <text class="wm-foot" x="40" y="930">Shared with priya@northfield.example</text>
+          <text class="wm-foot" x="800" y="930" text-anchor="middle">5 Nov 2026</text>
+          <text class="wm-foot" x="1560" y="930" text-anchor="end">Link 7Q2K</text>
+        </svg>
+      </div>
+      <div class="reader-controls">
+        <button class="btn" type="button"><svg class="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z"/></svg>Previous</button>
+        <span class="pos">5 of 18</span>
+        <button class="btn" type="button">Next<svg class="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"/></svg></button>
+        <label class="visually-hidden" for="jump">Go to page</label>
+        <select id="jump"><option>Go to page</option><option>1</option><option>18</option></select>
+      </div>
+    </div>
+  </main>
+  <footer class="v-foot">Viewing as priya@northfield.example. The arrow keys turn pages.</footer>
+</div>
+
+</body>
+</html>

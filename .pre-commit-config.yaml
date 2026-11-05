@@ -1,0 +1,55 @@
+# Fast gates on every commit. CI runs the same checks on every file, so a
+# commit that skips the hook is still held to them.
+#
+# Install once:  uv run pre-commit install
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+      - id: debug-statements
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff (lint, including security rules)
+        entry: uv run ruff check
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff (format)
+        entry: uv run ruff format --check
+        language: system
+        types: [python]
+      - id: mypy
+        name: mypy (strict)
+        entry: uv run mypy
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: pytest
+        name: pytest
+        entry: uv run pytest -q
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: licences
+        name: dependency licences are MIT-compatible
+        entry: uv run python scripts/check_licences.py
+        language: system
+        files: '^(pyproject\.toml|uv\.lock)$'
+        pass_filenames: false
+      - id: uv-lock
+        name: uv.lock matches pyproject.toml
+        entry: uv lock --check
+        language: system
+        files: '^(pyproject\.toml|uv\.lock)$'
+        pass_filenames: false
