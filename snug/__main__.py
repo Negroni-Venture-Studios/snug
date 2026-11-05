@@ -15,9 +15,13 @@ import sys
 from pathlib import Path
 
 from snug.config import ConfigError, read_env_file
+from snug.core.hardening import make_undumpable
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Before reading any secret: keep this process's memory and environment
+    # out of reach of other processes running as the same user.
+    make_undumpable()
     args = list(sys.argv[1:] if argv is None else argv)
     try:
         if args[:1] == ["--env-file"]:

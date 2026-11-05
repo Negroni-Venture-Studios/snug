@@ -1,6 +1,8 @@
-"""The PDF worker runs apart from Snug, with limits and nothing secret."""
+"""The PDF worker runs apart from Snug: limited, confined and given nothing secret."""
 
+import io
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -11,6 +13,8 @@ from PIL import Image
 from snug.rendering import sandbox, worker
 from tests.pdfs import make_pdf
 
+linux_only = pytest.mark.skipif(sys.platform != "linux", reason="Landlock and prctl are Linux")
+
 
 @pytest.fixture
 def deck(tmp_path: Path) -> Path:
@@ -19,36 +23,39 @@ def deck(tmp_path: Path) -> Path:
     return path
 
 
+def size_of(webp: bytes) -> tuple[int, int]:
+    with Image.open(io.BytesIO(webp)) as image:
+        assert image.format == "WEBP"
+        return image.size
+
+
+# ---------------------------------------------------------------- across the process boundary
+
+
 def test_inspect(deck: Path) -> None:
     assert sandbox.inspect(deck) == {"pages": 2, "sizes": [[960, 540], [595, 842]]}
 
 
-def test_render_fits_the_width(deck: Path, tmp_path: Path) -> None:
-    out = tmp_path / "1.webp"
-    result = sandbox.render(deck, 1, 1600, out)
-    assert result == {"width": 1600, "height": 900}
-    with Image.open(out) as image:
-        assert image.format == "WEBP"
-        assert image.size == (1600, 900)
-    assert not list(tmp_path.glob(".*.part"))
+def test_render_returns_webp_through_the_pipe(deck: Path) -> None:
+    assert size_of(sandbox.render(deck, 1, 1600)) == (1600, 900)
 
 
 def test_very_tall_pages_are_capped(tmp_path: Path) -> None:
     pdf = tmp_path / "tall.pdf"
     pdf.write_bytes(make_pdf((10, 14000)))
-    result = sandbox.render(pdf, 1, 1600, tmp_path / "t.webp")
-    assert result["width"] * result["height"] <= worker.MAX_PIXELS
-    assert max(result["width"], result["height"]) <= worker.MAX_SIDE
+    width, height = size_of(sandbox.render(pdf, 1, 1600))
+    assert width * height <= worker.MAX_PIXELS
+    assert max(width, height) <= worker.MAX_SIDE
 
 
-def test_missing_page(deck: Path, tmp_path: Path) -> None:
+def test_missing_page(deck: Path) -> None:
     with pytest.raises(sandbox.WorkerError, match="does not exist"):
-        sandbox.render(deck, 9, 1600, tmp_path / "x.webp")
+        sandbox.render(deck, 9, 1600)
 
 
 def test_bad_arguments(deck: Path) -> None:
     with pytest.raises(sandbox.WorkerError):
-        sandbox.run("explode", str(deck), timeout=30)
+        sandbox.run(deck, "explode", timeout=30)
 
 
 def test_the_worker_gets_no_secrets() -> None:
@@ -57,9 +64,10 @@ def test_the_worker_gets_no_secrets() -> None:
     assert set(env) == {"PATH", "LANG", "PYTHONDONTWRITEBYTECODE"}
 
 
-def test_the_worker_runs_isolated() -> None:
-    argv = sandbox.command("inspect", "x.pdf")
+def test_the_worker_runs_isolated_and_is_given_no_path() -> None:
+    argv = sandbox.command("inspect", "3")
     assert argv[:4] == [sys.executable, "-I", "-m", "snug.rendering.worker"]
+    assert argv[4:] == ["inspect", "3"]
 
 
 def test_the_worker_limits_itself() -> None:
@@ -80,12 +88,12 @@ def test_the_worker_limits_itself() -> None:
         assert limits["RLIMIT_AS"] == worker.MEMORY_BYTES
 
 
-def test_timeouts_kill_the_worker(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_timeouts_kill_the_worker(deck: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         sandbox, "command", lambda *a: [sys.executable, "-c", "import time; time.sleep(30)"]
     )
     with pytest.raises(sandbox.WorkerError, match="took too long"):
-        sandbox.run("inspect", "x", timeout=0.5)
+        sandbox.run(deck, "inspect", timeout=0.5)
 
 
 @pytest.mark.parametrize(
@@ -93,88 +101,190 @@ def test_timeouts_kill_the_worker(monkeypatch: pytest.MonkeyPatch) -> None:
     [(-9, "memory"), (-24, "unreadable"), (-11, "unreadable")],
     ids=["killed", "cpu", "segfault"],
 )
-def test_crashes_become_errors(monkeypatch: pytest.MonkeyPatch, returncode: int, code: str) -> None:
+def test_crashes_become_errors(
+    deck: Path, monkeypatch: pytest.MonkeyPatch, returncode: int, code: str
+) -> None:
     script = f"import os, signal; os.kill(os.getpid(), {-returncode})"
     monkeypatch.setattr(sandbox, "command", lambda *a: [sys.executable, "-c", script])
     with pytest.raises(sandbox.WorkerError) as caught:
-        sandbox.run("inspect", "x", timeout=30)
+        sandbox.run(deck, "inspect", timeout=30)
     assert caught.value.code == code
 
 
-def test_garbage_output_is_unreadable(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(sandbox, "command", lambda *a: [sys.executable, "-c", "print('hello')"])
+@pytest.mark.parametrize(
+    "output",
+    [b"print('hello')", b'import sys; sys.stdout.write(\'{"pages": 3, "sizes": []}\')'],
+    ids=["not-json", "inconsistent"],
+)
+def test_untrustworthy_output_is_refused(
+    deck: Path, monkeypatch: pytest.MonkeyPatch, output: bytes
+) -> None:
+    monkeypatch.setattr(sandbox, "command", lambda *a: [sys.executable, "-c", output.decode()])
     with pytest.raises(sandbox.WorkerError) as caught:
-        sandbox.run("inspect", "x", timeout=30)
+        sandbox.inspect(deck)
     assert caught.value.code == "unreadable"
 
 
-def test_main_usage() -> None:
-    assert worker.main(["nonsense"]) == 3
+def test_a_render_that_is_not_webp_is_refused(deck: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    script = "import sys; sys.stdout.buffer.write(b'<html>not an image</html>')"
+    monkeypatch.setattr(sandbox, "command", lambda *a: [sys.executable, "-c", script])
+    with pytest.raises(sandbox.WorkerError):
+        sandbox.render(deck, 1, 1600)
 
 
-# In-process calls, so coverage sees the worker's own code. The subprocess
-# tests above prove the same paths work across the process boundary.
+def test_errors_without_json_are_unreadable(deck: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        sandbox, "command", lambda *a: [sys.executable, "-c", "raise SystemExit(3)"]
+    )
+    with pytest.raises(sandbox.WorkerError) as caught:
+        sandbox.run(deck, "inspect", timeout=30)
+    assert caught.value.code == "unreadable"
+
+
+# ---------------------------------------------------------------- confinement (Linux)
+
+
+def _confined(script: str, tmp_path: Path) -> subprocess.CompletedProcess[str]:
+    secret = tmp_path / "snug.sqlite3"
+    secret.write_text("TOTP keys live here", encoding="utf-8")
+    code = (
+        "from snug.rendering import worker; worker.preload(); print(worker.confine()); "
+        f"SECRET = {str(secret)!r}\n" + script
+    )
+    return subprocess.run(
+        [sys.executable, "-I", "-c", code], capture_output=True, text=True, timeout=30, check=False
+    )
+
+
+@linux_only
+def test_a_confined_worker_cannot_open_files(tmp_path: Path) -> None:
+    result = _confined("open(SECRET).read()", tmp_path)
+    assert result.stdout.startswith("landlock v"), result.stdout + result.stderr
+    assert "PermissionError" in result.stderr
+
+
+@linux_only
+def test_a_confined_worker_cannot_connect_out(tmp_path: Path) -> None:
+    script = (
+        "import socket\n"
+        "s = socket.socket(); s.settimeout(2)\n"
+        "try:\n    s.connect(('127.0.0.1', 9))\n"
+        "except PermissionError:\n    print('blocked')\n"
+        "except OSError as e:\n    print('reached the network stack:', e)\n"
+    )
+    result = _confined(script, tmp_path)
+    abi = int(result.stdout.split()[1].lstrip("v"))
+    if abi < 4:
+        pytest.skip("Landlock network rules need ABI 4 (Linux 6.7)")
+    assert "blocked" in result.stdout, result.stdout + result.stderr
+
+
+@linux_only
+def test_a_confined_worker_can_still_render(deck: Path) -> None:
+    # The full path, confined: fonts and every lazy import must already be loaded.
+    assert size_of(sandbox.render(deck, 2, 800))[0] in (800, 801)
+
+
+@linux_only
+def test_undumpable_processes_hide_their_environment() -> None:
+    code = (
+        "import os, subprocess, sys\n"
+        "from snug.core.hardening import make_undumpable\n"
+        "assert make_undumpable()\n"
+        'child = \'import os; open(f"/proc/{os.getppid()}/environ", "rb").read()\'\n'
+        "r = subprocess.run([sys.executable, '-c', child], capture_output=True, text=True)\n"
+        "print('hidden' if 'PermissionError' in r.stderr else 'READABLE')\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", code],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+        env={**os.environ, "SNUG_SECRET_KEY": "x" * 60},
+    )
+    assert result.stdout.strip() == "hidden", result.stdout + result.stderr
+
+
+def test_make_undumpable_is_a_no_op_elsewhere() -> None:
+    from snug.core.hardening import make_undumpable
+
+    if sys.platform != "linux":
+        assert make_undumpable() is False
+
+
+def test_confine_reports_when_unavailable() -> None:
+    if sys.platform != "linux":
+        assert worker.confine() == "unconfined: not Linux"
+
+
+# ---------------------------------------------------------------- in-process, for coverage
+
+
+def _fd(path: Path) -> str:
+    return str(os.open(path, os.O_RDONLY))
 
 
 def test_inspect_in_process(deck: Path) -> None:
-    assert worker.inspect(str(deck)) == {"pages": 2, "sizes": [[960, 540], [595, 842]]}
+    assert worker.inspect(deck.read_bytes()) == {"pages": 2, "sizes": [[960, 540], [595, 842]]}
 
 
 def test_main_inspect_and_render_in_process(
-    deck: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+    deck: Path, capsysbinary: pytest.CaptureFixture[bytes]
 ) -> None:
-    monkeypatch.setattr(worker, "apply_limits", lambda: None)  # keep the test process unlimited
-    assert worker.main(["inspect", str(deck)]) == 0
-    assert json.loads(capsys.readouterr().out)["pages"] == 2
-    out = tmp_path / "p.webp"
-    assert worker.main(["render", str(deck), "2", "800", str(out)]) == 0
-    # pdfium rounds the pixel size up, so allow one pixel either way.
-    assert abs(json.loads(capsys.readouterr().out)["width"] - 800) <= 1
-    assert out.exists()
+    assert worker.main(["inspect", _fd(deck)], confined=False) == 0
+    assert json.loads(capsysbinary.readouterr().out)["pages"] == 2
+    assert worker.main(["render", _fd(deck), "2", "800"], confined=False) == 0
+    assert size_of(capsysbinary.readouterr().out)[0] in (800, 801)
 
 
-@pytest.mark.parametrize(
-    ("content", "code"),
-    [(b"not a pdf at all", "unreadable"), (b"%PDF-1.7\n" + b"x" * 500, "unreadable")],
-)
+@pytest.mark.parametrize("content", [b"not a pdf at all", b"%PDF-1.7\n" + b"x" * 500])
 def test_main_reports_unreadable_files(
-    tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-    monkeypatch: pytest.MonkeyPatch,
-    content: bytes,
-    code: str,
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], content: bytes
 ) -> None:
-    monkeypatch.setattr(worker, "apply_limits", lambda: None)
     bad = tmp_path / "bad.pdf"
     bad.write_bytes(content)
-    assert worker.main(["inspect", str(bad)]) == 3
-    assert json.loads(capsys.readouterr().out) == {"error": code}
+    assert worker.main(["inspect", _fd(bad)], confined=False) == 3
+    assert json.loads(capsys.readouterr().out) == {"error": "unreadable"}
 
 
-def test_main_reports_missing_pages(
-    deck: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(worker, "apply_limits", lambda: None)
-    assert worker.main(["render", str(deck), "5", "800", str(tmp_path / "x.webp")]) == 3
+def test_main_reports_missing_pages(deck: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert worker.main(["render", _fd(deck), "5", "800"], confined=False) == 3
     assert json.loads(capsys.readouterr().out) == {"error": "no_such_page"}
 
 
 def test_main_reports_memory_errors(
     deck: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    def exhausted(path: str) -> dict[str, object]:
+    def exhausted(data: bytes) -> dict[str, object]:
         raise MemoryError
 
-    monkeypatch.setattr(worker, "apply_limits", lambda: None)
     monkeypatch.setattr(worker, "inspect", exhausted)
-    assert worker.main(["inspect", str(deck)]) == 3
+    assert worker.main(["inspect", _fd(deck)], confined=False) == 3
     assert json.loads(capsys.readouterr().out) == {"error": "memory"}
 
 
-def test_too_many_pages_are_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    pdf = tmp_path / "long.pdf"
-    pdf.write_bytes(make_pdf(*[(100, 100)] * 4))
+def test_main_usage(capsys: pytest.CaptureFixture[str]) -> None:
+    assert worker.main(["nonsense"], confined=False) == 3
+    assert json.loads(capsys.readouterr().out) == {"error": "usage"}
+
+
+def test_too_many_pages_are_refused(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(worker, "MAX_PAGES", 3)
     with pytest.raises(worker._Refused) as caught:
-        worker.inspect(str(pdf))
+        worker.inspect(make_pdf(*[(100, 100)] * 4))
     assert caught.value.code == "too_many_pages"
+
+
+def test_gunicorn_master_makes_itself_undumpable(monkeypatch: pytest.MonkeyPatch) -> None:
+    from snug import gunicorn_conf
+
+    calls: list[bool] = []
+
+    def spy() -> bool:
+        calls.append(True)
+        return True
+
+    monkeypatch.setattr(gunicorn_conf, "make_undumpable", spy)
+    gunicorn_conf.on_starting(None)
+    assert calls == [True]

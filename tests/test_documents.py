@@ -131,7 +131,12 @@ def test_pages_render_to_cached_webp(document: Document, monkeypatch: pytest.Mon
     assert path == storage.render_path(version, 1, 1600)
 
     calls: list[tuple[object, ...]] = []
-    monkeypatch.setattr(sandbox, "render", lambda *a: calls.append(a))
+
+    def spy(*args: object) -> bytes:
+        calls.append(args)
+        return b""
+
+    monkeypatch.setattr(sandbox, "render", spy)
     assert pages.page_image(version, 1) == path
     assert calls == []  # served from the cache
 

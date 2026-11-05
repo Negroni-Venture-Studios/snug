@@ -1,4 +1,9 @@
-"""Run the PDF worker in its own process, with a clean environment and a timeout."""
+"""Run the PDF worker in its own confined process, with a clean environment and a timeout.
+
+The worker is handed the PDF as an already-open file descriptor and returns
+its results through a pipe. It is never given a path, so with Landlock it has
+no filesystem access at all beyond reading system fonts.
+"""
 
 import json
 import os
@@ -6,6 +11,8 @@ import signal
 import subprocess
 import sys
 from typing import Any
+
+from snug.rendering.worker import OUTPUT_BYTES
 
 INSPECT_TIMEOUT = 60
 RENDER_TIMEOUT = 30
@@ -39,40 +46,56 @@ def command(*args: str) -> list[str]:
     return [sys.executable, "-I", "-m", "snug.rendering.worker", *args]
 
 
-def run(*args: str, timeout: float) -> dict[str, Any]:
-    try:
-        process = subprocess.run(  # noqa: S603 - fixed argv, no shell
-            command(*args),
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            timeout=timeout,
-            env=worker_env(),
-            close_fds=True,
-            start_new_session=True,
-            check=False,
-        )
-    except subprocess.TimeoutExpired as expired:
-        raise WorkerError("timeout") from expired
+def run(
+    pdf: os.PathLike[str] | str, mode: str, *extra: str, timeout: float
+) -> subprocess.CompletedProcess[bytes]:
+    """Run the worker on one PDF. Raises WorkerError for every kind of failure."""
+    with open(pdf, "rb") as source:  # noqa: PTH123 - we need the raw descriptor
+        descriptor = source.fileno()
+        try:
+            process = subprocess.run(  # noqa: S603 - fixed argv, no shell
+                command(mode, str(descriptor), *extra),
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                timeout=timeout,
+                env=worker_env(),
+                close_fds=True,
+                pass_fds=(descriptor,),
+                start_new_session=True,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as expired:
+            raise WorkerError("timeout") from expired
 
     if process.returncode in (-signal.SIGKILL, -signal.SIGXCPU, -signal.SIGSEGV):
         raise WorkerError("memory" if process.returncode == -signal.SIGKILL else "unreadable")
+    if process.returncode != 0:
+        raise WorkerError(_error_code(process.stdout))
+    return process
+
+
+def _error_code(output: bytes) -> str:
     try:
-        result: dict[str, Any] = json.loads(process.stdout.strip().splitlines()[-1])
-    except (IndexError, json.JSONDecodeError) as error:
+        reported = json.loads(output.decode("utf-8", errors="replace").strip().splitlines()[-1])
+        return str(reported["error"])
+    except (IndexError, KeyError, TypeError, json.JSONDecodeError):
+        return "unreadable"
+
+
+def inspect(pdf: os.PathLike[str] | str) -> dict[str, Any]:
+    process = run(pdf, "inspect", timeout=INSPECT_TIMEOUT)
+    try:
+        facts: dict[str, Any] = json.loads(process.stdout.decode("utf-8").strip())
+        if not isinstance(facts.get("pages"), int) or len(facts.get("sizes", [])) != facts["pages"]:
+            raise ValueError("inconsistent")
+    except (UnicodeDecodeError, ValueError, AttributeError) as error:
         raise WorkerError("unreadable") from error
-    if "error" in result:
-        raise WorkerError(str(result["error"]))
-    return result
+    return facts
 
 
-def inspect(path: os.PathLike[str] | str) -> dict[str, Any]:
-    return run("inspect", os.fspath(path), timeout=INSPECT_TIMEOUT)
-
-
-def render(
-    path: os.PathLike[str] | str, page: int, width: int, out: os.PathLike[str] | str
-) -> dict[str, Any]:
-    return run(
-        "render", os.fspath(path), str(page), str(width), os.fspath(out), timeout=RENDER_TIMEOUT
-    )
+def render(pdf: os.PathLike[str] | str, page: int, width: int) -> bytes:
+    """The page as WebP bytes. Only the container format is checked; nothing is decoded."""
+    image = run(pdf, "render", str(page), str(width), timeout=RENDER_TIMEOUT).stdout
+    if len(image) > OUTPUT_BYTES or image[:4] != b"RIFF" or image[8:12] != b"WEBP":
+        raise WorkerError("unreadable")
+    return image
