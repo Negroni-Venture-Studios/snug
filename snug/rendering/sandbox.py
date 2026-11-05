@@ -185,6 +185,14 @@ def stamp(
     return image
 
 
+def stamp_pdf(pdf: os.PathLike[str] | str, *, email: str, date: str, ref: str, limit: int) -> bytes:
+    """The original PDF with a line naming the viewer on every page, from a confined worker."""
+    stamped = run(pdf, "stamp-pdf", email, date, ref, timeout=INSPECT_TIMEOUT, limit=limit)
+    if len(stamped) > limit or not stamped.startswith(b"%PDF-"):
+        raise WorkerError("unreadable")
+    return stamped
+
+
 def inspect(pdf: os.PathLike[str] | str) -> dict[str, Any]:
     output = run(pdf, "inspect", timeout=INSPECT_TIMEOUT)
     try:

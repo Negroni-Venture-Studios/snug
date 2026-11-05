@@ -3,7 +3,7 @@
 {% block title %}{{ document.title }}{% endblock %}
 {% block scripts %}<script src="{% static 'snug/js/viewer.js' %}" defer></script>{% if prefetch %}
 <link rel="prefetch" href="{{ prefetch }}" as="image">{% endif %}{% endblock %}
-{% block tools %}<span class="doc">{{ document.title }}</span>{% endblock %}
+{% block tools %}<span class="doc">{{ document.title }}</span>{% if page and link.allow_download %}<a class="btn" href="{% url 'viewer:download' token=token %}">{% icon "download-simple" %}Download</a>{% endif %}{% endblock %}
 {% block main %}
 {% if page %}
 <div class="reader">

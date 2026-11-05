@@ -9,6 +9,7 @@ configuration to make sure of it:
   that exist to start a session.
 """
 
+import hashlib
 import threading
 from collections.abc import Callable
 from functools import wraps
@@ -20,6 +21,7 @@ from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import content_disposition_header
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
@@ -276,6 +278,48 @@ def page_image(
     response = HttpResponse(data, content_type="image/webp")
     # Kept briefly, by this browser only. Revoking stops new pages at once.
     response["Cache-Control"] = "private, max-age=300"
+    return response
+
+
+def _filename(title: str) -> str:
+    """The document's title as a plain file name: letters, digits and spaces."""
+    kept = "".join(c if c.isalnum() or c in " -_" else " " for c in title)
+    return (" ".join(kept.split()) or "document")[:100] + ".pdf"
+
+
+@never_cache
+@require_safe
+@viewer_content()
+def download(request: HttpRequest, access: Access, token: str) -> HttpResponse:
+    """The original PDF, stamped for this viewer, when the link allows downloads."""
+    version = access.document.latest_version()
+    if not access.link.allow_download or version is None:
+        raise Http404
+    if not ratelimit.allow(limits.DOWNLOAD_PER_LINK, str(access.link.pk)):
+        return HttpResponse(TOO_MANY, status=429, content_type="text/plain")
+    today = timezone.localdate()
+    try:
+        data = rendering.stamped_pdf(
+            version,
+            email=access.session.email,
+            date=f"{today.day} {today:%b %Y}",
+            ref=access.link.ref,
+        )
+    except WorkerError:
+        message = "This document could not be prepared for download. Try again in a few minutes."
+        return HttpResponse(message, status=503, content_type="text/plain")
+    _audit(
+        request,
+        "viewer.downloaded",
+        access.link,
+        access.session.email,
+        version=version.number,
+        sha256=hashlib.sha256(data).hexdigest(),
+    )
+    response = HttpResponse(data, content_type="application/pdf")
+    response["Content-Disposition"] = content_disposition_header(
+        True, _filename(access.document.title)
+    )
     return response
 
 
