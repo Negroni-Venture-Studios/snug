@@ -6,6 +6,13 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- Signing in to the admin interface:
+  - email and password, then a code from the authenticator app or a recovery code;
+  - rate limits per address and per account;
+  - idle and absolute session limits;
+  - every sign-in, failure and sign-out recorded in the audit log.
+- The front end from DESIGN.md revision 2, in production: the stylesheet, Geist fonts, the theme toggle (dark by default), the logo and the sign-in pages.
+- `SNUG_TRUSTED_PROXIES`, so the client address is taken from `X-Forwarded-For` only when the request comes from Caddy.
 - Admin accounts:
   - `snug createadmin`, with argon2id passwords, authenticator enrolment by QR code, and ten single-use recovery codes;
   - `snug reset-2fa` for an admin who has lost their phone (`docs/admin-accounts.md`).

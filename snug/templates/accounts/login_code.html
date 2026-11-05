@@ -1,0 +1,13 @@
+{% extends "snug/auth_base.html" %}
+{% block title %}Your code for Snug{% endblock %}
+{% block card %}
+<h1>Enter your code</h1>
+<p class="lede">Open your authenticator app and enter the six-digit code for Snug.</p>
+<form class="form" method="post" action="{% url 'accounts:login_code' %}" novalidate>
+  {% csrf_token %}
+  {% include "snug/partials/form_error.html" %}
+  <div class="field"><label for="code">Six-digit code</label><input id="code" name="code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required autofocus{% if error %} aria-invalid="true"{% endif %}></div>
+  <button class="btn btn-primary" type="submit">Sign in</button>
+</form>
+<p class="alt">Lost your phone? <a href="{% url 'accounts:login_recovery' %}">Use a recovery code</a>.</p>
+{% endblock %}

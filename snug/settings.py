@@ -32,6 +32,9 @@ INSTALLED_APPS = [
 ]
 
 AUTH_USER_MODEL = "accounts.Admin"
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "core:overview"
+CSRF_FAILURE_VIEW = "snug.core.views.csrf_failure"
 
 # argon2id only (Django's defaults: 100 MiB, two passes, eight lanes). With a
 # single hasher there is no weaker algorithm for an old hash to fall back on.
@@ -60,6 +63,8 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "snug.accounts.sessions.session_limits",
 ]
 
 ROOT_URLCONF = "snug.urls"
@@ -73,6 +78,7 @@ TEMPLATES = [
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
             ],
         },
     },
@@ -102,6 +108,9 @@ TIME_ZONE = "Europe/London"
 USE_TZ = True
 
 STATIC_URL = "/static/"
+# Snug's own CSS, JavaScript, fonts, icons and logo. They belong to no single
+# app, so they are listed here; collectstatic copies them into STATIC_ROOT.
+STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR.parent / "staticfiles"
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
@@ -132,8 +141,10 @@ CSRF_COOKIE_SAMESITE = "Strict"
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
-# Viewer URLs carry link tokens, so no page may ever send a Referer anywhere.
-SECURE_REFERRER_POLICY = "no-referrer"
+# Viewer URLs carry link tokens, so no page may send a Referer to another site.
+# Not "no-referrer": with it, browsers send "Origin: null" on form posts, which
+# Django's CSRF check rightly refuses, and nobody could sign in.
+SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
 
 # Strict CSP: nothing is allowed unless listed, and nothing inline, ever.

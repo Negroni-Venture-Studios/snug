@@ -21,6 +21,21 @@ Snug then:
 
 Further admins will be invited from the admin interface, once email is set up.
 
+## Signing in
+
+Go to `/admin/` on your Snug domain. Enter your email address and password, then the six-digit code from your app. The code must follow within five minutes of the password.
+
+- **Each code works once.** If you sign out and straight back in, wait for the app to show a new code.
+- **Sessions end** after an hour without activity, and after twelve hours whatever happens.
+- **Too many attempts pause signing in for 15 minutes.** The limits are:
+  - 20 password attempts from one address;
+  - 30 wrong passwords against one account, from anywhere;
+  - 10 wrong codes against one account;
+  - 5 wrong codes after one correct password, which then takes you back to the password.
+
+  The account limit is deliberately generous, so that someone typing wrong passwords cannot easily lock you out.
+- **Changing your password, or resetting your second factor, signs you out everywhere.**
+
 ## Losing your phone
 
 - If you still have your recovery codes, sign in with one of them, then set up the authenticator again.

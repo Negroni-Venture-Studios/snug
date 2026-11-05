@@ -1,0 +1,17 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>{% block title %}Snug{% endblock %}</title>
+<script src="{% static 'snug/js/theme-init.js' %}"></script>
+<link rel="icon" href="{% static 'snug/img/favicon.svg' %}" type="image/svg+xml">
+<link rel="preload" href="{% static 'snug/fonts/Geist-Variable.woff2' %}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{% static 'snug/css/snug.css' %}">
+<script src="{% static 'snug/js/theme.js' %}" defer></script>
+</head>
+<body>
+{% block body %}{% endblock %}
+</body>
+</html>
