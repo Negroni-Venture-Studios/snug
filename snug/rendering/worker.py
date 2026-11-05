@@ -3,12 +3,15 @@
     python -I -m snug.rendering.worker inspect FD
     python -I -m snug.rendering.worker render FD PAGE WIDTH
     python -I -m snug.rendering.worker stamp FD FONT_FD EMAIL DATE REF
+    python -I -m snug.rendering.worker stamp-pdf FD EMAIL DATE REF
 
 Snug opens the PDF and passes the open file as descriptor FD; the worker is
 never given a path. `inspect` prints one line of JSON. `render` writes the
 WebP image to standard output. `stamp` reads a rendered page (as FD) and a
 font, and writes the page with the viewer's watermark: a page rendered from
-an untrusted PDF is never decoded outside a confined worker. Errors print
+an untrusted PDF is never decoded outside a confined worker. `stamp-pdf`
+writes the original PDF with a line naming the viewer on every page, and the
+same details in its document properties. Errors print
 {"error": ...} and exit with 3.
 
 Before it touches the PDF, the worker
@@ -83,6 +86,16 @@ def preload() -> None:
 
     PIL.Image.init()
     del pypdfium2
+    _warm_up_pypdf()
+
+
+def _warm_up_pypdf() -> None:
+    """Exercise pypdf once, so every module it loads lazily is loaded before confine()."""
+    blank = io.BytesIO()
+    writer = __import__("pypdf").PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    writer.write(blank)
+    _stamp_pdf_pages(blank.getvalue(), "warm@up.example", "1 Jan 2026", "WARM")
 
 
 def confine() -> str:  # pragma: no cover - runs only inside the worker process
@@ -265,6 +278,83 @@ def stamp(data: bytes, font: bytes, email: str, date: str, ref: str) -> bytes:
     return result.getvalue()
 
 
+def _pdf_string(text: str) -> bytes:
+    """Text as a PDF literal string in WinAnsi: brackets and backslashes escaped."""
+    escaped = text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+    return b"(" + escaped.encode("cp1252", errors="replace") + b")"
+
+
+def _stamp_pdf_pages(data: bytes, email: str, date: str, ref: str) -> bytes:
+    from pypdf import PageObject, PdfReader, PdfWriter
+    from pypdf.generic import ContentStream, DictionaryObject, NameObject
+
+    reader = PdfReader(io.BytesIO(data))
+    if reader.is_encrypted:
+        raise _Refused("password")
+    writer = PdfWriter(clone_from=reader)
+    line = _pdf_string(f"Shared with {email}   {date}   Link {ref}")
+    # Helvetica is one of the standard fonts every PDF reader has: nothing to
+    # embed, and the line stays text that can be selected and searched.
+    font = DictionaryObject(
+        {
+            NameObject("/Type"): NameObject("/Font"),
+            NameObject("/Subtype"): NameObject("/Type1"),
+            NameObject("/BaseFont"): NameObject("/Helvetica"),
+            NameObject("/Encoding"): NameObject("/WinAnsiEncoding"),
+        }
+    )
+    for page in writer.pages:
+        page.transfer_rotation_to_content()
+        box = page.cropbox
+        overlay = PageObject.create_blank_page(
+            width=float(page.mediabox.width), height=float(page.mediabox.height)
+        )
+        overlay[NameObject("/Resources")] = DictionaryObject(
+            {NameObject("/Font"): DictionaryObject({NameObject("/SnugMark"): font})}
+        )
+        x, y = float(box.left) + 18, float(box.bottom) + 10
+        content = ContentStream(None, None)
+        content.set_data(
+            b"q BT /SnugMark 7 Tf 0.34 0.33 0.31 rg "
+            + f"{x:.2f} {y:.2f} Td ".encode()
+            + line
+            + b" Tj ET Q"
+        )
+        overlay.replace_contents(content)
+        page.merge_page(overlay)
+    writer.add_metadata(
+        {
+            "/Subject": f"Shared with {email} on {date}, link {ref}",
+            "/SnugSharedWith": email,
+            "/SnugDate": date,
+            "/SnugLink": ref,
+        }
+    )
+    out = io.BytesIO()
+    writer.write(out)
+    return out.getvalue()
+
+
+def _resaved(data: bytes) -> bytes:
+    """The PDF as PDFium writes it: a well-formed copy of a file pypdf cannot read."""
+    out = io.BytesIO()
+    _open(data).save(out)
+    return out.getvalue()
+
+
+def stamp_pdf(data: bytes, email: str, date: str, ref: str) -> bytes:
+    """The original PDF with a line naming the viewer on every page."""
+    from pypdf.errors import PdfReadError
+
+    email, date, ref = _stamp_text(email, date, ref)
+    try:
+        return _stamp_pdf_pages(data, email, date, ref)
+    except PdfReadError:
+        # PDFium reads many slightly broken files that pypdf will not, and Snug
+        # accepted this one because PDFium could. Stamp PDFium's clean copy.
+        return _stamp_pdf_pages(_resaved(data), email, date, ref)
+
+
 def main(argv: list[str], *, confined: bool = True) -> int:
     if confined:
         apply_limits()
@@ -280,6 +370,8 @@ def main(argv: list[str], *, confined: bool = True) -> int:
             mode = "stamp"
             with os.fdopen(int(argv[2]), "rb") as font_file:
                 font = font_file.read()
+        elif len(argv) == 5 and argv[0] == "stamp-pdf":
+            mode = "stamp-pdf"
         else:
             return _fail("usage")
         with os.fdopen(int(argv[1]), "rb") as source:
@@ -289,11 +381,12 @@ def main(argv: list[str], *, confined: bool = True) -> int:
         if mode == "inspect":
             sys.stdout.write(json.dumps(inspect(data)) + "\n")
         else:
-            output = (
-                render(data, page, width)
-                if mode == "render"
-                else stamp(data, font, argv[3], argv[4], argv[5])
-            )
+            if mode == "render":
+                output = render(data, page, width)
+            elif mode == "stamp":
+                output = stamp(data, font, argv[3], argv[4], argv[5])
+            else:
+                output = stamp_pdf(data, argv[2], argv[3], argv[4])
             sys.stdout.flush()
             sys.stdout.buffer.write(output)
     except _Refused as refused:

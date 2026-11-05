@@ -22,5 +22,8 @@ SEND_PER_EMAIL = Limit("viewer.send.email", limit=10, window=60 * 60)
 # Entering a code, from one address.
 CHECK_PER_IP = Limit("viewer.check.ip", limit=30, window=WINDOW)
 
+# Downloads of one link's document. Each one stamps the whole PDF in a worker.
+DOWNLOAD_PER_LINK = Limit("viewer.download.link", limit=30, window=60 * 60)
+
 # Opening a link that needs no verification, from one address.
 OPEN_PER_IP = Limit("viewer.open.ip", limit=30, window=WINDOW)
