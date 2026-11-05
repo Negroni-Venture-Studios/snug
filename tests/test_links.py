@@ -321,3 +321,14 @@ def test_links_are_listed_everywhere(client: Client, document: Document) -> None
     assert 'aria-current="page">Links</a>' in listing
     detail = client.get(f"/admin/documents/{document.token}", secure=True).content.decode()
     assert INVESTOR in detail and "Active" in detail
+
+
+@pytest.mark.usefixtures("email_on")
+def test_the_expiry_shown_is_the_day_chosen(client: Client, document: Document) -> None:
+    # Stored as midnight at the start of the next day; shown as the day chosen.
+    day = timezone.localdate() + timedelta(days=3)
+    create(client, document, action="email", expires=day.isoformat())
+    assert Link.objects.get().last_day == day
+    assert f"It works until {day.day} {day:%B %Y}." in django_mail.outbox[0].body
+    listing = client.get("/admin/links/", secure=True).content.decode()
+    assert f"Expires {day.day} {day:%b}" in listing

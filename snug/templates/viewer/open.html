@@ -1,0 +1,17 @@
+{% extends "viewer/base.html" %}
+{% load snug %}
+{% block title %}{{ document.title }}{% endblock %}
+{% block main %}
+<div class="gate-grid">
+  <div class="gate">
+    {% include "viewer/_shared.html" %}
+    <p class="lede">This link is for you alone.</p>
+    <form class="form" method="post" action="{% url 'viewer:open' token=token %}">
+      {% csrf_token %}
+      {% if error %}<div class="field"><div class="error" role="alert">{% icon "warning-circle" %}{{ error }}</div></div>{% endif %}
+      <button class="btn btn-brand" type="submit">Open {{ document.title }}</button>
+    </form>
+  </div>
+  {% include "viewer/_about.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "viewer/base.html" %}
+{% load snug %}
+{% block title %}{{ document.title }}{% endblock %}
+{% block main %}
+<div class="gate-grid">
+  <div class="gate">
+    {% include "viewer/_shared.html" %}
+    {% if email_enabled %}
+    <p class="lede">Enter the email address this link was sent to. We will email you a six-digit code.</p>
+    <form class="form" method="post" action="{% url 'viewer:send_code' token=token %}" novalidate>
+      {% csrf_token %}
+      <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" inputmode="email" value="{{ typed }}" required autofocus{% if error %} aria-invalid="true" aria-describedby="email-error"{% endif %}>
+        {% if error %}<div class="error" id="email-error" role="alert">{% icon "warning-circle" %}{{ error }}</div>{% endif %}</div>
+      <button class="btn btn-brand" type="submit">Send code</button>
+    </form>
+    {% else %}
+    <p class="lede">This link asks you to confirm your email address with a code, but email is not set up on this server yet. Ask the person who sent it.</p>
+    {% endif %}
+  </div>
+  {% include "viewer/_about.html" %}
+</div>
+{% endblock %}

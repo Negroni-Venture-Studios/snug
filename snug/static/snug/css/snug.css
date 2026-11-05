@@ -261,6 +261,9 @@ footer.admin-foot a { color: var(--text-3); }
 .gate .small { font-size: 0.85rem; color: var(--text-3); margin-top: 1.1rem; }
 .gate .small a { color: var(--brand-text); }
 .gate + .gate { margin-top: 3rem; padding-top: 2.5rem; border-top: 1px solid var(--border); }
+/* A form button that reads as a link, for "send a new code". */
+.linkish { font: inherit; color: var(--brand-text); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 0.15em; }
+.gate .resend .btn { width: auto; }
 input.code { font-family: var(--mono); font-size: 1.5rem; letter-spacing: 0.45em; padding: 0.6rem 0.4rem 0.6rem 0.85rem; text-align: center; }
 .about { border: 1px solid var(--border); border-radius: var(--r); padding: 1.25rem 1.35rem; font-size: 0.9rem; align-self: start; background: var(--surface); }
 .about h2 { font-size: 0.95rem; font-weight: 500; margin-bottom: 0.9rem; }

@@ -38,7 +38,7 @@ def create(
     expires_at: datetime | None,
     require_verification: bool,
     allow_download: bool,
-    created_by: Admin,
+    created_by: Admin | None,
 ) -> Issued:
     for _ in range(5):
         link = Link(
