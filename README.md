@@ -39,9 +39,33 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 - It is not a hosted service, and one instance serves one company.
 - No Office or image rendering, comments, e-signatures, single sign-on, investor updates or AI features.
 
-## Quick start
+## Status
 
-Not yet. The deployment guide, for a DigitalOcean droplet in London, arrives with the container image. See the order of work in [DESIGN.md](DESIGN.md).
+**Snug is not ready to run for real yet.** The application is built and tested, and the container image is published as a test build, `ghcr.io/negroni-venture-studios/snug:edge`. There is no release yet.
+
+Still being built: the production setup (Docker Compose with Caddy for HTTPS and Litestream for continuous, encrypted backups), the `snug doctor` and `snug restore` commands, and the step-by-step guide for a DigitalOcean droplet in London. The order of work in [DESIGN.md](DESIGN.md) lists what remains. Until then, please do not put real documents in a test instance.
+
+## Trying it on your own computer
+
+You need Docker. This runs Snug on `localhost` only, over plain HTTP, which Snug allows for `localhost` and nowhere else.
+
+```bash
+docker run --detach --name snug --publish 127.0.0.1:8000:8000 \
+  --env SNUG_DOMAIN=localhost --env SNUG_HTTPS=false \
+  --env SNUG_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(64))')" \
+  --volume snug-data:/var/lib/snug \
+  ghcr.io/negroni-venture-studios/snug:edge
+```
+
+Then create the first admin, which asks for a password and shows a QR code for your authenticator app:
+
+```bash
+docker exec --interactive --tty snug snug createadmin --email you@example.com
+```
+
+and sign in at <http://localhost:8000/admin/>. Without email settings, emails such as viewers' codes are written to files in the container instead of being sent; read them with `docker exec snug ls /var/lib/snug/outbox`. [docs/configuration.md](docs/configuration.md) lists every setting.
+
+To remove it all: `docker rm --force snug && docker volume rm snug-data`.
 
 ## How it is built
 

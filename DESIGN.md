@@ -298,7 +298,8 @@ Steps 0 to 6 are done. What remains, including commitments made along the way th
 **Step 7: deployment.**
 - The container image, for amd64 and arm64, published to `ghcr.io/negroni-venture-studios/snug`: `:edge` on every merge to `main`, and `:x.y.z` and `:latest` on a version tag (decided 5 November 2026).
   - *Done:* the Dockerfile (Python 3.14 slim, pinned by digest; one unprivileged `snug` user; Landlock confirmed active in the container) and the `Image` workflow.
-  - *To do (Alasdair):* after the first publish, make the `snug` package public in the organisation's package settings, so founders can pull it without logging in. GitHub offers no API for this.
+  - *Done:* the package is public (5 November 2026), after the organisation allowed public packages.
+  - **Documentation comes before publishing.** No version tag (`v0.1.0`, which publishes `:latest`) until the README's quick start and `docs/deploy-digitalocean.md` describe that release and have been followed on a fresh droplet. Until then the README says plainly that `:edge` is a test build.
   - *To do:* add `image smoke test` to `main`'s required checks once it has passed on `main`.
 - Docker Compose with Snug, Caddy and Litestream; an rclone sidecar for uploaded originals; backups encrypted with an age key generated during setup, which the founder must store (decided 5 November 2026).
 - cloud-init for a fresh Ubuntu LTS droplet.
