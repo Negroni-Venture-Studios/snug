@@ -1,0 +1,104 @@
+name: Image
+
+# Pull requests build the image and smoke-test it, pushing nothing.
+# A merge to main publishes :edge; a version tag (v0.1.0) publishes :0.1.0
+# and :latest (decided 5 November 2026). amd64 and arm64.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGE: ghcr.io/negroni-venture-studios/snug
+
+jobs:
+  smoke:
+    name: image smoke test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
+      - name: Build for amd64
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
+        with:
+          context: .
+          load: true
+          tags: snug:smoke
+      - name: Start it and wait for /healthz
+        run: |
+          docker run --detach --name snug -p 8000:8000 \
+            -e SNUG_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(64))')" \
+            -e SNUG_DOMAIN=localhost -e SNUG_HTTPS=false snug:smoke
+          for _ in $(seq 30); do
+            if curl --fail --silent http://127.0.0.1:8000/healthz; then echo; exit 0; fi
+            sleep 2
+          done
+          docker logs snug
+          exit 1
+      - name: Runs as the unprivileged snug user, and the worker renders a PDF
+        run: |
+          test "$(docker exec snug id -un)" = "snug"
+          docker exec snug python -c "
+          import io, tempfile, pypdfium2
+          from snug.rendering import sandbox
+          pdf = pypdfium2.PdfDocument.new(); pdf.new_page(200, 100)
+          out = io.BytesIO(); pdf.save(out)
+          with tempfile.NamedTemporaryFile(suffix='.pdf') as f:
+              f.write(out.getvalue()); f.flush()
+              assert sandbox.inspect(f.name)['pages'] == 1
+              assert sandbox.render(f.name, 1, 800)[:4] == b'RIFF'
+          print('rendered in the worker')
+          "
+      - name: Stop
+        if: always()
+        run: docker rm --force snug || true
+
+  publish:
+    name: publish image
+    if: github.event_name == 'push'
+    needs: smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1  # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f  # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6.2.0
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: true
+          sbom: true
