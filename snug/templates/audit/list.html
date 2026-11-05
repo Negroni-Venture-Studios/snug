@@ -1,0 +1,37 @@
+{% extends "snug/admin_base.html" %}
+{% load snug %}
+{% block title %}Snug audit log{% endblock %}
+{% block content %}
+<div class="title-row">
+  <div><h1 class="page-title">Audit log</h1><div class="page-meta">Everything admins and viewers have done, newest first. Nothing here can be changed or deleted.</div></div>
+  <div class="actions"><a class="btn" href="{% url 'audit:export' %}{% if kind or q %}?{% if kind %}kind={{ kind }}{% endif %}{% if kind and q %}&amp;{% endif %}{% if q %}q={{ q|urlencode }}{% endif %}{% endif %}">{% icon "download-simple" %}Export CSV</a></div>
+</div>
+<form class="filters" method="get" action="{% url 'audit:list' %}">
+  <label class="visually-hidden" for="kind">Kind</label>
+  <select id="kind" name="kind"><option value="">Everything</option>{% for key, label in kinds %}<option value="{{ key }}"{% if key == kind %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+  <label class="visually-hidden" for="q">Person</label>
+  <input id="q" name="q" type="search" placeholder="Email address" value="{{ q }}">
+  <button class="btn" type="submit">Filter</button>
+</form>
+{% if page.object_list %}
+<div class="rows audit-rows">
+  {% for event in page.object_list %}
+  <div class="item">
+    <span class="muted num">{{ event.at|date:"j M Y, H:i:s" }}</span>
+    <div class="who"><span class="email mono">{{ event.action }}</span><span class="note">{{ event.actor|default:"Snug" }}{% if event.target %} on {{ event.target }}{% endif %}</span></div>
+    <span class="muted details">{% for key, value in event.details.items %}{{ key }}: {{ value }}{% if not forloop.last %}; {% endif %}{% endfor %}</span>
+    <span class="r muted num">{{ event.ip_address|default:"" }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% if page.has_other_pages %}
+<nav class="pager" aria-label="Pages">
+  {% if page.has_previous %}<a class="btn" href="?page={{ page.previous_page_number }}{% if kind %}&amp;kind={{ kind }}{% endif %}{% if q %}&amp;q={{ q|urlencode }}{% endif %}">Newer</a>{% endif %}
+  <span class="muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a class="btn" href="?page={{ page.next_page_number }}{% if kind %}&amp;kind={{ kind }}{% endif %}{% if q %}&amp;q={{ q|urlencode }}{% endif %}">Older</a>{% endif %}
+</nav>
+{% endif %}
+{% else %}
+<div class="empty"><h2>Nothing recorded yet</h2><p>{% if kind or q %}Nothing matches that filter.{% else %}Sign-ins, links, uploads and viewer activity appear here.{% endif %}</p></div>
+{% endif %}
+{% endblock %}

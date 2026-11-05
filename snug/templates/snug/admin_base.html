@@ -19,6 +19,7 @@
     <a href="{% url 'rooms:list' %}"{% if tab == "rooms" %} aria-current="page"{% endif %}>Rooms</a>
     <a href="{% url 'links:list' %}"{% if tab == "links" %} aria-current="page"{% endif %}>Links</a>
     <a href="{% url 'analytics:people' %}"{% if tab == "people" %} aria-current="page"{% endif %}>People</a>
+    <a href="{% url 'audit:list' %}"{% if tab == "audit" %} aria-current="page"{% endif %}>Audit log</a>
     <a href="{% url 'accounts:settings' %}"{% if tab == "settings" %} aria-current="page"{% endif %}>Settings</a>
   </nav>
 </header>

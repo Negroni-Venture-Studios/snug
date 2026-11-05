@@ -10,6 +10,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- An Audit log tab: every admin and viewer event, newest first, filtered by kind or by email address, 100 to a page, with a CSV export of the same selection. Cells a spreadsheet would run as a formula are defused, and every export is itself recorded.
+
 - Rooms, in the admin interface: create and rename a room, add folders (one level), and add, move and remove documents. A document can be in any number of rooms. Every change is recorded in the audit log.
 - Sharing a room: one link opens a page listing the room's documents under their folders, each opening in the reader with its own downloads and reading time. Removing a document from the room stops the link reaching it at once.
 - A People page: everyone who has opened a document, most recent first, with what each of them read in the same page strips.

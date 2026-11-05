@@ -377,6 +377,11 @@ form.inline { display: inline; }
 /* ---------- Documents ---------- */
 .doc-rows .item, .version-rows .item { grid-template-columns: minmax(14rem, 1.6fr) 7rem 7rem 8rem; }
 .admin-rows .item { grid-template-columns: minmax(14rem, 1.6fr) 6rem 11rem minmax(12rem, auto); }
+.audit-rows .item { grid-template-columns: 10rem minmax(14rem, 1.4fr) minmax(10rem, 1.6fr) 8rem; }
+.audit-rows .details { overflow-wrap: anywhere; font-size: 0.8rem; }
+.filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.filters select, .filters input { width: auto; }
+.pager { display: flex; gap: 1rem; align-items: center; justify-content: center; margin-top: 1.5rem; }
 .room-rows .item { grid-template-columns: minmax(14rem, 1.6fr) minmax(12rem, 1fr) auto; }
 .inline-form { display: flex; gap: 0.4rem; align-items: center; }
 .inline-form select { width: auto; }
