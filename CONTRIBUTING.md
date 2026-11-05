@@ -64,7 +64,7 @@ Snug keeps its dependencies few and well maintained.
 
 - **Ask before adding one.** Open an issue or say so in the pull request, with the reason and its licence.
 - Every dependency, direct or transitive, must have a licence compatible with distributing Snug as MIT. `scripts/check_licences.py` enforces this in CI. GPL and AGPL are ruled out, which is why Snug uses pypdfium2 rather than PyMuPDF, Ghostscript or Poppler.
-- Pin new tools and actions to releases at least two weeks old.
+- Pin new tools and actions to releases at least two weeks old. The exception is a security release from an upstream we already depend on, which we take at once.
 
 ## Code of conduct
 
