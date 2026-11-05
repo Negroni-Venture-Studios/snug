@@ -42,6 +42,7 @@ def create(
     note: str,
     expires_at: datetime | None,
     require_verification: bool,
+    require_nda: bool = False,
     allow_download: bool,
     created_by: Admin | None,
 ) -> Issued:
@@ -56,6 +57,7 @@ def create(
             room=room,
             expires_at=expires_at,
             require_verification=require_verification,
+            require_nda=require_nda and room is None,
             allow_download=allow_download,
             created_by=created_by,
         )

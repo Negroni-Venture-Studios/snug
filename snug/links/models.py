@@ -47,6 +47,8 @@ class Link(models.Model):
     )
 
     require_verification = models.BooleanField(default=True)
+    # For a link to a single document. A room link follows its room's setting.
+    require_nda = models.BooleanField(default=False)
     allow_download = models.BooleanField(default=True)
     expires_at = models.DateTimeField(null=True, blank=True)
 
