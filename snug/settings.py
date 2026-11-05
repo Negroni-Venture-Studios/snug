@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "snug.documents",
     "snug.links",
     "snug.viewer",
+    "snug.analytics",
 ]
 
 AUTH_USER_MODEL = "accounts.Admin"

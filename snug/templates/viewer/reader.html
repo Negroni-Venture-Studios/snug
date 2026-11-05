@@ -6,7 +6,8 @@
 {% block tools %}<span class="doc">{{ document.title }}</span>{% if page and link.allow_download %}<a class="btn" href="{% url 'viewer:download' token=token %}">{% icon "download-simple" %}Download</a>{% endif %}{% endblock %}
 {% block main %}
 {% if page %}
-<div class="reader">
+<div class="reader" data-visit="{{ visit }}" data-page="{{ page }}" data-beat-url="{{ beat_url }}" data-interval="{{ beat_seconds }}">
+  <form class="beacon" hidden>{% csrf_token %}</form>
   <div class="page-frame">
     <img src="{{ src }}" srcset="{{ srcset }}" sizes="(max-width: 1080px) 100vw, 1032px" width="{{ width }}" height="{{ height }}" alt="Page {{ page }} of {{ count }}">
   </div>
