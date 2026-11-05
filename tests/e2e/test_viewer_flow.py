@@ -1,0 +1,112 @@
+"""The investor's whole journey, in a real browser, as a person would take it."""
+
+import re
+from typing import Any
+
+import pytest
+from django.core import mail as django_mail
+from playwright.sync_api import Page, expect
+
+from snug.documents import ingest
+from snug.documents.models import Document
+from snug.links import service
+from tests.pdfs import chunks, make_pdf
+
+pytestmark = [pytest.mark.django_db(transaction=True)]
+
+INVESTOR = "priya@northfield.example"
+
+
+@pytest.fixture
+def document(data_folder: Any) -> Document:
+    deck = Document.objects.create(title="Seed deck")
+    ingest.ingest(
+        deck,
+        chunks(make_pdf((960, 540), (960, 540), (595, 842))),
+        filename="d.pdf",
+        uploaded_by=None,
+    )
+    return deck
+
+
+def issue(document: Document, *, verify: bool) -> service.Issued:
+    return service.create(
+        document=document,
+        email=INVESTOR,
+        note="",
+        expires_at=None,
+        require_verification=verify,
+        allow_download=True,
+        created_by=None,
+    )
+
+
+def expect_page(page: Page, number: int, of: int) -> None:
+    image = page.get_by_role("img", name=f"Page {number} of {of}")
+    expect(image).to_be_visible()
+    # Loaded, not just present: decode() waits for the watermarked image to
+    # arrive, and fails if it is broken.
+    assert image.evaluate("img => img.decode().then(() => img.naturalWidth)") > 0
+
+
+@pytest.mark.usefixtures("email_on")
+def test_verifying_by_email_then_reading(live_server: Any, page: Page, document: Document) -> None:
+    issued = issue(document, verify=True)
+    page.goto(f"{live_server.url}/v/{issued.token}")
+    expect(page.get_by_role("heading", level=1)).to_contain_text("Seed deck")
+
+    page.get_by_label("Email address").fill("priya@northfeld.example")
+    page.get_by_role("button", name="Send code").click()
+    expect(page.get_by_role("alert")).to_contain_text("not the address this link was sent to")
+
+    page.get_by_label("Email address").fill(INVESTOR)
+    page.get_by_role("button", name="Send code").click()
+    expect(page.get_by_role("heading", name="Check your email")).to_be_visible()
+    code = re.search(r"\d{6}", str(django_mail.outbox[-1].subject))
+    assert code
+
+    page.get_by_label("Six-digit code").fill("000000" if code.group(0) != "000000" else "111111")
+    page.get_by_role("button", name="Continue").click()
+    expect(page.get_by_role("alert")).to_contain_text("4 tries left")
+
+    page.get_by_label("Six-digit code").fill(code.group(0))
+    page.get_by_role("button", name="Continue").click()
+    expect_page(page, 1, 3)
+
+    # The arrow keys, the Next link and the page picker all move through it.
+    page.keyboard.press("ArrowRight")
+    expect_page(page, 2, 3)
+    page.get_by_role("link", name="Next").click()
+    expect_page(page, 3, 3)
+    page.get_by_label("Go to page").select_option("1")
+    expect_page(page, 1, 3)
+    page.keyboard.press("ArrowLeft")  # nothing before page 1
+    expect_page(page, 1, 3)
+
+    # Revoking ends the open session at once.
+    service.revoke(issued.link, by=None)
+    page.reload()
+    expect(page.get_by_role("heading", name="This link is not available")).to_be_visible()
+
+
+def test_a_link_without_verification_opens_with_one_click(
+    live_server: Any, page: Page, document: Document
+) -> None:
+    issued = issue(document, verify=False)
+    page.goto(f"{live_server.url}/v/{issued.token}")
+    page.get_by_role("button", name="Open Seed deck").click()
+    expect_page(page, 1, 3)
+    with page.expect_download() as download:
+        page.get_by_role("link", name="Download").click()
+    assert download.value.suggested_filename == "Seed deck.pdf"
+
+
+def test_the_theme_toggle_works_without_inline_script(
+    live_server: Any, page: Page, document: Document
+) -> None:
+    issued = issue(document, verify=False)
+    page.goto(f"{live_server.url}/v/{issued.token}")
+    toggle = page.locator(".theme-toggle")
+    before = toggle.get_attribute("aria-label")
+    toggle.click()
+    expect(toggle).not_to_have_attribute("aria-label", before or "")

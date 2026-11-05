@@ -16,6 +16,8 @@ A self-hosted data room for early-stage founders, published as MIT-licensed open
 uv sync                            # install everything, from uv.lock
 uv run pytest                      # tests
 uv run pytest --cov                # tests with the coverage floor
+uv run playwright install chromium  # once, for the end-to-end tests
+SNUG_E2E=1 uv run pytest tests/e2e --ds=tests.e2e_settings  # a real browser, as CI runs it
 uv run ruff check . && uv run ruff format --check .
 uv run mypy                        # strict
 uv run python scripts/check_licences.py
