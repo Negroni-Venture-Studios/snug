@@ -58,9 +58,9 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
         "tab": "settings",
         "admins": admins,
         "email_enabled": mail.enabled(),
-        "done": next(
-            (k for k in ("invited", "removed", "reset", "saved") if request.GET.get(k) == "1"), ""
-        ),
+        "done": next((k for k in ("invited", "removed", "reset") if request.GET.get(k) == "1"), ""),
+        # Which section was just saved, so it can say so in place.
+        "saved": request.GET.get("saved", ""),
         "privacy_url": SiteSettings.load().privacy_url,
         "retention_months": SiteSettings.load().reading_retention_months,
         "nda": nda_terms.current(),
@@ -165,7 +165,7 @@ def privacy_view(request: HttpRequest) -> HttpResponse:
         row.privacy_url = url
         row.save(update_fields=["privacy_url"])
         _audit(request, "settings.privacy_link_changed", _admin(request).email, "", url=url)
-    return redirect("/admin/settings/?saved=1")
+    return redirect("/admin/settings/?saved=privacy#privacy")
 
 
 @never_cache
@@ -183,7 +183,7 @@ def retention_view(request: HttpRequest) -> HttpResponse:
         row.reading_retention_months = months
         row.save(update_fields=["reading_retention_months"])
         _audit(request, "settings.retention_changed", _admin(request).email, "", months=months)
-    return redirect("/admin/settings/?saved=1#privacy")
+    return redirect("/admin/settings/?saved=retention#retention")
 
 
 # ---------------------------------------------------------------- the NDA
@@ -209,7 +209,7 @@ def nda_view(request: HttpRequest) -> HttpResponse:
             version=version.number,
             sha256=version.sha256,
         )
-    return redirect("/admin/settings/?saved=1#nda")
+    return redirect("/admin/settings/?saved=nda#nda")
 
 
 # ---------------------------------------------------------------- removing and resetting
