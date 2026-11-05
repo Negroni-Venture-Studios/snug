@@ -1,10 +1,13 @@
-// The theme toggle: dark (the default), light, auto. Wired by addEventListener
+// The theme toggle: light, dark (the default), system. Wired by addEventListener
 // because the CSP forbids inline handlers. theme-init.js applies the saved
 // choice before first paint.
 'use strict';
 
 (function () {
-  var ORDER = ['dark', 'light', 'auto'];
+  // Each click moves on: light, dark, system, then light again. 'auto' is the
+  // stored name for following the system, kept so saved choices still work.
+  var ORDER = ['light', 'dark', 'auto'];
+  var NAMES = { light: 'light', dark: 'dark', auto: 'system' };
 
   function current() {
     return document.documentElement.getAttribute('data-theme') || 'dark';
@@ -13,8 +16,8 @@
   // The label names the state you are in, matching the glyph.
   function label(mode) {
     document.querySelectorAll('.theme-toggle').forEach(function (button) {
-      button.setAttribute('aria-label', 'Theme: ' + mode);
-      button.setAttribute('title', 'Theme: ' + mode);
+      button.setAttribute('aria-label', 'Theme: ' + NAMES[mode]);
+      button.setAttribute('title', 'Theme: ' + NAMES[mode]);
     });
   }
 
