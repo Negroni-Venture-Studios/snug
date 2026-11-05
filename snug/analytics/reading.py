@@ -16,7 +16,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from snug.analytics.models import PageView, Visit
-from snug.documents.models import DocumentVersion
+from snug.documents.models import Document, DocumentVersion
 from snug.viewer.access import Access
 
 BEAT_SECONDS = 15
@@ -34,8 +34,10 @@ def _credit(visit: Visit, now: datetime) -> None:
         )
 
 
-def page_shown(access: Access, version: DocumentVersion, page: int) -> tuple[Visit, bool]:
-    """Record a page being shown. Returns the visit, and whether it is new."""
+def page_shown(
+    access: Access, document: Document, version: DocumentVersion, page: int
+) -> tuple[Visit, bool]:
+    """Record a page of a document being shown. Returns the visit, and whether it is new."""
     now = timezone.now()
     with transaction.atomic():
         visit = (
@@ -43,7 +45,7 @@ def page_shown(access: Access, version: DocumentVersion, page: int) -> tuple[Vis
             .filter(
                 link=access.link,
                 session=access.session,
-                document=access.document,
+                document=document,
                 last_seen_at__gt=now - VISIT_GAP,
             )
             .first()
@@ -55,7 +57,7 @@ def page_shown(access: Access, version: DocumentVersion, page: int) -> tuple[Vis
                 link=access.link,
                 session=access.session,
                 email=access.session.email,
-                document=access.document,
+                document=document,
                 version_number=version.number,
                 started_at=now,
                 last_seen_at=now,

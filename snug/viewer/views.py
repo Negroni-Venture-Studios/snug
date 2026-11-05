@@ -110,7 +110,7 @@ def _audit(request: HttpRequest, action: str, link: Link, actor: str, **details:
         target=link.email,
         ip_address=client_ip(request),
         user_agent=user_agent(request),
-        details={"link": link.label, "document": link.document.token, **details},
+        details={"link": link.label, **link.target_details(), **details},
     )
 
 
@@ -123,12 +123,15 @@ def _matches(typed: str, link: Link) -> bool:
 
 
 def _context(link: Link, token: str, **extra: Any) -> dict[str, Any]:
-    version = link.document.latest_version()
+    version = link.document.latest_version() if link.document is not None else None
     return {
         "link": link,
         "token": token,
+        "title": link.target_title,
         "document": link.document,
+        "room": link.room,
         "pages": version.page_count if version else None,
+        "room_documents": link.room.entries.count() if link.room is not None else None,
         "company": settings.CONFIG.company_name,
         "email_enabled": mail.enabled(),
         "privacy_url": SiteSettings.load().privacy_url,
@@ -189,13 +192,13 @@ def _send(link: Link, code: str) -> bool:
     company = settings.CONFIG.company_name
     context = {
         "code": code,
-        "document": link.document,
+        "title": link.target_title,
         "company": company,
         "minutes": codes.CODE_MINUTES,
     }
     return mail.send(
         to=link.email,
-        subject=f"Your code for {company or link.document.title}: {code}",
+        subject=f"Your code for {company or link.target_title}: {code}",
         text=render_to_string("viewer/email/code.txt", context),
         html=render_to_string("viewer/email/code.html", context),
     )
@@ -207,6 +210,60 @@ def _send_refused(request: HttpRequest, link: Link, token: str, typed: str) -> H
 
 
 # ---------------------------------------------------------------- pages
+
+
+class _Urls:
+    """The reader's own addresses: under /d/<document> for a room link's documents."""
+
+    def __init__(self, access: Access, token: str) -> None:
+        self.kwargs: dict[str, Any] = {"token": token}
+        self.prefix = ""
+        if access.link.room is not None and access.document is not None:
+            self.kwargs["document_token"] = access.document.token
+            self.prefix = "room_"
+
+    def reader(self) -> str:
+        name = "viewer:room_document" if self.prefix else "viewer:entry"
+        return str(reverse(name, kwargs=self.kwargs))
+
+    def image(self, page: int, width: int) -> str:
+        return str(
+            reverse(
+                f"viewer:{self.prefix}page", kwargs={**self.kwargs, "page": page, "width": width}
+            )
+        )
+
+    def download(self) -> str:
+        return str(reverse(f"viewer:{self.prefix}download", kwargs=self.kwargs))
+
+
+def _room_index(
+    request: HttpRequest, access: Access, token: str, context: dict[str, Any]
+) -> HttpResponse:
+    """A room link's first page: its documents, under their folders."""
+    room = access.link.room
+    assert room is not None  # noqa: S101 - only room links reach the index without a document
+    entries = list(room.entries.select_related("document", "folder").order_by("document__title"))
+
+    def listed(entry: Any) -> dict[str, Any]:
+        version = entry.document.latest_version()
+        return {
+            "title": entry.document.title,
+            "url": reverse(
+                "viewer:room_document",
+                kwargs={"token": token, "document_token": entry.document.token},
+            ),
+            "pages": version.page_count if version else None,
+            "updated": version.uploaded_at if version else None,
+        }
+
+    folders = list(room.folders.all())
+    context.update(
+        top=[listed(e) for e in entries if e.folder_id is None],
+        folders=[(f.name, [listed(e) for e in entries if e.folder_id == f.pk]) for f in folders],
+        empty=not entries,
+    )
+    return render(request, "viewer/room.html", context)
 
 
 def _page_number(raw: str, count: int) -> int:
@@ -225,8 +282,12 @@ def _footer_band(width: int) -> int:
 @require_safe
 @viewer_content(not_verified=_gate_page)
 def entry(request: HttpRequest, access: Access, token: str) -> HttpResponse:
-    """The reader: one page at a time, each a watermarked image."""
+    """The reader: one page at a time, each a watermarked image. A room link's index."""
     context = _context(access.link, token)
+    if access.document is None:
+        return _room_index(request, access, token, context)
+    context.update(document=access.document, title=access.document.title)
+    urls = _Urls(access, token)
     version = access.document.latest_version()
     if version is None:
         return render(request, "viewer/reader.html", context)
@@ -237,11 +298,9 @@ def entry(request: HttpRequest, access: Access, token: str) -> HttpResponse:
     page_width, page_height = sizes[number - 1] if len(sizes) >= number else (16, 9)
     big = max(RENDER_WIDTHS)
 
-    def image(page: int, width: int) -> str:
-        url = reverse("viewer:page", kwargs={"token": token, "page": page, "width": width})
-        return str(url)
+    image = urls.image
 
-    visit, new = reading.page_shown(access, version, number)
+    visit, new = reading.page_shown(access, access.document, version, number)
     if new:
         _audit(
             request,
@@ -249,12 +308,15 @@ def entry(request: HttpRequest, access: Access, token: str) -> HttpResponse:
             access.link,
             access.session.email,
             version=version.number,
+            document=access.document.token,
         )
     context.update(
+        download_url=urls.download(),
+        room_url=reverse("viewer:entry", kwargs={"token": token}) if access.link.room else None,
         visit=visit.token,
         beat_url=reverse("viewer:beat", kwargs={"token": token}),
         beat_seconds=reading.BEAT_SECONDS,
-        here=reverse("viewer:entry", kwargs={"token": token}),
+        here=urls.reader(),
         page=number,
         count=count,
         pages_list=range(1, count + 1),
@@ -275,6 +337,8 @@ def page_image(
     request: HttpRequest, access: Access, token: str, page: int, width: int
 ) -> HttpResponse:
     """One page, stamped for this viewer on every request."""
+    if access.document is None:
+        raise Http404
     version = access.document.latest_version()
     if version is None or width not in RENDER_WIDTHS or not 1 <= page <= version.page_count:
         raise Http404
@@ -321,6 +385,8 @@ def _filename(title: str) -> str:
 @viewer_content()
 def download(request: HttpRequest, access: Access, token: str) -> HttpResponse:
     """The original PDF, stamped for this viewer, when the link allows downloads."""
+    if access.document is None:
+        raise Http404
     version = access.document.latest_version()
     if not access.link.allow_download or version is None:
         raise Http404
@@ -342,6 +408,7 @@ def download(request: HttpRequest, access: Access, token: str) -> HttpResponse:
         "viewer.downloaded",
         access.link,
         access.session.email,
+        document=access.document.token,
         version=version.number,
         sha256=hashlib.sha256(data).hexdigest(),
     )

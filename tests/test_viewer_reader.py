@@ -104,8 +104,8 @@ def test_a_document_still_being_prepared(document: Document) -> None:
     assert "not ready yet" in page and "<img" not in page
 
 
-def test_without_a_session_there_is_no_reader(issued: service.Issued) -> None:
-    gated = issue(issued.link.document, require_verification=True)
+def test_without_a_session_there_is_no_reader(document: Document) -> None:
+    gated = issue(document, require_verification=True)
     page = get(Client(), f"/v/{gated.token}").content.decode()
     assert "<img" not in page
 
@@ -136,6 +136,7 @@ def test_the_plain_render_is_cached_but_never_served(issued: service.Issued) -> 
 
     browser = opened(issued)
     stamped = get(browser, image_url(issued)).content
+    assert issued.link.document is not None
     version = issued.link.document.latest_version()
     assert version is not None
     plain = storage.render_path(version, 1, 800)
@@ -150,8 +151,8 @@ def test_page_images_outside_the_document_are_not_found(issued: service.Issued, 
     assert get(opened(issued), f"/v/{issued.token}{url}").status_code == 404
 
 
-def test_page_images_need_a_session(issued: service.Issued) -> None:
-    gated = issue(issued.link.document, require_verification=True)
+def test_page_images_need_a_session(document: Document) -> None:
+    gated = issue(document, require_verification=True)
     response = get(Client(), image_url(gated))
     assert response.status_code == 303 and response["Content-Type"] != "image/webp"
 

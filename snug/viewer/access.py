@@ -7,7 +7,7 @@ Every viewer request for content calls authorise(), which checks, in order:
    verified if the link requires verification;
 3. the NDA has been accepted, if one is required (rooms and NDAs: step 6);
 4. the geographic restriction is met, if one is set (step 8);
-5. the requested document belongs to the link's document (or room, step 6).
+5. the requested document belongs to the link's document, or to its room.
 
 A link that fails the first check, or a document outside the link, is
 Unavailable: the viewer sees one page for unknown, expired and revoked links
@@ -21,6 +21,7 @@ from django.http import HttpRequest
 
 from snug.documents.models import Document
 from snug.links.models import Link
+from snug.rooms.models import RoomDocument
 from snug.viewer import sessions
 from snug.viewer.models import ViewerSession
 
@@ -45,7 +46,8 @@ class NotVerified(Denied):
 class Access:
     link: Link
     session: ViewerSession
-    document: Document
+    # The document requested. None for a room link's index, which lists the room.
+    document: Document | None
 
 
 def find_link(token: str) -> Link:
@@ -68,6 +70,21 @@ def authorise(request: HttpRequest, token: str, *, document_token: str | None = 
     ):
         raise NotVerified(link)
 
-    if document_token is not None and document_token != link.document.token:
+    # Check 5: the document belongs to the link's document, or to its room.
+    # Room membership is looked up on every request, so removing a document
+    # from a room ends access to it at once.
+    if link.room is None:
+        document = link.document
+        if document is None or (document_token is not None and document_token != document.token):
+            raise Unavailable
+        return Access(link=link, session=session, document=document)
+    if document_token is None:
+        return Access(link=link, session=session, document=None)
+    entry = (
+        RoomDocument.objects.select_related("document")
+        .filter(room=link.room, document__token=document_token)
+        .first()
+    )
+    if entry is None:
         raise Unavailable
-    return Access(link=link, session=session, document=link.document)
+    return Access(link=link, session=session, document=entry.document)

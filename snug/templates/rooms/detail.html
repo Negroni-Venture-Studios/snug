@@ -19,6 +19,11 @@
   {% endfor %}
 </section>
 
+<section class="section">
+  <div class="section-head"><h2>Links</h2><a class="btn btn-primary" href="{% url 'links:new_room' room.token %}">{% icon "plus" %}New link</a></div>
+  {% include "links/_rows.html" with links=links %}
+</section>
+
 <div class="doc-split">
   <section class="section">
     <div class="section-head"><h2>Add a document</h2></div>

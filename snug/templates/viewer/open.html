@@ -1,6 +1,6 @@
 {% extends "viewer/base.html" %}
 {% load snug %}
-{% block title %}{{ document.title }}{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 {% block main %}
 <div class="gate-grid">
   <div class="gate">
@@ -9,7 +9,7 @@
     <form class="form" method="post" action="{% url 'viewer:open' token=token %}">
       {% csrf_token %}
       {% if error %}<div class="field"><div class="error" role="alert">{% icon "warning-circle" %}{{ error }}</div></div>{% endif %}
-      <button class="btn btn-brand" type="submit">Open {{ document.title }}</button>
+      <button class="btn btn-brand" type="submit">Open {{ title }}</button>
     </form>
   </div>
   {% include "viewer/_about.html" %}
