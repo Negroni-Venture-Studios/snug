@@ -58,7 +58,7 @@ Agreed on 5 November 2026 unless noted.
 | Link tokens | 256-bit random tokens, stored only as SHA-256 hashes. The full link is shown once, at creation; afterwards the founder can issue a new link, which stops the old one. Each link also has a short, non-secret reference (like `L-7Q2K`) for watermarks and the audit log. | A leaked database or backup exposes no working links. |
 | Downloads | Allowed by default on every link, for every file type; the founder can turn them off on a link that must be view-only. A PDF download is the original file, so its text can be selected and searched, stamped in the confined worker with a line on every page ("Shared with *email*", the date and the link reference) and the same details in its document properties. The audit log records each download with a hash of the exact file sent. *Decided 5 November 2026; the brief had downloads off by default and an image-only PDF.* | Investors want the working file, and find view-only rooms frustrating. An image-only PDF cannot be searched or quoted and is many times larger. The stamp, like the watermark, deters casual forwarding and identifies a leaked copy, but cannot stop a determined copier. |
 | Trademarks | Logo files are MIT with the code; `TRADEMARKS.md` asks forks shipped as separate products to rename | Keeps "Snug" meaning the Negroni project without heavy policy. |
-| Theme | Dark by default; a dark, light and auto toggle in every header | Agreed 5 November 2026. |
+| Theme | Dark by default; a light, dark and system toggle in every header, cycling in that order (changed from dark, light, auto on 5 November 2026) | Agreed 5 November 2026. |
 
 ## 2. Dependencies
 
@@ -122,7 +122,7 @@ On the taste skill's dials: variance 3 (orderly, aligned, few surprises), motion
 
 Each token is written once with CSS `light-dark()`, resolved by `color-scheme` on the root element, so there are no duplicated dark-mode blocks.
 
-**Dark is the default** on both surfaces. A round three-state toggle in every header cycles dark, light and auto (auto follows the operating system). It is the toggle from agentlanguages.dev: a moon, a sun, and a half-filled circle. Its label names the current state, and the choice is saved per browser. A small `theme-init.js` in `<head>` applies the saved choice before first paint; it is a file, not an inline script, because of the CSP. Contrast figures below are the lowest measured against any surface the token is used on.
+**Dark is the default** on both surfaces. A round three-state toggle in every header cycles light, dark and system (system follows the operating system). It is the toggle from agentlanguages.dev: a moon, a sun, and a half-filled circle. Its label names the current state, and the choice is saved per browser. A small `theme-init.js` in `<head>` applies the saved choice before first paint; it is a file, not an inline script, because of the CSP. Contrast figures below are the lowest measured against any surface the token is used on.
 
 **Admin palette** (Negroni).
 
