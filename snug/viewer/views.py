@@ -9,6 +9,7 @@ configuration to make sure of it:
   that exist to start a session.
 """
 
+import threading
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
@@ -168,6 +169,13 @@ def _code_page(
     return render(request, "viewer/code.html", context, status=status)
 
 
+def _in_background(task: Callable[[], object]) -> threading.Thread:
+    """Run a task without making the reply wait for it."""
+    thread = threading.Thread(target=task, daemon=True)
+    thread.start()
+    return thread
+
+
 def _send(link: Link, code: str) -> bool:
     company = settings.CONFIG.company_name
     context = {
@@ -233,16 +241,21 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
             _audit(request, "viewer.code_refused", link, typed, reason="rate_limited")
             return _code_page(request, link, token, neutral=True)
         return _send_refused(request, link, token, typed)
+    if neutral:
+        # Sent without waiting, so the reply takes as long as a wrong
+        # address's would. A failure is logged by mail.send, not shown.
+        code = codes.issue(link)
+        _in_background(lambda: _send(link, code))
+        _audit(request, "viewer.code_sent", link, link.email, background=True)
+        return _code_page(request, link, token, neutral=True)
     if not _send(link, codes.issue(link)):
         VerificationCode.objects.filter(link=link).delete()
         _audit(request, "viewer.code_failed_to_send", link, link.email)
-        if neutral:
-            return _code_page(request, link, token, neutral=True)
         error = "We could not send the code. Try again in a few minutes."
         return _gate_page(request, link, token, error=error, typed=typed, status=503)
 
     _audit(request, "viewer.code_sent", link, link.email)
-    return _code_page(request, link, token, neutral=neutral)
+    return _code_page(request, link, token)
 
 
 @never_cache
@@ -273,6 +286,11 @@ def verify_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
     if result.limited:
         error = "Too many attempts on this link today. Try again tomorrow."
         return _code_page(request, link, token, error=error, spent=True, status=429)
+    if ratelimit.exceeded(limits.WRONG_EMAIL_PER_LINK, str(link.pk)):
+        # In neutral mode, "tries left" would mean a code was sent and
+        # "expired" that none was: either answers a guess about the address.
+        error = "That code is not right."
+        return _code_page(request, link, token, error=error, neutral=True, status=400)
     if result.tries_left:
         tries = "1 try" if result.tries_left == 1 else f"{result.tries_left} tries"
         error = f"That code is not right. You have {tries} left."

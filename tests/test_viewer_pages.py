@@ -174,8 +174,10 @@ def test_code_requests_are_rate_limited_per_link(browser: Client, issued: servic
 
 @pytest.mark.usefixtures("email_on")
 def test_past_the_cap_on_wrong_addresses_the_answer_turns_neutral(
-    issued: service.Issued,
+    issued: service.Issued, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setattr("snug.viewer.views._in_background", lambda task: task())
+
     # Guesses from many addresses meet a ceiling on each link. Past it, every
     # request gets the same neutral reply, so guessing learns nothing; and the
     # right address still gets a code, so nobody can lock the owner out.
@@ -193,6 +195,57 @@ def test_past_the_cap_on_wrong_addresses_the_answer_turns_neutral(
         assert response.status_code == 200 and neutral in page
         assert INVESTOR not in page.replace('value="priya@northfield.example"', "")
         assert "not the address" not in page
+    assert [message.to for message in django_mail.outbox] == [[INVESTOR]]
+
+
+@pytest.fixture
+def neutral(issued: service.Issued) -> None:
+    """Put the link past its cap on wrong addresses."""
+    from snug.core import ratelimit
+    from snug.viewer import limits
+
+    for _ in range(limits.WRONG_EMAIL_PER_LINK.limit):
+        ratelimit.hit(limits.WRONG_EMAIL_PER_LINK, str(issued.link.pk))
+
+
+@pytest.mark.usefixtures("email_on", "neutral")
+def test_in_neutral_mode_a_wrong_code_never_says_whether_one_was_sent(
+    issued: service.Issued,
+) -> None:
+    # With a live code, "4 tries left"; with none, "expired". Either would
+    # tell a guesser whether their address was right, so both read the same.
+    pages = []
+    for email in ("guess@northfield.example", INVESTOR):
+        browser = Client(REMOTE_ADDR="198.51.100.200")
+        post(browser, path(issued, "/code/send"), {"email": email})
+        response = post(browser, path(issued, "/code"), {"code": "000000"})
+        pages.append((response.status_code, response.content.decode()))
+    for status, page in pages:
+        assert status == 400 and "That code is not right." in page
+        assert "tries left" not in page and "expired" not in page
+
+
+@pytest.mark.usefixtures("email_on", "neutral")
+def test_in_neutral_mode_the_code_is_sent_in_the_background(
+    issued: service.Issued, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The reply must not wait for the email, or its timing would tell a
+    # guesser that the address was right.
+    started: list[Any] = []
+    monkeypatch.setattr("snug.viewer.views._in_background", started.append)
+    response = post(Client(), path(issued, "/code/send"), {"email": INVESTOR})
+    assert response.status_code == 200 and django_mail.outbox == []
+    assert len(started) == 1
+    started[0]()
+    assert [message.to for message in django_mail.outbox] == [[INVESTOR]]
+
+
+@pytest.mark.usefixtures("email_on")
+def test_background_sending_really_sends(issued: service.Issued) -> None:
+    from snug.viewer import views
+
+    thread = views._in_background(lambda: views._send(issued.link, "123456"))
+    thread.join(timeout=5)
     assert [message.to for message in django_mail.outbox] == [[INVESTOR]]
 
 
