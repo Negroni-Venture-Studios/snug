@@ -1,10 +1,14 @@
 """Shared fixtures."""
 
 import dataclasses
+import os
 from pathlib import Path
 
 import pytest
 from django.conf import settings
+
+# The end-to-end tests need a browser and their own settings: see tests/e2e_settings.py.
+collect_ignore = [] if os.environ.get("SNUG_E2E") == "1" else ["e2e"]
 
 
 @pytest.fixture

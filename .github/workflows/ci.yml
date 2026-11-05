@@ -77,6 +77,24 @@ jobs:
       - name: Tests, with the coverage floor in pyproject.toml
         run: uv run pytest --cov --cov-report=term
 
+  e2e:
+    name: e2e (real browser)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa  # v10.3.1
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked
+      - name: Install Chromium for Playwright, the version pinned by uv.lock
+        run: uv run playwright install --with-deps chromium
+      - name: The investor's journey in a real browser (tests/e2e)
+        env:
+          SNUG_E2E: "1"
+        run: uv run pytest tests/e2e --ds=tests.e2e_settings -p no:cacheprovider
+
   security:
     name: security
     runs-on: ubuntu-24.04
