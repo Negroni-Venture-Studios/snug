@@ -33,4 +33,5 @@ def people(request: HttpRequest) -> HttpResponse:
         }
         for person in summary.for_people()
     ]
-    return render(request, "analytics/people.html", {"tab": "people", "people": rows})
+    context = {"tab": "people", "people": rows, "legend": charts.legend()}
+    return render(request, "analytics/people.html", context)

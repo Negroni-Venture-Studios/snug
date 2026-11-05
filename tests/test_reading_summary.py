@@ -129,7 +129,9 @@ def test_heat_levels_keep_seen_apart_from_unseen() -> None:
 def test_a_strip_has_one_cell_per_page_with_its_value() -> None:
     svg = charts.strip([40, 0, 100], [True, False, True], "a<b>@example.com")
     assert svg.count("<rect") == 3
-    assert 'viewBox="0 0 60 16"' in svg
+    # Room for at least 18 pages, so a short document's cells keep their size
+    # instead of stretching across the column.
+    assert 'viewBox="0 0 360 16"' in svg
     assert "<title>Page 2: not seen</title>" in svg and "<title>Page 3: 1 min 40 s</title>" in svg
     assert "a&lt;b&gt;@example.com: saw 2 of 3 pages" in svg
     assert " style=" not in svg
@@ -137,8 +139,18 @@ def test_a_strip_has_one_cell_per_page_with_its_value() -> None:
 
 def test_bars_share_the_strips_coordinates() -> None:
     svg = charts.bars([30, 0, 100])
-    assert 'viewBox="0 0 60 64"' in svg and svg.count("<rect") == 3
+    assert 'viewBox="0 0 360 64"' in svg and svg.count("<rect") == 3
     assert "Page 3: 1 min 40 s on average" in svg
+
+
+def test_a_one_page_document_is_one_small_cell() -> None:
+    import re
+
+    svg = charts.strip([90], [True], "a@b.example")
+    assert 'viewBox="0 0 360 16"' in svg and svg.count("<rect") == 1
+    assert 'width="18"' in svg  # one slot of eighteen, not the whole column
+    spans = re.findall(r"<span>(\d*)</span>", charts.axis(1))
+    assert len(spans) == 18 and spans[0] == "1" and not any(spans[1:])
 
 
 def test_long_documents_label_every_few_pages() -> None:

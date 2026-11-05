@@ -1,14 +1,14 @@
 {% extends "snug/admin_base.html" %}
 {% block title %}People in Snug{% endblock %}
 {% block content %}
-<div class="title-row"><div><h1 class="page-title">People</h1><div class="page-meta">Everyone who has opened a document, most recent first.</div></div></div>
+<div class="title-row"><div><h1 class="page-title">People</h1><div class="page-meta">Everyone who has opened a document, most recent first. Each document's strip has one cell per page, shaded by the time spent on it; hover over a cell for its page and time.</div></div>{% if people %}<div class="actions">{{ legend }}</div>{% endif %}</div>
 {% for person in people %}
 <section class="section person">
   <div class="section-head"><h2>{{ person.email }}</h2><p>{% if person.note %}{{ person.note }}. {% endif %}{{ person.total }} in all, last seen {{ person.last_seen|date:"j M, H:i" }}</p></div>
   <div class="matrix">
     <div class="row head">
       <div class="cell">Document</div>
-      <div class="cell">Pages</div>
+      <div class="cell">Time on each page</div>
       <div class="cell r">Visits</div><div class="cell r">Time</div><div class="cell r last">Last seen</div>
     </div>
     {% for read in person.documents %}
