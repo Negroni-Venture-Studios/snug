@@ -24,6 +24,8 @@ uv run pre-commit install
 ```bash
 uv run pytest                      # tests
 uv run pytest --cov                # tests with the coverage floor
+uv run playwright install chromium  # once, for the end-to-end tests
+SNUG_E2E=1 uv run pytest tests/e2e --ds=tests.e2e_settings  # a real browser, as CI runs it
 uv run ruff check .                # lint, including security rules
 uv run ruff format .               # format
 uv run mypy                        # strict type checking

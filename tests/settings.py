@@ -11,9 +11,13 @@ from pathlib import Path
 
 _DATA_DIR = Path(tempfile.mkdtemp(prefix="snug-test-"))
 os.environ["SNUG_SECRET_KEY"] = secrets.token_urlsafe(64)
-os.environ["SNUG_DOMAIN"] = "snug.example.com"
+# The end-to-end tests run a real server on localhost over plain HTTP.
+_E2E = os.environ.get("SNUG_E2E") == "1"
+os.environ["SNUG_DOMAIN"] = "localhost" if _E2E else "snug.example.com"
 os.environ["SNUG_DATA_DIR"] = str(_DATA_DIR)
 os.environ.pop("SNUG_HTTPS", None)
+if _E2E:
+    os.environ["SNUG_HTTPS"] = "false"
 os.environ.pop("SNUG_DEBUG", None)
 
 from snug.settings import *  # noqa: E402, F403
