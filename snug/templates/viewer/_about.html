@@ -6,5 +6,5 @@
     <dt>Access</dt><dd>{% if link.allow_download %}View in the browser, or download{% else %}View in the browser{% endif %}</dd>
     <dt>Expires</dt><dd>{% if link.last_day %}{{ link.last_day|date:"j M Y" }}{% else %}No expiry{% endif %}</dd>
   </dl>
-  <p class="privacy">{% if company %}{{ company }}{% else %}The sender{% endif %} will see when you open this document and how long you spend on each page. Every page shows your email address as a watermark.</p>
+  <p class="privacy">{% if company %}{{ company }}{% else %}The sender{% endif %} will see when you open this document and how long you spend on each page. Every page shows your email address as a watermark.{% if privacy_url %} <a href="{{ privacy_url }}" rel="noopener noreferrer">Read the privacy policy</a>.{% endif %}</p>
 </aside>

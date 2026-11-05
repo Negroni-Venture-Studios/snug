@@ -7,7 +7,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
+from django.core.validators import URLValidator, validate_email
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -19,6 +19,7 @@ from snug.accounts.models import Admin, AdminSetup
 from snug.audit.models import AuditEvent, record
 from snug.core import mail, ratelimit
 from snug.core.client import client_ip, user_agent
+from snug.core.models import SiteSettings
 
 SETUP_SESSION = "snug.setup"
 WRONG_CODE = "That code is not right, or it has just been used. Wait for the next one."
@@ -54,7 +55,10 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
         "tab": "settings",
         "admins": admins,
         "email_enabled": mail.enabled(),
-        "done": next((k for k in ("invited", "removed", "reset") if request.GET.get(k) == "1"), ""),
+        "done": next(
+            (k for k in ("invited", "removed", "reset", "saved") if request.GET.get(k) == "1"), ""
+        ),
+        "privacy_url": SiteSettings.load().privacy_url,
         "values": {"email": ""},
         **extra,
     }
@@ -117,6 +121,45 @@ def invite_view(request: HttpRequest) -> HttpResponse:
         what=(f"{by.email} invited {email} to be an admin, at {_now()}."),
     )
     return redirect("/admin/settings/?invited=1")
+
+
+# ---------------------------------------------------------------- privacy
+
+
+def _checked_privacy_url(raw: str) -> str | None:
+    """A plain https URL, or "" to remove the link. None if it will not do."""
+    url = raw.strip()
+    if not url:
+        return ""
+    if len(url) > 500 or any(c.isspace() for c in url):
+        return None
+    try:
+        URLValidator(schemes=["https"])(url)
+    except ValidationError:
+        return None
+    # No user name or password in the link: viewers would see them.
+    return None if "@" in url.split("/", 3)[2] else url
+
+
+@never_cache
+@login_required
+@require_POST
+def privacy_view(request: HttpRequest) -> HttpResponse:
+    url = _checked_privacy_url(request.POST.get("privacy_url", ""))
+    if url is None:
+        error = "Enter a full address starting https://, like https://example.com/privacy."
+        return _settings_page(
+            request,
+            status=400,
+            privacy_error=error,
+            privacy_url=request.POST.get("privacy_url", "")[:500],
+        )
+    row = SiteSettings.load()
+    if row.privacy_url != url:
+        row.privacy_url = url
+        row.save(update_fields=["privacy_url"])
+        _audit(request, "settings.privacy_link_changed", _admin(request).email, "", url=url)
+    return redirect("/admin/settings/?saved=1")
 
 
 # ---------------------------------------------------------------- removing and resetting

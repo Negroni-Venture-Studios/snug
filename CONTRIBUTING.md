@@ -45,6 +45,7 @@ uv run pre-commit run --all-files  # everything CI runs, locally
   - `dependency-audit`
   - `sbom`
   - the CodeQL `analyze` jobs
+  - `e2e (real browser)`, the investor's journey in Chromium through Playwright
 - Force pushes and deletion of `main` are blocked.
 - CI is the gate; no approving review count is required. Stale reviews are dismissed when new commits arrive.
 

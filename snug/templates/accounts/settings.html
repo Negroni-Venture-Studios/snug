@@ -34,4 +34,15 @@
 <div class="panel"><p>Inviting needs email. See <code>docs/email.md</code>, or create admins on the server with <code>snug createadmin</code>.</p></div>
 {% endif %}
 </div>
+
+<div class="section">
+<div class="section-head"><h2>Privacy</h2><p>Viewers are told what Snug records about them. You can add a link to your own privacy policy.</p></div>
+<form class="panel form invite" method="post" action="{% url 'accounts:privacy' %}" novalidate>
+  {% csrf_token %}
+  {% if done == "saved" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved.</span></div>{% endif %}
+  <div class="field"><label for="privacy_url">Privacy policy address</label><input id="privacy_url" name="privacy_url" type="url" inputmode="url" autocomplete="off" placeholder="https://example.com/privacy" value="{{ privacy_url }}"{% if privacy_error %} aria-invalid="true" aria-describedby="privacy-error"{% endif %}>
+    {% if privacy_error %}<div class="error" id="privacy-error" role="alert">{% icon "warning-circle" %}{{ privacy_error }}</div>{% else %}<div class="hint">Shown to viewers beside the statement of what is recorded. Leave empty for none.</div>{% endif %}</div>
+  <button class="btn btn-primary" type="submit">Save</button>
+</form>
+</div>
 {% endblock %}
