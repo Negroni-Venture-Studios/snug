@@ -1,4 +1,4 @@
-"""Links: one per person, for one document (rooms arrive in step 6).
+"""Links: one per person, for one document or one room.
 
 The token in a link's URL is 256 random bits, and only its SHA-256 hash is
 stored. A leaked database or backup therefore exposes no working links. The
@@ -38,7 +38,13 @@ class Link(models.Model):
     ref = models.CharField(max_length=8, unique=True)
     email = models.EmailField()
     note = models.CharField(max_length=200, blank=True)
-    document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="links")
+    # Exactly one of these: the link shares a document, or a room.
+    document = models.ForeignKey(
+        Document, null=True, blank=True, on_delete=models.CASCADE, related_name="links"
+    )
+    room = models.ForeignKey(
+        "rooms.Room", null=True, blank=True, on_delete=models.CASCADE, related_name="links"
+    )
 
     require_verification = models.BooleanField(default=True)
     allow_download = models.BooleanField(default=True)
@@ -56,9 +62,47 @@ class Link(models.Model):
 
     class Meta:
         ordering = ("-created_at",)
+        constraints = (
+            models.CheckConstraint(
+                condition=(
+                    models.Q(document__isnull=False, room__isnull=True)
+                    | models.Q(document__isnull=True, room__isnull=False)
+                ),
+                name="link_has_one_target",
+            ),
+        )
 
     def __str__(self) -> str:
         return f"L-{self.ref} for {self.email}"
+
+    @property
+    def target_title(self) -> str:
+        return self.room.name if self.room is not None else self._document().title
+
+    @property
+    def target_token(self) -> str:
+        return self.room.token if self.room is not None else self._document().token
+
+    def target_details(self) -> dict[str, str]:
+        """For the audit log: which document or room the link shares."""
+        return (
+            {"room": self.target_token}
+            if self.room is not None
+            else {"document": self.target_token}
+        )
+
+    def target_url(self) -> str:
+        """The admin page of what the link shares."""
+        from django.urls import reverse
+
+        if self.room is not None:
+            return reverse("rooms:detail", kwargs={"token": self.room.token})
+        return reverse("documents:detail", kwargs={"token": self._document().token})
+
+    def _document(self) -> Document:
+        if self.document is None:  # pragma: no cover - the database refuses it
+            raise ValueError("A link shares a document or a room.")
+        return self.document
 
     @property
     def label(self) -> str:
@@ -103,4 +147,8 @@ class Link(models.Model):
         """The link for a token from a URL, whatever its state, or None."""
         if not token or len(token) > 100:
             return None
-        return cls.objects.select_related("document").filter(token_hash=hash_token(token)).first()
+        return (
+            cls.objects.select_related("document", "room")
+            .filter(token_hash=hash_token(token))
+            .first()
+        )

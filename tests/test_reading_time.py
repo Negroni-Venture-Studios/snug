@@ -100,6 +100,7 @@ def test_opening_the_reader_starts_a_visit(browser: Client, issued: service.Issu
     assert (visit.email, visit.link, visit.version_number) == (INVESTOR, issued.link, 1)
     assert PageView.objects.get().page == 1
     event = AuditEvent.objects.get(action="viewer.document_viewed")
+    assert issued.link.document is not None
     assert event.actor == INVESTOR and event.details["document"] == issued.link.document.token
 
 

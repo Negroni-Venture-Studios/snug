@@ -1,11 +1,11 @@
 {% extends "snug/admin_base.html" %}
 {% load snug %}
-{% block title %}New link for {{ document.title }}{% endblock %}
+{% block title %}New link for {{ target.title }}{% endblock %}
 {% block content %}
-<div class="crumbs"><a href="{% url 'documents:list' %}">Documents</a> / <a href="{% url 'documents:detail' document.token %}">{{ document.title }}</a> / New link</div>
-<div class="title-row"><div><h1 class="page-title">New link</h1><div class="page-meta">One link for one person, for {{ document.title }}.</div></div></div>
+<div class="crumbs"><a href="{{ target.section_url }}">{{ target.section }}</a> / <a href="{{ target.url }}">{{ target.title }}</a> / New link</div>
+<div class="title-row"><div><h1 class="page-title">New link</h1><div class="page-meta">One link for one person, for {{ target.title }}.</div></div></div>
 <div class="split">
-  <form class="panel form" method="post" action="{% url 'links:new' document.token %}" novalidate>
+  <form class="panel form" method="post" action="{{ target.action }}" novalidate>
     {% csrf_token %}
     {% include "snug/partials/form_error.html" %}
     <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="off" required value="{{ values.email|default:'' }}" autofocus></div>
