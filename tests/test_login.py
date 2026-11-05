@@ -278,6 +278,38 @@ def test_too_many_code_attempts_from_one_address(client: Client, admin: Admin) -
     assert not signed_in(client)
 
 
+@pytest.mark.parametrize("limit", ["ip", "account"])
+def test_limits_hold_when_requests_race(
+    admin: Admin, monkeypatch: pytest.MonkeyPatch, limit: str
+) -> None:
+    # Simultaneous requests all read the count before any of them adds to
+    # it. Model that by making every read say "under the limit": the count
+    # each attempt adds must still refuse the one past the limit.
+    monkeypatch.setattr(ratelimit, "exceeded", lambda *args, **kwargs: False)
+    if limit == "ip":
+        browser = Client(REMOTE_ADDR=IP)
+        attempts = [browser] * (limits.PASSWORD_PER_IP.limit + 1)
+    else:
+        attempts = [
+            Client(REMOTE_ADDR=f"203.0.113.{n + 1}")
+            for n in range(limits.PASSWORD_PER_ACCOUNT.limit + 1)
+        ]
+    statuses = [password_step(browser, password="wrong").status_code for browser in attempts]
+    assert statuses[-1] == 429 and 429 not in statuses[:-1]
+
+
+def test_code_limits_hold_when_requests_race(
+    client: Client, admin: Admin, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(ratelimit, "exceeded", lambda *args, **kwargs: False)
+    for _ in range(limits.CODE_PER_ADMIN.limit):
+        ratelimit.hit(limits.CODE_PER_ADMIN, str(admin.pk))
+    password_step(client)
+    response = post(client, "/admin/login/code", {"code": code_for(admin)})
+    assert response.status_code == 429
+    assert not signed_in(client)
+
+
 # ---------------------------------------------------------------- signing out and timeouts
 
 

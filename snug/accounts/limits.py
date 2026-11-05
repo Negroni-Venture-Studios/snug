@@ -9,9 +9,11 @@ PASSWORD_PER_IP = Limit("login.password.ip", limit=20, window=WINDOW)
 CODE_PER_IP = Limit("login.code.ip", limit=20, window=WINDOW)
 RECOVERY_PER_IP = Limit("login.recovery.ip", limit=10, window=WINDOW)
 
-# Failures against one account, from anywhere. Generous on purpose: a low limit
-# would let anyone lock a founder out by typing wrong passwords, and a correct
-# password only reaches the code step.
+# Attempts against one account, from anywhere. Every attempt counts, before
+# it is checked, so simultaneous requests cannot slip under; a real admin
+# needs one or two. Generous on purpose: a low limit would let anyone lock a
+# founder out by typing wrong passwords, and a correct password only reaches
+# the code step.
 PASSWORD_PER_ACCOUNT = Limit("login.password.account", limit=30, window=WINDOW)
 CODE_PER_ADMIN = Limit("login.code.admin", limit=10, window=WINDOW)
 RECOVERY_PER_ADMIN = Limit("login.recovery.admin", limit=5, window=WINDOW)
