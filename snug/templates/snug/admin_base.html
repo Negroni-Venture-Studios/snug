@@ -1,0 +1,24 @@
+{% extends "snug/base.html" %}
+{% load snug %}
+{% block body %}
+<div class="screen">
+<div class="chrome"></div>
+<header class="admin-header">
+  <div class="header-row">
+    <div class="product"><a class="brand" href="{% url 'core:overview' %}">{% logo_tile "h" %}<span class="name">Snug</span></a></div>
+    <div class="header-tools">
+      <span class="who-am-i">{{ user.email }}</span>
+      {% include "snug/partials/theme_toggle.html" %}
+      <form class="inline" method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="btn btn-quiet" type="submit">{% icon "sign-out" %}Sign out</button></form>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <a href="{% url 'core:overview' %}"{% if tab == "overview" %} aria-current="page"{% endif %}>Overview</a>
+  </nav>
+</header>
+<main class="admin">
+{% block content %}{% endblock %}
+</main>
+<footer class="admin-foot"><div class="rule"></div><div class="row"><span>Snug, from Negroni Venture Studios</span><a href="https://github.com/Negroni-Venture-Studios/snug">Source on GitHub</a></div></footer>
+</div>
+{% endblock %}

@@ -141,3 +141,19 @@ def test_env_file_errors_never_echo_the_line(tmp_path: Path) -> None:
         read_env_file(path)
     assert caught.value.problems == [f"{path}, line 2: expected KEY=value."]
     assert "hunter2" not in str(caught.value)
+
+
+def test_trusted_proxies_default_to_the_loopback_addresses() -> None:
+    assert [str(n) for n in load_config(GOOD).trusted_proxies] == ["127.0.0.1/32", "::1/128"]
+
+
+def test_trusted_proxies_can_be_set() -> None:
+    config = load_config({**GOOD, "SNUG_TRUSTED_PROXIES": "172.30.0.0/24, 10.0.0.5"})
+    assert [str(n) for n in config.trusted_proxies] == ["172.30.0.0/24", "10.0.0.5/32"]
+
+
+@pytest.mark.parametrize("value", ["0.0.0.0/0", "::/0", "not-an-address", "172.30.0.0/24, bogus"])
+def test_unsafe_or_invalid_trusted_proxies_are_refused(value: str) -> None:
+    found = problems({**GOOD, "SNUG_TRUSTED_PROXIES": value})
+    assert len(found) == 1
+    assert "SNUG_TRUSTED_PROXIES" in found[0]

@@ -1,0 +1,17 @@
+{% extends "snug/base.html" %}
+{% load snug %}
+{% block body %}
+<div class="screen auth">
+<div class="chrome"></div>
+<header class="auth-head">
+  <div class="product"><span class="brand">{% logo_tile "a" %}<span class="name">Snug</span></span></div>
+  {% include "snug/partials/theme_toggle.html" %}
+</header>
+<main class="auth-main">
+  <div class="auth-card">
+{% block card %}{% endblock %}
+  </div>
+</main>
+<footer class="admin-foot"><div class="rule"></div><div class="row"><span>Snug, from Negroni Venture Studios</span></div></footer>
+</div>
+{% endblock %}

@@ -16,6 +16,8 @@ Agreed on 5 November 2026 unless noted.
 | Lost second factor | One-time recovery codes issued at enrolment; `snug reset-2fa` on the server; any admin can reset another admin's second factor | The brief left this unspecified. |
 | Removing admins | An admin cannot delete themselves, and the last admin cannot be deleted | Avoids locking a company out of its own instance. |
 | Second factor | TOTP with a one-step window either side and replay protection (the last used step is stored). Codes must be ASCII digits. Ten recovery codes of 80 bits each, stored as SHA-256 hashes. TOTP keys stored unencrypted. | The window covers clock drift; replay protection stops a shoulder-surfed code being used twice. TOTP keys must be readable to check codes; the database stays on the founder's server, and backups are encrypted. |
+| Sign-in limits | Per address: 20 password, 20 code and 10 recovery attempts. Per account: 30 password failures, 10 code failures and 5 recovery failures. All in 15-minute windows, held in SQLite so every process shares them. 5 wrong codes after one correct password returns to the password step. | The account limit is generous on purpose: a low one lets anyone lock a founder out by typing wrong passwords, and a correct password only reaches the code step. |
+| Admin sessions | A new session id at each step. Five minutes from password to code. Ending after one hour idle or twelve hours absolute. The session hash covers the password and the TOTP key, so changing either signs out everywhere. | Fixation-proof, short-lived, and revocable without scanning the session table. |
 | Audit log storage | Append-only, refused by the model, its queryset and SQLite triggers | Not even raw SQL from inside Snug can rewrite history. |
 | Admin invites | Moved to step 3, when email exists | Invites need email. |
 | Rate limiting | A small database-backed limiter of our own, not a library | Shared correctly across server processes; easy to test. |
@@ -33,7 +35,7 @@ Agreed on 5 November 2026 unless noted.
 | Coverage | A floor enforced in CI; no Codecov for now | One fewer third-party service and token. |
 | CI actions | Every third-party action pinned to a commit SHA, kept current by Dependabot | Supply-chain hardening. |
 | Changelog | A plain `CHANGELOG.md` with an `[Unreleased]` section | Vera's `changelog.d/` fragments solve a throughput problem we do not have. |
-| Security headers | Strict CSP from `default-src 'none'`; `Referrer-Policy: no-referrer`; `__Host-` cookies; HSTS for one year, without subdomains or preload; Permissions-Policy and Cross-Origin-Resource-Policy | Viewer URLs carry tokens, so no Referer may ever leave a page. Subdomains and preload are the founder's choices, not Snug's. |
+| Security headers | Strict CSP from `default-src 'none'`; `Referrer-Policy: same-origin`; `__Host-` cookies; HSTS for one year, without subdomains or preload; Permissions-Policy and Cross-Origin-Resource-Policy | Viewer URLs carry tokens, so no Referer may reach another site. Not `no-referrer`: browsers then send `Origin: null` on form posts, which fails CSRF. Subdomains and preload are the founder's choices, not Snug's. |
 | Logging | No request access log, in Snug or in gunicorn | Viewer URLs carry tokens. |
 | Health check | `/healthz` is answered before the host check | Docker and Caddy probe the container by its internal name. |
 | Commit trailer | `Co-Authored-By: Claude <noreply@anthropic.invalid>` | As Vera: the `.com` address resolves to an unrelated GitHub account. |

@@ -9,6 +9,7 @@ from typing import Any, ClassVar
 
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.db import models
+from django.utils.crypto import salted_hmac
 
 
 class AdminManager(BaseUserManager["Admin"]):
@@ -47,6 +48,17 @@ class Admin(AbstractBaseUser):
 
     def __str__(self) -> str:
         return self.email
+
+    def _get_session_auth_hash(self, secret: str | None = None) -> str:
+        # Django signs an admin out everywhere when their password changes,
+        # because each session holds a hash of it. Hashing the TOTP key too
+        # means a reset second factor signs them out everywhere as well.
+        return salted_hmac(
+            "snug.accounts.Admin.session",
+            f"{self.password}\x00{self.totp_secret}",
+            secret=secret,
+            algorithm="sha256",
+        ).hexdigest()
 
 
 class RecoveryCode(models.Model):

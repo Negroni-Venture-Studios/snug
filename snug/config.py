@@ -7,6 +7,7 @@ reported at once, before Snug starts, so an operator can fix them in one go
 rather than one restart at a time.
 """
 
+import ipaddress
 import os
 import re
 from collections.abc import Mapping
@@ -16,6 +17,9 @@ from pathlib import Path
 MIN_SECRET_LENGTH = 50
 MIN_SECRET_DISTINCT = 20
 DEFAULT_DATA_DIR = "/var/lib/snug"
+DEFAULT_TRUSTED_PROXIES = "127.0.0.1/32, ::1/128"
+
+IPNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
 
 _TRUE = {"1", "true", "yes", "on"}
 _FALSE = {"0", "false", "no", "off"}
@@ -41,6 +45,8 @@ class Config:
     data_dir: Path
     https: bool
     debug: bool
+    # Proxies whose X-Forwarded-For header is believed: Caddy, and only Caddy.
+    trusted_proxies: tuple[IPNetwork, ...] = ()
 
     @property
     def database_path(self) -> Path:
@@ -99,6 +105,8 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
     if not data_dir.is_absolute():
         problems.append(f"SNUG_DATA_DIR must be an absolute path, not {str(data_dir)!r}.")
 
+    trusted_proxies = _networks(env, "SNUG_TRUSTED_PROXIES", problems)
+
     https = _flag(env, "SNUG_HTTPS", default=True, problems=problems)
     debug = _flag(env, "SNUG_DEBUG", default=False, problems=problems)
 
@@ -112,7 +120,33 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
 
     if problems:
         raise ConfigError(problems)
-    return Config(secret_key=secret_key, domain=domain, data_dir=data_dir, https=https, debug=debug)
+    return Config(
+        secret_key=secret_key,
+        domain=domain,
+        data_dir=data_dir,
+        https=https,
+        debug=debug,
+        trusted_proxies=trusted_proxies,
+    )
+
+
+def _networks(env: Mapping[str, str], name: str, problems: list[str]) -> tuple[IPNetwork, ...]:
+    raw = env.get(name, "").strip() or DEFAULT_TRUSTED_PROXIES
+    networks: list[IPNetwork] = []
+    for item in (part.strip() for part in raw.split(",")):
+        if not item:
+            continue
+        try:
+            network = ipaddress.ip_network(item, strict=False)
+        except ValueError:
+            problems.append(f"{name} must be a list of IP addresses or networks, not {item!r}.")
+            continue
+        if network.prefixlen == 0:
+            # Trusting every address would let anyone claim any client address.
+            problems.append(f"{name} cannot trust every address ({item}).")
+            continue
+        networks.append(network)
+    return tuple(networks)
 
 
 def read_env_file(path: Path) -> dict[str, str]:

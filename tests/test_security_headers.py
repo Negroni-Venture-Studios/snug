@@ -20,7 +20,7 @@ def test_strict_headers_on_every_response(client: Client, path: str) -> None:
     assert response.headers["Strict-Transport-Security"] == "max-age=31536000"
     assert response.headers["X-Frame-Options"] == "DENY"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
-    assert response.headers["Referrer-Policy"] == "no-referrer"
+    assert response.headers["Referrer-Policy"] == "same-origin"
     assert response.headers["Cross-Origin-Opener-Policy"] == "same-origin"
     assert response.headers["Cross-Origin-Resource-Policy"] == "same-origin"
     assert "camera=()" in response.headers["Permissions-Policy"]

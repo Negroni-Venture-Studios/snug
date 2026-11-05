@@ -1,0 +1,13 @@
+{% extends "snug/auth_base.html" %}
+{% block title %}Recovery code for Snug{% endblock %}
+{% block card %}
+<h1>Use a recovery code</h1>
+<p class="lede">Enter one of the recovery codes you saved when your account was set up. Each one works once.</p>
+<form class="form" method="post" action="{% url 'accounts:login_recovery' %}" novalidate>
+  {% csrf_token %}
+  {% include "snug/partials/form_error.html" %}
+  <div class="field"><label for="code">Recovery code</label><input id="code" name="code" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" required autofocus{% if error %} aria-invalid="true"{% endif %}></div>
+  <button class="btn btn-primary" type="submit">Sign in</button>
+</form>
+<p class="alt"><a href="{% url 'accounts:login_code' %}">Use a code from the app instead</a>.</p>
+{% endblock %}
