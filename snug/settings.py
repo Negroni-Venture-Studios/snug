@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "snug.core",
     "snug.accounts",
     "snug.audit",
+    "snug.documents",
 ]
 
 AUTH_USER_MODEL = "accounts.Admin"
@@ -116,6 +117,13 @@ STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
+
+# ---------------------------------------------------------------- uploads
+#
+# Uploads larger than 2.5 MB stream to a temporary file in the data folder,
+# on the same disk as the originals, so the finished file is moved, not copied.
+FILE_UPLOAD_TEMP_DIR = CONFIG.data_dir / "tmp"
+MAX_UPLOAD_BYTES = CONFIG.max_upload_mb * 1024 * 1024
 
 # ---------------------------------------------------------------- security
 #

@@ -15,9 +15,13 @@ import sys
 from pathlib import Path
 
 from snug.config import ConfigError, read_env_file
+from snug.core.hardening import make_undumpable
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Before reading any secret: keep this process's memory and environment
+    # out of reach of other processes running as the same user.
+    make_undumpable()
     args = list(sys.argv[1:] if argv is None else argv)
     try:
         if args[:1] == ["--env-file"]:
@@ -46,6 +50,8 @@ def main(argv: list[str] | None = None) -> int:
     data_dir = settings.CONFIG.data_dir
     try:
         data_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        for folder in ("originals", "renders", "tmp"):
+            (data_dir / folder).mkdir(mode=0o700, exist_ok=True)
     except OSError as error:
         print(f"snug: cannot create the data folder {data_dir}: {error.strerror}.", file=sys.stderr)
         return 2

@@ -35,6 +35,8 @@ class Command(BaseCommand):
             "-m",
             "gunicorn",
             "snug.wsgi:application",
+            "--config",
+            "python:snug.gunicorn_conf",
             "--bind",
             options["bind"],
             "--workers",

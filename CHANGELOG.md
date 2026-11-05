@@ -6,6 +6,15 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- Documents and versions, and the machinery behind them:
+  - PDFs are checked, hashed and stored under generated names, never their uploaded names;
+  - each upload becomes the document's next version;
+  - PDFs are read and rendered in a separate worker process, with no access to Snug's settings, with limits on memory, CPU time, output size and open files, and a timeout. The worker is handed an open file rather than a path, and on Linux confines itself with Landlock, so it can open no files except fonts and make no network connections;
+  - Snug's own processes are non-dumpable, so other processes of the same user cannot read their memory or environment;
+  - rendered pages are cached as WebP, and the cache can be deleted at any time;
+  - `SNUG_MAX_UPLOAD_MB` sets the largest upload (100 MB by default).
+- `THIRD_PARTY_LICENCES.md`, listing the bundled PDFium components, fonts and icons.
+
 - Signing in to the admin interface:
   - email and password, then a code from the authenticator app or a recovery code;
   - rate limits per address and per account;
