@@ -1,0 +1,9 @@
+# Only what the image needs: pyproject.toml, uv.lock, README.md, LICENSE and snug/.
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!LICENSE
+!snug/
+**/__pycache__
+**/*.py[cod]
