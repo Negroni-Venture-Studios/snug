@@ -7,7 +7,7 @@ Snug holds founders' most sensitive documents, so we treat security reports as t
 **Please do not open a public issue.** Report privately, in either of these ways:
 
 1. **GitHub private vulnerability reporting** (preferred). Go to the [Security tab](https://github.com/Negroni-Venture-Studios/snug/security/advisories/new) and choose "Report a vulnerability".
-2. **Email** alasdair@babilim.co.uk.
+2. **Email** alasdair@negroniventurestudios.com.
 
 Please include:
 
