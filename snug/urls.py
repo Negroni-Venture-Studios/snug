@@ -8,4 +8,5 @@ urlpatterns = [
     path("admin/", include("snug.core.urls")),
     path("admin/", include("snug.accounts.urls")),
     path("admin/documents/", include("snug.documents.urls")),
+    path("admin/links/", include("snug.links.urls")),
 ]

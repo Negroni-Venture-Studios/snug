@@ -1,0 +1,14 @@
+{% extends "snug/admin_base.html" %}
+{% load snug %}
+{% block title %}Your new link{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'documents:list' %}">Documents</a> / <a href="{% url 'documents:detail' link.document.token %}">{{ link.document.title }}</a> / Link</div>
+<div class="title-row"><div><h1 class="page-title">Link for {{ link.email }}</h1><div class="page-meta"><span class="mono">{{ link.label }}</span><span>{{ link.document.title }}</span></div></div></div>
+<div class="panel form narrow-form">
+  {% if emailed %}<div class="notice notice-ok">{% icon "check" %}<span>Emailed to {{ link.email }}.</span></div>
+  {% elif emailed is False %}<div class="notice notice-error" role="alert">{% icon "warning-circle" %}<span>The email could not be sent. Copy the link and send it yourself, or check the email settings.</span></div>{% endif %}
+  <div class="link-out"><span id="issued-link">{{ url }}</span><button class="btn" type="button" data-copy="issued-link">{% icon "copy" %}<span class="label">Copy</span></button></div>
+  <p class="side-note">This is the only time Snug can show this link. If it is lost, send a new link from the document's page; the old one then stops working.</p>
+  <div class="form-foot"><a class="btn btn-primary" href="{% url 'documents:detail' link.document.token %}">Done</a></div>
+</div>
+{% endblock %}

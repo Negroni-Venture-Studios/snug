@@ -46,4 +46,9 @@
     </section>
   </div>
 </div>
+
+<section class="section">
+  <div class="section-head"><h2>Links</h2><a class="btn btn-primary" href="{% url 'links:new' document.token %}">{% icon "plus" %}New link</a></div>
+  {% include "links/_rows.html" with links=links %}
+</section>
 {% endblock %}

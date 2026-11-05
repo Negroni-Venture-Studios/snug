@@ -16,6 +16,20 @@ Snug checks every setting when it starts. If any are missing or wrong, it lists 
 | `SNUG_HTTPS` | No | `true` | Snug expects to sit behind Caddy, which provides HTTPS. Can only be `false` when `SNUG_DOMAIN` is `localhost`. |
 | `SNUG_DEBUG` | No | `false` | Shows detailed error pages. Can only be `true` when `SNUG_DOMAIN` is `localhost`. Never use it on a real server. |
 
+### Email
+
+| Variable | Required | Default | What it does |
+|---|---|---|---|
+| `SNUG_COMPANY_NAME` | No | | Your company's name, used in email subjects. |
+| `SNUG_EMAIL_FROM` | When `SNUG_SMTP_HOST` is set | | The address emails come from. |
+| `SNUG_SMTP_HOST` | No | | Your email provider's SMTP server. Unset, email is off. |
+| `SNUG_SMTP_PORT` | No | `587`, or `465` with `tls` | The SMTP port. DigitalOcean blocks 25, 465 and 587. |
+| `SNUG_SMTP_USERNAME` | No | | The SMTP username. |
+| `SNUG_SMTP_PASSWORD` | No | | The SMTP password or API key. Never shown or logged. |
+| `SNUG_SMTP_SECURITY` | No | `starttls` | `starttls`, `tls` or, on `localhost` only, `none`. |
+
+[email.md](email.md) explains how to set these up, including the DNS records that keep Snug's emails out of spam.
+
 True and false can be written as `true`/`false`, `yes`/`no`, `on`/`off` or `1`/`0`.
 
 ## Generating the secret key
@@ -45,6 +59,8 @@ uv run snug --env-file ~/snug-dev.env serve --bind 127.0.0.1:8000
 ```
 
 `snug serve` applies any pending database migrations, then starts the web server. Open <http://localhost:8000/healthz> to check it is running.
+
+Without SMTP settings, Snug on `localhost` writes each email to the `outbox` folder inside the data folder instead of sending it, so you can read the links it would have sent.
 
 To create an admin, run `uv run snug --env-file ~/snug-dev.env createadmin`. See [admin-accounts.md](admin-accounts.md).
 
