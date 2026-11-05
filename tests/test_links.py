@@ -15,7 +15,7 @@ from snug.accounts.models import Admin
 from snug.audit.models import AuditEvent
 from snug.documents.models import Document
 from snug.links.models import Link, hash_token
-from snug.links.views import ISSUED
+from snug.links.views import ISSUED, ISSUED_COOKIE
 
 pytestmark = pytest.mark.django_db
 
@@ -74,6 +74,50 @@ def test_only_a_hash_of_the_token_is_stored(client: Client, document: Document) 
         assert token not in str(value)
     for event in AuditEvent.objects.all():
         assert token not in str(event.details) and token not in event.target
+
+
+def test_the_token_never_reaches_the_session_store(client: Client, document: Document) -> None:
+    # Between creating a link and showing it, the session row is in the
+    # database, and so in backups. It must hold nothing that opens the link.
+    from django.contrib.sessions.models import Session
+
+    create(client, document)
+    stored = [s.get_decoded() for s in Session.objects.all()]
+    url = issued_url(client)
+    token = token_of(url)
+    assert stored and all(token not in str(data) for data in stored)
+    for row in Session.objects.values_list("session_data", flat=True):
+        assert token not in row
+
+
+def test_the_issued_page_needs_the_browsers_half(client: Client, document: Document) -> None:
+    create(client, document)
+    client.cookies.pop(ISSUED_COOKIE)
+    response = client.get("/admin/links/issued", secure=True)
+    assert response.status_code == 302 and response["Location"] == "/admin/links/"
+    assert ISSUED not in client.session
+
+
+@pytest.mark.parametrize("pad", ["not base64!", "AAAA"])
+def test_an_altered_browsers_half_shows_nothing(
+    client: Client, document: Document, pad: str
+) -> None:
+    create(client, document)
+    client.cookies[ISSUED_COOKIE] = pad
+    response = client.get("/admin/links/issued", secure=True)
+    assert response.status_code == 302 and response["Location"] == "/admin/links/"
+    assert ISSUED not in client.session
+
+
+def test_the_browsers_half_is_a_strict_short_lived_cookie(
+    client: Client, document: Document
+) -> None:
+    response = create(client, document)
+    cookie = response.cookies[ISSUED_COOKIE]
+    assert cookie["httponly"] and cookie["samesite"] == "Strict"
+    assert 0 < int(cookie["max-age"]) <= 600
+    issued_url(client)
+    assert client.cookies[ISSUED_COOKIE].value == ""  # deleted once used
 
 
 def test_find_refuses_nonsense() -> None:

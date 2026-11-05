@@ -23,7 +23,11 @@ def link_url(token: str) -> str:
 @dataclass(frozen=True)
 class Issued:
     link: Link
-    url: str  # the full link, with its token: show once, never store
+    token: str  # opens the link: show once, never store
+
+    @property
+    def url(self) -> str:
+        return link_url(self.token)
 
 
 def create(
@@ -53,7 +57,7 @@ def create(
                 link.save()
         except IntegrityError:
             continue  # a reference collision: 31^4 is small enough to retry
-        return Issued(link=link, url=link_url(token))
+        return Issued(link=link, token=token)
     raise RuntimeError("Could not allocate a link reference.")
 
 
@@ -62,7 +66,7 @@ def reissue(link: Link) -> Issued:
     token = link.set_new_token()
     link.reissued_at = timezone.now()
     link.save(update_fields=["token_hash", "reissued_at"])
-    return Issued(link=link, url=link_url(token))
+    return Issued(link=link, token=token)
 
 
 def revoke(link: Link, by: Admin) -> None:

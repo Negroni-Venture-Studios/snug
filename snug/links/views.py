@@ -1,8 +1,12 @@
 """The admin's link pages: create, show once, list, revoke and reissue."""
 
+import base64
+import binascii
+import secrets
 from datetime import date, datetime, time, timedelta
 from typing import Any
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -21,6 +25,8 @@ from snug.links import service
 from snug.links.models import Link
 
 ISSUED = "snug.issued_link"
+ISSUED_COOKIE = f"{'__Host-' if settings.CONFIG.https else ''}snug-issued"
+ISSUED_SECONDS = 300
 
 
 def _admin(request: HttpRequest) -> Admin:
@@ -41,12 +47,42 @@ def _audit(request: HttpRequest, action: str, link: Link, **details: Any) -> Non
     )
 
 
+def _xor(a: bytes, b: bytes) -> bytes:
+    return bytes(x ^ y for x, y in zip(a, b, strict=True))
+
+
 def _show_once(
     request: HttpRequest, issued: service.Issued, *, emailed: bool | None
 ) -> HttpResponse:
-    # Held in the session only until the next page shows it, then dropped.
-    request.session[ISSUED] = {"url": issued.url, "link": issued.link.pk, "emailed": emailed}
-    return redirect("links:issued")
+    # The token is split so that neither half opens the link alone. The
+    # session, which is in the database and so in backups, holds it masked
+    # with a one-time pad; the browser holds the pad in a short-lived cookie.
+    # The next page joins the halves, shows the link once and drops both.
+    token = issued.token.encode()
+    pad = secrets.token_bytes(len(token))
+    request.session[ISSUED] = {
+        "masked": base64.urlsafe_b64encode(_xor(token, pad)).decode(),
+        "link": issued.link.pk,
+        "emailed": emailed,
+    }
+    response = redirect("links:issued")
+    response.set_cookie(
+        ISSUED_COOKIE,
+        base64.urlsafe_b64encode(pad).decode(),
+        max_age=ISSUED_SECONDS,
+        path="/",
+        secure=settings.SESSION_COOKIE_SECURE,
+        httponly=True,
+        samesite="Strict",
+    )
+    return response
+
+
+def _unmask(masked: str, pad: str) -> str | None:
+    try:
+        return _xor(base64.urlsafe_b64decode(masked), base64.urlsafe_b64decode(pad)).decode()
+    except (binascii.Error, ValueError):  # a missing, stale or altered half
+        return None
 
 
 def _deliver(request: HttpRequest, issued: service.Issued, wanted: bool) -> bool | None:
@@ -132,11 +168,23 @@ def link_new(request: HttpRequest, document_token: str) -> HttpResponse:
 @require_safe
 def link_issued(request: HttpRequest) -> HttpResponse:
     issued = request.session.pop(ISSUED, None)
-    if not issued:
-        return redirect("links:list")
-    link = get_object_or_404(Link, pk=issued["link"])
-    context = {"tab": "links", "link": link, "url": issued["url"], "emailed": issued["emailed"]}
-    return render(request, "links/issued.html", context)
+    pad = request.COOKIES.get(ISSUED_COOKIE)
+    token = _unmask(issued["masked"], pad) if issued and pad else None
+    response: HttpResponse
+    if token is None:
+        response = redirect("links:list")
+    else:
+        link = get_object_or_404(Link, pk=issued["link"])
+        context = {
+            "tab": "links",
+            "link": link,
+            "url": service.link_url(token),
+            "emailed": issued["emailed"],
+        }
+        response = render(request, "links/issued.html", context)
+    if pad is not None:
+        response.delete_cookie(ISSUED_COOKIE, path="/", samesite="Strict")
+    return response
 
 
 @never_cache
