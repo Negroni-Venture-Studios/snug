@@ -46,6 +46,7 @@ Agreed on 5 November 2026 unless noted.
 | Front end | Revision 2 (section 3): Negroni palette, Geist type, Phosphor icons, the reading heatmap; its stylesheet seeds `base.css` | Revision 1 was calm but bland. |
 | Logo | The half-glazed snug door (section 3.14) | Door, monogram and Negroni sparkle; a snug is a pub's private room. |
 | Link tokens | 256-bit random tokens, stored only as SHA-256 hashes. The full link is shown once, at creation; afterwards the founder can issue a new link, which stops the old one. Each link also has a short, non-secret reference (like `L-7Q2K`) for watermarks and the audit log. | A leaked database or backup exposes no working links. |
+| Downloads | Allowed by default on every link, for every file type; the founder can turn them off on a link that must be view-only. A PDF download is the original file, so its text can be selected and searched, stamped in the confined worker with a line on every page ("Shared with *email*", the date and the link reference) and the same details in its document properties. The audit log records each download with a hash of the exact file sent. *Decided 5 November 2026; the brief had downloads off by default and an image-only PDF.* | Investors want the working file, and find view-only rooms frustrating. An image-only PDF cannot be searched or quoted and is many times larger. The stamp, like the watermark, deters casual forwarding and identifies a leaked copy, but cannot stop a determined copier. |
 | Trademarks | Logo files are MIT with the code; `TRADEMARKS.md` asks forks shipped as separate products to rename | Keeps "Snug" meaning the Negroni project without heavy policy. |
 | Theme | Dark by default; a dark, light and auto toggle in every header | Agreed 5 November 2026. |
 
@@ -61,6 +62,7 @@ Agreed on 5 November 2026 unless noted.
 | whitenoise | MIT | Serves static files from the app container | 1 |
 | pypdfium2 | BSD-3-Clause / Apache-2.0; bundled PDFium carries FreeType, ICU, libjpeg-turbo, lcms, OpenJPEG, libpng, zlib and abseil notices | PDF rendering | 2 |
 | Pillow | MIT-CMU | Images and watermarks | 2 |
+| pypdf | BSD-3-Clause | Stamping downloaded PDFs, in the confined worker | 4 |
 | maxminddb, or a CSV import into SQLite | Apache-2.0 | Reading the GeoIP database | 8 |
 | Geist and Geist Mono fonts (vendored, v1.8.2) | SIL Open Font Licence 1.1 | Interface type | 1 |
 | Phosphor icons (vendored SVG, core v2.0.8) | MIT | Interface icons | 1 |
@@ -198,7 +200,7 @@ The founder's logo at the top left, and nothing competing with the document. It 
 2. **Code.** One six-digit field (`autocomplete="one-time-code"`). Errors appear below it and say what happens next: "That code is not right. You have 4 tries left."
 3. **NDA**, when required. The NDA text in a readable panel, a name field, an *I accept* checkbox, and a statement of what is recorded (name, email, time, IP address). The page says plainly that this is a record of acceptance, not a signature.
 4. **Room index.** Folders as plain section headings (one level only), each document with its page count and last update.
-5. **Reader.** One page image at a time, with *Previous*, "5 of 18", *Next* and a page picker. Arrow keys work and pinch-zoom is never disabled. The watermark footer reads "Shared with *email*", the date, and "Link 7Q2K" in three columns, with no separators.
+5. **Reader.** One page image at a time, with *Previous*, "5 of 18", *Next* and a page picker. Arrow keys work and pinch-zoom is never disabled. The watermark footer reads "Shared with *email*", the date, and "Link 7Q2K" in three columns, with no separators. *Download* gives the original PDF, stamped for the reader, unless the founder has turned downloads off for this link.
 6. **Unavailable.** One page for unknown, expired and revoked links alike.
 
 **Founder branding under a strict CSP.**
@@ -284,7 +286,7 @@ As the brief, with step 0 added: repository guard rails, then branch protection.
 
 **More file types, spreadsheets first.** Spreadsheets matter in a data room, especially financial models, and **investors must be able to download them**: the working file, with its formulas and numbers, is what they need (decided 5 November 2026). The brief keeps Office files out of version 1, and the design leaves room for them:
 
-- **The download is the deliverable.** A spreadsheet link needs downloads allowed, and the download is the original file. A page-image view is only a preview, for deciding whether to download.
+- **The download is the deliverable.** Downloads are on by default for every file type (section 1), and a spreadsheet's download is the original file. A page-image view is only a preview, for deciding whether to download. A link with downloads turned off cannot usefully share a spreadsheet, so the link form says so.
 - **Traceable downloads.** Snug cannot burn a visible watermark into a working file. Instead each download is stamped for its reader:
   - the document properties (author, comments and a custom property) name the reader's email address, the date and the link;
   - a first sheet, or a header and footer on every sheet, says who it was shared with;

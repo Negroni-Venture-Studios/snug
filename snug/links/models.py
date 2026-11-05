@@ -41,7 +41,7 @@ class Link(models.Model):
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="links")
 
     require_verification = models.BooleanField(default=True)
-    allow_download = models.BooleanField(default=False)
+    allow_download = models.BooleanField(default=True)
     expires_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

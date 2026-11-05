@@ -14,7 +14,7 @@
     <div class="field"><span class="label">Options</span>
       <div class="choices">
         <label class="check"><input type="checkbox" name="require_verification"{% if values.require_verification %} checked{% endif %}><span>Require email verification<span class="hint">Recommended. A forwarded link is then useless to anyone else.</span></span></label>
-        <label class="check"><input type="checkbox" name="allow_download"{% if values.allow_download %} checked{% endif %}><span>Allow download<span class="hint">A watermarked PDF, built from the same pages.</span></span></label>
+        <label class="check"><input type="checkbox" name="allow_download"{% if values.allow_download %} checked{% endif %}><span>Allow download<span class="hint">The original PDF, stamped with their email address, the date and the link.</span></span></label>
       </div></div>
     <div class="form-foot">
       <button class="btn" type="submit" name="action" value="copy">Create and copy</button>
