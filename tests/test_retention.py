@@ -209,3 +209,12 @@ def test_saving_the_period_says_so_beside_it(client: Client) -> None:
     ).content.decode()
     form = page[page.index('action="/admin/settings/retention"') :]
     assert "Saved. Reading data is kept for 24 months" in form
+
+
+def test_every_settings_form_is_the_same_width(client: Client) -> None:
+    import re
+
+    page = client.get("/admin/settings/", secure=True).content.decode()
+    forms = re.findall(r'<form class="(panel [^"]*)"', page)
+    assert len(forms) == 3  # NDA, privacy link, retention (invites need email)
+    assert all("settings-form" in classes.split() for classes in forms), forms
