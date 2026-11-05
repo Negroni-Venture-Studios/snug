@@ -7,6 +7,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 ### Fixed
 
 - Link expiry dates are shown as the last day the link works. The links list and the link email showed the day after.
+- The server no longer stalls, and then answers "Internal Server Error", when a browser holds connections open without using them. `snug serve` now runs threaded workers (`--threads`, 4 by default).
+- An unexpected error is now logged with its traceback. Link and setup tokens in any log line are replaced with `[redacted]`.
 
 ### Added
 
