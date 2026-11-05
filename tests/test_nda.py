@@ -270,3 +270,13 @@ def test_without_an_nda_the_option_is_disabled_and_says_where_to_write_one(
     page = browser.get(f"/admin/links/for/{document.token}", secure=True).content.decode()
     assert 'name="require_nda" disabled' in page
     assert 'href="/admin/settings/#nda">Settings</a>' in page
+
+
+def test_saving_the_nda_says_so_in_its_own_section() -> None:
+    browser = admin_client()
+    response = browser.post("/admin/settings/nda", {"text": TEXT}, secure=True, follow=True)
+    page = response.content.decode()
+    nda_section = page[page.index('id="nda"') : page.index('id="privacy"')]
+    assert "Saved as version 1" in nda_section
+    privacy_section = page[page.index('id="privacy"') :]
+    assert "Saved." not in privacy_section  # each section confirms only its own save
