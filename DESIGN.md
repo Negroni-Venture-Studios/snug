@@ -175,7 +175,7 @@ Real URLs, not hash routing, because every action is a CSRF-protected form post.
 
 **Header.** The chrome bar, then the Snug lockup (section 3.14) with the company name beside it, the admin's email address and *Sign out*. The tabs are **Overview**, **Documents**, **Rooms**, **Links**, **People**, **Audit log** and **Settings**. The active tab is underlined in Campari.
 
-- **Overview.** A stat strip, recent activity with first opens marked "New", and a status line. The status line names any problem from the `snug doctor` checks, such as an old backup or failing email.
+- **Overview.** A stat strip, recent activity with first opens marked "New", and a status line. The strip counts documents, active links, people who have read anything, and visits in the last 7 days. Recent activity lists the ten latest visits: who, which document (and room), reading time and when. The status line names any problem from the `snug doctor` checks, such as an old backup or failing email.
 - **Documents.**
   - The list shows name, current version, page count, number of links and last viewed.
   - The page title is set in Geist Light, with the version, page count and upload date beneath it.
@@ -304,7 +304,7 @@ Steps 0 to 6 are done. What remains, including commitments made along the way th
 - Docker Compose with Snug, Caddy and Litestream; an rclone sidecar for uploaded originals; backups encrypted with an age key generated during setup, which the founder must store (decided 5 November 2026).
 - cloud-init for a fresh Ubuntu LTS droplet.
 - `snug doctor`, checking DNS, TLS, email (send a code, type it back), the latest backup, the render worker's confinement level (Landlock), and housekeeping: it warns when `snug housekeeping` has not completed successfully in the last three hours. Housekeeping must record when it last succeeded for this.
-- The admin Overview's status line shows any problem `snug doctor` would report, including failing housekeeping, so a founder sees it without running a command.
+- The admin Overview's status line shows any problem `snug doctor` would report, including failing housekeeping, so a founder sees it without running a command. (The Overview's stat strip and recent activity were missed from the plan and built on 5 November 2026; the status line is what remains.)
 - `snug restore`, documented and tested.
 
 **Before step 7 continues: forgotten passwords** (asked for 5 November 2026, because people forget).

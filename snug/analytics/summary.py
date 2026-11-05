@@ -5,6 +5,8 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from django.db.models import Exists, OuterRef, Sum
+
 from snug.analytics.models import PageView, Visit
 from snug.documents.models import Document
 
@@ -163,3 +165,38 @@ def for_people() -> list[Person]:
     for person in people.values():
         person.documents.sort(key=lambda d: d.last_seen or datetime.min, reverse=True)
     return sorted(people.values(), key=lambda p: p.last_seen or datetime.min, reverse=True)
+
+
+@dataclass
+class RecentVisit:
+    email: str
+    document: Document
+    room_name: str | None
+    started_at: datetime
+    seconds: float
+    first: bool  # this person's first visit to this document
+
+
+def recent_visits(limit: int = 10) -> list[RecentVisit]:
+    """The latest visits for the Overview, each marked if it was a first open."""
+    earlier = Visit.objects.filter(
+        email=OuterRef("email"),
+        document=OuterRef("document"),
+        started_at__lt=OuterRef("started_at"),
+    )
+    visits = (
+        Visit.objects.select_related("document", "link__room")
+        .annotate(seconds=Sum("pages__seconds"), seen_before=Exists(earlier))
+        .order_by("-started_at")[:limit]
+    )
+    return [
+        RecentVisit(
+            email=visit.email,
+            document=visit.document,
+            room_name=visit.link.room.name if visit.link.room else None,
+            started_at=visit.started_at,
+            seconds=visit.seconds or 0,
+            first=not visit.seen_before,
+        )
+        for visit in visits
+    ]

@@ -13,6 +13,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- The Overview: how many documents, active links, people who have read and visits this week, then the ten latest visits, with a person's first open of a document marked New.
 - A container image, `ghcr.io/negroni-venture-studios/snug`, for amd64 and arm64: `:edge` from `main`, and a version tag and `:latest` from each release. It runs as an unprivileged user, and its render worker is confined by Landlock.
 
 - Reading data is deleted automatically 12 months after its link is revoked or expires, a period you can change in Settings (from 1 to 120 months). `snug housekeeping`, which the server runs every hour, does it, and also clears expired codes, sessions, setup links and rate-limit counts.
