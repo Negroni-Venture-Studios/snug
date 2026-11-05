@@ -1,0 +1,12 @@
+{% extends "viewer/base.html" %}
+{% block title %}{{ document.title }}{% endblock %}
+{% block tools %}<span class="doc">{{ document.title }}</span>{% endblock %}
+{% block main %}
+<div class="gate-grid">
+  <div class="gate">
+    <h1>{{ document.title }}</h1>
+    <p class="lede">{% if pages %}{{ pages }} page{{ pages|pluralize }}. {% endif %}The reader that shows each page arrives in the next version of Snug.</p>
+  </div>
+  {% include "viewer/_about.html" %}
+</div>
+{% endblock %}

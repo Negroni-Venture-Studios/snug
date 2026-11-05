@@ -3,7 +3,7 @@
 <body>
 <p>{% if company %}{{ company }} has shared <strong>{{ document.title }}</strong> with you.{% else %}<strong>{{ document.title }}</strong> has been shared with you.{% endif %}</p>
 <p><a href="{{ url }}">Open {{ document.title }}</a></p>
-<p>This link is for you alone.{% if link.require_verification %} When you open it, you will be asked for this email address and sent a code to confirm it.{% endif %}{% if link.expires_at %} It works until {{ link.expires_at|date:"j F Y" }}.{% endif %}</p>
+<p>This link is for you alone.{% if link.require_verification %} When you open it, you will be asked for this email address and sent a code to confirm it.{% endif %}{% if link.expires_at %} It works until {{ link.last_day|date:"j F Y" }}.{% endif %}</p>
 <p>Reply to this email to reach {{ sender }}.</p>
 </body>
 </html>

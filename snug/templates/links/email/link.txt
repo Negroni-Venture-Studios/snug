@@ -3,7 +3,7 @@
 Open it here:
 {{ url }}
 
-This link is for you alone. {% if link.require_verification %}When you open it, you will be asked for this email address and sent a code to confirm it.{% endif %}{% if link.expires_at %} It works until {{ link.expires_at|date:"j F Y" }}.{% endif %}
+This link is for you alone. {% if link.require_verification %}When you open it, you will be asked for this email address and sent a code to confirm it.{% endif %}{% if link.expires_at %} It works until {{ link.last_day|date:"j F Y" }}.{% endif %}
 
 Reply to this email to reach {{ sender }}.
 {% endautoescape %}
