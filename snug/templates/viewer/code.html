@@ -5,7 +5,11 @@
 <div class="gate-grid">
   <div class="gate">
     <h1>Check your email</h1>
+    {% if neutral %}
+    <p class="lede">If that is the address this link was sent to, we have sent it a six-digit code. It works for 10 minutes.</p>
+    {% else %}
     <p class="lede">We sent a six-digit code to {% if shown %}{{ shown }}{% else %}your email address{% endif %}. It works for 10 minutes.</p>
+    {% endif %}
     {% if not spent %}
     <form class="form" method="post" action="{% url 'viewer:verify_code' token=token %}" novalidate>
       {% csrf_token %}
@@ -20,7 +24,7 @@
     {% endif %}
     <form class="form resend" method="post" action="{% url 'viewer:send_code' token=token %}">
       {% csrf_token %}
-      <input type="hidden" name="email" value="{{ shown }}">
+      <input type="hidden" name="email" value="{{ resend }}">
       <p class="small">{% if spent %}<button class="btn" type="submit">Send a new code</button>{% else %}Nothing arrived? Check your spam folder, or <button class="linkish" type="submit">send a new code</button>.{% endif %}</p>
     </form>
   </div>

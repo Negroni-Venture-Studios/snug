@@ -173,22 +173,27 @@ def test_code_requests_are_rate_limited_per_link(browser: Client, issued: servic
 
 
 @pytest.mark.usefixtures("email_on")
-def test_wrong_addresses_are_capped_per_link(issued: service.Issued) -> None:
-    # Guesses from many addresses still meet a ceiling on each link. Past it,
-    # even the right address is refused, so a late guess learns nothing.
-    statuses = [
-        post(
-            Client(REMOTE_ADDR=f"198.51.100.{n + 1}"),
-            path(issued, "/code/send"),
-            {"email": f"guess{n}@northfield.example"},
-        ).status_code
-        for n in range(11)
-    ]
-    assert statuses[:10] == [400] * 10 and statuses[10] == 429
-    right = post(
-        Client(REMOTE_ADDR="198.51.100.99"), path(issued, "/code/send"), {"email": INVESTOR}
-    )
-    assert right.status_code == 429 and django_mail.outbox == []
+def test_past_the_cap_on_wrong_addresses_the_answer_turns_neutral(
+    issued: service.Issued,
+) -> None:
+    # Guesses from many addresses meet a ceiling on each link. Past it, every
+    # request gets the same neutral reply, so guessing learns nothing; and the
+    # right address still gets a code, so nobody can lock the owner out.
+    def ask(n: int, email: str) -> Any:
+        browser = Client(REMOTE_ADDR=f"198.51.100.{n + 1}")
+        return post(browser, path(issued, "/code/send"), {"email": email})
+
+    plain = [ask(n, f"guess{n}@northfield.example").status_code for n in range(10)]
+    assert plain == [400] * 10
+    wrong = ask(10, "guess10@northfield.example")
+    right = ask(11, INVESTOR)
+    neutral = "If that is the address this link was sent to, we have sent it a six-digit code"
+    for response in (wrong, right):
+        page = response.content.decode()
+        assert response.status_code == 200 and neutral in page
+        assert INVESTOR not in page.replace('value="priya@northfield.example"', "")
+        assert "not the address" not in page
+    assert [message.to for message in django_mail.outbox] == [[INVESTOR]]
 
 
 @pytest.mark.usefixtures("email_on")

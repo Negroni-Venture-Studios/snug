@@ -148,13 +148,23 @@ def _code_page(
     *,
     error: str = "",
     spent: bool = False,
+    neutral: bool = False,
     status: int = 200,
 ) -> HttpResponse:
     # Show the address only if this request carried it, so the page never
-    # tells a stranger who the link was sent to.
+    # tells a stranger who the link was sent to. In neutral mode it is never
+    # shown, and the resend form carries back whatever was typed.
     typed = _typed_email(request)
-    shown = link.email if _matches(typed, link) else ""
-    context = _context(link, token, shown=shown, error=error, spent=spent)
+    shown = link.email if _matches(typed, link) and not neutral else ""
+    context = _context(
+        link,
+        token,
+        shown=shown,
+        resend=typed if neutral else shown,
+        error=error,
+        spent=spent,
+        neutral=neutral,
+    )
     return render(request, "viewer/code.html", context, status=status)
 
 
@@ -197,18 +207,19 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
     typed = _typed_email(request)
     if not mail.enabled() or not link.require_verification:
         return _gate_page(request, link, token, typed=typed, status=503)
-
-    if not ratelimit.allow(limits.SEND_PER_IP, _ip(request)) or ratelimit.exceeded(
-        limits.WRONG_EMAIL_PER_LINK, str(link.pk)
-    ):
+    if not ratelimit.allow(limits.SEND_PER_IP, _ip(request)):
         return _send_refused(request, link, token, typed)
 
+    # Past the cap on wrong addresses, every request gets the same neutral
+    # reply, so guessing learns nothing, and the right address still gets a
+    # code, so nobody can lock the owner out.
+    neutral = ratelimit.exceeded(limits.WRONG_EMAIL_PER_LINK, str(link.pk))
     if not _matches(typed, link):
-        # Counted first, so a guess past the cap gets the same refusal as
-        # every other request, never the plain answer.
-        if not ratelimit.allow(limits.WRONG_EMAIL_PER_LINK, str(link.pk)):
-            return _send_refused(request, link, token, typed)
+        # Counted first, so racing guesses cannot all get the plain answer.
+        over = not ratelimit.allow(limits.WRONG_EMAIL_PER_LINK, str(link.pk))
         _audit(request, "viewer.code_refused", link, typed, reason="wrong_email")
+        if neutral or over:
+            return _code_page(request, link, token, neutral=True)
         error = (
             "That is not the address this link was sent to. "
             "Check for a typo, or ask the person who sent it."
@@ -218,15 +229,20 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
     if not ratelimit.allow(limits.SEND_PER_LINK, str(link.pk)) or not ratelimit.allow(
         limits.SEND_PER_EMAIL, link.email
     ):
+        if neutral:
+            _audit(request, "viewer.code_refused", link, typed, reason="rate_limited")
+            return _code_page(request, link, token, neutral=True)
         return _send_refused(request, link, token, typed)
     if not _send(link, codes.issue(link)):
         VerificationCode.objects.filter(link=link).delete()
         _audit(request, "viewer.code_failed_to_send", link, link.email)
+        if neutral:
+            return _code_page(request, link, token, neutral=True)
         error = "We could not send the code. Try again in a few minutes."
         return _gate_page(request, link, token, error=error, typed=typed, status=503)
 
     _audit(request, "viewer.code_sent", link, link.email)
-    return _code_page(request, link, token)
+    return _code_page(request, link, token, neutral=neutral)
 
 
 @never_cache
