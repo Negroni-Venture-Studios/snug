@@ -90,13 +90,16 @@ def test_an_expired_link_with_an_open_session_is_unavailable(issued: service.Iss
         authorise(request, issued.token)
 
 
-def test_a_reissued_links_old_address_is_unavailable(issued: service.Issued) -> None:
+def test_reissuing_ends_every_session(issued: service.Issued) -> None:
     request = verified_browser(issued.link)
     new = service.reissue(issued.link)
     with pytest.raises(Unavailable):
         authorise(request, issued.token)
-    # The person it was sent to keeps their session at the new address.
-    assert authorise(request, new.token).link == issued.link
+    # A new link stops everyone: even a browser with a session must verify
+    # again at the new address.
+    with pytest.raises(NotVerified):
+        authorise(request, new.token)
+    assert authorise(verified_browser(issued.link), new.token).link == issued.link
 
 
 # ---------------------------------------------------------------- the session
@@ -269,6 +272,35 @@ def test_five_wrong_codes_end_the_code(issued: service.Issued) -> None:
     result = codes.check(issued.link, code)
     assert not result.ok and result.tries_left == 0
     assert not VerificationCode.objects.exists()
+
+
+def test_a_guess_read_before_the_fifth_failure_is_still_refused(
+    issued: service.Issued,
+) -> None:
+    # The race: a request reads the code while it has tries left, and other
+    # requests use them up before it compares. The try is claimed before the
+    # comparison, so even the correct code is then refused.
+    code = codes.issue(issued.link)
+    stale = VerificationCode.objects.get()
+    VerificationCode.objects.update(failures=codes.MAX_FAILURES)
+    result = codes._attempt(issued.link, stale, code)
+    assert not result.ok and result.tries_left == 0
+
+
+def test_a_correct_code_also_uses_a_try(issued: service.Issued) -> None:
+    code = codes.issue(issued.link)
+    VerificationCode.objects.update(failures=codes.MAX_FAILURES - 1)
+    assert codes.check(issued.link, code).ok
+
+
+def test_checks_per_link_are_capped_each_day(issued: service.Issued) -> None:
+    # Asking for a new code gives five fresh tries, so the total is capped too.
+    for _ in range(codes.CHECKS_PER_LINK_PER_DAY.limit):
+        codes.issue(issued.link)
+        codes.check(issued.link, "000000")
+    code = codes.issue(issued.link)
+    result = codes.check(issued.link, code)
+    assert not result.ok and result.limited
 
 
 def test_an_expired_code_is_refused(issued: service.Issued) -> None:

@@ -1,5 +1,8 @@
 """Viewer sessions: a random token in a cookie, bound to a link and an email.
 
+A session is also bound to the link's token at the time, so reissuing the
+link ends every session for it.
+
 These are separate from the admin's Django session. The cookie holds 256
 random bits and the database keeps only their SHA-256 hash, so a copy of the
 database or a backup opens nothing. The cookie is SameSite=Lax, not Strict,
@@ -37,7 +40,10 @@ def lookup(request: HttpRequest, link: Link) -> ViewerSession | None:
     if token is None:
         return None
     return ViewerSession.objects.filter(
-        token_hash=_hash(token), link=link, expires_at__gt=timezone.now()
+        token_hash=_hash(token),
+        link=link,
+        link_token_hash=link.token_hash,
+        expires_at__gt=timezone.now(),
     ).first()
 
 
@@ -60,6 +66,7 @@ def begin(request: HttpRequest, response: HttpResponse, link: Link, *, verified:
         ViewerSession.objects.create(
             token_hash=new_hash,
             link=link,
+            link_token_hash=link.token_hash,
             email=link.email,
             verified=verified,
             expires_at=timezone.now() + timedelta(days=days),

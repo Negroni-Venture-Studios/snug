@@ -19,6 +19,9 @@ class ViewerSession(models.Model):
 
     token_hash = models.CharField(max_length=64)
     link = models.ForeignKey(Link, on_delete=models.CASCADE, related_name="viewer_sessions")
+    # The link's token hash when the session began. Reissuing the link
+    # changes it, which ends every session: a new link stops everyone.
+    link_token_hash = models.CharField(max_length=64)
     email = models.EmailField()
     # False only for links that do not require verification.
     verified = models.BooleanField()
