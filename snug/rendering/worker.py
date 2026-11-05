@@ -3,7 +3,7 @@
     python -I -m snug.rendering.worker inspect FD
     python -I -m snug.rendering.worker render FD PAGE WIDTH
     python -I -m snug.rendering.worker stamp FD FONT_FD EMAIL DATE REF
-    python -I -m snug.rendering.worker stamp-pdf FD EMAIL DATE REF
+    python -I -m snug.rendering.worker stamp-pdf FD FONT_FD EMAIL DATE REF
 
 Snug opens the PDF and passes the open file as descriptor FD; the worker is
 never given a path. `inspect` prints one line of JSON. `render` writes the
@@ -95,7 +95,7 @@ def _warm_up_pypdf() -> None:
     writer = __import__("pypdf").PdfWriter()
     writer.add_blank_page(width=72, height=72)
     writer.write(blank)
-    _stamp_pdf_pages(blank.getvalue(), "warm@up.example", "1 Jan 2026", "WARM")
+    _stamp_pdf_pages(blank.getvalue(), None, "warm@up.example", "1 Jan 2026", "WARM")
 
 
 def confine() -> str:  # pragma: no cover - runs only inside the worker process
@@ -227,21 +227,16 @@ def _stamp_text(email: str, date: str, ref: str) -> tuple[str, str, str]:
     return email, date, ref
 
 
-def stamp(data: bytes, font: bytes, email: str, date: str, ref: str) -> bytes:
-    """The page with the viewer's watermark: a diagonal mark, and a footer band."""
+def _mark_layer(width: int, height: int, font: bytes | None, email: str, date: str) -> Any:
+    """The diagonal mark: rows of "email  date", tiled and rotated, on a clear layer.
+
+    Drawn on a square big enough to cover the page at any angle, rotated, then
+    cut to the page. `font` None uses Pillow's built-in font (for the warm-up).
+    """
     from PIL import Image, ImageDraw, ImageFont
 
-    email, date, ref = _stamp_text(email, date, ref)
-    with Image.open(io.BytesIO(data), formats=["WEBP"]) as source:
-        width, height = source.size
-        if max(width, height) > MAX_SIDE or width * height > MAX_PIXELS:
-            raise _Refused("unreadable")
-        page = source.convert("RGB")
-
-    # The diagonal mark: rows of "email  date", drawn on a square big enough
-    # to cover the page at any angle, rotated, then cut to the page.
     size = max(14, round(width * 0.018))
-    mark_font = ImageFont.truetype(io.BytesIO(font), size)
+    mark_font = ImageFont.truetype(io.BytesIO(font), size) if font else ImageFont.load_default(size)
     side = int((width**2 + height**2) ** 0.5) + 1
     layer = Image.new("RGBA", (side, side), (0, 0, 0, 0))
     draw = ImageDraw.Draw(layer)
@@ -253,8 +248,22 @@ def stamp(data: bytes, font: bytes, email: str, date: str, ref: str) -> bytes:
             draw.text((x, y), text, font=mark_font, fill=MARK_COLOUR)
     layer = layer.rotate(MARK_ANGLE, resample=Image.Resampling.BICUBIC)
     left, top = (side - width) // 2, (side - height) // 2
+    return layer.crop((left, top, left + width, top + height))
+
+
+def stamp(data: bytes, font: bytes, email: str, date: str, ref: str) -> bytes:
+    """The page with the viewer's watermark: a diagonal mark, and a footer band."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    email, date, ref = _stamp_text(email, date, ref)
+    with Image.open(io.BytesIO(data), formats=["WEBP"]) as source:
+        width, height = source.size
+        if max(width, height) > MAX_SIDE or width * height > MAX_PIXELS:
+            raise _Refused("unreadable")
+        page = source.convert("RGB")
+
     marked = Image.alpha_composite(
-        page.convert("RGBA"), layer.crop((left, top, left + width, top + height))
+        page.convert("RGBA"), _mark_layer(width, height, font, email, date)
     )
 
     # The footer: who it was shared with, the date, and the link, in three columns.
@@ -278,14 +287,67 @@ def stamp(data: bytes, font: bytes, email: str, date: str, ref: str) -> bytes:
     return result.getvalue()
 
 
+# The PDF overlay is drawn at this many pixels per point, within MAX_PIXELS.
+OVERLAY_DENSITY = 1.5
+
+
+def _overlay_pdf(
+    width_pt: float, height_pt: float, font: bytes | None, email: str, date: str
+) -> bytes:
+    """A one-page PDF holding the diagonal mark as a grey image with a transparency mask.
+
+    An image, not text, so text copied from the download is not full of
+    watermark strings. Pillow cannot write a transparent image to a PDF, so
+    the few objects are written here.
+    """
+    import zlib
+
+    scale = min(OVERLAY_DENSITY, (MAX_PIXELS / max(width_pt * height_pt, 1)) ** 0.5)
+    w, h = max(1, round(width_pt * scale)), max(1, round(height_pt * scale))
+    alpha = _mark_layer(w, h, font, email, date).getchannel("A").tobytes()
+    grey = bytes([MARK_COLOUR[0]]) * (w * h)
+
+    def image(data: bytes, extra: bytes = b"") -> bytes:
+        body = zlib.compress(data, 9)
+        head = (
+            b"<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceGray "
+            b"/BitsPerComponent 8 /Filter /FlateDecode /Length %d" % (w, h, len(body))
+        )
+        return head + extra + b" >>\nstream\n" + body + b"\nendstream"
+
+    content = f"q {width_pt:.3f} 0 0 {height_pt:.3f} 0 0 cm /SnugMark Do Q".encode()
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {width_pt:.3f} {height_pt:.3f}] "
+        f"/Resources << /XObject << /SnugMark 4 0 R >> >> /Contents 6 0 R >>".encode(),
+        image(grey, b" /SMask 5 0 R"),
+        image(alpha),
+        b"<< /Length %d >>\nstream\n" % len(content) + content + b"\nendstream",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for number, body in enumerate(objects, start=1):
+        offsets.append(len(out))
+        out += b"%d 0 obj\n" % number + body + b"\nendobj\n"
+    xref = len(out)
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objects) + 1)
+    out += b"".join(b"%010d 00000 n \n" % offset for offset in offsets)
+    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (
+        len(objects) + 1,
+        xref,
+    )
+    return bytes(out)
+
+
 def _pdf_string(text: str) -> bytes:
     """Text as a PDF literal string in WinAnsi: brackets and backslashes escaped."""
     escaped = text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
     return b"(" + escaped.encode("cp1252", errors="replace") + b")"
 
 
-def _stamp_pdf_pages(data: bytes, email: str, date: str, ref: str) -> bytes:
-    from pypdf import PageObject, PdfReader, PdfWriter
+def _stamp_pdf_pages(data: bytes, font: bytes | None, email: str, date: str, ref: str) -> bytes:
+    from pypdf import PageObject, PdfReader, PdfWriter, Transformation
     from pypdf.generic import ContentStream, DictionaryObject, NameObject
 
     reader = PdfReader(io.BytesIO(data))
@@ -295,7 +357,7 @@ def _stamp_pdf_pages(data: bytes, email: str, date: str, ref: str) -> bytes:
     line = _pdf_string(f"Shared with {email}   {date}   Link {ref}")
     # Helvetica is one of the standard fonts every PDF reader has: nothing to
     # embed, and the line stays text that can be selected and searched.
-    font = DictionaryObject(
+    helvetica = DictionaryObject(
         {
             NameObject("/Type"): NameObject("/Font"),
             NameObject("/Subtype"): NameObject("/Type1"),
@@ -303,14 +365,21 @@ def _stamp_pdf_pages(data: bytes, email: str, date: str, ref: str) -> bytes:
             NameObject("/Encoding"): NameObject("/WinAnsiEncoding"),
         }
     )
+    overlays: dict[tuple[float, float], Any] = {}
     for page in writer.pages:
         page.transfer_rotation_to_content()
         box = page.cropbox
+        size = (round(float(box.width), 2), round(float(box.height), 2))
+        if size not in overlays:
+            overlays[size] = PdfReader(io.BytesIO(_overlay_pdf(*size, font, email, date))).pages[0]
+        page.merge_transformed_page(
+            overlays[size], Transformation().translate(float(box.left), float(box.bottom))
+        )
         overlay = PageObject.create_blank_page(
             width=float(page.mediabox.width), height=float(page.mediabox.height)
         )
         overlay[NameObject("/Resources")] = DictionaryObject(
-            {NameObject("/Font"): DictionaryObject({NameObject("/SnugMark"): font})}
+            {NameObject("/Font"): DictionaryObject({NameObject("/SnugMark"): helvetica})}
         )
         x, y = float(box.left) + 18, float(box.bottom) + 10
         content = ContentStream(None, None)
@@ -342,17 +411,17 @@ def _resaved(data: bytes) -> bytes:
     return out.getvalue()
 
 
-def stamp_pdf(data: bytes, email: str, date: str, ref: str) -> bytes:
+def stamp_pdf(data: bytes, font: bytes, email: str, date: str, ref: str) -> bytes:
     """The original PDF with a line naming the viewer on every page."""
     from pypdf.errors import PdfReadError
 
     email, date, ref = _stamp_text(email, date, ref)
     try:
-        return _stamp_pdf_pages(data, email, date, ref)
+        return _stamp_pdf_pages(data, font, email, date, ref)
     except PdfReadError:
         # PDFium reads many slightly broken files that pypdf will not, and Snug
         # accepted this one because PDFium could. Stamp PDFium's clean copy.
-        return _stamp_pdf_pages(_resaved(data), email, date, ref)
+        return _stamp_pdf_pages(_resaved(data), font, email, date, ref)
 
 
 def main(argv: list[str], *, confined: bool = True) -> int:
@@ -370,8 +439,10 @@ def main(argv: list[str], *, confined: bool = True) -> int:
             mode = "stamp"
             with os.fdopen(int(argv[2]), "rb") as font_file:
                 font = font_file.read()
-        elif len(argv) == 5 and argv[0] == "stamp-pdf":
+        elif len(argv) == 6 and argv[0] == "stamp-pdf":
             mode = "stamp-pdf"
+            with os.fdopen(int(argv[2]), "rb") as font_file:
+                font = font_file.read()
         else:
             return _fail("usage")
         with os.fdopen(int(argv[1]), "rb") as source:
@@ -386,7 +457,7 @@ def main(argv: list[str], *, confined: bool = True) -> int:
             elif mode == "stamp":
                 output = stamp(data, font, argv[3], argv[4], argv[5])
             else:
-                output = stamp_pdf(data, argv[2], argv[3], argv[4])
+                output = stamp_pdf(data, font, argv[3], argv[4], argv[5])
             sys.stdout.flush()
             sys.stdout.buffer.write(output)
     except _Refused as refused:
