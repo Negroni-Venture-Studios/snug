@@ -10,6 +10,43 @@
   </div>
 </div>
 
+{% if reading %}
+<div class="stats">
+  <div class="stat"><div class="value">{{ reading.viewers }}</div><div class="label">Viewers</div></div>
+  <div class="stat"><div class="value">{{ reading.visits }}</div><div class="label">Visits</div></div>
+  <div class="stat"><div class="value">{% if reading.median_minutes %}{{ reading.median_minutes }}<small>min</small> {% endif %}{{ reading.median_seconds }}<small>s</small></div><div class="label">Median reading time</div></div>
+  <div class="stat"><div class="value">{{ reading.read_all }}<small>of {{ reading.viewers }}</small></div><div class="label">Read every page</div></div>
+</div>
+
+<section class="section">
+  <div class="section-head"><h2>How it was read</h2>{{ reading.legend }}</div>
+  <div class="matrix">
+    <div class="row head">
+      <div class="cell">Viewer</div>
+      <div class="cell pages-axis">{{ reading.axis }}</div>
+      <div class="cell r">Visits</div><div class="cell r">Time</div><div class="cell r last">Last seen</div>
+    </div>
+    <div class="row avg">
+      <div class="cell label">Average per page</div>
+      <div class="cell strip-cell">{{ reading.bars }}</div>
+      <div class="cell r"></div><div class="cell r"></div><div class="cell r last"></div>
+    </div>
+    {% for row in reading.rows %}
+    <div class="row">
+      <div class="cell who"><span class="email">{{ row.email }}</span>{% if row.note %}<span class="note">{{ row.note }}</span>{% endif %}</div>
+      <div class="cell strip-cell">{{ row.strip }}</div>
+      <div class="cell r first">{{ row.visits }}<span class="visually-hidden"> visit{{ row.visits|pluralize }}</span></div>
+      <div class="cell r">{{ row.total }}</div>
+      <div class="cell r last">{{ row.last_seen|date:"j M, H:i" }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% if reading.longest %}<p class="matrix-note">Longest average time: {{ reading.longest }}. Averages count only the viewers who reached each page.</p>{% endif %}
+</section>
+{% else %}
+<p class="empty-line reading-empty">Nobody has opened this document yet. Reading time appears here once someone does.</p>
+{% endif %}
+
 <div class="doc-split">
   <section class="section">
     <div class="section-head"><h2>First page</h2></div>

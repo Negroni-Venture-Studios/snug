@@ -176,12 +176,14 @@ h1.page-title { overflow-wrap: anywhere; font-size: 2.1rem; font-weight: 300; le
 .matrix .avg .cell { border-bottom-color: var(--border-strong); padding-bottom: 0.4rem; }
 .matrix .r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .matrix .avg .label { font-size: 0.85rem; color: var(--text-2); justify-content: flex-end; }
-.matrix .head .pages-axis { display: grid; }
+.matrix .head .pages-axis { display: block; }
 .who .email { display: block; overflow-wrap: anywhere; }
 .who .note { display: block; font-size: 0.82rem; color: var(--text-3); }
 .new { font-size: 0.75rem; font-weight: 500; color: var(--link); margin-left: 0.4rem; }
-.pages-axis { display: grid; grid-template-columns: repeat(18, 1fr); font-family: var(--mono); font-size: 0.68rem; text-align: center; }
-.pages-axis span:nth-child(even) { visibility: hidden; }
+/* Page numbers, drawn in the same columns as the strips (snug.analytics.charts). */
+.axis { display: flex; font-family: var(--mono); font-size: 0.68rem; color: var(--text-3); }
+.axis span { flex: 1 1 0; min-width: 0; text-align: center; }
+.reading-empty { margin-bottom: 2.5rem; }
 svg.strip, svg.bars { display: block; width: 100%; }
 svg.strip { height: 16px; }
 svg.bars { height: 64px; }

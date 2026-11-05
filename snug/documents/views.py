@@ -17,6 +17,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
 from snug.accounts.models import Admin
+from snug.analytics import charts, summary
 from snug.audit.models import AuditEvent, record
 from snug.core.client import client_ip, user_agent
 from snug.documents.ingest import UploadRejectedError, ingest
@@ -113,6 +114,38 @@ def document_new(request: HttpRequest) -> HttpResponse:
     return redirect("documents:detail", token=document.token)
 
 
+def _reading(document: Document) -> dict[str, Any] | None:
+    """The stat strip and reading grid, ready for the template."""
+    reading = summary.for_document(document)
+    if reading is None:
+        return None
+    median = round(reading.median_seconds)
+    return {
+        "viewers": reading.viewer_count,
+        "visits": reading.visits,
+        "median_minutes": median // 60,
+        "median_seconds": median % 60,
+        "read_all": reading.read_all,
+        "axis": charts.axis(reading.pages),
+        "bars": charts.bars(reading.averages),
+        "legend": charts.legend(),
+        "rows": [
+            {
+                "email": row.email,
+                "note": row.note,
+                "strip": charts.strip(row.seconds, row.seen, row.email),
+                "visits": row.visits,
+                "total": charts.duration(row.total_seconds),
+                "last_seen": row.last_seen,
+            }
+            for row in reading.viewers
+        ],
+        "longest": " and ".join(
+            f"page {page} ({charts.duration(avg)})" for page, avg in reading.longest()
+        ),
+    }
+
+
 def _detail_context(document: Document) -> dict[str, Any]:
     versions = list(document.versions.filter(status=DocumentVersion.Status.READY))
     latest = versions[0] if versions else None
@@ -123,6 +156,7 @@ def _detail_context(document: Document) -> dict[str, Any]:
     return {
         "tab": "documents",
         "document": document,
+        "reading": _reading(document),
         "links": document.links.all(),
         "versions": versions,
         "latest": latest,
