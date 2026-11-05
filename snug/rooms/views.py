@@ -13,6 +13,7 @@ from snug.accounts.models import Admin
 from snug.audit.models import AuditEvent, record
 from snug.core.client import client_ip, user_agent
 from snug.documents.models import Document
+from snug.nda import terms as nda_terms
 from snug.rooms.models import Folder, Room, RoomDocument
 
 ROOM_NAME = 120
@@ -54,6 +55,7 @@ def _detail(request: HttpRequest, room: Room, *, status: int = 200, **extra: Any
         "by_folder": [(f, [e for e in entries if e.folder_id == f.pk]) for f in folders],
         "addable": Document.objects.exclude(pk__in=in_room),
         "links": room.links.select_related("room"),
+        "nda": nda_terms.current(),
         **extra,
     }
     return render(request, "rooms/detail.html", context, status=status)
@@ -110,6 +112,23 @@ def room_rename(request: HttpRequest, token: str) -> HttpResponse:
         _audit(request, "room.renamed", room, to=name)
         room.name = name
         room.save(update_fields=["name"])
+    return redirect("rooms:detail", token=room.token)
+
+
+@never_cache
+@login_required
+@require_POST
+def room_nda(request: HttpRequest, token: str) -> HttpResponse:
+    """Whether the room asks for the NDA before anything in it is shown."""
+    room = get_object_or_404(Room, token=token)
+    wanted = request.POST.get("require_nda") == "on"
+    if wanted and nda_terms.current() is None:
+        error = "Write the NDA in Settings first."
+        return _detail(request, room, status=400, nda_error=error)
+    if wanted != room.require_nda:
+        room.require_nda = wanted
+        room.save(update_fields=["require_nda"])
+        _audit(request, "room.nda_required" if wanted else "room.nda_not_required", room)
     return redirect("rooms:detail", token=room.token)
 
 

@@ -48,6 +48,15 @@
       </form>
     </section>
     <section class="section">
+      <div class="section-head"><h2>NDA</h2></div>
+      <form class="panel form" method="post" action="{% url 'rooms:nda' room.token %}">
+        {% csrf_token %}
+        <label class="check"><input type="checkbox" name="require_nda"{% if room.require_nda %} checked{% endif %}{% if not nda %} disabled{% endif %}><span>Ask for the NDA before anything is shown<span class="hint">{% if nda %}Version {{ nda.number }}. Each link accepts it once; a new version asks again.{% else %}Write the NDA in <a href="{% url 'accounts:settings' %}#nda">Settings</a> first.{% endif %}</span></span></label>
+        {% if nda_error %}<div class="error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% endif %}
+        <div class="form-foot"><button class="btn" type="submit"{% if not nda %} disabled{% endif %}>Save</button></div>
+      </form>
+    </section>
+    <section class="section">
       <div class="section-head"><h2>Rename</h2></div>
       <form class="panel form" method="post" action="{% url 'rooms:rename' room.token %}" novalidate>
         {% csrf_token %}

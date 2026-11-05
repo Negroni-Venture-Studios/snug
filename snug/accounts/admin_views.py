@@ -20,6 +20,8 @@ from snug.audit.models import AuditEvent, record
 from snug.core import mail, ratelimit
 from snug.core.client import client_ip, user_agent
 from snug.core.models import SiteSettings
+from snug.nda import terms as nda_terms
+from snug.nda.models import NdaVersion
 
 SETUP_SESSION = "snug.setup"
 WRONG_CODE = "That code is not right, or it has just been used. Wait for the next one."
@@ -59,6 +61,8 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
             (k for k in ("invited", "removed", "reset", "saved") if request.GET.get(k) == "1"), ""
         ),
         "privacy_url": SiteSettings.load().privacy_url,
+        "nda": nda_terms.current(),
+        "nda_history": NdaVersion.objects.select_related("created_by")[:10],
         "values": {"email": ""},
         **extra,
     }
@@ -160,6 +164,32 @@ def privacy_view(request: HttpRequest) -> HttpResponse:
         row.save(update_fields=["privacy_url"])
         _audit(request, "settings.privacy_link_changed", _admin(request).email, "", url=url)
     return redirect("/admin/settings/?saved=1")
+
+
+# ---------------------------------------------------------------- the NDA
+
+
+@never_cache
+@login_required
+@require_POST
+def nda_view(request: HttpRequest) -> HttpResponse:
+    """Publish the NDA. Changed text becomes a new version, which everyone accepts again."""
+    text = request.POST.get("text", "").strip()
+    if not text or len(text) > nda_terms.MAX_TEXT:
+        error = "Enter the agreement, of up to 50,000 characters."
+        return _settings_page(request, status=400, nda_error=error, nda_draft=text[:60000])
+    before = nda_terms.current()
+    version = nda_terms.publish(text, by=_admin(request))
+    if version != before:
+        _audit(
+            request,
+            "settings.nda_published",
+            _admin(request).email,
+            "",
+            version=version.number,
+            sha256=version.sha256,
+        )
+    return redirect("/admin/settings/?saved=1#nda")
 
 
 # ---------------------------------------------------------------- removing and resetting

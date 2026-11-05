@@ -32,10 +32,11 @@ from snug.core.client import client_ip, user_agent
 from snug.core.models import SiteSettings
 from snug.documents.storage import RENDER_WIDTHS
 from snug.links.models import Link
+from snug.nda import terms
 from snug.rendering import pages as rendering
 from snug.rendering.sandbox import WorkerError
 from snug.viewer import codes, limits, sessions
-from snug.viewer.access import Access, NotVerified, Unavailable, authorise, find_link
+from snug.viewer.access import Access, NeedsNda, NotVerified, Unavailable, authorise, find_link
 from snug.viewer.models import VerificationCode
 
 CHECK_ATTRIBUTE = "snug_viewer_check"
@@ -48,9 +49,9 @@ def _unavailable(request: HttpRequest) -> HttpResponse:
     return render(request, "viewer/unavailable.html", status=404)
 
 
-def _see_other(token: str) -> HttpResponse:
-    """Back to the link's own address, after a form, as a GET."""
-    response = HttpResponseRedirect(reverse("viewer:entry", kwargs={"token": token}))
+def _see_other(token: str, name: str = "viewer:entry") -> HttpResponse:
+    """Back to the link's own address (or another of its pages), as a GET."""
+    response = HttpResponseRedirect(reverse(name, kwargs={"token": token}))
     response.status_code = 303
     return response
 
@@ -85,6 +86,8 @@ def viewer_content(
                 if not_verified is not None:
                     return not_verified(request, denied.link, token)
                 return _see_other(token)
+            except NeedsNda:
+                return _see_other(token, "viewer:nda")
             except Unavailable:
                 return _unavailable(request)
             return view(request, access, token, **kwargs)
@@ -372,6 +375,64 @@ def beat(request: HttpRequest, access: Access, token: str) -> HttpResponse:
     ):
         return HttpResponse(status=400)
     return HttpResponse(status=204)
+
+
+def viewer_nda(view: Callable[..., HttpResponse]) -> Callable[..., HttpResponse]:
+    """For the NDA page: authorise(), stopping before the NDA check it exists to pass."""
+
+    @wraps(view)
+    def wrapper(request: HttpRequest, token: str) -> HttpResponse:
+        try:
+            access = authorise(request, token, check_nda=False)
+        except NotVerified:
+            return _see_other(token)
+        except Unavailable:
+            return _unavailable(request)
+        return view(request, access, token)
+
+    setattr(wrapper, CHECK_ATTRIBUTE, "authorise")
+    return wrapper
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+@viewer_nda
+def nda(request: HttpRequest, access: Access, token: str) -> HttpResponse:
+    """The NDA, to accept before anything the link shares is shown."""
+    version = terms.current()
+    if version is None or not terms.required(access.link) or terms.accepted(access.link, version):
+        return _see_other(token)
+    context = _context(access.link, token, nda=version, errors={}, name="")
+    if request.method == "GET":
+        return render(request, "viewer/nda.html", context)
+
+    name = " ".join(request.POST.get("name", "").split())[:200]
+    errors = {}
+    if not name:
+        errors["name"] = "Enter your name."
+    if request.POST.get("accept") != "on":
+        errors["accept"] = "Tick the box to accept."
+    if errors:
+        context.update(errors=errors, name=name)
+        return render(request, "viewer/nda.html", context, status=400)
+    terms.accept(
+        access.link,
+        version,
+        name=name,
+        email=access.session.email,
+        ip=client_ip(request),
+        user_agent=user_agent(request),
+    )
+    _audit(
+        request,
+        "viewer.nda_accepted",
+        access.link,
+        access.session.email,
+        name=name,
+        nda_version=version.number,
+        sha256=version.sha256,
+    )
+    return _see_other(token)
 
 
 def _filename(title: str) -> str:

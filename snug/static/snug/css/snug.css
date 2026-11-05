@@ -283,6 +283,9 @@ input.code { font-family: var(--mono); font-size: 1.5rem; letter-spacing: 0.45em
 .page-frame img { display: block; width: 100%; height: auto; }
 .reader-controls .btn[aria-disabled="true"] { opacity: 0.45; cursor: default; }
 .reader-controls .jump { display: flex; gap: 0.4rem; }
+.nda-text { max-height: 22rem; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); padding: 1rem 1.15rem; margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.6; }
+.nda-text p + p { margin-top: 0.75rem; }
+.gate .small { margin: 0.25rem 0 1.25rem; }
 .room-index h2 { font-size: 0.95rem; font-weight: 500; margin: 1.75rem 0 0.5rem; color: var(--text-2); }
 .room-documents { list-style: none; border-top: 1px solid var(--border); }
 .room-documents li { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }

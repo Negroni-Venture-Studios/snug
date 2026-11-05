@@ -24,6 +24,7 @@ from snug.core.client import client_ip, user_agent
 from snug.documents.models import Document
 from snug.links import service
 from snug.links.models import Link
+from snug.nda import terms as nda_terms
 from snug.rooms.models import Room
 
 ISSUED = "snug.issued_link"
@@ -150,6 +151,8 @@ def _new_link(
     context: dict[str, Any] = {
         "tab": tab,
         "target": target,
+        "for_room": room is not None,
+        "nda": nda_terms.current(),
         "email_enabled": mail.enabled(),
         "values": {"require_verification": True, "allow_download": True},
     }
@@ -160,6 +163,7 @@ def _new_link(
     note = " ".join(request.POST.get("note", "").split())[:200]
     expires_at, expiry_error = _parse_expiry(request.POST.get("expires", "").strip())
     require_verification = request.POST.get("require_verification") == "on"
+    require_nda = document is not None and request.POST.get("require_nda") == "on"
     allow_download = request.POST.get("allow_download") == "on"
     values = {
         "email": email,
@@ -167,6 +171,7 @@ def _new_link(
         "expires": request.POST.get("expires", ""),
         "require_verification": require_verification,
         "allow_download": allow_download,
+        "require_nda": require_nda,
     }
     context["values"] = values
     error = expiry_error
@@ -184,6 +189,7 @@ def _new_link(
         note=note,
         expires_at=expires_at,
         require_verification=require_verification,
+        require_nda=require_nda,
         allow_download=allow_download,
         created_by=_admin(request),
     )
