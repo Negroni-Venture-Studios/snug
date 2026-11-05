@@ -28,6 +28,7 @@ from django.views.decorators.http import require_http_methods, require_POST, req
 from snug.audit.models import AuditEvent, record
 from snug.core import mail, ratelimit
 from snug.core.client import client_ip, user_agent
+from snug.core.models import SiteSettings
 from snug.documents.storage import RENDER_WIDTHS
 from snug.links.models import Link
 from snug.rendering import pages as rendering
@@ -129,6 +130,7 @@ def _context(link: Link, token: str, **extra: Any) -> dict[str, Any]:
         "pages": version.page_count if version else None,
         "company": settings.CONFIG.company_name,
         "email_enabled": mail.enabled(),
+        "privacy_url": SiteSettings.load().privacy_url,
         **extra,
     }
 

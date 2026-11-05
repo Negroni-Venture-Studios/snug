@@ -10,6 +10,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- An optional link to your own privacy policy, set in Settings and shown to viewers beside the statement of what Snug records about them.
+
 - The reader: once a viewer is in, each page is shown as an image, one at a time, with Previous, Next, the arrow keys and a page picker. Every page is watermarked for that viewer on each request, with their email address and the date across the page and a footer naming them, the date and the link. Watermarks are stamped in the same confined worker that renders pages.
 - Downloads: when a link allows them (the default), the reader offers the original PDF, with a line naming the viewer, the date and the link on every page and the same details in the file's properties. The text stays selectable and searchable. Each download is recorded in the audit log with a fingerprint of the exact file sent.
 

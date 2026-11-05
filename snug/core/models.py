@@ -19,3 +19,22 @@ class RateLimitWindow(models.Model):
 
     def __str__(self) -> str:
         return f"{self.key[:12]} @ {self.window_start}: {self.count}"
+
+
+class SiteSettings(models.Model):
+    """Instance-wide settings an admin changes in the interface. One row, always pk 1."""
+
+    # A link to the founder's own privacy policy, shown to viewers (UK GDPR:
+    # the founder is the controller of viewers' data). Only plain https URLs.
+    privacy_url = models.URLField(max_length=500, blank=True)
+
+    class Meta:
+        verbose_name_plural = "site settings"
+
+    def __str__(self) -> str:
+        return "Site settings"
+
+    @classmethod
+    def load(cls) -> "SiteSettings":
+        row, _ = cls.objects.get_or_create(pk=1)
+        return row
