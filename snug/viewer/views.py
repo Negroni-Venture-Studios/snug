@@ -283,14 +283,15 @@ def verify_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
         tries_left=result.tries_left,
         limited=result.limited,
     )
+    if ratelimit.exceeded(limits.WRONG_EMAIL_PER_LINK, str(link.pk)):
+        # In neutral mode, "tries left" would mean a code was sent, and
+        # "expired" or the daily cap that none was or one was: each answers a
+        # guess about the address. So every wrong code reads the same.
+        error = "That code is not right."
+        return _code_page(request, link, token, error=error, neutral=True, status=400)
     if result.limited:
         error = "Too many attempts on this link today. Try again tomorrow."
         return _code_page(request, link, token, error=error, spent=True, status=429)
-    if ratelimit.exceeded(limits.WRONG_EMAIL_PER_LINK, str(link.pk)):
-        # In neutral mode, "tries left" would mean a code was sent and
-        # "expired" that none was: either answers a guess about the address.
-        error = "That code is not right."
-        return _code_page(request, link, token, error=error, neutral=True, status=400)
     if result.tries_left:
         tries = "1 try" if result.tries_left == 1 else f"{result.tries_left} tries"
         error = f"That code is not right. You have {tries} left."

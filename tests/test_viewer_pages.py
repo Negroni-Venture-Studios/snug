@@ -226,6 +226,21 @@ def test_in_neutral_mode_a_wrong_code_never_says_whether_one_was_sent(
 
 
 @pytest.mark.usefixtures("email_on", "neutral")
+def test_in_neutral_mode_the_daily_cap_reads_like_a_wrong_code(
+    issued: service.Issued, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The daily cap is only reached against a live code, so its own message
+    # would also say that an address was right.
+    from snug.viewer import codes
+
+    monkeypatch.setattr(codes, "check", lambda link, typed: codes.Result(False, 0, limited=True))
+    response = post(Client(), path(issued, "/code"), {"code": "000000"})
+    assert response.status_code == 400
+    page = response.content.decode()
+    assert "That code is not right." in page and "today" not in page
+
+
+@pytest.mark.usefixtures("email_on", "neutral")
 def test_in_neutral_mode_the_code_is_sent_in_the_background(
     issued: service.Issued, monkeypatch: pytest.MonkeyPatch
 ) -> None:
