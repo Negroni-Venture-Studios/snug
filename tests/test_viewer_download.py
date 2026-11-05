@@ -19,7 +19,7 @@ from snug.audit.models import AuditEvent
 from snug.documents import ingest
 from snug.documents.models import Document
 from snug.links import service
-from snug.rendering import sandbox, worker
+from snug.rendering import pages, sandbox, worker
 from snug.viewer import limits
 from tests.pdfs import chunks, make_pdf
 
@@ -70,7 +70,9 @@ def deck(tmp_path: Path) -> Path:
 
 
 def stamp_pdf(path: Path, email: str = INVESTOR) -> bytes:
-    return sandbox.stamp_pdf(path, email=email, date="5 Nov 2026", ref="7Q2K", limit=10_000_000)
+    return sandbox.stamp_pdf(
+        path, pages.WATERMARK_FONT, email=email, date="5 Nov 2026", ref="7Q2K", limit=10_000_000
+    )
 
 
 def test_every_page_carries_the_line_and_the_text_stays_text(deck: Path) -> None:
@@ -79,6 +81,46 @@ def test_every_page_carries_the_line_and_the_text_stays_text(deck: Path) -> None
     for page in reader.pages:
         text = page.extract_text()
         assert f"Shared with {INVESTOR}" in text and "5 Nov 2026" in text and "Link 7Q2K" in text
+
+
+def test_every_page_carries_a_faint_diagonal_mark(deck: Path) -> None:
+    # Decided 5 November 2026: the same tiled mark as the reader, so a page of
+    # the download is marked wherever it is cropped or screenshotted.
+    import pypdfium2
+    from PIL import ImageChops
+
+    def render(data: bytes) -> Any:
+        return pypdfium2.PdfDocument(data)[0].render(scale=1).to_pil().convert("L")
+
+    plain, stamped = render(deck.read_bytes()), render(stamp_pdf(deck))
+    width, height = plain.size
+    # The middle of the page, well away from the footer line, now differs.
+    box = (width // 4, height // 4, 3 * width // 4, 3 * height // 4)
+    changed = ImageChops.difference(plain.crop(box), stamped.crop(box)).point(
+        lambda v: 255 if v > 10 else 0
+    )
+    assert changed.histogram()[255] > 50
+
+
+def test_the_mark_is_an_image_so_copied_text_stays_clean(deck: Path) -> None:
+    reader = PdfReader(io.BytesIO(stamp_pdf(deck)))
+    for page in reader.pages:
+        # Only the footer line names the viewer in the text; the mark does not.
+        assert page.extract_text().count(INVESTOR) == 1
+        resources: Any = page["/Resources"]
+        images = [
+            obj.get_object()
+            for obj in resources["/XObject"].values()
+            if obj.get_object().get("/Subtype") == "/Image"
+        ]
+        assert any("/SMask" in image for image in images)
+
+
+def test_the_mark_adds_little_to_the_file(tmp_path: Path) -> None:
+    long_deck = tmp_path / "long.pdf"
+    long_deck.write_bytes(make_pdf(*[(960, 540)] * 20))
+    before = len(long_deck.read_bytes())
+    assert len(stamp_pdf(long_deck)) - before < 400_000
 
 
 def test_the_document_properties_name_the_viewer(deck: Path) -> None:
@@ -114,7 +156,9 @@ def test_odd_addresses_are_written_safely(deck: Path) -> None:
 
 def test_output_past_the_limit_is_refused(deck: Path) -> None:
     with pytest.raises(sandbox.WorkerError):
-        sandbox.stamp_pdf(deck, email=INVESTOR, date="5 Nov 2026", ref="7Q2K", limit=100)
+        sandbox.stamp_pdf(
+            deck, pages.WATERMARK_FONT, email=INVESTOR, date="5 Nov 2026", ref="7Q2K", limit=100
+        )
 
 
 def test_only_pdf_comes_back(deck: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -128,7 +172,8 @@ def test_main_stamps_a_pdf_in_process(
 ) -> None:
     import os
 
-    args = ["stamp-pdf", str(os.open(deck, os.O_RDONLY)), INVESTOR, "5 Nov 2026", "7Q2K"]
+    font = str(os.open(pages.WATERMARK_FONT, os.O_RDONLY))
+    args = ["stamp-pdf", str(os.open(deck, os.O_RDONLY)), font, INVESTOR, "5 Nov 2026", "7Q2K"]
     assert worker.main(args, confined=False) == 0
     assert capsysbinary.readouterr().out.startswith(b"%PDF-")
 
