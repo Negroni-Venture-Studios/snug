@@ -12,4 +12,4 @@ You do not need to ask permission to:
 - write about Snug, link to it, or show its icon when referring to this project;
 - say that your product is "based on Snug" or "a fork of Snug".
 
-Questions are welcome: open an issue, or email alasdair@babilim.co.uk.
+Questions are welcome: open an issue, or email alasdair@negroniventurestudios.com.
