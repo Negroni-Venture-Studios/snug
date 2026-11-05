@@ -278,3 +278,12 @@ The Snug icon is a **half-glazed snug door**, chosen on 5 November 2026 from eig
 ## 4. Order of work
 
 As the brief, with step 0 added: repository guard rails, then branch protection. Each step lands as small pull requests that leave CI green.
+
+## 5. After version 1 (*proposed*)
+
+**More file types, spreadsheets first.** Spreadsheets matter in a data room, especially financial models. The brief keeps Office files out of version 1, and the design leaves room for them:
+
+- Versions record a page count and page sizes, and the viewer, watermark and analytics all work on page images. Any format that can become pages slots in without changes elsewhere; the version just needs to record its original format.
+- The likely route is converting to PDF on upload, inside the same confined worker, so every safeguard applies unchanged. LibreOffice in headless mode (MPL-2.0, compatible with MIT) converts XLSX, DOCX and PPTX. It is large (several hundred MB in the image) and a big parser for hostile files, which is why it must run sandboxed like PDFium.
+- Spreadsheets do not paginate naturally. Readers usually want the numbers, and often the file itself. Options to weigh then: fit each sheet to a page width; render each sheet as a scrollable image; or offer the watermarked original as a download only when the link allows downloads.
+- Analytics would count sheets as pages.

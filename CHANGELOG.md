@@ -6,6 +6,14 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- A Documents section in the admin interface:
+  - a list of documents with their latest version;
+  - uploading a PDF as a new document;
+  - a document page showing every version and a server-rendered preview of page 1;
+  - uploading new versions.
+
+  Oversized uploads are refused from their declared size, before they are read. Uploads, new versions and refusals are recorded in the audit log.
+
 - Documents and versions, and the machinery behind them:
   - PDFs are checked, hashed and stored under generated names, never their uploaded names;
   - each upload becomes the document's next version;

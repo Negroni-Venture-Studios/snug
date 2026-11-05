@@ -1,10 +1,8 @@
 """Uploading PDFs: what is accepted, what is refused, and where files go."""
 
-import dataclasses
 from pathlib import Path
 
 import pytest
-from django.conf import settings
 from django.test import override_settings
 
 from snug.accounts.models import Admin
@@ -21,11 +19,8 @@ DECK = make_pdf((960, 540), (960, 540), (595, 842))
 
 
 @pytest.fixture(autouse=True)
-def own_data_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Files outlive the database rollback between tests, so each test gets its own."""
-    for folder in ("originals", "renders", "tmp"):
-        (tmp_path / folder).mkdir()
-    monkeypatch.setattr(settings, "CONFIG", dataclasses.replace(settings.CONFIG, data_dir=tmp_path))
+def own_data_folder(data_folder: Path) -> None:
+    """Every test here gets its own data folder (see conftest.py)."""
 
 
 @pytest.fixture

@@ -344,3 +344,28 @@ input.code { font-family: var(--mono); font-size: 1.5rem; letter-spacing: 0.45em
 .empty { border: 1px dashed var(--border-strong); border-radius: var(--r); padding: 2.5rem 1.5rem; text-align: center; color: var(--text-2); }
 .empty h2 { color: var(--text); font-size: 1.1rem; font-weight: 500; margin-bottom: 0.35rem; }
 form.inline { display: inline; }
+
+/* ---------- Documents ---------- */
+.doc-rows .item, .version-rows .item { grid-template-columns: minmax(14rem, 1.6fr) 7rem 7rem 8rem; }
+.version-rows .item { grid-template-columns: minmax(10rem, 1fr) minmax(8rem, auto) 10rem; }
+.doc-rows a.email { color: var(--text); text-decoration: none; font-weight: 500; }
+.doc-rows a.email:hover { text-decoration: underline; }
+.empty .empty-action { margin-top: 1.25rem; }
+.empty .empty-action .btn { width: auto; }
+.narrow-form { max-width: 34rem; }
+input[type="file"] {
+    width: 100%; font: inherit; font-size: 0.9rem; color: var(--text-2); padding: 0.55rem;
+    border: 1px dashed var(--border-strong); border-radius: var(--r); background: var(--tint);
+}
+input[type="file"]::file-selector-button {
+    font: inherit; font-size: 0.85rem; font-weight: 500; margin-right: 0.75rem; padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border-strong); border-radius: var(--r); background: var(--surface); color: var(--text); cursor: pointer;
+}
+.doc-split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 2.5rem; align-items: start; }
+.preview-frame { border: 1px solid var(--border); border-radius: 2px; overflow: hidden; background: #ffffff; }
+.preview-frame img { display: block; width: 100%; height: auto; }
+@media (max-width: 860px) {
+    .doc-split { grid-template-columns: 1fr; }
+    .doc-rows .item, .version-rows .item { grid-template-columns: 1fr auto; }
+    .doc-rows .item > .muted:not(.r) { display: none; }
+}

@@ -1,0 +1,49 @@
+{% extends "snug/admin_base.html" %}
+{% load snug %}
+{% block title %}{{ document.title }} in Snug{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'documents:list' %}">Documents</a> / {{ document.title }}</div>
+<div class="title-row">
+  <div>
+    <h1 class="page-title">{{ document.title }}</h1>
+    {% if latest %}<div class="page-meta num"><span>Version {{ latest.number }}</span><span>{{ latest.page_count }} page{{ latest.page_count|pluralize }}</span><span>Uploaded {{ latest.uploaded_at|date:"j M Y" }}</span></div>{% endif %}
+  </div>
+</div>
+
+<div class="doc-split">
+  <section class="section">
+    <div class="section-head"><h2>First page</h2></div>
+    {% if latest and preview %}
+    <div class="preview-frame"><img src="{% url 'documents:preview' document.token latest.number 1 %}" width="{{ preview.width }}" height="{{ preview.height }}" alt="Page 1 of {{ document.title }}, version {{ latest.number }}"></div>
+    <p class="chart-note">As rendered on the server. Viewers will also see their own watermark.</p>
+    {% else %}
+    <div class="empty"><p>No readable version yet.</p></div>
+    {% endif %}
+  </section>
+
+  <div>
+    <section class="section">
+      <div class="section-head"><h2>Upload a new version</h2></div>
+      <form class="panel form" method="post" action="{% url 'documents:upload_version' document.token %}" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        {% include "snug/partials/form_error.html" %}
+        <div class="field"><label for="pdf">PDF</label><input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf" required><div class="hint">Up to {{ limit_mb }} MB. Every link to this document will show the new version.</div></div>
+        <div class="form-foot"><button class="btn btn-primary" type="submit">{% icon "upload-simple" %}Upload version</button></div>
+      </form>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>Versions</h2></div>
+      <div class="rows version-rows">
+        {% for version in versions %}
+        <div class="item">
+          <div class="who"><span class="email">Version {{ version.number }}</span><span class="note">{{ version.original_filename }}</span></div>
+          <span class="muted num">{{ version.page_count }} page{{ version.page_count|pluralize }}, {{ version.size_bytes|filesizeformat }}</span>
+          <span class="r muted num">{{ version.uploaded_at|date:"j M Y, H:i" }}{% if version.uploaded_by %}<br>{{ version.uploaded_by.email }}{% endif %}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

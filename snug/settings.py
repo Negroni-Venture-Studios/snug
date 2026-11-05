@@ -63,6 +63,8 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    # Before the CSRF check, which would otherwise read the whole upload first.
+    "snug.documents.uploads.upload_size_limit",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "snug.accounts.sessions.session_limits",
