@@ -114,6 +114,21 @@ def test_unwritable_data_folder_is_explained(tmp_path: Path) -> None:
     assert "Traceback" not in result.stderr
 
 
+@pytest.mark.django_db
+def test_serve_takes_a_thread_count(monkeypatch: pytest.MonkeyPatch) -> None:
+    argv: list[str] = []
+
+    def fake_execv(path: str, args: list[str]) -> NoReturn:
+        argv.extend(args)
+        raise SystemExit(0)
+
+    monkeypatch.setattr(serve, "call_command", lambda name, **options: None)
+    monkeypatch.setattr("os.execv", fake_execv)
+    with pytest.raises(SystemExit):
+        call_command("serve", "--threads", "7")
+    assert argv[argv.index("--threads") + 1] == "7"
+
+
 def test_wsgi_application_loads() -> None:
     from snug.wsgi import application
 
@@ -143,5 +158,9 @@ def test_serve_migrates_before_handing_over_to_gunicorn(monkeypatch: pytest.Monk
     assert argv[1:4] == ["-m", "gunicorn", "snug.wsgi:application"]
     assert argv[argv.index("--bind") + 1] == "127.0.0.1:9000"
     assert argv[argv.index("--workers") + 1] == "3"
+    # Threaded workers: an idle keep-alive socket (a browser's preconnect)
+    # must not hold a whole worker until gunicorn's timeout kills it.
+    assert argv[argv.index("--worker-class") + 1] == "gthread"
+    assert argv[argv.index("--threads") + 1] == "4"
     assert not any("access-log" in a for a in argv)
     assert settings.CONFIG.data_dir.is_dir()

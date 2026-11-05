@@ -223,12 +223,17 @@ SILENCED_SYSTEM_CHECKS = [
 #
 # Logs go to standard output for Docker to collect. There is deliberately no
 # request access log: viewer URLs carry link tokens, which must never be logged.
+# An unexpected error is logged with its traceback (django.request), and every
+# line passes through RedactSecrets, which blanks link and setup tokens.
 
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {"plain": {"format": "{asctime} {levelname} {name}: {message}", "style": "{"}},
-    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "plain"}},
+    "filters": {"redact": {"()": "snug.core.redaction.RedactSecrets"}},
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "plain", "filters": ["redact"]}
+    },
     "root": {"handlers": ["console"], "level": "INFO"},
     "loggers": {
         "django.request": {"level": "ERROR"},
