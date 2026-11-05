@@ -45,6 +45,7 @@ Agreed on 5 November 2026 unless noted.
 | Branding | The Negroni brand kit is inspiration and palette, not a rulebook. No commercial brand fonts; Geist and Geist Mono (OFL) instead. | PP Hatton and NB Grotesk Pro Mono need commercial licences and cannot ship in an MIT repository or a public image. |
 | Front end | Revision 2 (section 3): Negroni palette, Geist type, Phosphor icons, the reading heatmap; its stylesheet seeds `base.css` | Revision 1 was calm but bland. |
 | Logo | The half-glazed snug door (section 3.14) | Door, monogram and Negroni sparkle; a snug is a pub's private room. |
+| Link tokens | 256-bit random tokens, stored only as SHA-256 hashes. The full link is shown once, at creation; afterwards the founder can issue a new link, which stops the old one. Each link also has a short, non-secret reference (like `L-7Q2K`) for watermarks and the audit log. | A leaked database or backup exposes no working links. |
 | Trademarks | Logo files are MIT with the code; `TRADEMARKS.md` asks forks shipped as separate products to rename | Keeps "Snug" meaning the Negroni project without heavy policy. |
 | Theme | Dark by default; a dark, light and auto toggle in every header | Agreed 5 November 2026. |
 
@@ -238,7 +239,7 @@ The founder's logo at the top left, and nothing competing with the document. It 
 
 ### 3.13 Open questions (front end)
 
-1. **Store link tokens hashed?** *Recommend yes.* The founder would see the full link only once, at creation.
+1. **Store link tokens hashed?** *Decided 5 November 2026: yes.* The founder sees the full link once, at creation, and can afterwards send a new link (which stops the old one working).
 2. **Accessibility of page images.** *Recommend* accepting the gap for version 1 and documenting it.
 3. **Thumbnails in the reader.** *Recommend not* in version 1.
 4. **Playwright in CI.** *Recommend yes*, from step 4.
@@ -281,9 +282,15 @@ As the brief, with step 0 added: repository guard rails, then branch protection.
 
 ## 5. After version 1 (*proposed*)
 
-**More file types, spreadsheets first.** Spreadsheets matter in a data room, especially financial models. The brief keeps Office files out of version 1, and the design leaves room for them:
+**More file types, spreadsheets first.** Spreadsheets matter in a data room, especially financial models, and **investors must be able to download them**: the working file, with its formulas and numbers, is what they need (decided 5 November 2026). The brief keeps Office files out of version 1, and the design leaves room for them:
 
-- Versions record a page count and page sizes, and the viewer, watermark and analytics all work on page images. Any format that can become pages slots in without changes elsewhere; the version just needs to record its original format.
-- The likely route is converting to PDF on upload, inside the same confined worker, so every safeguard applies unchanged. LibreOffice in headless mode (MPL-2.0, compatible with MIT) converts XLSX, DOCX and PPTX. It is large (several hundred MB in the image) and a big parser for hostile files, which is why it must run sandboxed like PDFium.
-- Spreadsheets do not paginate naturally. Readers usually want the numbers, and often the file itself. Options to weigh then: fit each sheet to a page width; render each sheet as a scrollable image; or offer the watermarked original as a download only when the link allows downloads.
-- Analytics would count sheets as pages.
+- **The download is the deliverable.** A spreadsheet link needs downloads allowed, and the download is the original file. A page-image view is only a preview, for deciding whether to download.
+- **Traceable downloads.** Snug cannot burn a visible watermark into a working file. Instead each download is stamped for its reader:
+  - the document properties (author, comments and a custom property) name the reader's email address, the date and the link;
+  - a first sheet, or a header and footer on every sheet, says who it was shared with;
+  - the audit log records the download, with a hash of the exact file sent.
+
+  This deters casual forwarding and identifies a leaked copy. Like the watermark, it cannot stop a determined copier, and `docs/security.md` must say so.
+- **Stamping runs in the confined worker.** Opening a hostile XLSX is as risky as opening a hostile PDF. A small, permissive library such as openpyxl (MIT) can write the stamp without LibreOffice.
+- **Previews.** Converting to PDF for the preview would also run in the worker. LibreOffice in headless mode (MPL-2.0, compatible with MIT) converts XLSX, DOCX and PPTX, but it is large (several hundred MB in the image) and a big parser, so it must be sandboxed like PDFium. Without it, the admin can upload a PDF export alongside the spreadsheet as its preview.
+- **Analytics** for a spreadsheet are downloads, plus preview pages read, if there is a preview.
