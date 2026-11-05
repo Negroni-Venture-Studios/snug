@@ -76,7 +76,8 @@ def run(
     try:
         output = _read_bounded(process, timeout=timeout, limit=limit)
     finally:
-        if process.poll() is None:
+        # Unreaped means the group ID is still ours: kill whatever is left.
+        if process.returncode is None:
             _kill(process)
         if process.stdout is not None:
             process.stdout.close()
@@ -89,9 +90,39 @@ def run(
 
 
 def _kill(process: subprocess.Popen[bytes]) -> None:
-    with contextlib.suppress(ProcessLookupError):
+    """Kill the worker's whole process group, then reap the worker.
+
+    Call only while the worker is unreaped: until then its process group ID
+    cannot be reused, so the signal can only reach the worker's own group.
+    """
+    with contextlib.suppress(ProcessLookupError, PermissionError):
         os.killpg(process.pid, signal.SIGKILL)  # its own session, so its whole group
     process.wait()
+
+
+def _await_exit(process: subprocess.Popen[bytes], deadline: float) -> None:
+    """Wait for the worker to exit without reaping it, so its group ID stays reserved.
+
+    Linux has waitid(WNOWAIT). Python on macOS does not, so there the worker is
+    reaped, and the group is swept afterwards (a negligible race on a developer's
+    machine; production runs on Linux).
+    """
+    waitid = getattr(os, "waitid", None)
+    if waitid is None:
+        try:
+            process.wait(timeout=max(deadline - time.monotonic(), 0.1))
+        except subprocess.TimeoutExpired as expired:
+            _kill(process)
+            raise WorkerError("timeout") from expired
+        with contextlib.suppress(ProcessLookupError, PermissionError):
+            os.killpg(process.pid, signal.SIGKILL)
+        return
+    flags = os.WEXITED | os.WNOHANG | os.WNOWAIT
+    while waitid(os.P_PID, process.pid, flags) is None:
+        if time.monotonic() > deadline:
+            _kill(process)
+            raise WorkerError("timeout")
+        time.sleep(0.01)
 
 
 def _read_bounded(process: subprocess.Popen[bytes], *, timeout: float, limit: int) -> bytes:
@@ -116,11 +147,11 @@ def _read_bounded(process: subprocess.Popen[bytes], *, timeout: float, limit: in
                 _kill(process)
                 raise WorkerError("unreadable")
             chunks.append(chunk)
-    try:
-        process.wait(timeout=max(deadline - time.monotonic(), 0.1))
-    except subprocess.TimeoutExpired as expired:
+    # The worker has closed its output. Anything it started (it should not be
+    # able to: its process limit is zero) is killed before the worker is reaped.
+    _await_exit(process, deadline)
+    if process.returncode is None:
         _kill(process)
-        raise WorkerError("timeout") from expired
     return b"".join(chunks)
 
 

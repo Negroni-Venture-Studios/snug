@@ -47,6 +47,8 @@ def apply_limits() -> None:
         (resource.RLIMIT_FSIZE, OUTPUT_BYTES),
         (resource.RLIMIT_NOFILE, OPEN_FILES),
         (resource.RLIMIT_CORE, 0),
+        # No new processes or threads: a hijacked worker cannot leave children behind.
+        (resource.RLIMIT_NPROC, 0),
         # macOS does not enforce an address-space limit; Linux, where Snug
         # runs, does. Setting it may fail on macOS, which is fine there.
         (resource.RLIMIT_AS, MEMORY_BYTES),

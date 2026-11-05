@@ -75,7 +75,8 @@ def test_the_worker_limits_itself() -> None:
     probe = (
         "import resource, json; from snug.rendering import worker; worker.apply_limits(); "
         "print(json.dumps({n: resource.getrlimit(getattr(resource, n))[0] "
-        "for n in ('RLIMIT_CPU', 'RLIMIT_FSIZE', 'RLIMIT_NOFILE', 'RLIMIT_CORE', 'RLIMIT_AS')}))"
+        "for n in ('RLIMIT_CPU', 'RLIMIT_FSIZE', 'RLIMIT_NOFILE', 'RLIMIT_CORE', 'RLIMIT_AS', "
+        "'RLIMIT_NPROC')}))"
     )
     out = subprocess.run(
         [sys.executable, "-I", "-c", probe], capture_output=True, text=True, check=True, timeout=30
@@ -85,6 +86,7 @@ def test_the_worker_limits_itself() -> None:
     assert limits["RLIMIT_FSIZE"] == worker.OUTPUT_BYTES
     assert limits["RLIMIT_NOFILE"] == worker.OPEN_FILES
     assert limits["RLIMIT_CORE"] == 0
+    assert limits["RLIMIT_NPROC"] == 0
     if sys.platform == "linux":
         assert limits["RLIMIT_AS"] == worker.MEMORY_BYTES
 
@@ -311,3 +313,45 @@ def test_a_silent_hang_is_cut_off(deck: Path, monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(sandbox, "command", lambda *a: [sys.executable, "-c", script])
     with pytest.raises(sandbox.WorkerError, match="took too long"):
         sandbox.run(deck, "inspect", timeout=0.5)
+
+
+def test_children_left_behind_are_killed(
+    deck: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A worker that (somehow) started a child, then exited normally.
+    marker = tmp_path / "child.pid"
+    script = (
+        "import json, os, sys, time\n"
+        "pid = os.fork()\n"
+        "if pid == 0:\n"
+        "    os.close(1)\n"
+        "    time.sleep(60)\n"
+        "    os._exit(0)\n"
+        f"open({str(marker)!r}, 'w').write(str(pid))\n"
+        "sys.stdout.write(json.dumps({'pages': 1, 'sizes': [[1, 1]]}))\n"
+    )
+    monkeypatch.setattr(sandbox, "command", lambda *a: [sys.executable, "-c", script])
+    assert sandbox.inspect(deck)["pages"] == 1
+    child = int(marker.read_text())
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        try:
+            os.kill(child, 0)
+        except ProcessLookupError:
+            return
+        time.sleep(0.05)
+    pytest.fail("the worker's child outlived it")
+
+
+@linux_only
+def test_a_limited_worker_cannot_start_processes() -> None:
+    probe = (
+        "from snug.rendering import worker; worker.apply_limits()\n"
+        "import os\n"
+        "try:\n    os.fork()\n    print('forked')\n"
+        "except BlockingIOError:\n    print('refused')\n"
+    )
+    out = subprocess.run(
+        [sys.executable, "-I", "-c", probe], capture_output=True, text=True, timeout=30, check=False
+    ).stdout
+    assert out.strip() == "refused"
