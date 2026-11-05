@@ -12,6 +12,7 @@ Snug checks every setting when it starts. If any are missing or wrong, it lists 
 | `SNUG_DOMAIN` | Yes | | The host name people use to reach Snug, like `room.example.com`: no `https://`, port or path. Requests for any other host name are refused. |
 | `SNUG_DATA_DIR` | No | `/var/lib/snug` | Where Snug keeps its database and files. Must be an absolute path. Back it up, which the standard deployment does continuously. |
 | `SNUG_TRUSTED_PROXIES` | No | `127.0.0.1/32, ::1/128` | The addresses of the proxy in front of Snug, Caddy in the standard deployment, as a comma-separated list of addresses or networks. Snug believes the client address in `X-Forwarded-For` only on requests from these. Never set it to everything (`0.0.0.0/0`), and Snug refuses to start if you do: anyone could then claim any address and get round the rate limits. |
+| `SNUG_MAX_UPLOAD_MB` | No | `100` | The largest PDF an admin can upload, in megabytes, from 1 to 1024. Large decks with many images can reach tens of megabytes. |
 | `SNUG_HTTPS` | No | `true` | Snug expects to sit behind Caddy, which provides HTTPS. Can only be `false` when `SNUG_DOMAIN` is `localhost`. |
 | `SNUG_DEBUG` | No | `false` | Shows detailed error pages. Can only be `true` when `SNUG_DOMAIN` is `localhost`. Never use it on a real server. |
 

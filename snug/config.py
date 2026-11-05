@@ -18,6 +18,8 @@ MIN_SECRET_LENGTH = 50
 MIN_SECRET_DISTINCT = 20
 DEFAULT_DATA_DIR = "/var/lib/snug"
 DEFAULT_TRUSTED_PROXIES = "127.0.0.1/32, ::1/128"
+DEFAULT_MAX_UPLOAD_MB = 100
+MAX_UPLOAD_MB_CEILING = 1024
 
 IPNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
 
@@ -47,6 +49,7 @@ class Config:
     debug: bool
     # Proxies whose X-Forwarded-For header is believed: Caddy, and only Caddy.
     trusted_proxies: tuple[IPNetwork, ...] = ()
+    max_upload_mb: int = DEFAULT_MAX_UPLOAD_MB
 
     @property
     def database_path(self) -> Path:
@@ -107,6 +110,17 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
 
     trusted_proxies = _networks(env, "SNUG_TRUSTED_PROXIES", problems)
 
+    raw_upload = env.get("SNUG_MAX_UPLOAD_MB", "").strip()
+    max_upload_mb = DEFAULT_MAX_UPLOAD_MB
+    if raw_upload:
+        if raw_upload.isdecimal() and 1 <= int(raw_upload) <= MAX_UPLOAD_MB_CEILING:
+            max_upload_mb = int(raw_upload)
+        else:
+            problems.append(
+                f"SNUG_MAX_UPLOAD_MB must be a whole number of megabytes from 1 to "
+                f"{MAX_UPLOAD_MB_CEILING}, not {raw_upload!r}."
+            )
+
     https = _flag(env, "SNUG_HTTPS", default=True, problems=problems)
     debug = _flag(env, "SNUG_DEBUG", default=False, problems=problems)
 
@@ -127,6 +141,7 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         https=https,
         debug=debug,
         trusted_proxies=trusted_proxies,
+        max_upload_mb=max_upload_mb,
     )
 
 

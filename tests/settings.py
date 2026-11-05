@@ -31,6 +31,9 @@ STORAGES = {
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 
+for _folder in ("originals", "renders", "tmp"):
+    (_DATA_DIR / _folder).mkdir()
+
 # In production collectstatic fills STATIC_ROOT when the image is built.
 STATIC_ROOT = _DATA_DIR / "static"
 STATIC_ROOT.mkdir()

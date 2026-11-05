@@ -46,6 +46,8 @@ def main(argv: list[str] | None = None) -> int:
     data_dir = settings.CONFIG.data_dir
     try:
         data_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        for folder in ("originals", "renders", "tmp"):
+            (data_dir / folder).mkdir(mode=0o700, exist_ok=True)
     except OSError as error:
         print(f"snug: cannot create the data folder {data_dir}: {error.strerror}.", file=sys.stderr)
         return 2
