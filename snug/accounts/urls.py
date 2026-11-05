@@ -11,6 +11,7 @@ urlpatterns = [
     path("logout", views.logout_view, name="logout"),
     path("settings/", admin_views.settings_view, name="settings"),
     path("settings/privacy", admin_views.privacy_view, name="privacy"),
+    path("settings/nda", admin_views.nda_view, name="nda"),
     path("settings/admins/invite", admin_views.invite_view, name="invite"),
     path("settings/admins/remove", admin_views.remove_view, name="remove"),
     path("settings/admins/reset", admin_views.reset_view, name="reset"),
