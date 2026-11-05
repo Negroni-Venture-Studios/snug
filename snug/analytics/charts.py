@@ -11,6 +11,14 @@ from django.utils.safestring import SafeString, mark_safe
 
 SLOT = 20
 MAX_LABELS = 12
+# Charts leave room for at least this many pages, as the mockup does, so the
+# cells of a short document keep their size instead of stretching to fill
+# the column: a one-page document is one small cell, not a long bar.
+MIN_SLOTS = 18
+
+
+def _width(pages: int) -> int:
+    return SLOT * max(pages, MIN_SLOTS)
 
 
 def duration(seconds: float) -> str:
@@ -30,7 +38,7 @@ def heat(seconds: float, *, seen: bool) -> int:
 
 
 def strip(seconds: list[float], seen: list[bool], email: str) -> SafeString:
-    width = SLOT * len(seconds)
+    width = _width(len(seconds))
     count = sum(seen)
     parts = [
         f'<svg class="strip" viewBox="0 0 {width} 16" preserveAspectRatio="none" role="img" '
@@ -47,7 +55,7 @@ def strip(seconds: list[float], seen: list[bool], email: str) -> SafeString:
 
 
 def bars(averages: list[float]) -> SafeString:
-    width = SLOT * len(averages)
+    width = _width(len(averages))
     top = max(averages) or 1
     parts = [
         f'<svg class="bars" viewBox="0 0 {width} 64" preserveAspectRatio="none" role="img" '
@@ -74,7 +82,8 @@ def axis(pages: int) -> SafeString:
     shown = {*range(1, pages + 1, step), pages}
     if len(shown) > MAX_LABELS:
         shown.discard(max(shown - {pages}))
-    labels = "".join(f"<span>{p if p in shown else ''}</span>" for p in range(1, pages + 1))
+    columns = max(pages, MIN_SLOTS)
+    labels = "".join(f"<span>{p if p in shown else ''}</span>" for p in range(1, columns + 1))
     return mark_safe(f'<span class="axis" aria-hidden="true">{labels}</span>')  # noqa: S308 - numbers only
 
 
