@@ -6,6 +6,15 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- Links, in the admin interface:
+  - a link for one person to one document, with an optional note, an expiry date, and choices for verification and downloads;
+  - emailed to the recipient, or shown once to copy and send yourself, with a copy button;
+  - a Links page listing every link, and the links for each document on its page;
+  - revoking a link, and replacing it with a new one, which stops the old address working at once.
+
+  Link tokens are stored only as hashes, so a copy of the database cannot be used to open them. Every link action is recorded in the audit log.
+- Email through any SMTP provider, configured with `SNUG_COMPANY_NAME`, `SNUG_EMAIL_FROM` and the `SNUG_SMTP_*` settings. `docs/email.md` covers the provider, the SPF, DKIM and DMARC records, and DigitalOcean's blocked SMTP ports. On `localhost`, emails are written to an outbox folder instead.
+
 - A Documents section in the admin interface:
   - a list of documents with their latest version;
   - uploading a PDF as a new document;

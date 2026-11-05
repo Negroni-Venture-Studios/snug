@@ -20,6 +20,8 @@ DEFAULT_DATA_DIR = "/var/lib/snug"
 DEFAULT_TRUSTED_PROXIES = "127.0.0.1/32, ::1/128"
 DEFAULT_MAX_UPLOAD_MB = 100
 MAX_UPLOAD_MB_CEILING = 1024
+SMTP_SECURITY = ("starttls", "tls", "none")
+_EMAIL = re.compile(r"^[^@\s<>]+@[^@\s<>]+\.[^@\s<>]+$")
 
 IPNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
 
@@ -50,6 +52,13 @@ class Config:
     # Proxies whose X-Forwarded-For header is believed: Caddy, and only Caddy.
     trusted_proxies: tuple[IPNetwork, ...] = ()
     max_upload_mb: int = DEFAULT_MAX_UPLOAD_MB
+    company_name: str = ""
+    email_from: str = ""
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_security: str = "starttls"
 
     @property
     def database_path(self) -> Path:
@@ -59,11 +68,21 @@ class Config:
     def origin(self) -> str:
         return f"{'https' if self.https else 'http'}://{self.domain}"
 
+    @property
+    def email_outbox(self) -> bool:
+        """On localhost without SMTP, emails go to a folder, for development."""
+        return not self.smtp_host and self.domain == "localhost"
+
+    @property
+    def email_enabled(self) -> bool:
+        return bool(self.smtp_host) or self.email_outbox
+
     def __repr__(self) -> str:
-        # Never let the secret key reach a log or a traceback.
+        # Never let the secret key or SMTP password reach a log or a traceback.
         return (
             f"Config(domain={self.domain!r}, data_dir={str(self.data_dir)!r}, "
-            f"https={self.https}, debug={self.debug}, secret_key=<hidden>)"
+            f"https={self.https}, debug={self.debug}, smtp_host={self.smtp_host!r}, "
+            "secret_key=<hidden>, smtp_password=<hidden>)"
         )
 
 
@@ -121,6 +140,30 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
                 f"{MAX_UPLOAD_MB_CEILING}, not {raw_upload!r}."
             )
 
+    company_name = " ".join(env.get("SNUG_COMPANY_NAME", "").split())
+    if len(company_name) > 100:
+        problems.append("SNUG_COMPANY_NAME must be 100 characters or fewer.")
+
+    smtp_host = env.get("SNUG_SMTP_HOST", "").strip()
+    email_from = env.get("SNUG_EMAIL_FROM", "").strip()
+    smtp_security = env.get("SNUG_SMTP_SECURITY", "").strip().lower() or "starttls"
+    raw_port = env.get("SNUG_SMTP_PORT", "").strip()
+    smtp_port = 465 if smtp_security == "tls" else 587
+    if raw_port:
+        if raw_port.isdecimal() and 1 <= int(raw_port) <= 65535:
+            smtp_port = int(raw_port)
+        else:
+            problems.append(f"SNUG_SMTP_PORT must be a port number, not {raw_port!r}.")
+    if smtp_security not in SMTP_SECURITY:
+        problems.append(f"SNUG_SMTP_SECURITY must be starttls, tls or none, not {smtp_security!r}.")
+    if smtp_host and not email_from:
+        problems.append(
+            "SNUG_EMAIL_FROM is not set. Use an address on your own domain, "
+            "like rooms@example.com. See docs/email.md."
+        )
+    if email_from and not _EMAIL.match(email_from):
+        problems.append(f"SNUG_EMAIL_FROM must be an email address, not {email_from!r}.")
+
     https = _flag(env, "SNUG_HTTPS", default=True, problems=problems)
     debug = _flag(env, "SNUG_DEBUG", default=False, problems=problems)
 
@@ -131,6 +174,11 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
             problems.append("SNUG_HTTPS can only be false when SNUG_DOMAIN is localhost.")
         if debug:
             problems.append("SNUG_DEBUG can only be true when SNUG_DOMAIN is localhost.")
+        if smtp_host and smtp_security == "none":
+            problems.append(
+                "SNUG_SMTP_SECURITY can only be none when SNUG_DOMAIN is localhost: "
+                "codes and links must not cross the internet unencrypted."
+            )
 
     if problems:
         raise ConfigError(problems)
@@ -142,6 +190,13 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         debug=debug,
         trusted_proxies=trusted_proxies,
         max_upload_mb=max_upload_mb,
+        company_name=company_name,
+        email_from=email_from,
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        smtp_username=env.get("SNUG_SMTP_USERNAME", "").strip(),
+        smtp_password=env.get("SNUG_SMTP_PASSWORD", ""),
+        smtp_security=smtp_security,
     )
 
 

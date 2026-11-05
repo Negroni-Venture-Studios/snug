@@ -123,6 +123,7 @@ def _detail_context(document: Document) -> dict[str, Any]:
     return {
         "tab": "documents",
         "document": document,
+        "links": document.links.all(),
         "versions": versions,
         "latest": latest,
         "preview": preview,

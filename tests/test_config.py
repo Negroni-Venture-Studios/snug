@@ -157,3 +157,65 @@ def test_unsafe_or_invalid_trusted_proxies_are_refused(value: str) -> None:
     found = problems({**GOOD, "SNUG_TRUSTED_PROXIES": value})
     assert len(found) == 1
     assert "SNUG_TRUSTED_PROXIES" in found[0]
+
+
+def test_email_is_off_by_default_on_a_real_domain() -> None:
+    config = load_config(GOOD)
+    assert not config.email_enabled and not config.email_outbox
+
+
+def test_localhost_without_smtp_writes_to_an_outbox() -> None:
+    config = load_config({**GOOD, "SNUG_DOMAIN": "localhost"})
+    assert config.email_outbox and config.email_enabled
+
+
+def test_smtp_settings() -> None:
+    config = load_config(
+        {
+            **GOOD,
+            "SNUG_SMTP_HOST": "smtp.postmarkapp.com",
+            "SNUG_SMTP_USERNAME": "key",
+            "SNUG_SMTP_PASSWORD": "a-secret-password",
+            "SNUG_EMAIL_FROM": "rooms@fernlea.example",
+            "SNUG_COMPANY_NAME": "  Fernlea   Robotics ",
+        }
+    )
+    assert config.email_enabled and not config.email_outbox
+    assert (config.smtp_port, config.smtp_security) == (587, "starttls")
+    assert config.company_name == "Fernlea Robotics"
+    assert "a-secret-password" not in repr(config)
+
+
+def test_tls_defaults_to_port_465() -> None:
+    config = load_config(
+        {
+            **GOOD,
+            "SNUG_SMTP_HOST": "smtp.example.com",
+            "SNUG_EMAIL_FROM": "a@b.example",
+            "SNUG_SMTP_SECURITY": "tls",
+        }
+    )
+    assert config.smtp_port == 465
+
+
+@pytest.mark.parametrize(
+    ("extra", "message"),
+    [
+        ({"SNUG_SMTP_HOST": "smtp.example.com"}, "SNUG_EMAIL_FROM is not set"),
+        ({"SNUG_EMAIL_FROM": "not an address"}, "SNUG_EMAIL_FROM must be an email address"),
+        ({"SNUG_SMTP_PORT": "99999"}, "SNUG_SMTP_PORT must be a port number"),
+        ({"SNUG_SMTP_SECURITY": "maybe"}, "SNUG_SMTP_SECURITY must be"),
+        (
+            {
+                "SNUG_SMTP_HOST": "smtp.example.com",
+                "SNUG_EMAIL_FROM": "a@b.example",
+                "SNUG_SMTP_SECURITY": "none",
+            },
+            "can only be none when SNUG_DOMAIN is localhost",
+        ),
+        ({"SNUG_COMPANY_NAME": "x" * 101}, "SNUG_COMPANY_NAME must be 100 characters"),
+    ],
+)
+def test_bad_email_settings_are_refused(extra: dict[str, str], message: str) -> None:
+    found = problems({**GOOD, **extra})
+    assert any(message in p for p in found), found

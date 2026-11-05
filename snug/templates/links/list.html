@@ -1,0 +1,6 @@
+{% extends "snug/admin_base.html" %}
+{% block title %}Snug links{% endblock %}
+{% block content %}
+<div class="title-row"><div><h1 class="page-title">Links</h1><div class="page-meta">Every link, newest first. Create links from a document's page.</div></div></div>
+{% include "links/_rows.html" with show_document=True %}
+{% endblock %}

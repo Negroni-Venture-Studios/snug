@@ -1,5 +1,6 @@
 {% extends "snug/base.html" %}
-{% load snug %}
+{% load snug static %}
+{% block scripts %}<script src="{% static 'snug/js/admin.js' %}" defer></script>{% endblock %}
 {% block body %}
 <div class="screen">
 <div class="chrome"></div>
@@ -15,6 +16,7 @@
   <nav class="tabs" aria-label="Sections">
     <a href="{% url 'core:overview' %}"{% if tab == "overview" %} aria-current="page"{% endif %}>Overview</a>
     <a href="{% url 'documents:list' %}"{% if tab == "documents" %} aria-current="page"{% endif %}>Documents</a>
+    <a href="{% url 'links:list' %}"{% if tab == "links" %} aria-current="page"{% endif %}>Links</a>
   </nav>
 </header>
 <main class="admin">

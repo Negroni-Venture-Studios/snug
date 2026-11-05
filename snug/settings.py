@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "snug.accounts",
     "snug.audit",
     "snug.documents",
+    "snug.links",
 ]
 
 AUTH_USER_MODEL = "accounts.Admin"
@@ -127,6 +128,38 @@ STORAGES = {
 FILE_UPLOAD_TEMP_DIR = CONFIG.data_dir / "tmp"
 MAX_UPLOAD_BYTES = CONFIG.max_upload_mb * 1024 * 1024
 
+# ---------------------------------------------------------------- email
+#
+# With SMTP configured, mail goes through it. On localhost without it, mail
+# is written to <data>/outbox for development, never to the log: messages
+# carry links and codes. Otherwise email is off and the admin pages say so.
+
+DEFAULT_FROM_EMAIL = CONFIG.email_from or "snug@localhost"
+if CONFIG.smtp_host:
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+            "OPTIONS": {
+                "host": CONFIG.smtp_host,
+                "port": CONFIG.smtp_port,
+                "username": CONFIG.smtp_username,
+                "password": CONFIG.smtp_password,
+                "use_tls": CONFIG.smtp_security == "starttls",
+                "use_ssl": CONFIG.smtp_security == "tls",
+                "timeout": 15,
+            },
+        }
+    }
+elif CONFIG.email_outbox:
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.filebased.EmailBackend",
+            "OPTIONS": {"file_path": str(CONFIG.data_dir / "outbox")},
+        }
+    }
+else:
+    MAILERS = {"default": {"BACKEND": "django.core.mail.backends.dummy.EmailBackend"}}
+
 # ---------------------------------------------------------------- security
 #
 # Caddy terminates TLS and is the only thing that can reach the app, so the
@@ -177,6 +210,9 @@ SILENCED_SYSTEM_CHECKS = [
     "security.W008",  # SECURE_SSL_REDIRECT: Caddy redirects every HTTP request first.
     "security.W005",  # HSTS includeSubDomains: the founder's other subdomains are not ours.
     "security.W021",  # HSTS preload: a hard-to-reverse choice for the founder's whole domain.
+    # Email may be off until the operator sets up SMTP. The admin pages say so,
+    # and `snug doctor` reports it, since viewers then cannot get codes.
+    "mail.E001",
 ]
 
 # ---------------------------------------------------------------- logging

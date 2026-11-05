@@ -14,3 +14,15 @@ def data_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         (tmp_path / folder).mkdir()
     monkeypatch.setattr(settings, "CONFIG", dataclasses.replace(settings.CONFIG, data_dir=tmp_path))
     return tmp_path
+
+
+@pytest.fixture
+def email_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Configure SMTP. pytest-django swaps in Django's in-memory mail backend."""
+    monkeypatch.setattr(
+        settings,
+        "CONFIG",
+        dataclasses.replace(
+            settings.CONFIG, smtp_host="smtp.example.com", email_from="rooms@fernlea.example"
+        ),
+    )
