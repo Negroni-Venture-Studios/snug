@@ -207,5 +207,7 @@ def setup_view(request: HttpRequest, token: str) -> HttpResponse:
     purpose = row.purpose
     codes = setup.complete(row, password=password, secret=secret, step=step)
     request.session.pop(SETUP_SESSION, None)
+    if codes is None:
+        return render(request, "accounts/setup_gone.html", status=404)
     _audit(request, "admin.setup_completed", email, email, purpose=purpose)
     return render(request, "accounts/setup_done.html", {"email": email, "codes": codes})

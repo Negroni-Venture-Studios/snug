@@ -11,6 +11,7 @@ import secrets
 from datetime import timedelta
 
 from django.conf import settings
+from django.contrib.auth.hashers import make_password
 from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -85,20 +86,29 @@ def invitable(email: str) -> Admin | None:
     return existing
 
 
-def complete(row: AdminSetup, *, password: str | None, secret: str, step: int) -> list[str]:
-    """Finish setting up: save the password and authenticator, return recovery codes."""
+def complete(row: AdminSetup, *, password: str | None, secret: str, step: int) -> list[str] | None:
+    """Finish setting up: save the password and authenticator, return recovery codes.
+
+    Returns None, changing nothing, if another request used the link first.
+    """
+    # Hashed before the transaction: argon2 is slow on purpose, and the
+    # database should not wait for it.
+    hashed = make_password(password) if password is not None else None
     with transaction.atomic():
-        admin = Admin.objects.select_for_update().get(pk=row.admin_id)
-        if password is not None:
-            admin.set_password(password)
+        # Deleting the link is the claim: of two requests racing on it, only
+        # one deletes the row, and only that one changes the account.
+        claimed, _ = AdminSetup.objects.filter(pk=row.pk, expires_at__gt=timezone.now()).delete()
+        if not claimed:
+            return None
+        admin = Admin.objects.get(pk=row.admin_id)
+        if hashed is not None:
+            admin.password = hashed
         admin.is_active = True
         admin.totp_secret = secret
         admin.totp_last_step = step
         admin.totp_confirmed_at = timezone.now()
         admin.save()
-        codes = recovery.issue(admin)
-        row.delete()
-    return codes
+        return recovery.issue(admin)
 
 
 def send_invite(admin: Admin, token: str, by: Admin) -> bool:

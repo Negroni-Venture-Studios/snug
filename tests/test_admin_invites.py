@@ -258,6 +258,20 @@ def test_setting_up_activates_the_admin(invited: str) -> None:
     assert Client().get(invited, secure=True).status_code == 404
 
 
+def test_a_setup_link_completes_only_once(invited: str) -> None:
+    # Two submissions racing on one link: both found it live, but only the
+    # first to claim it may change the account.
+    row = AdminSetup.objects.get()
+    first, second = totp.new_secret(), totp.new_secret()
+    assert setup.complete(row, password=NEW_PASSWORD, secret=first, step=1)
+    assert (
+        setup.complete(row, password="another passphrase entirely", secret=second, step=1) is None
+    )
+    account = Admin.objects.get(email=NEW)
+    assert account.totp_secret == first and account.check_password(NEW_PASSWORD)
+    assert RecoveryCode.objects.filter(admin=account).count() == 10
+
+
 def test_the_new_admin_can_sign_in(invited: str) -> None:
     browser = Client()
     _, secret = setup_page(browser, invited)
