@@ -220,3 +220,18 @@ def test_a_room_link_is_created_from_the_room(room: Room) -> None:
     assert "Seed round" in listing
     detail = browser.get(f"/admin/rooms/{room.token}", secure=True).content.decode()
     assert INVESTOR in detail
+
+
+def test_a_room_download_records_which_document(room: Room, data_folder: Any) -> None:
+    from snug.audit.models import AuditEvent
+    from snug.documents import ingest
+    from tests.pdfs import chunks, make_pdf
+
+    pdf_deck = Document.objects.create(title="Term sheet")
+    ingest.ingest(pdf_deck, chunks(make_pdf((595, 842))), filename="t.pdf", uploaded_by=None)
+    RoomDocument.objects.create(room=room, document=pdf_deck)
+    issued = share(room=room)
+    response = opened(issued).get(f"/v/{issued.token}/d/{pdf_deck.token}/download", secure=True)
+    assert response.status_code == 200
+    event = AuditEvent.objects.get(action="viewer.downloaded")
+    assert event.details["room"] == room.token and event.details["document"] == pdf_deck.token

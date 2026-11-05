@@ -408,6 +408,7 @@ def download(request: HttpRequest, access: Access, token: str) -> HttpResponse:
         "viewer.downloaded",
         access.link,
         access.session.email,
+        document=access.document.token,
         version=version.number,
         sha256=hashlib.sha256(data).hexdigest(),
     )
