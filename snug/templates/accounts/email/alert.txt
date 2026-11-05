@@ -1,0 +1,4 @@
+{% autoescape off %}{{ what }}
+
+Every admin of {{ company|default:"this Snug instance" }} gets this email. If you did not expect this change, sign in at {{ origin }}/admin/ and remove anyone who should not be there, then change your password.
+{% endautoescape %}

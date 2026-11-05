@@ -75,3 +75,27 @@ class RecoveryCode(models.Model):
 
     def __str__(self) -> str:
         return f"Recovery code for {self.admin_id}"
+
+
+class AdminSetup(models.Model):
+    """A one-time, emailed link to set up an account or a new authenticator.
+
+    Only a SHA-256 hash of the link's token is stored. An admin has at most
+    one live link: sending another replaces it.
+    """
+
+    class Purpose(models.TextChoices):
+        INVITE = "invite", "Invite"
+        RESET = "reset", "Second factor reset"
+
+    admin = models.ForeignKey(Admin, on_delete=models.CASCADE, related_name="setups")
+    purpose = models.CharField(max_length=10, choices=Purpose.choices)
+    token_hash = models.CharField(max_length=64, unique=True)
+    created_by = models.ForeignKey(
+        Admin, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    def __str__(self) -> str:
+        return f"{self.get_purpose_display()} for {self.admin.email}"

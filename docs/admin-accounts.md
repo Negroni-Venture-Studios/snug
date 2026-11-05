@@ -19,7 +19,18 @@ Snug then:
 
 **Store the recovery codes somewhere safe**, such as a password manager, away from your phone. Each one works once, in place of a code from the app. They are not shown again.
 
-Further admins will be invited from the admin interface, once email is set up.
+## Inviting another admin
+
+Go to **Settings**, enter the person's email address under **Invite an admin**, and enter a fresh code from your own authenticator app. Snug asks for the code so that nobody at an unlocked computer can add themselves.
+
+Snug then:
+
+1. emails them a setup link. It works once, for 72 hours. Sending another invite to the same address replaces the link;
+2. emails every admin, you included, to say who invited whom. If you ever get one of these you did not expect, sign in, remove the new admin and change your password.
+
+The link takes them to a page where they choose a password, scan a QR code with their authenticator app, enter a code from it, and see their recovery codes once. They can then sign in.
+
+Inviting needs email. Without it, create each admin on the server with `snug createadmin`, as above.
 
 ## Signing in
 

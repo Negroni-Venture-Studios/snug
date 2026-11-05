@@ -203,6 +203,15 @@ svg.bars { height: 64px; }
 /* ---------- Forms ---------- */
 .form { display: grid; gap: 1.25rem; }
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.5rem; }
+.form.invite { max-width: 30rem; }
+/* QR codes need dark modules on light, in either theme. */
+.qr-tile { width: min(100%, 13rem); background: #fff; border-radius: var(--r); padding: 0.25rem; margin: 0.35rem 0 0.5rem; }
+/* Sized by its viewBox, so it shrinks to fit a phone. */
+.qr-tile svg { display: block; width: 100%; height: auto; }
+.key { font-family: var(--mono); letter-spacing: 0.04em; color: var(--text); overflow-wrap: anywhere; }
+/* One column when two would split a code across lines: a split code is easy to copy wrongly. */
+.recovery-codes { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr)); gap: 0.4rem 1rem; margin: 1.25rem 0 1.5rem; font-family: var(--mono); font-size: 0.95rem; }
+.recovery-codes .code { white-space: nowrap; }
 .field label, .field .label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.4rem; }
 .field .hint { font-size: 0.82rem; color: var(--text-3); margin-top: 0.35rem; }
 .field .error { display: flex; gap: 0.4rem; align-items: center; font-size: 0.85rem; color: var(--danger); margin-top: 0.45rem; }

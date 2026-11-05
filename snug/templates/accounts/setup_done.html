@@ -1,0 +1,10 @@
+{% extends "snug/auth_base.html" %}
+{% block title %}Your recovery codes{% endblock %}
+{% block card %}
+<h1>Save your recovery codes</h1>
+<p class="lede">Each code works once, in place of a code from the app, if you lose your phone. Store them somewhere safe, such as a password manager. They will not be shown again.</p>
+<ul class="recovery-codes">
+  {% for code in codes %}<li class="code">{{ code }}</li>{% endfor %}
+</ul>
+<p><a class="btn btn-primary" href="{% url 'accounts:login' %}">Sign in</a></p>
+{% endblock %}
