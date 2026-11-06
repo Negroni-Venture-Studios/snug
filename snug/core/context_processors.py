@@ -7,13 +7,16 @@ from snug.core.models import SiteSettings
 
 
 def brand(request: HttpRequest) -> dict[str, str]:
-    """The address of the founder's colour stylesheet, if they chose a colour.
+    """The founder's colour stylesheet and logo, for viewer pages, if they chose them.
 
-    Its fingerprint changes with the colour, so browsers fetch a new one at once.
+    Each address changes with what it serves, so browsers fetch a new one at once.
     """
     if not request.path.startswith("/v/"):
         return {}
-    accent = SiteSettings.load().accent_colour
-    if not accent:
-        return {}
-    return {"brand_css": f"/brand/brand.css?v={brand_colours.version(accent)}"}
+    row = SiteSettings.load()
+    found = {}
+    if row.accent_colour:
+        found["brand_css"] = f"/brand/brand.css?v={brand_colours.version(row.accent_colour)}"
+    if row.logo_name:
+        found["brand_logo"] = f"/brand/{row.logo_name}"
+    return found

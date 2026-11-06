@@ -33,6 +33,8 @@ class SiteSettings(models.Model):
     # The founder's accent colour for investors' pages, as #rrggbb, or "" for
     # Snug's default. snug.core.brand makes it readable wherever it is used.
     accent_colour = models.CharField(max_length=7, blank=True)
+    # The founder's logo, as re-encoded by Snug (snug.core.logo), or "" for none.
+    logo_name = models.CharField(max_length=40, blank=True)
 
     class Meta:
         verbose_name_plural = "site settings"

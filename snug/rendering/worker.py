@@ -105,6 +105,7 @@ def preload() -> None:
     import PIL.Image
     import PIL.ImageDraw
     import PIL.ImageFont
+    import PIL.ImageOps
     import PIL.WebPImagePlugin
     import pypdfium2
     import pypdfium2.raw
@@ -366,6 +367,35 @@ def stamp(data: bytes, font: bytes, email: str, date: str, ref: str) -> bytes:
     return result.getvalue()
 
 
+# The founder's logo is drawn no larger than this, in pixels.
+LOGO_BOX = (800, 240)
+
+
+def logo(data: bytes) -> bytes:
+    """The founder's logo, decoded and drawn afresh as a PNG that fits LOGO_BOX.
+
+    PNG or JPEG only. Nothing of the original file survives but its pixels:
+    no metadata, and nothing hidden after the image data.
+    """
+    from PIL import Image, ImageOps, UnidentifiedImageError
+
+    try:
+        source = Image.open(io.BytesIO(data), formats=["PNG", "JPEG"])
+    except (UnidentifiedImageError, OSError, ValueError) as error:
+        raise _Refused("unreadable") from error
+    with source:
+        width, height = source.size
+        if max(width, height) > MAX_SIDE or width * height > MAX_PIXELS:
+            raise _Refused("unreadable")
+        clear = source.mode in ("RGBA", "LA", "PA") or "transparency" in source.info
+        image = ImageOps.exif_transpose(source).convert("RGBA" if clear else "RGB")
+    image.thumbnail(LOGO_BOX, Image.Resampling.LANCZOS)
+    image.info.clear()
+    out = io.BytesIO()
+    image.save(out, "PNG", optimize=True)
+    return out.getvalue()
+
+
 # The PDF overlay is drawn at this many pixels per point, within MAX_PIXELS.
 OVERLAY_DENSITY = 1.5
 
@@ -523,8 +553,8 @@ def main(argv: list[str], *, confined: bool = True) -> int:
     try:
         page = width = 0
         font = b""
-        if len(argv) == 2 and argv[0] == "inspect":
-            mode = "inspect"
+        if len(argv) == 2 and argv[0] in ("inspect", "logo"):
+            mode = argv[0]
         elif len(argv) == 4 and argv[0] == "render":
             mode, page, width = "render", int(argv[2]), int(argv[3])
         elif len(argv) == 6 and argv[0] == "stamp":
@@ -550,6 +580,8 @@ def main(argv: list[str], *, confined: bool = True) -> int:
                 output = render(data, page, width)
             elif mode == "stamp":
                 output = stamp(data, font, argv[3], argv[4], argv[5])
+            elif mode == "logo":
+                output = logo(data)
             else:
                 output = stamp_pdf(data, font, argv[3], argv[4], argv[5])
             sys.stdout.flush()

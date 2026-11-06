@@ -218,7 +218,7 @@ def test_every_settings_form_is_the_same_width(client: Client) -> None:
     forms = re.findall(r'<form class="(panel [^"]*)"', page)
     # Password, authenticator, branding, NDA, privacy link and retention; the
     # invite form needs email, which the tests leave off.
-    assert len(forms) == 6
+    assert len(forms) == 7
     assert all("settings-form" in classes.split() for classes in forms), forms
 
 
