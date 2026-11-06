@@ -215,6 +215,8 @@ svg.bars { height: 64px; }
 /* Settings forms share one width, wide enough for the NDA text at a
    comfortable line length. */
 .form.settings-form { max-width: 40rem; }
+.form.settings-form + .form.settings-form { margin-top: 1rem; }
+.panel-title { font-size: 1rem; font-weight: 500; }
 /* QR codes need dark modules on light, in either theme. */
 .qr-tile { width: min(100%, 13rem); background: #fff; border-radius: var(--r); padding: 0.25rem; margin: 0.35rem 0 0.5rem; }
 /* Sized by its viewBox, so it shrinks to fit a phone. */

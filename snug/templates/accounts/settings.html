@@ -18,6 +18,16 @@
     {% if account_errors.code %}<div class="error" id="account-code-error" role="alert">{% icon "warning-circle" %}{{ account_errors.code }}</div>{% else %}<div class="hint">Changing your password signs you out everywhere else.</div>{% endif %}</div>
   <button class="btn btn-primary" type="submit">Change password</button>
 </form>
+<form class="panel form settings-form" method="post" action="{% url 'accounts:replace_authenticator' %}" novalidate>
+  {% csrf_token %}
+  <h3 class="panel-title">Replace your authenticator</h3>
+  <p class="hint">For a new phone. Your old authenticator and recovery codes stop working at once, and the next page sets up the new one.</p>
+  <div class="field"><label for="authenticator-current">Current password</label>{% include "snug/partials/password_field.html" with id="authenticator-current" name="current" autocomplete="current-password" invalid=authenticator_errors.current %}
+    {% if authenticator_errors.current %}<div class="error" id="authenticator-current-error" role="alert">{% icon "warning-circle" %}{{ authenticator_errors.current }}</div>{% endif %}</div>
+  <div class="field"><label for="authenticator-code">Code from your authenticator app, or a recovery code</label><input id="authenticator-code" name="code" class="code" type="text" autocomplete="one-time-code" maxlength="24" required{% if authenticator_errors.code %} aria-invalid="true" aria-describedby="authenticator-code-error"{% endif %}>
+    {% if authenticator_errors.code %}<div class="error" id="authenticator-code-error" role="alert">{% icon "warning-circle" %}{{ authenticator_errors.code }}</div>{% endif %}</div>
+  <button class="btn" type="submit">Replace authenticator</button>
+</form>
 </div>
 
 <div class="section">
