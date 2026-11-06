@@ -263,13 +263,13 @@ def test_a_room_can_require_the_nda_only_once_there_is_one(document: Document) -
     assert AuditEvent.objects.filter(action="room.nda_required").exists()
 
 
-def test_without_an_nda_the_option_is_disabled_and_says_where_to_write_one(
-    document: Document,
-) -> None:
+def test_without_an_nda_the_option_offers_a_box_to_write_one(document: Document) -> None:
+    # Was disabled with a pointer to Settings until 6 November 2026; writing
+    # version 1 in place is covered in tests/test_nda_inline.py.
     browser = admin_client()
     page = browser.get(f"/admin/links/for/{document.token}", secure=True).content.decode()
-    assert 'name="require_nda" disabled' in page
-    assert 'href="/admin/settings/#nda">Settings</a>' in page
+    assert 'name="require_nda" disabled' not in page
+    assert 'name="nda_text"' in page
 
 
 def test_saving_the_nda_says_so_in_its_own_section() -> None:

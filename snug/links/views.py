@@ -165,6 +165,9 @@ def _new_link(
     require_verification = request.POST.get("require_verification") == "on"
     require_nda = document is not None and request.POST.get("require_nda") == "on"
     allow_download = request.POST.get("allow_download") == "on"
+    # With no NDA yet, the form offers a box to write version 1.
+    nda_text = request.POST.get("nda_text", "")
+    write_nda = require_nda and nda_terms.current() is None
     values = {
         "email": email,
         "note": note,
@@ -172,6 +175,7 @@ def _new_link(
         "require_verification": require_verification,
         "allow_download": allow_download,
         "require_nda": require_nda,
+        "nda_text": nda_text[: nda_terms.MAX_TEXT + 1000],
     }
     context["values"] = values
     error = expiry_error
@@ -179,8 +183,17 @@ def _new_link(
         validate_email(email)
     except ValidationError:
         error = "Enter the email address of the person this link is for."
-    if error:
+    problem = nda_terms.first_problem(nda_text) if write_nda else ""
+    if problem:
+        context["nda_error"] = (
+            "Write the NDA, or untick Ask for the NDA first."
+            if problem == "missing"
+            else nda_terms.TOO_LONG
+        )
+    if error or problem:
         return render(request, "links/new.html", {**context, "error": error}, status=400)
+    if write_nda:
+        nda_terms.publish_first(request, nda_text, by=_admin(request), written_on="link form")
 
     issued = service.create(
         document=document,

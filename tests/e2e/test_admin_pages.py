@@ -27,3 +27,65 @@ def test_the_eye_shows_and_hides_the_password(live_server: Any, page: Page) -> N
     expect(page.get_by_role("button", name="Show password")).to_have_attribute(
         "aria-pressed", "false"
     )
+
+
+# ---------------------------------------------------------------- writing the NDA in place
+
+EMAIL = "ruth@fernlea.example"
+PASSWORD = "correct horse battery staple"
+NDA = "The recipient will keep everything in this data room confidential."
+
+
+def sign_in(live_server: Any, page: Page) -> None:
+    import pyotp
+    from django.utils import timezone
+
+    from snug.accounts import totp
+    from snug.accounts.models import Admin
+
+    admin = Admin(
+        email=EMAIL, is_active=True, totp_secret=totp.new_secret(), totp_confirmed_at=timezone.now()
+    )
+    admin.set_password(PASSWORD)
+    admin.save()
+    page.goto(f"{live_server.url}/admin/login")
+    page.get_by_label("Email address").fill(EMAIL)
+    page.get_by_label("Password", exact=True).fill(PASSWORD)
+    page.get_by_role("button", name="Continue").click()
+    page.get_by_label("Six-digit code").fill(pyotp.TOTP(admin.totp_secret).now())
+    page.get_by_role("button", name="Sign in").click()
+    expect(page).to_have_url(f"{live_server.url}/admin/")
+
+
+def test_writing_the_nda_on_a_room_with_none_yet(live_server: Any, page: Page) -> None:
+    from snug.rooms.models import Room
+
+    room = Room.objects.create(name="Seed round")
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/rooms/{room.token}")
+    box = page.get_by_label("The NDA", exact=True)
+    expect(box).to_be_hidden()  # until the option is ticked
+    page.get_by_text("Ask for the NDA before anything is shown").click()
+    expect(box).to_be_visible()
+    expect(box).to_be_focused()
+    box.fill(NDA)
+    page.locator("#nda").get_by_role("button", name="Save").click()
+    expect(page.locator("#nda .notice-ok")).to_contain_text(
+        "Every link to this room asks for the NDA, version 1"
+    )
+    expect(page.locator(".page-meta")).to_contain_text("Asks for the NDA, version 1")
+    expect(page.get_by_label("The NDA", exact=True)).to_have_count(0)  # it exists now
+
+
+def test_the_link_form_shows_the_box_only_when_asked(live_server: Any, page: Page) -> None:
+    from snug.documents.models import Document
+
+    deck = Document.objects.create(title="Seed deck")
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/links/for/{deck.token}")
+    box = page.get_by_label("The NDA", exact=True)
+    expect(box).to_be_hidden()
+    page.get_by_text("Ask for the NDA first").click()
+    expect(box).to_be_visible()
+    page.get_by_text("Ask for the NDA first").click()
+    expect(box).to_be_hidden()
