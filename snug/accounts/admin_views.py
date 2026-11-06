@@ -21,7 +21,7 @@ from snug.analytics import retention
 from snug.audit.models import AuditEvent, record
 from snug.core import brand, logo, mail, ratelimit
 from snug.core.client import client_ip, user_agent
-from snug.core.models import SiteSettings
+from snug.core.models import SiteSettings, company_name
 from snug.nda import terms as nda_terms
 from snug.nda.models import NdaVersion
 from snug.rendering import sandbox
@@ -224,6 +224,7 @@ def replace_authenticator_view(request: HttpRequest) -> HttpResponse:
 
 # ---------------------------------------------------------------- branding
 
+COMPANY_MAX = 100
 DEFAULT_ACCENT = "#1f5f8b"  # the viewer's own navy, used until a colour is chosen
 
 
@@ -235,7 +236,8 @@ def _branding_context(request: HttpRequest) -> dict[str, Any]:
         "accent_shown": accent or DEFAULT_ACCENT,
         "brand_css": f"/brand/brand.css?v={brand.version(accent)}" if accent else "",
         "brand_adjusted": bool(accent) and brand.palette(accent).adjusted,
-        "company": settings.CONFIG.company_name,
+        "company": company_name(),
+        "company_value": row.company_name or settings.CONFIG.company_name,
         "logo_url": f"/brand/{row.logo_name}" if row.logo_name else "",
     }
 
@@ -244,21 +246,35 @@ def _branding_context(request: HttpRequest) -> dict[str, Any]:
 @login_required
 @require_POST
 def branding_view(request: HttpRequest) -> HttpResponse:
-    """The accent colour on investors' pages, or "" for Snug's default."""
+    """The company's name and the accent colour on investors' pages.
+
+    An empty name falls back to SNUG_COMPANY_NAME; an empty colour, to Snug's
+    default. A form that leaves out the name leaves it as it is.
+    """
+    row = SiteSettings.load()
     raw = request.POST.get("accent", "").strip()
     accent = brand.parse(raw) if raw else ""
+    typed = request.POST.get("company")
+    company = row.company_name if typed is None else " ".join(typed.split())
+    errors: dict[str, Any] = {}
     if accent is None:
-        return _settings_page(
-            request,
-            status=400,
-            branding_error="Enter a colour like #1f5f8b.",
-            accent_typed=raw[:20],
+        errors.update(branding_error="Enter a colour like #1f5f8b.", accent_typed=raw[:20])
+    if len(company) > COMPANY_MAX:
+        errors.update(company_error=f"At most {COMPANY_MAX} characters.")
+    if errors:
+        return _settings_page(request, status=400, company_value=company[:200], **errors)
+    changed = {
+        field: value
+        for field, value, old in (
+            ("company", company, row.company_name),
+            ("accent", accent, row.accent_colour),
         )
-    row = SiteSettings.load()
-    if row.accent_colour != accent:
-        row.accent_colour = accent
-        row.save(update_fields=["accent_colour"])
-        _audit(request, "settings.branding_changed", _admin(request).email, "", accent=accent)
+        if value != old
+    }
+    if changed:
+        row.company_name, row.accent_colour = company, str(accent)
+        row.save(update_fields=["company_name", "accent_colour"])
+        _audit(request, "settings.branding_changed", _admin(request).email, "", **changed)
     return redirect("/admin/settings/?saved=branding#branding")
 
 

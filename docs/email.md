@@ -84,7 +84,6 @@ nc -zv -w 5 smtp.mailgun.org 2525
 Add these to `/etc/snug/snug.env`:
 
 ```bash
-SNUG_COMPANY_NAME=Fernlea Robotics
 SNUG_EMAIL_FROM=rooms@example.com
 SNUG_SMTP_HOST=smtp.mailgun.org
 SNUG_SMTP_PORT=2525
@@ -93,9 +92,10 @@ SNUG_SMTP_PASSWORD=paste-the-smtp-password-here
 SNUG_SMTP_SECURITY=starttls
 ```
 
+Emails name your company, as set in Settings under Branding, such as "Fernlea Robotics has shared Seed deck with you".
+
 | Variable | Required | Default | What it does |
 |---|---|---|---|
-| `SNUG_COMPANY_NAME` | No | | Your company's name, as investors know it. It appears in email subjects, such as "Fernlea Robotics has shared Seed deck with you". At most 100 characters. |
 | `SNUG_EMAIL_FROM` | When `SNUG_SMTP_HOST` is set | | The address emails come from, on a domain verified with your provider. |
 | `SNUG_SMTP_HOST` | No | | Your provider's SMTP server. Leave it unset to turn email off. |
 | `SNUG_SMTP_PORT` | No | `587`, or `465` with `tls` | The port to connect to. On DigitalOcean, use your provider's alternative port. |
