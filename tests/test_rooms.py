@@ -58,7 +58,8 @@ def test_creating_a_room(client: Client) -> None:
     response = post(client, "/admin/rooms/new", {"name": "  Seed   round "})
     room = Room.objects.get()
     assert room.name == "Seed round" and len(room.token) >= 20
-    assert response.status_code == 302 and response["Location"] == f"/admin/rooms/{room.token}"
+    assert response.status_code == 302
+    assert response["Location"] == f"/admin/rooms/{room.token}#documents"
     assert actions() == ["room.created"]
 
 

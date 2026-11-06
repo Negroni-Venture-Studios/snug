@@ -19,7 +19,7 @@ from django.views.decorators.http import require_http_methods, require_safe
 
 from snug.accounts.models import Admin
 from snug.audit.models import AuditEvent, record
-from snug.core import mail
+from snug.core import mail, notices
 from snug.core.client import client_ip, user_agent
 from snug.documents.models import Document
 from snug.links import service
@@ -255,7 +255,8 @@ def link_revoke(request: HttpRequest, ref: str) -> HttpResponse:
     if not link.is_revoked():
         service.revoke(link, _admin(request))
         _audit(request, "link.revoked", link)
-    return redirect(link.target_url())
+    text = f"Revoked {link.label}. It stopped working at once, for anyone already in too."
+    return notices.saved(request, link.target_url(), "links", text)
 
 
 @never_cache

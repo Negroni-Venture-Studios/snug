@@ -12,13 +12,16 @@ from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from django.db.models import Prefetch
 from django.http import FileResponse, Http404, HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, render
+from django.template.defaultfilters import pluralize
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
 from snug.accounts.models import Admin
 from snug.analytics import charts, summary
 from snug.audit.models import AuditEvent, record
+from snug.core import notices
 from snug.core.client import client_ip, user_agent
 from snug.documents.ingest import UploadRejectedError, ingest
 from snug.documents.models import Document, DocumentVersion
@@ -111,7 +114,14 @@ def document_new(request: HttpRequest) -> HttpResponse:
         _audit(request, "document.upload_refused", title, reason=str(error))
         context["error"] = str(error)
         return render(request, "documents/new.html", context, status=400)
-    return redirect("documents:detail", token=document.token)
+    version = document.latest_version()
+    pages = version.page_count if version else 0
+    return notices.saved(
+        request,
+        reverse("documents:detail", kwargs={"token": document.token}),
+        "links",
+        f"Uploaded, {pages} page{pluralize(pages)}. Create a link to share it.",
+    )
 
 
 def _reading(document: Document) -> dict[str, Any] | None:
@@ -146,7 +156,7 @@ def _reading(document: Document) -> dict[str, Any] | None:
     }
 
 
-def _detail_context(document: Document) -> dict[str, Any]:
+def _detail_context(request: HttpRequest, document: Document) -> dict[str, Any]:
     versions = list(document.versions.filter(status=DocumentVersion.Status.READY))
     latest = versions[0] if versions else None
     preview: dict[str, Any] | None = None
@@ -162,6 +172,7 @@ def _detail_context(document: Document) -> dict[str, Any]:
         "latest": latest,
         "preview": preview,
         "limit_mb": _limit_mb(),
+        "notice": notices.take(request),
     }
 
 
@@ -170,7 +181,7 @@ def _detail_context(document: Document) -> dict[str, Any]:
 @require_safe
 def document_detail(request: HttpRequest, token: str) -> HttpResponse:
     document = get_object_or_404(Document, token=token)
-    return render(request, "documents/detail.html", _detail_context(document))
+    return render(request, "documents/detail.html", _detail_context(request, document))
 
 
 @never_cache
@@ -189,9 +200,16 @@ def version_upload(request: HttpRequest, token: str) -> HttpResponse:
             _audit(request, "document.upload_refused", document.title, reason=str(rejected))
             error = str(rejected)
     if error:
-        context = {**_detail_context(document), "error": error}
+        context = {**_detail_context(request, document), "error": error}
         return render(request, "documents/detail.html", context, status=400)
-    return redirect("documents:detail", token=document.token)
+    version = document.latest_version()
+    number = version.number if version else 0
+    return notices.saved(
+        request,
+        reverse("documents:detail", kwargs={"token": document.token}),
+        "versions",
+        f"Version {number} uploaded. Every link to this document shows it now.",
+    )
 
 
 @login_required

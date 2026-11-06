@@ -93,7 +93,7 @@ def test_uploading_creates_a_document_and_version_one(client: Client) -> None:
     response = upload_new(client)
     document = Document.objects.get()
     assert response.status_code == 302
-    assert response["Location"] == f"/admin/documents/{document.token}"
+    assert response["Location"] == f"/admin/documents/{document.token}#links"
     version = document.latest_version()
     assert version is not None and version.number == 1 and version.page_count == 2
     assert version.uploaded_by is not None and version.uploaded_by.email == EMAIL

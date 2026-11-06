@@ -5,12 +5,14 @@ from typing import Any
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
 from snug.accounts.models import Admin
 from snug.audit.models import AuditEvent, record
+from snug.core import notices
 from snug.core.client import client_ip, user_agent
 from snug.documents.models import Document
 from snug.nda import terms as nda_terms
@@ -38,6 +40,11 @@ def _audit(request: HttpRequest, action: str, room: Room, **details: Any) -> Non
     )
 
 
+def _saved(request: HttpRequest, room: Room, section: str, text: str) -> HttpResponse:
+    url = reverse("rooms:detail", kwargs={"token": room.token})
+    return notices.saved(request, url, section, text)
+
+
 def _clean(raw: str, limit: int) -> str | None:
     name = " ".join(raw.split())
     return name if 0 < len(name) <= limit else None
@@ -51,11 +58,13 @@ def _detail(request: HttpRequest, room: Room, *, status: int = 200, **extra: Any
         "tab": "rooms",
         "room": room,
         "folders": folders,
+        "document_count": len(entries),
         "top": [e for e in entries if e.folder_id is None],
         "by_folder": [(f, [e for e in entries if e.folder_id == f.pk]) for f in folders],
         "addable": Document.objects.exclude(pk__in=in_room),
         "links": room.links.select_related("room"),
         "nda": nda_terms.current(),
+        "notice": notices.take(request),
         **extra,
     }
     return render(request, "rooms/detail.html", context, status=status)
@@ -85,7 +94,9 @@ def room_new(request: HttpRequest) -> HttpResponse:
         return render(request, "rooms/new.html", context, status=400)
     room = Room.objects.create(name=name, created_by=_admin(request))
     _audit(request, "room.created", room)
-    return redirect("rooms:detail", token=room.token)
+    return _saved(
+        request, room, "documents", "Room created. Add documents below, then share it with a link."
+    )
 
 
 @never_cache
@@ -112,7 +123,7 @@ def room_rename(request: HttpRequest, token: str) -> HttpResponse:
         _audit(request, "room.renamed", room, to=name)
         room.name = name
         room.save(update_fields=["name"])
-    return redirect("rooms:detail", token=room.token)
+    return _saved(request, room, "rename", "Renamed.")
 
 
 @never_cache
@@ -129,7 +140,15 @@ def room_nda(request: HttpRequest, token: str) -> HttpResponse:
         room.require_nda = wanted
         room.save(update_fields=["require_nda"])
         _audit(request, "room.nda_required" if wanted else "room.nda_not_required", room)
-    return redirect("rooms:detail", token=room.token)
+    current = nda_terms.current()
+    if wanted and current is not None:
+        text = (
+            f"Saved. Every link to this room asks for the NDA, version {current.number}, "
+            "before showing anything."
+        )
+    else:
+        text = "Saved. Links to this room no longer ask for the NDA."
+    return _saved(request, room, "nda", text)
 
 
 @never_cache
@@ -153,7 +172,9 @@ def folder_add(request: HttpRequest, token: str) -> HttpResponse:
             request, room, status=400, folder_error="This room already has a folder with that name."
         )
     _audit(request, "room.folder_added", room, folder=name)
-    return redirect("rooms:detail", token=room.token)
+    return _saved(
+        request, room, "add-folder", "Folder added. Move documents into it from the list above."
+    )
 
 
 @never_cache
@@ -164,7 +185,7 @@ def folder_remove(request: HttpRequest, token: str, folder_id: int) -> HttpRespo
     folder = get_object_or_404(Folder, pk=folder_id, room=room)
     _audit(request, "room.folder_removed", room, folder=folder.name)
     folder.delete()  # its documents move to the top level
-    return redirect("rooms:detail", token=room.token)
+    return _saved(request, room, "documents", "Folder removed. Its documents are now at the top.")
 
 
 def _folder_in(room: Room, raw: str) -> tuple[bool, Folder | None]:
@@ -200,7 +221,7 @@ def document_add(request: HttpRequest, token: str) -> HttpResponse:
         document=document.token,
         folder=folder.name if folder else "",
     )
-    return redirect("rooms:detail", token=room.token)
+    return _saved(request, room, "add-document", f"{document.title} added to the room.")
 
 
 @never_cache
@@ -208,7 +229,9 @@ def document_add(request: HttpRequest, token: str) -> HttpResponse:
 @require_POST
 def document_move(request: HttpRequest, token: str, document_token: str) -> HttpResponse:
     room = get_object_or_404(Room, token=token)
-    entry = get_object_or_404(RoomDocument, room=room, document__token=document_token)
+    entry = get_object_or_404(
+        RoomDocument.objects.select_related("document"), room=room, document__token=document_token
+    )
     ok, folder = _folder_in(room, request.POST.get("folder", ""))
     if not ok:
         return _detail(request, room, status=400, add_error="Choose a folder in this room.")
@@ -221,7 +244,8 @@ def document_move(request: HttpRequest, token: str, document_token: str) -> Http
         document=document_token,
         folder=folder.name if folder else "",
     )
-    return redirect("rooms:detail", token=room.token)
+    where = folder.name if folder else "the top"
+    return _saved(request, room, "documents", f"{entry.document.title} moved to {where}.")
 
 
 @never_cache
@@ -229,7 +253,10 @@ def document_move(request: HttpRequest, token: str, document_token: str) -> Http
 @require_POST
 def document_remove(request: HttpRequest, token: str, document_token: str) -> HttpResponse:
     room = get_object_or_404(Room, token=token)
-    entry = get_object_or_404(RoomDocument, room=room, document__token=document_token)
+    entry = get_object_or_404(
+        RoomDocument.objects.select_related("document"), room=room, document__token=document_token
+    )
     entry.delete()
     _audit(request, "room.document_removed", room, document=document_token)
-    return redirect("rooms:detail", token=room.token)
+    text = f"{entry.document.title} removed. Links to this room no longer reach it."
+    return _saved(request, room, "documents", text)

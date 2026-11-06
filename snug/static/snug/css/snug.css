@@ -435,10 +435,12 @@ input[type="file"]::file-selector-button {
     border: 1px solid var(--border-strong); border-radius: var(--r); background: var(--surface); color: var(--text); cursor: pointer;
 }
 .doc-split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 2.5rem; align-items: start; }
+/* The room page's four tools, two by two, so neither column runs on alone. */
+.room-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.5rem; align-items: start; }
 .preview-frame { border: 1px solid var(--border); border-radius: 2px; overflow: hidden; background: #ffffff; }
 .preview-frame img { display: block; width: 100%; height: auto; }
 @media (max-width: 860px) {
-    .doc-split { grid-template-columns: 1fr; }
+    .doc-split, .room-tools { grid-template-columns: 1fr; }
     .doc-rows .item, .version-rows .item { grid-template-columns: 1fr auto; }
     .admin-rows .item { grid-template-columns: 1fr auto; }
     .admin-rows .item > .num { display: none; }

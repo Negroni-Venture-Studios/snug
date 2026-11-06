@@ -272,7 +272,7 @@ def test_revoking_asks_first_then_revokes(client: Client, document: Document) ->
     assert Link.objects.get().revoked_at is None
 
     response = client.post(f"/admin/links/{link.ref}/revoke", secure=True)
-    assert response["Location"] == f"/admin/documents/{document.token}"
+    assert response["Location"] == f"/admin/documents/{document.token}#links"
     link.refresh_from_db()
     assert link.is_revoked() and link.revoked_by is not None
     client.post(f"/admin/links/{link.ref}/revoke", secure=True)
