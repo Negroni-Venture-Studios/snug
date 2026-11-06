@@ -58,7 +58,9 @@ def command(*args: str) -> list[str]:
     from django.conf import settings
 
     # Only with SNUG_UNSAFE_UNCONFINED_RENDERING, for development without Landlock.
-    unsafe = [ALLOW_UNCONFINED] if settings.CONFIG.unsafe_unconfined_rendering else []
+    # Without Snug's settings (a script calling the sandbox directly), confined.
+    allowed = settings.configured and settings.CONFIG.unsafe_unconfined_rendering
+    unsafe = [ALLOW_UNCONFINED] if allowed else []
     # -I: isolated mode, ignoring PYTHON* variables, the user site and the cwd.
     return [sys.executable, "-I", "-m", "snug.rendering.worker", *unsafe, *args]
 

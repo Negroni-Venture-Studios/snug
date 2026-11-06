@@ -323,6 +323,19 @@ def test_snug_passes_the_opt_in_only_when_set(monkeypatch: pytest.MonkeyPatch) -
         assert argv[-2:] == ["inspect", "3"]
 
 
+def test_the_launcher_works_without_django_and_never_opts_in() -> None:
+    # The image smoke test calls the sandbox with no settings loaded. Unknown
+    # settings must mean "confined", never an error and never the opt-in.
+    code = "from snug.rendering import sandbox; print(sandbox.command('inspect', '3'))"
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("DJANGO_", "SNUG_"))}
+    result = subprocess.run(
+        [sys.executable, "-c", code], env=env, capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
+    assert "'inspect', '3']" in result.stdout
+    assert worker.ALLOW_UNCONFINED not in result.stdout
+
+
 def test_an_unconfined_refusal_is_explained() -> None:
     message = str(sandbox.WorkerError("unconfined"))
     assert message.startswith("This server cannot open documents safely")
