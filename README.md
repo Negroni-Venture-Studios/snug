@@ -24,7 +24,7 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 
 - **Documents.** PDF only. Upload new versions; links always show the latest.
 - **Rooms.** Collections of documents, with one level of folders. A document can be in any number of rooms.
-- **Links.** One per person, to a document or a room. Email verification (on by default), optional expiry, downloads (on by default), and immediate revocation.
+- **Links.** One per person, to a document or a room, with an optional message from you. Email verification (on by default), optional expiry, downloads (on by default), and immediate revocation.
 - **An NDA.** One click-through agreement for your instance, versioned, which a room or a single-document link can ask for first. Snug records who accepted which text, and when.
 - **The reader.** Pages are rendered on your server and shown one at a time, watermarked with the reader's email address, the date and the link. A download is the original PDF, stamped with the same details, so its text stays searchable.
 - **Analytics.** Who opened each document, how long they spent on each page, and how often they downloaded it, on an Overview, each document's page and a People page. Reading data is deleted 12 months after a link ends, or after a period you set. Nothing is sent anywhere outside your instance, and Snug does not phone home.

@@ -1,5 +1,6 @@
 <aside class="about" aria-label="About this link">
   <h2>About this link</h2>
+  {% if link.message %}<p class="cover">{{ link.message|linebreaksbr }}</p>{% endif %}
   <dl>
     {% if company %}<dt>From</dt><dd>{{ company }}</dd>{% endif %}
     {% if room %}<dt>Room</dt><dd>{{ room.name }}, {{ room_documents }} document{{ room_documents|pluralize }}</dd>{% else %}<dt>Document</dt><dd>{{ title }}{% if pages %}, {{ pages }} page{{ pages|pluralize }}{% endif %}</dd>{% endif %}
