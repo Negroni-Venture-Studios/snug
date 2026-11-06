@@ -10,6 +10,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- Links from a Snug on your own computer now work: `SNUG_DOMAIN` can be `localhost` with a port, like `localhost:8000`, and every link and email includes it. The README's trial command uses it. A real domain still cannot name a port.
 - The admin and sign-in footers link to Negroni Venture Studios, and to the source on GitHub with GitHub's mark beside the repository name.
 - Every save in the admin interface now says it worked, in a green notice in the section where it was made, and the page stays there instead of jumping to the top. A room's page says beside its name when it asks for the NDA, and its four tools sit two by two.
 - Link expiry dates are shown as the last day the link works. The links list and the link email showed the day after.

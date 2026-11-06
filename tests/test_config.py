@@ -58,7 +58,6 @@ def test_weak_secret_keys_are_refused(key: str) -> None:
     "domain",
     [
         "https://room.example.com",
-        "room.example.com:8443",
         "room.example.com/path",
         "room",
         "-room.example.com",
@@ -259,3 +258,51 @@ def test_unconfined_rendering_raises_a_warning_when_on(monkeypatch: pytest.Monke
         settings, "CONFIG", dataclasses.replace(settings.CONFIG, unsafe_unconfined_rendering=False)
     )
     assert unconfined_rendering() == []
+
+
+# ---------------------------------------------------------------- a port for localhost
+#
+# Found while testing, 5 November 2026: with the container published on port
+# 8000, links read http://localhost/v/... and did not work. localhost may name
+# its port; a real domain may not, since Caddy serves it on 443.
+
+
+def test_localhost_may_name_its_port() -> None:
+    config = load_config({**GOOD, "SNUG_DOMAIN": "localhost:8000", "SNUG_HTTPS": "false"})
+    assert config.domain == "localhost"
+    assert config.port == 8000
+    assert config.origin == "http://localhost:8000"
+    assert config.email_outbox  # still counts as a development machine
+
+
+def test_without_a_port_nothing_changes() -> None:
+    config = load_config({**GOOD, "SNUG_DOMAIN": "localhost", "SNUG_HTTPS": "false"})
+    assert config.port is None
+    assert config.origin == "http://localhost"
+    assert load_config(GOOD).origin == "https://room.example.com"
+
+
+def test_a_real_domain_may_not_name_a_port() -> None:
+    found = problems({**GOOD, "SNUG_DOMAIN": "room.example.com:8443"})
+    assert found == [
+        "SNUG_DOMAIN can only include a port when it is localhost, like localhost:8000. "
+        "A real domain is served by Caddy on the standard port."
+    ]
+
+
+@pytest.mark.parametrize("port", ["0", "65536", "80a", "", "-1"])
+def test_the_port_must_be_a_real_one(port: str) -> None:
+    found = problems({**GOOD, "SNUG_DOMAIN": f"localhost:{port}", "SNUG_HTTPS": "false"})
+    assert found == [f"SNUG_DOMAIN's port must be a number from 1 to 65535, not {port!r}."]
+
+
+def test_links_carry_the_port(monkeypatch: pytest.MonkeyPatch) -> None:
+    from django.conf import settings
+
+    from snug.accounts import setup
+    from snug.links import service
+
+    config = load_config({**GOOD, "SNUG_DOMAIN": "localhost:8000", "SNUG_HTTPS": "false"})
+    monkeypatch.setattr(settings, "CONFIG", config)
+    assert service.link_url("tok") == "http://localhost:8000/v/tok"
+    assert setup.setup_url("tok") == "http://localhost:8000/admin/setup/tok"

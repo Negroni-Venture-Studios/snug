@@ -60,7 +60,7 @@ Then start Snug:
 
 ```bash
 docker run --detach --name snug --publish 127.0.0.1:8000:8000 \
-  --env-file snug.env --env SNUG_DOMAIN=localhost --env SNUG_HTTPS=false \
+  --env-file snug.env --env SNUG_DOMAIN=localhost:8000 --env SNUG_HTTPS=false \
   --volume snug-data:/var/lib/snug \
   ghcr.io/negroni-venture-studios/snug:edge
 ```
