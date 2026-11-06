@@ -19,6 +19,8 @@ uv sync
 uv run pre-commit install
 ```
 
+To run Snug itself while you work, follow [Running Snug on your own computer](docs/configuration.md#running-snug-on-your-own-computer). On macOS, add `SNUG_UNSAFE_UNCONFINED_RENDERING=true` to your development settings: Snug reads PDFs only inside a Linux Landlock confinement, which macOS lacks, and refuses otherwise. Never set it on a server. The tests set it for themselves on macOS, and CI runs them confined on Linux.
+
 ## Everyday commands
 
 ```bash
@@ -45,7 +47,8 @@ uv run pre-commit run --all-files  # everything CI runs, locally
   - `dependency-audit`
   - `sbom`
   - the CodeQL `analyze` jobs
-  - `e2e (real browser)`, the investor's journey in Chromium through Playwright
+  - `e2e (real browser)`, the investor's journey and the admin controls in Chromium through Playwright
+  - `image smoke test`, which builds the container image and checks that its PDF worker renders a page confined
 - Force pushes and deletion of `main` are blocked.
 - CI is the gate; no approving review count is required. Stale reviews are dismissed when new commits arrive.
 
@@ -54,7 +57,7 @@ Merge with a squash or a merge commit. Branches are deleted after merging.
 ## Standards
 
 - **Test first.** Write the test that proves your change, watch it fail for the reason you expect, then make it pass. A test that passes both before and after a change proves nothing about it.
-- **Security requirements are requirements.** DESIGN.md and the brief list them: one authorisation path for viewer content, no database keys in viewer URLs, no CORS, a strict content security policy, CSRF protection, rate limits, safe file handling, and no secrets in logs. Each has tests; keep them passing and extend them.
+- **Security requirements are requirements.** [AGENTS.md](AGENTS.md) lists them: one authorisation path for viewer content, no database keys in viewer URLs, no CORS, a strict content security policy, CSRF protection, rate limits, safe file handling, and no secrets in logs. Each has tests; keep them passing and extend them.
 - **Type hints throughout**, checked by mypy in strict mode.
 - **No inline scripts, inline styles or `on*=` handlers** in templates. The content security policy forbids them.
 - **British English** in documentation and interface text. In interface text: sentence case, no em or en dashes, and no middle dots used as separators.

@@ -2,7 +2,7 @@
 
 Snug is MIT licensed (see [LICENSE](LICENSE)). It includes, or installs, the third-party software and assets below. Every licence is compatible with distributing Snug as MIT, and `scripts/check_licences.py` checks every installed Python package in CI.
 
-The full licence texts ship with each package (in its `*.dist-info/licenses` folder), and the container image copies them to `/usr/share/doc/snug/licences/`.
+The full licence texts ship with each package, in its `*.dist-info/licenses` folder. The container image keeps them there, under `/app/.venv/lib/python3.14/site-packages/`, with this file at `/app/THIRD_PARTY_LICENCES.md`.
 
 ## Python packages Snug runs on
 
@@ -15,6 +15,7 @@ The full licence texts ship with each package (in its `*.dist-info/licenses` fol
 | pyotp | MIT | Authenticator codes |
 | segno | BSD-3-Clause | QR codes for authenticator enrolment |
 | pypdfium2 | Apache-2.0 or BSD-3-Clause | Reading and rendering PDFs |
+| pypdf | BSD-3-Clause | Stamping downloaded PDFs |
 | Pillow | MIT-CMU | Images and watermarks |
 
 ## PDFium, inside pypdfium2

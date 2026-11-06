@@ -12,4 +12,4 @@ What are you trying to do, and what gets in the way?
 
 ## Scope
 
-Snug deliberately leaves some things out (see "What Snug does not do" in the README). Say if this request touches one of them.
+Snug leaves some things out on purpose, as "What Snug does not do" in the README lists. Say if this request touches one of them.

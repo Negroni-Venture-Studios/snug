@@ -19,4 +19,4 @@ labels: bug
 
 - Snug version:
 - Where it runs (for example, a DigitalOcean droplet in London):
-- Output of `snug doctor`, with anything private removed:
+- Output of `snug check`, with anything private removed:

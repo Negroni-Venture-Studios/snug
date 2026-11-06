@@ -1,9 +1,11 @@
-# Only what the image needs: pyproject.toml, uv.lock, README.md, LICENSE and snug/.
+# Only what the image needs: pyproject.toml, uv.lock, README.md, LICENSE,
+# THIRD_PARTY_LICENCES.md and snug/.
 *
 !pyproject.toml
 !uv.lock
 !README.md
 !LICENSE
+!THIRD_PARTY_LICENCES.md
 !snug/
 **/__pycache__
 **/*.py[cod]

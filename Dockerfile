@@ -18,7 +18,7 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 # Dependencies first, so a code change does not reinstall them.
-COPY pyproject.toml uv.lock README.md LICENSE ./
+COPY pyproject.toml uv.lock README.md LICENSE THIRD_PARTY_LICENCES.md ./
 RUN uv sync --locked --no-dev --no-install-project
 COPY snug ./snug
 RUN uv sync --locked --no-dev
