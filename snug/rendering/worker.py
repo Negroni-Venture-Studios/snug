@@ -575,6 +575,10 @@ def main(argv: list[str], *, confined: bool = True) -> int:
         argv = argv[1:]
     if confined:
         apply_limits()
+    if argv == ["confinement"]:
+        # For `snug doctor`: confine, say how, and read nothing.
+        sys.stdout.write((confine() if confined else "unconfined: not asked") + "\n")
+        return 0
     preload()
     try:
         page = width = 0

@@ -257,3 +257,25 @@ def render(pdf: os.PathLike[str] | str, page: int, width: int) -> bytes:
     if len(image) > OUTPUT_BYTES or image[:4] != b"RIFF" or image[8:12] != b"WEBP":
         raise WorkerError("unreadable")
     return image
+
+
+def confinement() -> str:
+    """How a fresh worker confines itself, such as "landlock v6, no sockets".
+
+    For `snug doctor`. The worker reads no file in this mode, so its output
+    is trusted as far as its length.
+    """
+    try:
+        done = subprocess.run(  # noqa: S603 - fixed argv, no shell
+            command("confinement"),
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            env=worker_env(),
+            timeout=RENDER_TIMEOUT,
+            check=False,
+            start_new_session=True,
+        )
+    except subprocess.TimeoutExpired:
+        return "unconfined: the worker did not answer"
+    how = done.stdout.decode("ascii", "replace").strip()[:100]
+    return how if done.returncode == 0 and how else "unconfined: the worker failed"

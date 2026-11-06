@@ -60,3 +60,19 @@ def company_name() -> str:
 
     saved = SiteSettings.load().company_name
     return saved or str(settings.CONFIG.company_name)
+
+
+class SystemCheck(models.Model):
+    """The latest result of one of `snug doctor`'s checks, one row per check.
+
+    Housekeeping records each success here as "housekeeping", so a run that
+    stops succeeding shows up as late.
+    """
+
+    name = models.CharField(max_length=40, unique=True)
+    ok = models.BooleanField()
+    message = models.CharField(max_length=300, blank=True)
+    checked_at = models.DateTimeField()
+
+    def __str__(self) -> str:
+        return f"{self.name}: {'ok' if self.ok else 'problem'}"

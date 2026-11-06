@@ -154,6 +154,21 @@ jobs:
           done
           docker compose exec -T backup rclone lsf -R snug-backup:
           exit 1
+      - name: snug doctor finds everything working but email
+        working-directory: deploy
+        run: |
+          set +e
+          report=$(docker compose exec -T snug snug doctor)
+          status=$?
+          set -e
+          echo "$report"
+          test "$status" = 1  # email is not set up here
+          echo "$report" | grep -q '^ok        Housekeeping'
+          echo "$report" | grep -q '^ok        Backups'
+          echo "$report" | grep -q '^ok        PDF worker    Documents are read in a confined worker (landlock v'
+          echo "$report" | grep -q '^skipped   HTTPS'
+          echo "$report" | grep -q '^problem   Email'
+          echo "$report" | grep -q '^1 problem.$'
       - name: Stop the Compose deployment
         if: always()
         working-directory: deploy

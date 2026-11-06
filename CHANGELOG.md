@@ -33,6 +33,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- `snug doctor` checks housekeeping, the backups, the PDF worker's confinement, DNS, HTTPS and the certificate's expiry, and email, by sending a code you type back. It says what to fix, and exits with status 1 if anything is wrong. [docs/deployment.md](docs/deployment.md) lists the checks.
 - Continuous, encrypted backups to a storage bucket of your own: Litestream records every change to the database, and an rclone container copies it, the uploaded documents and the branding images to the bucket every 5 minutes, encrypted on the server with a key only you hold. [docs/backups.md](docs/backups.md) explains how to set it up.
 - A Docker Compose deployment: Snug behind Caddy, which gets and renews HTTPS certificates, with Snug's settings in `/opt/snug/snug.env`. [docs/deployment.md](docs/deployment.md) explains it. Both containers have read-only filesystems and no privileges they do not need, and Snug believes a visitor's address only from Caddy, over IPv4 and IPv6.
 - Your logo on investors' pages, uploaded in Settings under Branding: at the top of every page, on a light tile in dark mode, and as the icon in their browser tab. PNG or JPEG, up to 2 MB. Snug redraws it in the same confined process that reads PDFs, so nothing in the file but the picture reaches investors.
