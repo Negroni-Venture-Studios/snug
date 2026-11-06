@@ -29,6 +29,9 @@ IPNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
 
 _TRUE = {"1", "true", "yes", "on"}
 _FALSE = {"0", "false", "no", "off"}
+# A host name and a port, like localhost:8000. Anything else with a colon, such
+# as a URL, is left to the host-name check below.
+_WITH_PORT = re.compile(r"^([a-z0-9.-]+):([^:/]*)$")
 _HOSTNAME = re.compile(
     r"^(?=.{1,253}$)(?:localhost|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63})$"
 )
@@ -64,6 +67,8 @@ class Config:
     smtp_security: str = "starttls"
     # Development only: read PDFs even where the worker cannot be confined.
     unsafe_unconfined_rendering: bool = False
+    # localhost only, when the container is published on a port: links need it.
+    port: int | None = None
 
     @property
     def database_path(self) -> Path:
@@ -71,7 +76,8 @@ class Config:
 
     @property
     def origin(self) -> str:
-        return f"{'https' if self.https else 'http'}://{self.domain}"
+        port = f":{self.port}" if self.port else ""
+        return f"{'https' if self.https else 'http'}://{self.domain}{port}"
 
     @property
     def email_outbox(self) -> bool:
@@ -121,6 +127,21 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         )
 
     domain = env.get("SNUG_DOMAIN", "").strip().lower()
+    port: int | None = None
+    with_port = _WITH_PORT.match(domain)
+    if with_port:
+        domain, raw_port = with_port.groups()
+        if domain != "localhost":
+            problems.append(
+                "SNUG_DOMAIN can only include a port when it is localhost, like "
+                "localhost:8000. A real domain is served by Caddy on the standard port."
+            )
+        elif not raw_port.isdecimal() or not 1 <= int(raw_port) <= 65535:
+            problems.append(
+                f"SNUG_DOMAIN's port must be a number from 1 to 65535, not {raw_port!r}."
+            )
+        else:
+            port = int(raw_port)
     if not domain:
         problems.append("SNUG_DOMAIN is not set. Use the bare host name, like room.example.com.")
     elif not _HOSTNAME.match(domain):
@@ -204,6 +225,7 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
     return Config(
         secret_key=secret_key,
         domain=domain,
+        port=port,
         data_dir=data_dir,
         https=https,
         debug=debug,
