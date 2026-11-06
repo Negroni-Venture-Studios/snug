@@ -23,6 +23,7 @@ It imports no Django and no Snug settings, and its environment is empty of
 secrets, so even a PDF that took over the renderer would find nothing to take.
 """
 
+import codecs
 import io
 import json
 import os
@@ -41,6 +42,21 @@ MAX_PAGES = 2000
 MAX_PIXELS = 1600 * 4000
 MAX_SIDE = 8000
 FONT_DIRS = ("/usr/share/fonts", "/usr/local/share/fonts", "/etc/fonts")
+# Every text codec pypdf names. Python loads a codec's module the first time
+# it is used, and once the worker is confined it cannot open that file, so
+# preload() loads them all first. Found 6 November 2026 with UTF-16 metadata.
+PDF_CODECS = (
+    "utf-8",
+    "utf-16",
+    "utf-16-be",
+    "utf-16-le",
+    "latin-1",
+    "cp1252",
+    "charmap",
+    "mac_roman",
+    "iso8859_15",
+    "ascii",
+)
 # Landlock ABI 4 (Linux 6.7) is the minimum: it adds network rules, after ABI 3
 # made truncation a controlled right, so a worker cannot empty the database.
 MIN_LANDLOCK_ABI = 4
@@ -95,6 +111,8 @@ def preload() -> None:
 
     PIL.Image.init()
     del pypdfium2
+    for name in PDF_CODECS:
+        codecs.lookup(name)
     _warm_up_pypdf()
 
 
@@ -466,22 +484,32 @@ def _stamp_pdf_pages(data: bytes, font: bytes | None, email: str, date: str, ref
 
 
 def _resaved(data: bytes) -> bytes:
-    """The PDF as PDFium writes it: a well-formed copy of a file pypdf cannot read."""
+    """The PDF as PDFium writes it: a well-formed, unencrypted copy pypdf can read.
+
+    Snug only ever holds PDFs that open without a password, so removing the
+    encryption loses only the owner's restrictions; the stamped download is
+    written afresh, without them, either way.
+    """
+    import pypdfium2.raw as pdfium_c
+
     out = io.BytesIO()
-    _open(data).save(out)
+    _open(data).save(out, flags=pdfium_c.FPDF_REMOVE_SECURITY)
     return out.getvalue()
 
 
 def stamp_pdf(data: bytes, font: bytes, email: str, date: str, ref: str) -> bytes:
     """The original PDF with a line naming the viewer on every page."""
-    from pypdf.errors import PdfReadError
+    from pypdf.errors import DependencyError, PdfReadError
 
     email, date, ref = _stamp_text(email, date, ref)
     try:
         return _stamp_pdf_pages(data, font, email, date, ref)
-    except PdfReadError:
+    except (PdfReadError, DependencyError):
         # PDFium reads many slightly broken files that pypdf will not, and Snug
-        # accepted this one because PDFium could. Stamp PDFium's clean copy.
+        # accepted this one because PDFium could. pypdf also cannot decrypt
+        # AES without the `cryptography` library, which Snug does not carry:
+        # a PDF that opens without a password but restricts copying is common.
+        # Stamp PDFium's clean, unencrypted copy.
         return _stamp_pdf_pages(_resaved(data), font, email, date, ref)
 
 
