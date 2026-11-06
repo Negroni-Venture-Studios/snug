@@ -66,6 +66,8 @@ Neither can gain privileges once started (`no-new-privileges`). Litestream and t
 
 Caddy writes no access log, because investors' links carry their token in the URL.
 
+Once a month, housekeeping downloads [DB-IP](https://db-ip.com)'s free country database, about 5 MB, for UK-only links. It is the only download Snug makes by itself, and it sends DB-IP nothing about your visitors: Snug looks addresses up in its own copy.
+
 ### Client addresses
 
 Rate limits and the audit log depend on knowing each visitor's real address. Caddy has fixed addresses on the Compose network, `172.30.83.2` and `fd53:6e75:6700::2`, and Snug believes `X-Forwarded-For` only from those: the Compose file sets `SNUG_TRUSTED_PROXIES` itself, whatever `snug.env` says. Caddy ignores any `X-Forwarded-For` a visitor sends, and passes on the address the connection really came from.

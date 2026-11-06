@@ -12,7 +12,7 @@ from django.utils import timezone
 from snug.accounts.models import AdminSetup
 from snug.analytics import retention
 from snug.audit.models import AuditEvent, record
-from snug.core import doctor, ratelimit
+from snug.core import doctor, geoip, ratelimit
 from snug.core.models import SiteSettings, SystemCheck
 from snug.viewer.models import VerificationCode, ViewerSession
 
@@ -43,6 +43,12 @@ class Command(BaseCommand):
         )
         # The checks too slow for the Overview to run on each visit.
         doctor.refresh(timezone.now())
+        # DB-IP's country data, for UK-only links: fetched once a month.
+        try:
+            fetched = geoip.refresh(geoip._now())
+        except Exception as error:  # noqa: BLE001 - never let it stop housekeeping
+            fetched = f"failed ({type(error).__name__})"
+        self.stdout.write(f"GeoIP: {fetched}.")
         self.stdout.write(
             f"Housekeeping: reading data: {visits} visit{'s' if visits != 1 else ''}; "
             f"codes: {codes}; viewer sessions: {viewer_sessions}; setup links: {setups}; "
