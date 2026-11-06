@@ -22,7 +22,7 @@ Snug checks every setting when it starts. If any are missing or wrong, it lists 
 
 | Variable | Required | Default | What it does |
 |---|---|---|---|
-| `SNUG_COMPANY_NAME` | No | | Your company's name, used in email subjects. |
+| `SNUG_COMPANY_NAME` | No | | Your company's name, used until one is saved in Settings under Branding, where it is usually set. At most 100 characters. |
 | `SNUG_EMAIL_FROM` | When `SNUG_SMTP_HOST` is set | | The address emails come from. |
 | `SNUG_SMTP_HOST` | No | | Your email provider's SMTP server. Unset, email is off. |
 | `SNUG_SMTP_PORT` | No | `587`, or `465` with `tls` | The SMTP port. DigitalOcean blocks 25, 465 and 587. |

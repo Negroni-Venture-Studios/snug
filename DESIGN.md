@@ -189,7 +189,7 @@ Real URLs, not hash routing, because every action is a CSRF-protected form post.
 - **Settings.**
   - Admins: invite, remove, reset second factor.
   - Your account: change your password, with the current one and a code from the authenticator; and replace your authenticator, with the password and a code from the old one or a recovery code.
-  - Branding: the accent colour on investors' pages, with a picker, a live preview, and a note when Snug deepens a shade to keep it readable; and the logo, uploaded, replaced or removed, with the current one shown on its light tile.
+  - Branding: the company's name, as investors see it on their pages and in every email (`SNUG_COMPANY_NAME` is used until one is saved); the accent colour on investors' pages, with a picker, a live preview, and a note when Snug deepens a shade to keep it readable; and the logo, uploaded, replaced or removed, with the current one shown on its light tile.
   - NDA: the instance's one agreement, versioned.
   - Privacy: an optional link to the founder's own privacy policy, and how long reading data is kept.
 - **New link.** The form is on the left. On the right is what happens next, including the link to copy.
@@ -213,7 +213,7 @@ The company's logo at the top left, or its name without one, and nothing competi
 6. **Unavailable.** One page for unknown, expired and revoked links alike.
 
 **Founder branding under a strict CSP.**
-- The accent colour reaches viewer pages through a generated `/brand/brand.css`, linked with a fingerprint of the colour so a change is fetched at once (`snug.core.brand`). The server works out three shades: the button fill (`--brand`), text and links (`--brand-text`, which viewer links use) and the button label (`--on-brand`, white or near-black). Each is nudged towards black or white until it reaches 4.5:1 against what it sits on, in light and dark mode. Emails carry the company's name, not the colour: colouring them would need inline styles.
+- The accent colour shows as a band across the top of every investor page, as the admin has in orange, and on their buttons, links and the reader's Download button. It reaches viewer pages through a generated `/brand/brand.css`, linked with a fingerprint of the colour so a change is fetched at once (`snug.core.brand`). The server works out three shades: the button fill (`--brand`), text and links (`--brand-text`, which viewer links use) and the button label (`--on-brand`, white or near-black). Each is nudged towards black or white until it reaches 4.5:1 against what it sits on, in light and dark mode. Emails carry the company's name, not the colour: colouring them would need inline styles.
 - The logo is accepted as PNG or JPEG only, up to 2 MB. SVG is not accepted, because an uploaded SVG can carry script. The render worker decodes it in its confinement, as it does a PDF, and draws a fresh PNG of at most 800 by 240 pixels, so nothing but the pixels survives (`snug.core.logo`). It is stored as `branding/logo-<fingerprint>.png`, and served at `/brand/<that name>` only while it is the current logo, with a long cache because a new logo gets a new name.
 - Investors see it at the top of every page, with the company's name as its alt text, and as the page's icon. In dark mode it sits on a light rounded tile, since most logos are drawn for a light page.
 

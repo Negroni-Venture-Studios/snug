@@ -15,7 +15,6 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from django.conf import settings
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.template.loader import render_to_string
@@ -29,7 +28,7 @@ from snug.analytics import reading
 from snug.audit.models import AuditEvent, record
 from snug.core import mail, ratelimit
 from snug.core.client import client_ip, user_agent
-from snug.core.models import SiteSettings
+from snug.core.models import SiteSettings, company_name
 from snug.documents.storage import RENDER_WIDTHS
 from snug.links.models import Link
 from snug.nda import terms
@@ -135,7 +134,7 @@ def _context(link: Link, token: str, **extra: Any) -> dict[str, Any]:
         "room": link.room,
         "pages": version.page_count if version else None,
         "room_documents": link.room.entries.count() if link.room is not None else None,
-        "company": settings.CONFIG.company_name,
+        "company": company_name(),
         "email_enabled": mail.enabled(),
         "privacy_url": SiteSettings.load().privacy_url,
         **extra,
@@ -191,8 +190,8 @@ def _in_background(task: Callable[[], object]) -> threading.Thread:
     return thread
 
 
-def _send(link: Link, code: str) -> bool:
-    company = settings.CONFIG.company_name
+def _send(link: Link, code: str, company: str) -> bool:
+    """Email the code. `company` is read by the caller: this may run on another thread."""
     context = {
         "code": code,
         "title": link.target_title,
@@ -517,10 +516,11 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
         # Sent without waiting, so the reply takes as long as a wrong
         # address's would. A failure is logged by mail.send, not shown.
         code = codes.issue(link)
-        _in_background(lambda: _send(link, code))
+        company = company_name()
+        _in_background(lambda: _send(link, code, company))
         _audit(request, "viewer.code_sent", link, link.email, background=True)
         return _code_page(request, link, token, neutral=True)
-    if not _send(link, codes.issue(link)):
+    if not _send(link, codes.issue(link), company_name()):
         VerificationCode.objects.filter(link=link).delete()
         _audit(request, "viewer.code_failed_to_send", link, link.email)
         error = "We could not send the code. Try again in a few minutes."

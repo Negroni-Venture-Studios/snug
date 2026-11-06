@@ -1,6 +1,7 @@
 {% extends "snug/base.html" %}
 {% block body %}
 <div class="screen v">
+<div class="chrome v-chrome" aria-hidden="true"></div>
 <header class="v-head">
   <div class="founder-logo">{% if brand_logo %}<img class="founder-logo-image" src="{{ brand_logo }}" alt="{{ company }}">{% else %}{{ company }}{% endif %}</div>
   <div class="v-tools">{% block tools %}{% endblock %}{% include "snug/partials/theme_toggle.html" %}</div>

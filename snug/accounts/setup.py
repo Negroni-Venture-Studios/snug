@@ -19,6 +19,7 @@ from django.utils import timezone
 from snug.accounts import recovery, totp
 from snug.accounts.models import Admin, AdminSetup, RecoveryCode
 from snug.core import mail
+from snug.core.models import company_name
 
 SETUP_HOURS = 72
 _MAX_TOKEN = 100
@@ -165,7 +166,7 @@ def send_replace(admin: Admin, token: str) -> bool:
     """The setup link for an admin replacing their own authenticator, in case they close the tab."""
     context = {
         "email": admin.email,
-        "company": settings.CONFIG.company_name,
+        "company": company_name(),
         "url": setup_url(token),
         "hours": SETUP_HOURS,
     }
@@ -178,7 +179,7 @@ def send_replace(admin: Admin, token: str) -> bool:
 
 
 def send_invite(admin: Admin, token: str, by: Admin) -> bool:
-    company = settings.CONFIG.company_name
+    company = company_name()
     context = {
         "company": company,
         "by": by.email,
@@ -199,7 +200,7 @@ def alert_admins(*, subject: str, what: str, also: str = "") -> None:
 
     `also` adds one more address, such as an admin who has just been removed.
     """
-    company = settings.CONFIG.company_name
+    company = company_name()
     context = {"what": what, "company": company, "origin": settings.CONFIG.origin}
     text = render_to_string("accounts/email/alert.txt", context)
     html = render_to_string("accounts/email/alert.html", context)

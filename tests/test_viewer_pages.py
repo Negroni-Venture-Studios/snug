@@ -264,7 +264,7 @@ def test_in_neutral_mode_the_code_is_sent_in_the_background(
 def test_background_sending_really_sends(issued: service.Issued) -> None:
     from snug.viewer import views
 
-    thread = views._in_background(lambda: views._send(issued.link, "123456"))
+    thread = views._in_background(lambda: views._send(issued.link, "123456", "Fernlea Robotics"))
     thread.join(timeout=5)
     assert [message.to for message in django_mail.outbox] == [[INVESTOR]]
 
