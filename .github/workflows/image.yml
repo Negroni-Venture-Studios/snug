@@ -199,12 +199,24 @@ jobs:
           seen=$(docker compose exec -T snug snug shell --command \
             "from snug.core.models import SiteSettings as S; print(S.load().company_name)" | tail -n 1)
           test "$seen" = "Restore Check Ltd"
+      - name: snug setup on a wiped server finds the backups and restores them
+        working-directory: deploy
+        env:
+          SNUG_IMAGE: snug:smoke
+        run: |
+          docker compose down --volumes
+          # As a founder runs it: as root, which it needs to hand rclone.conf
+          # to the backup container's user.
+          printf 'localhost\n\n\n' | sudo --preserve-env=SNUG_IMAGE sh setup.sh
+          seen=$(sudo docker compose exec -T snug snug shell --command \
+            "from snug.core.models import SiteSettings as S; print(S.load().company_name)" | tail -n 1)
+          test "$seen" = "Restore Check Ltd"
       - name: Stop the Compose deployment
         if: always()
         working-directory: deploy
         run: |
-          docker compose logs || true
-          docker compose down --volumes || true
+          sudo docker compose logs || true
+          sudo docker compose down --volumes || true
 
   publish:
     name: publish image

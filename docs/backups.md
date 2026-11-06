@@ -29,40 +29,27 @@ Only the backup container sees the bucket's keys and the encryption password, in
 
 ## Setting up
 
-You need a bucket and a key that can read and write it. On DigitalOcean:
+`snug setup` asks for the bucket and its key, generates the encryption passwords, and shows you the finished settings to keep, as [deployment.md](deployment.md) describes. Before running it, create the bucket and the key. On DigitalOcean:
 
 1. In the control panel, create a Spaces bucket in the region nearest your server. Keep it private, with no CDN.
 2. Under *Spaces Object Storage*, *Access Keys*, create a key limited to that bucket, with read and write access. Note the access key and its secret.
 
-Then, on the server:
+**Copy the settings `snug setup` shows you into your password manager.** They are in `/opt/snug/backup/rclone.conf`, and hold the bucket's key and the two encryption passwords. The passwords are the only way to read the backups: if the server is lost and you do not have them, the backups are useless.
 
-```bash
-cd /opt/snug
-sudo mkdir -p backup
-sudo curl -fsSL -o backup/rclone.conf https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/main/deploy/rclone.conf.example
-```
+### By hand
 
-Generate the two encryption passwords. Each command prints one, already in the form `rclone.conf` takes:
+For a bucket elsewhere, write `rclone.conf` yourself from [deploy/rclone.conf.example](../deploy/rclone.conf.example) before running `snug setup`, which then uses it as it is. rclone supports most S3-compatible stores. Each of the two encryption passwords comes from:
 
 ```bash
 sudo docker compose run --rm --no-deps --entrypoint rclone backup obscure "$(openssl rand -base64 32)"
-sudo docker compose run --rm --no-deps --entrypoint rclone backup obscure "$(openssl rand -base64 32)"
 ```
 
-Edit `backup/rclone.conf`:
-
-- under `[bucket]`, the access key, its secret, and your region's endpoint (`lon1`, `ams3`, `nyc3` and so on);
-- under `[snug-backup]`, your bucket's name in place of `your-bucket`, and the two printed values as `password` and `password2`.
-
-Make it readable by the backup container alone, and start it:
+Make the file readable by the backup container alone:
 
 ```bash
-sudo chown 10001:10001 backup/rclone.conf
-sudo chmod 600 backup/rclone.conf
-sudo docker compose up --detach
+sudo chown 10001:10001 /opt/snug/backup/rclone.conf
+sudo chmod 600 /opt/snug/backup/rclone.conf
 ```
-
-**Copy the whole of `rclone.conf` into your password manager now.** The two passwords are the only way to read the backups. If the server is lost and you do not have them, the backups are useless.
 
 ## Checking
 
@@ -91,16 +78,15 @@ sudo docker compose exec backup rclone lsf -R snug-backup:
 
 `snug restore` brings everything back from the bucket: the database, the uploaded documents and the branding images. It works on the same server, after a mistake, or on a new one, after losing the old.
 
-On a new server, set it up as [deployment.md](deployment.md) describes, but do not start it. Put the copy of `rclone.conf` from your password manager in `/opt/snug/backup/`, readable by the backup container alone, and restore:
+On a new server, create it with cloud-init as [deployment.md](deployment.md) describes. Before running `snug setup`, put the copy of `rclone.conf` from your password manager in `/opt/snug/backup/`. `snug setup` asks for the domain and email settings, finds the backups, and restores them. Then sign in to check, and run `sudo snug doctor`.
+
+On the same server:
 
 ```bash
-cd /opt/snug
-sudo chown 10001:10001 backup/rclone.conf
-sudo chmod 600 backup/rclone.conf
 sudo snug restore
 ```
 
-It stops Snug and its backups, fetches everything from the bucket, rebuilds the database with Litestream, and starts them again. Then sign in to check, and run `sudo snug doctor`.
+It stops Snug and its backups, fetches everything from the bucket, rebuilds the database with Litestream, and starts them again.
 
 To go back to an earlier moment within the last 7 days, give the time in UTC:
 
