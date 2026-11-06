@@ -170,6 +170,9 @@ h1.page-title { overflow-wrap: anywhere; font-size: 2.1rem; font-weight: 300; le
 
 /* ---------- Reading matrix: one aligned grid for the chart and every viewer ---------- */
 .matrix { display: grid; grid-template-columns: minmax(13rem, 1.25fr) minmax(15rem, 2fr) 5rem 8rem 9rem; align-items: stretch; }
+/* People: a Downloads column after Visits. A count above zero stands out. */
+.matrix.with-downloads { grid-template-columns: minmax(13rem, 1.25fr) minmax(13rem, 2fr) 5rem 6.5rem 7rem 9rem; }
+.matrix .downloaded { color: var(--link); font-weight: 500; }
 .matrix > .row { display: contents; }
 .matrix .cell { padding: 0.7rem 0; border-bottom: 1px solid var(--border); min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .matrix .cell + .cell { padding-left: 1.5rem; }
@@ -351,6 +354,10 @@ input.code { font-family: var(--mono); font-size: 1.5rem; letter-spacing: 0.45em
     .matrix .row > .r { flex-direction: row; justify-content: flex-start; align-items: baseline; white-space: pre; padding-bottom: 0.9rem; font-size: 0.85rem; color: var(--text-2); }
     .matrix .row > .r.first { padding-right: 1rem; }
     .matrix .r.first .visually-hidden { position: static; width: auto; height: auto; clip: auto; overflow: visible; margin-left: 0.3em; }
+    /* People: visits, downloads and time on one line, each count labelled. */
+    .matrix.with-downloads { grid-template-columns: auto auto 1fr; }
+    .matrix .row > .r.count { padding-right: 1rem; }
+    .matrix .r.count .visually-hidden { position: static; width: auto; height: auto; clip: auto; overflow: visible; margin-left: 0.3em; }
     .matrix .row > .last { display: none; }
     .matrix .avg > .label { grid-column: 1 / -1; border-top: none; padding-top: 0; }
     .matrix .avg > .r { display: none; }

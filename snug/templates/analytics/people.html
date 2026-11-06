@@ -4,18 +4,19 @@
 <div class="title-row"><div><h1 class="page-title">People</h1><div class="page-meta">Everyone who has opened a document, most recent first. Each document's strip has one cell per page, shaded by the time spent on it; hover over a cell for its page and time.</div></div>{% if people %}<div class="actions">{{ legend }}</div>{% endif %}</div>
 {% for person in people %}
 <section class="section person">
-  <div class="section-head"><h2>{{ person.email }}</h2><p>{% if person.note %}{{ person.note }}. {% endif %}{{ person.total }} in all, last seen {{ person.last_seen|date:"j M, H:i" }}</p></div>
-  <div class="matrix">
+  <div class="section-head"><h2>{{ person.email }}</h2><p>{% if person.note %}{{ person.note }}. {% endif %}{{ person.total }} in all, {% if person.downloads %}{{ person.downloads }} download{{ person.downloads|pluralize }}, {% endif %}last seen {{ person.last_seen|date:"j M, H:i" }}</p></div>
+  <div class="matrix with-downloads">
     <div class="row head">
       <div class="cell">Document</div>
       <div class="cell">Time on each page</div>
-      <div class="cell r">Visits</div><div class="cell r">Time</div><div class="cell r last">Last seen</div>
+      <div class="cell r">Visits</div><div class="cell r">Downloads</div><div class="cell r">Time</div><div class="cell r last">Last seen</div>
     </div>
     {% for read in person.documents %}
     <div class="row">
       <div class="cell who"><a class="email" href="{% url 'documents:detail' read.token %}">{{ read.title }}</a></div>
       <div class="cell strip-cell">{{ read.strip }}</div>
       <div class="cell r first">{{ read.visits }}<span class="visually-hidden"> visit{{ read.visits|pluralize }}</span></div>
+      <div class="cell r count{% if read.downloads %} downloaded{% endif %}">{{ read.downloads }}<span class="visually-hidden"> download{{ read.downloads|pluralize }}</span></div>
       <div class="cell r">{{ read.total }}</div>
       <div class="cell r last">{{ read.last_seen|date:"j M, H:i" }}</div>
     </div>
