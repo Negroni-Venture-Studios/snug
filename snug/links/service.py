@@ -46,6 +46,7 @@ def create(
     require_verification: bool,
     require_nda: bool = False,
     allow_download: bool,
+    uk_only: bool = False,
     created_by: Admin | None,
 ) -> Issued:
     if (document is None) == (room is None):
@@ -62,6 +63,7 @@ def create(
             require_verification=require_verification,
             require_nda=require_nda and room is None,
             allow_download=allow_download,
+            uk_only=uk_only and room is None,
             created_by=created_by,
         )
         token = link.set_new_token()

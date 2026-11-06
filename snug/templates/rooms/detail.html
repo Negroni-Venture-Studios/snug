@@ -5,7 +5,7 @@
 {% block content %}
 <div class="crumbs"><a href="{% url 'rooms:list' %}">Rooms</a> / {{ room.name }}</div>
 <div class="title-row"><div><h1 class="page-title">{{ room.name }}</h1>
-  <div class="page-meta num"><span>{{ document_count }} document{{ document_count|pluralize }}</span>{% if room.require_nda and nda %}<span class="meta-nda">Asks for the NDA, version {{ nda.number }}</span>{% endif %}</div></div></div>
+  <div class="page-meta num"><span>{{ document_count }} document{{ document_count|pluralize }}</span>{% if room.require_nda and nda %}<span class="meta-nda">Asks for the NDA, version {{ nda.number }}</span>{% endif %}{% if room.uk_only %}<span class="meta-uk">UK only</span>{% endif %}</div></div></div>
 
 <section class="section" id="documents">
   <div class="section-head"><h2>Documents</h2></div>
@@ -60,6 +60,15 @@
       <label class="check"><input id="room-require-nda" type="checkbox" name="require_nda"{% if room.require_nda %} checked{% endif %}><span>Ask for the NDA before anything is shown<span class="hint">{% if nda %}Version {{ nda.number }}. Each link accepts it once; a new version asks again.{% else %}There is no NDA yet. Write it below: it becomes version 1, for every room and link that asks for it, and you can change it in Settings.{% endif %}</span></span></label>
       {% if not nda %}<div class="field nda-first" data-nda-for="room-require-nda"><label for="room-nda-text">The NDA</label><textarea id="room-nda-text" name="nda_text" rows="6"{% if nda_error %} aria-invalid="true" aria-describedby="room-nda-error"{% endif %}>{{ nda_draft|default:'' }}</textarea>{% if nda_error %}<div class="error" id="room-nda-error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% endif %}</div>
       {% elif nda_error %}<div class="error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% endif %}
+      <div class="form-foot"><button class="btn" type="submit">Save</button></div>
+    </form>
+  </section>
+  <section class="section" id="uk-only">
+    <div class="section-head"><h2>UK only</h2></div>
+    <form class="panel form" method="post" action="{% url 'rooms:uk_only' room.token %}">
+      {% csrf_token %}
+      {% include "snug/partials/saved.html" with here="uk-only" %}
+      <label class="check"><input type="checkbox" name="uk_only"{% if room.uk_only %} checked{% endif %}><span>Open only from the UK<span class="hint">Every link to this room opens only for visitors in the UK, Jersey, Guernsey and the Isle of Man, by their internet address. A VPN can get round it. {% include "snug/partials/db_ip.html" %}</span></span></label>
       <div class="form-foot"><button class="btn" type="submit">Save</button></div>
     </form>
   </section>

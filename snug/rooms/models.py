@@ -14,6 +14,8 @@ from snug.documents.models import Document, new_token
 class Room(models.Model):
     name = models.CharField(max_length=120)
     require_nda = models.BooleanField(default=False)
+    # Every link to the room opens only from the UK (snug.viewer.access).
+    uk_only = models.BooleanField(default=False)
     token = models.CharField(max_length=32, unique=True, default=new_token, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
