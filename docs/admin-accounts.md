@@ -105,6 +105,10 @@ snug reset-2fa you@yourcompany.com
 
 It asks you to confirm, shows a new QR code, and issues new recovery codes. The old authenticator and the old recovery codes stop working at once.
 
+## Emails when a link is first opened
+
+The first time each link shows anyone a document, every admin is emailed who opened it, what, when and from which country, with a link to that person on the People page. To stop them for yourself, untick *Email me when someone first opens a link* under Your account in Settings. The other admins still get theirs.
+
 ## What is recorded
 
 Creating an admin, resetting or replacing a second factor, changing a password, and asking for and using a forgotten-password link are all written to the audit log, along with every sign-in. Passwords, authenticator keys and recovery codes are never written to the log.

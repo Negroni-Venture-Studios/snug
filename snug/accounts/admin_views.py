@@ -376,6 +376,20 @@ def privacy_view(request: HttpRequest) -> HttpResponse:
 @never_cache
 @login_required
 @require_POST
+def notifications_view(request: HttpRequest) -> HttpResponse:
+    """Whether this admin is emailed the first time each link is opened."""
+    admin = _admin(request)
+    wanted = request.POST.get("first_open") == "on"
+    if admin.notify_first_open != wanted:
+        admin.notify_first_open = wanted
+        admin.save(update_fields=["notify_first_open"])
+        _audit(request, "admin.notifications_changed", admin.email, admin.email, first_open=wanted)
+    return redirect("/admin/settings/?saved=notifications#notifications")
+
+
+@never_cache
+@login_required
+@require_POST
 def retention_view(request: HttpRequest) -> HttpResponse:
     """How many months reading data is kept after its link ends."""
     raw = request.POST.get("months", "").strip()

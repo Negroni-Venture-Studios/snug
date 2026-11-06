@@ -17,6 +17,7 @@ urlpatterns = [
         admin_views.replace_authenticator_view,
         name="replace_authenticator",
     ),
+    path("settings/notifications", admin_views.notifications_view, name="notifications"),
     path("settings/branding", admin_views.branding_view, name="branding"),
     path("settings/logo", admin_views.logo_view, name="logo"),
     path("settings/icon", admin_views.icon_view, name="icon"),

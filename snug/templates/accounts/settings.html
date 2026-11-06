@@ -56,6 +56,13 @@
     {% if authenticator_errors.code %}<div class="error" id="authenticator-code-error" role="alert">{% icon "warning-circle" %}{{ authenticator_errors.code }}</div>{% endif %}</div>
   <button class="btn btn-primary" type="submit">Replace authenticator</button>
 </form>
+<form class="panel form settings-form" id="notifications" method="post" action="{% url 'accounts:notifications' %}#notifications">
+  {% csrf_token %}
+  <h3 class="panel-title">Emails</h3>
+  {% if saved == "notifications" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if request.user.notify_first_open %}Saved. You will be emailed the first time each link is opened.{% else %}Saved. You will not be emailed when someone first opens a link.{% endif %}</span></div>{% endif %}
+  <label class="check"><input type="checkbox" name="first_open"{% if request.user.notify_first_open %} checked{% endif %}><span>Email me when someone first opens a link<span class="hint">Who, what, when and from which country, the first time each link shows anyone a document.</span></span></label>
+  <button class="btn btn-primary" type="submit">Save</button>
+</form>
 </div>
 
 <div class="section" id="branding">

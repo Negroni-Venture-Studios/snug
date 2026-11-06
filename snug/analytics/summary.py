@@ -1,5 +1,6 @@
 """How a document was read: the figures behind the stat strip and the reading grid."""
 
+import hashlib
 import statistics
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -109,12 +110,21 @@ class PersonDocument:
         return sum(self.seconds)
 
 
+def anchor(email: str) -> str:
+    """The People page's anchor for a person: a hash, so no address is in a URL."""
+    return "person-" + hashlib.sha256(email.casefold().encode()).hexdigest()[:12]
+
+
 @dataclass
 class Person:
     email: str
     note: str = ""
     last_seen: datetime | None = None
     documents: list[PersonDocument] = field(default_factory=list)
+
+    @property
+    def anchor(self) -> str:
+        return anchor(self.email)
 
     @property
     def total_seconds(self) -> float:

@@ -16,6 +16,7 @@ def people(request: HttpRequest) -> HttpResponse:
     rows = [
         {
             "email": person.email,
+            "anchor": person.anchor,
             "note": person.note,
             "last_seen": person.last_seen,
             "total": charts.duration(person.total_seconds),
