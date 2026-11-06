@@ -1,0 +1,70 @@
+#cloud-config
+# Snug on a fresh Ubuntu 24.04 LTS server, such as a DigitalOcean droplet.
+#
+# Paste this whole file into "User data" when creating the server. It holds
+# no secrets: once the server is up, sign in with SSH and run
+#   sudo snug setup
+# which asks for the domain, email and backup settings on the server itself.
+# docs/deployment.md explains each step.
+
+package_update: true
+package_upgrade: true
+
+# Docker from Docker's own repository, checked against its signing key.
+apt:
+  sources:
+    docker.list:
+      source: "deb [arch=amd64,arm64 signed-by=$KEY_FILE] https://download.docker.com/linux/ubuntu $RELEASE stable"
+      keyid: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+
+packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-compose-plugin
+  - ufw
+  - unattended-upgrades
+
+# Ubuntu's security updates, installed automatically.
+write_files:
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+  - path: /etc/update-motd.d/99-snug
+    permissions: "0755"
+    content: |
+      #!/bin/sh
+      # snug setup writes the secret key; until then, say what to do.
+      if ! grep -q '^SNUG_SECRET_KEY=.' /opt/snug/snug.env 2>/dev/null; then
+        echo
+        echo "Snug is installed but not set up. Run: sudo snug setup"
+        echo
+      fi
+
+# Room for the PDF worker, which may use up to 1 GiB, on a small server.
+swap:
+  filename: /swapfile
+  size: 1073741824
+
+runcmd:
+  - ufw default deny incoming
+  - ufw allow OpenSSH
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw allow 443/udp
+  - ufw --force enable
+  - systemctl enable --now docker
+  - mkdir -p /opt/snug/backup
+  - |
+    set -eu
+    ref=main
+    base="https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/$ref/deploy"
+    cd /opt/snug
+    for file in compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh snug; do
+      curl -fsSL --retry 5 -o "$file" "$base/$file"
+    done
+    curl -fsSL --retry 5 -o snug.env "$base/snug.env.example"
+    chmod 600 snug.env
+    ln -sf snug.env .env
+    install -m 755 snug /usr/local/bin/snug

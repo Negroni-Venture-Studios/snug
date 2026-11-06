@@ -45,6 +45,12 @@ jobs:
           done
       - name: Dependency licences are compatible with MIT
         run: uv run python scripts/check_licences.py
+      - name: Deployment scripts pass shellcheck
+        run: shellcheck --shell=sh deploy/backup.sh deploy/restore.sh deploy/setup.sh deploy/snug
+      - name: cloud-init file is valid
+        run: |
+          docker run --rm --volume "$PWD/deploy:/deploy:ro" ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852 sh -c \
+            'apt-get update -qq && apt-get install -y -qq cloud-init > /dev/null && cloud-init schema --config-file /deploy/cloud-init.yaml'
 
   typecheck:
     name: typecheck

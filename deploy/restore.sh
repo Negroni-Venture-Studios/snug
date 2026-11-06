@@ -75,6 +75,7 @@ if in_backup 'test -e /var/lib/snug/snug.sqlite3'; then
 fi
 
 echo "Fetching the backups..."
+# shellcheck disable=SC2016 # expanded inside the container, not here
 in_backup '
 	set -eu
 	cd /var/lib/snug

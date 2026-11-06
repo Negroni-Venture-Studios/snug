@@ -199,6 +199,16 @@ jobs:
           seen=$(docker compose exec -T snug snug shell --command \
             "from snug.core.models import SiteSettings as S; print(S.load().company_name)" | tail -n 1)
           test "$seen" = "Restore Check Ltd"
+      - name: snug setup on a wiped server finds the backups and restores them
+        working-directory: deploy
+        env:
+          SNUG_IMAGE: snug:smoke
+        run: |
+          docker compose down --volumes
+          printf 'localhost\n\n\n' | sh setup.sh
+          seen=$(docker compose exec -T snug snug shell --command \
+            "from snug.core.models import SiteSettings as S; print(S.load().company_name)" | tail -n 1)
+          test "$seen" = "Restore Check Ltd"
       - name: Stop the Compose deployment
         if: always()
         working-directory: deploy
