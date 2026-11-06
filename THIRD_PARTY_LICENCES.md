@@ -48,4 +48,3 @@ The FreeType Project licence asks that documentation mention its use: portions o
 | Geist and Geist Mono, by Vercel | SIL Open Font Licence 1.1 | `snug/static/snug/fonts/`, with `OFL.txt` |
 | Phosphor icons | MIT | `snug/static/snug/icons/`, with `LICENSE.txt` |
 | The GitHub mark, linking to the source in the footer | GitHub's logo guidelines, which allow it for linking to a project on GitHub (https://github.com/logos) | `snug/static/snug/icons/github-mark.svg` |
-| The theme toggle's sun, moon and auto icons | MIT (Feather icons) and agentlanguages.dev, by Alasdair Allan | `snug/templates/snug/partials/theme_toggle.html` |
