@@ -11,6 +11,7 @@
     {% include "snug/partials/form_error.html" %}
     <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="off" required value="{{ values.email|default:'' }}" autofocus></div>
     <div class="field"><label for="note">Note for yourself</label><input id="note" name="note" type="text" maxlength="200" value="{{ values.note|default:'' }}"><div class="hint">Only admins see this, for example "Partner at Northfield Capital".</div></div>
+    <div class="field"><label for="message">Message for them</label><textarea id="message" name="message" rows="4" maxlength="1000">{{ values.message|default:'' }}</textarea><div class="hint">Optional, and plain text. They see it before they open {% if for_room %}the room{% else %}the document{% endif %}, and in the email with the link.</div></div>
     <div class="field"><label for="expires">Expires</label><input id="expires" name="expires" type="date" value="{{ values.expires|default:'' }}"><div class="hint">Leave empty for no expiry. You can revoke the link at any time.</div></div>
     <div class="field"><span class="label">Options</span>
       <div class="choices">

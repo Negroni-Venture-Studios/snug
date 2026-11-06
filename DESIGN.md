@@ -39,7 +39,7 @@ Sections 1 to 3 describe Snug as it is, apart from the features section 4 lists 
 | Reading time | A page is recorded as shown when the reader serves it. While the tab is visible, the reader sends a heartbeat every 15 seconds; "end" when the tab is hidden or closed, "resume" when it is shown again. Snug credits each heartbeat with the time that really passed since the last, at most 20 seconds, to the page being shown. A visit ends after 30 minutes with no events. Each new visit is audited as `viewer.document_viewed`. | The server measures time, so a browser cannot inflate it, and a sleeping laptop or a hidden tab does not count as reading. |
 | NDA | Available on single-document links as well as rooms. One NDA for the whole instance, set in Settings and versioned; a room, or a link to a single document, requires it or not. Acceptance is per link and per version: editing the NDA asks everyone to accept the new version on their next visit, and earlier acceptances stay in the history. Each acceptance records the name, email, link, time, IP address, user agent and a SHA-256 of the exact text. | A document shared on its own may need an NDA too. Most founders have one NDA. Every record matches the exact words that person agreed to, and is tied to the link it was made on, as the brief asks. |
 | Rooms | A named collection of documents with at most one level of folders. A document can be in any number of rooms, and a link points to one document or one room. | One upload, one set of versions and one set of analytics, however many rooms show it. |
-| Cover message | Optional plain-text message shown before the first page (not built yet: section 4) | Cheap, and founders asked for it. |
+| Cover message | Optional plain text on a link, up to 1,000 characters, with line breaks kept and nothing rendered as HTML. It opens the viewer's *About this link* panel on every page, and appears in the email that carries the link. | Cheap, and founders asked for it. Plain text means a message cannot carry script or a disguised link. |
 | Weekly digest | Not in version 1 | Needs a scheduler and more email design; first-open notifications cover the urgent case. |
 | Backups | Step 7: Litestream for SQLite; an rclone sidecar container for uploaded originals; both encrypted with a key only the founder holds | Litestream only replicates SQLite. Negroni never holds data, and the bucket provider should not be able to read it either. |
 | GeoIP | Step 8: DB-IP IP to Country Lite (CC BY 4.0, checked 5 November 2026), downloaded at deploy time and refreshed monthly; attribution in the docs and the admin interface | Bundling it in the image would go stale. The monthly fetch is documented; it is not telemetry. |
@@ -203,7 +203,7 @@ The company's name at the top left (its logo, once founder branding is built), a
 
 1. **Landing.** "**Fernlea Robotics** has shared **Seed deck** with you", then an email field and *Send code*. On wide screens, an **About this link** panel sits beside it:
    - who sent it, which document, the access given and the expiry;
-   - the cover message, once it is built;
+   - the cover message, if the founder wrote one;
    - a plain statement that the company will see when the viewer opens the document and how long they spend on each page, and that every page shows their email address.
 2. **Code.** One six-digit field (`autocomplete="one-time-code"`). Errors appear below it and say what happens next: "That code is not right. You have 4 tries left."
 3. **NDA**, when required. The NDA text in a readable panel, a name field, an *I accept* checkbox, and a statement of what is recorded (name, email, time, IP address). The page says plainly that this is a record of acceptance, not a signature.
@@ -313,7 +313,6 @@ Steps 0 to 6 are done. What remains:
 
 **Before version 1: features not built yet.**
 - Founder branding: a logo (PNG or JPEG, re-encoded) and an accent colour in Settings, with a live preview and a contrast warning; the logo and colour in the viewer, as its favicon and in its emails, through a generated `/brand.css`.
-- A cover message on a link, shown before the first page.
 - A progress bar on uploads. A large PDF takes a while, and a page that seems to do nothing gets clicked again or abandoned.
 
 **After version 1.** Once version 1 is out, each of these becomes a public GitHub issue labelled `enhancement`, along with anything else specified and still not built:

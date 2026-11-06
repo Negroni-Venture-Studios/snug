@@ -31,6 +31,10 @@ def new_ref() -> str:
     return "".join(secrets.choice(_REF_ALPHABET) for _ in range(4))
 
 
+# The longest cover message, in characters.
+MAX_MESSAGE = 1000
+
+
 class Link(models.Model):
     # SHA-256 of the URL token. The token itself is never stored.
     token_hash = models.CharField(max_length=64, unique=True)
@@ -38,6 +42,8 @@ class Link(models.Model):
     ref = models.CharField(max_length=8, unique=True)
     email = models.EmailField()
     note = models.CharField(max_length=200, blank=True)
+    # The cover message: plain text from the founder, shown to the investor.
+    message = models.TextField(blank=True)
     # Exactly one of these: the link shares a document, or a room.
     document = models.ForeignKey(
         Document, null=True, blank=True, on_delete=models.CASCADE, related_name="links"

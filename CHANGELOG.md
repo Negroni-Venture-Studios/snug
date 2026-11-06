@@ -22,6 +22,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- A cover message on a link: an optional note of up to 1,000 characters, shown to the investor in the About this link panel and in the email with the link.
 - Replace your own authenticator in Settings, under Your account, for a new phone: your password and a code from the old app, or a recovery code. You go straight to setting up the new one, with new recovery codes, and the link is emailed in case you close the tab.
 - Change your own password in Settings, under Your account, with your current password and a code from your authenticator app. You stay signed in on that browser, everywhere else is signed out, and you are emailed.
 - With no NDA yet, ticking "Ask for the NDA" on a new link, or in a room's NDA panel, shows a box to write it there. Saving publishes it as version 1, as Settings would, instead of sending you away to Settings and losing what you typed.

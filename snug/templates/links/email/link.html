@@ -2,7 +2,8 @@
 <html lang="en-GB">
 <body>
 <p>{% if company %}{{ company }} has shared <strong>{{ title }}</strong> with you.{% else %}<strong>{{ title }}</strong> has been shared with you.{% endif %}</p>
-<p><a href="{{ url }}">Open {{ title }}</a></p>
+{% if link.message %}<p>{{ link.message|linebreaksbr }}</p>
+{% endif %}<p><a href="{{ url }}">Open {{ title }}</a></p>
 <p>This link is for you alone.{% if link.require_verification %} When you open it, you will be asked for this email address and sent a code to confirm it.{% endif %}{% if link.expires_at %} It works until {{ link.last_day|date:"j F Y" }}.{% endif %}</p>
 <p>Reply to this email to reach {{ sender }}.</p>
 </body>
