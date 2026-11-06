@@ -68,6 +68,59 @@ jobs:
       - name: Stop
         if: always()
         run: docker rm --force snug || true
+      - name: Start the Compose deployment behind Caddy
+        working-directory: deploy
+        env:
+          SNUG_IMAGE: snug:smoke
+        run: |
+          printf 'SNUG_SECRET_KEY=%s\nSNUG_DOMAIN=localhost\n' \
+            "$(python3 -c 'import secrets; print(secrets.token_urlsafe(64))')" > snug.env
+          ln -s snug.env .env
+          docker compose up --detach --wait --wait-timeout 120
+      - name: Caddy serves HTTPS and redirects HTTP
+        run: |
+          curl --fail --silent --insecure https://localhost/healthz
+          test "$(curl --silent --output /dev/null --write-out '%{http_code} %{redirect_url}' \
+            http://localhost/admin/login)" = "308 https://localhost/admin/login"
+          curl --fail --silent --insecure --output /dev/null https://localhost/admin/login
+      - name: A forged X-Forwarded-For is not believed
+        working-directory: deploy
+        run: |
+          jar=$(mktemp)
+          token=$(curl --silent --insecure --cookie-jar "$jar" https://localhost/admin/login \
+            | grep -o 'name="csrfmiddlewaretoken" value="[^"]*"' | sed 's/.*value="//; s/"$//')
+          curl --silent --insecure --cookie "$jar" --output /dev/null \
+            --header 'X-Forwarded-For: 192.0.2.66' --header 'Origin: https://localhost' \
+            --header 'Referer: https://localhost/admin/login' \
+            --data-urlencode "csrfmiddlewaretoken=$token" \
+            --data-urlencode 'email=nobody@example.com' \
+            --data-urlencode 'password=not-the-password' https://localhost/admin/login
+          seen=$(docker compose exec -T snug snug shell --command \
+            "from snug.audit.models import AuditEvent as A; print(A.objects.get(action='admin.login_failed').ip_address)" \
+            | tail -n 1)
+          echo "recorded: $seen"
+          test "$seen" != "192.0.2.66"
+          test "$seen" != "172.30.83.2"
+      - name: The worker still renders in the hardened container
+        working-directory: deploy
+        run: |
+          docker compose exec -T snug python -c "
+          import io, tempfile, pypdfium2
+          from snug.rendering import sandbox
+          pdf = pypdfium2.PdfDocument.new(); pdf.new_page(200, 100)
+          out = io.BytesIO(); pdf.save(out)
+          with tempfile.NamedTemporaryFile(suffix='.pdf') as f:
+              f.write(out.getvalue()); f.flush()
+              assert sandbox.render(f.name, 1, 800)[:4] == b'RIFF'
+          print('rendered in the worker')
+          "
+          docker compose exec -T snug snug housekeeping
+      - name: Stop the Compose deployment
+        if: always()
+        working-directory: deploy
+        run: |
+          docker compose logs || true
+          docker compose down --volumes || true
 
   publish:
     name: publish image

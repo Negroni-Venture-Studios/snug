@@ -1,6 +1,6 @@
 # Configuration
 
-All of Snug's configuration comes from environment variables, set in one file and passed to the container. [deploy/snug.env.example](../deploy/snug.env.example) is a starting point. The production setup, still to come, keeps the file at `/etc/snug/snug.env` on the server.
+All of Snug's configuration comes from environment variables, set in one file and passed to the container. [deploy/snug.env.example](../deploy/snug.env.example) is a starting point. The standard deployment keeps the file at `/opt/snug/snug.env` on the server, as [deployment.md](deployment.md) describes.
 
 Snug checks every setting when it starts. If any are missing or wrong, it lists every problem at once and refuses to start, rather than starting half-configured.
 
@@ -11,7 +11,7 @@ Snug checks every setting when it starts. If any are missing or wrong, it lists 
 | `SNUG_SECRET_KEY` | Yes | | Signs sessions and other tokens. At least 50 random characters. Keep it secret, and never reuse it between instances. |
 | `SNUG_DOMAIN` | Yes | | The host name people use to reach Snug, like `room.example.com`: no `https://`, port or path. Requests for any other host name are refused. On your own computer it can be `localhost` with a port, like `localhost:8000`, so the links Snug shows and emails include it. |
 | `SNUG_DATA_DIR` | No | `/var/lib/snug` | Where Snug keeps its database and files. Must be an absolute path. Back it up, which the standard deployment does continuously. |
-| `SNUG_TRUSTED_PROXIES` | No | `127.0.0.1/32, ::1/128` | The addresses of the proxy in front of Snug, Caddy in the standard deployment, as a comma-separated list of addresses or networks. Snug believes the client address in `X-Forwarded-For` only on requests from these. Never set it to everything (`0.0.0.0/0`), and Snug refuses to start if you do: anyone could then claim any address and get round the rate limits. |
+| `SNUG_TRUSTED_PROXIES` | No | `127.0.0.1/32, ::1/128` | The addresses of the proxy in front of Snug, Caddy in the standard deployment, as a comma-separated list of addresses or networks. The standard Compose file sets this to Caddy's own addresses, whatever `snug.env` says. Snug believes the client address in `X-Forwarded-For` only on requests from these. Never set it to everything (`0.0.0.0/0`), and Snug refuses to start if you do: anyone could then claim any address and get round the rate limits. |
 | `SNUG_MAX_UPLOAD_MB` | No | `100` | The largest PDF an admin can upload, in megabytes, from 1 to 1024. Large decks with many images can reach tens of megabytes. |
 | `SNUG_VIEWER_SESSION_DAYS` | No | `7` | How long a viewer stays signed in to a link after verifying, in days, from 1 to 90. Revoking a link ends its sessions at once, whatever this says. |
 | `SNUG_HTTPS` | No | `true` | Snug expects to sit behind Caddy, which provides HTTPS. Can only be `false` when `SNUG_DOMAIN` is `localhost`. |

@@ -33,6 +33,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- A Docker Compose deployment: Snug behind Caddy, which gets and renews HTTPS certificates, with Snug's settings in `/opt/snug/snug.env`. [docs/deployment.md](docs/deployment.md) explains it. Both containers have read-only filesystems and no privileges they do not need, and Snug believes a visitor's address only from Caddy, over IPv4 and IPv6.
 - Your logo on investors' pages, uploaded in Settings under Branding: at the top of every page, on a light tile in dark mode, and as the icon in their browser tab. PNG or JPEG, up to 2 MB. Snug redraws it in the same confined process that reads PDFs, so nothing in the file but the picture reaches investors.
 - Your accent colour on investors' pages, set in Settings under Branding with a picker and a live preview. Snug deepens or lightens the shade it uses for text and buttons where it needs to, so everything stays readable in light and dark mode, and says when it has.
 - Uploads show their progress as a bar, then "Checking the PDF" while Snug reads it, and the button cannot be pressed twice.
