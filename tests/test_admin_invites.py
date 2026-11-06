@@ -101,7 +101,7 @@ def test_a_pending_invite_is_listed(client: Client, admin: Admin) -> None:
 def test_without_email_there_is_no_invite_form(client: Client, admin: Admin) -> None:
     page = client.get("/admin/settings/", secure=True).content.decode()
     assert "Inviting needs email" in page
-    assert 'action="/admin/settings/admins/invite"' not in page
+    assert 'action="/admin/settings/admins/invite' not in page
     assert invite(client, admin).status_code == 503
     assert not Admin.objects.filter(email=NEW).exists()
 
@@ -140,7 +140,9 @@ def test_inviting_sends_a_setup_link_and_alerts_every_admin(
     client: Client, admin: Admin, other: Admin
 ) -> None:
     response = invite(client, admin, email=" Jo@Fernlea.example ")
-    assert response.status_code == 302 and response["Location"] == "/admin/settings/?invited=1"
+    assert (
+        response.status_code == 302 and response["Location"] == "/admin/settings/?invited=1#invite"
+    )
 
     invited = Admin.objects.get(email=NEW)
     assert not invited.is_active and not invited.has_usable_password()

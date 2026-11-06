@@ -18,6 +18,7 @@ urlpatterns = [
         name="replace_authenticator",
     ),
     path("settings/branding", admin_views.branding_view, name="branding"),
+    path("settings/logo", admin_views.logo_view, name="logo"),
     path("settings/privacy", admin_views.privacy_view, name="privacy"),
     path("settings/nda", admin_views.nda_view, name="nda"),
     path("settings/retention", admin_views.retention_view, name="retention"),

@@ -41,7 +41,7 @@ Sections 1 to 3 describe Snug as it is, apart from the features section 4 lists 
 | Rooms | A named collection of documents with at most one level of folders. A document can be in any number of rooms, and a link points to one document or one room. | One upload, one set of versions and one set of analytics, however many rooms show it. |
 | Cover message | Optional plain text on a link, up to 1,000 characters, with line breaks kept and nothing rendered as HTML. It opens the viewer's *About this link* panel on every page, and appears in the email that carries the link. | Cheap, and founders asked for it. Plain text means a message cannot carry script or a disguised link. |
 | Weekly digest | Not in version 1 | Needs a scheduler and more email design; first-open notifications cover the urgent case. |
-| Backups | Step 7: Litestream for SQLite; an rclone sidecar container for uploaded originals; both encrypted with a key only the founder holds | Litestream only replicates SQLite. Negroni never holds data, and the bucket provider should not be able to read it either. |
+| Backups | Step 7: Litestream for SQLite; an rclone sidecar container for uploaded originals and the founder's logo; both encrypted with a key only the founder holds | Litestream only replicates SQLite. Negroni never holds data, and the bucket provider should not be able to read it either. |
 | GeoIP | Step 8: DB-IP IP to Country Lite (CC BY 4.0, checked 5 November 2026), downloaded at deploy time and refreshed monthly; attribution in the docs and the admin interface | Bundling it in the image would go stale. The monthly fetch is documented; it is not telemetry. |
 | `snug doctor` email check | Step 7: sends a code and asks the operator to type it back | Snug cannot read the operator's inbox. |
 | Periodic work | `snug housekeeping`, run every hour by a thread in gunicorn's master process, each time as a fresh process: it deletes reading data past its retention period (audited as `system.reading_data_deleted`), and expired codes, viewer sessions, setup links and rate-limit windows. It reports counts only. | The container has no cron. A fresh process keeps the master free of Django, and a failure there never touches the processes serving requests. |
@@ -95,7 +95,7 @@ On the taste guide's dials: variance 3 (orderly, aligned, few surprises), motion
 
 ### 3.2 Principles
 
-- **Two surfaces, two owners.** The admin is Snug's own, built from the Negroni palette. The viewer belongs to the founder: plain neutrals, with no Snug or Negroni branding: their accent colour and, once it is built, their logo.
+- **Two surfaces, two owners.** The admin is Snug's own, built from the Negroni palette. The viewer belongs to the founder: plain neutrals, with no Snug or Negroni branding: their accent colour and their logo.
 - **Server-rendered first.** Every page works as plain HTML forms and links. JavaScript only enhances.
 - **The strict CSP shapes the design.** No inline scripts, no `style=""` attributes and no third-party origins. Section 3.10 lists the consequences.
 - **Accessible by default.** WCAG 2.2 AA throughout, with tests where possible.
@@ -187,7 +187,7 @@ Real URLs, not hash routing, because every action is a CSRF-protected form post.
 - **People.** One row per viewer email address, with everything that person has opened across the instance, using the same page strips. Each document row also says how many times that person downloaded it, and the person's summary line gives their total when it is above zero. The counts come from the audit log's download events, which outlast reading data, so only documents the person is still shown reading are counted.
 - **Audit log.** A dense, filterable table and a CSV export.
 - **Settings.**
-  - Branding: the accent colour on investors' pages, with a picker, a live preview, and a note when Snug deepens a shade to keep it readable.
+  - Branding: the accent colour on investors' pages, with a picker, a live preview, and a note when Snug deepens a shade to keep it readable; and the logo, uploaded, replaced or removed, with the current one shown on its light tile.
   - Your account: change your password, with the current one and a code from the authenticator; and replace your authenticator, with the password and a code from the old one or a recovery code.
   - Admins: invite, remove, reset second factor.
   - NDA: the instance's one agreement, versioned.
@@ -200,7 +200,7 @@ Real URLs, not hash routing, because every action is a CSRF-protected form post.
 
 ### 3.8 Viewer
 
-The company's name at the top left (its logo, once that is built), and nothing competing with the document, designed phone-first.
+The company's logo at the top left, or its name without one, and nothing competing with the document, designed phone-first.
 
 1. **Landing.** "**Fernlea Robotics** has shared **Seed deck** with you", then an email field and *Send code*. On wide screens, an **About this link** panel sits beside it:
    - who sent it, which document, the access given and the expiry;
@@ -214,9 +214,8 @@ The company's name at the top left (its logo, once that is built), and nothing c
 
 **Founder branding under a strict CSP.**
 - The accent colour reaches viewer pages through a generated `/brand/brand.css`, linked with a fingerprint of the colour so a change is fetched at once (`snug.core.brand`). The server works out three shades: the button fill (`--brand`), text and links (`--brand-text`, which viewer links use) and the button label (`--on-brand`, white or near-black). Each is nudged towards black or white until it reaches 4.5:1 against what it sits on, in light and dark mode. Emails carry the company's name, not the colour: colouring them would need inline styles.
-- The logo is not built yet (section 4).
-- Logos are accepted as PNG or JPEG only and re-encoded through Pillow. SVG is not accepted, because an uploaded SVG can carry script.
-- In dark mode the logo sits on a light rounded tile. A second logo for dark mode comes after version 1.
+- The logo is accepted as PNG or JPEG only, up to 2 MB. SVG is not accepted, because an uploaded SVG can carry script. The render worker decodes it in its confinement, as it does a PDF, and draws a fresh PNG of at most 800 by 240 pixels, so nothing but the pixels survives (`snug.core.logo`). It is stored as `branding/logo-<fingerprint>.png`, and served at `/brand/<that name>` only while it is the current logo, with a long cache because a new logo gets a new name.
+- Investors see it at the top of every page, with the company's name as its alt text, and as the page's icon. In dark mode it sits on a light rounded tile, since most logos are drawn for a light page.
 
 ### 3.9 Email
 
@@ -303,7 +302,7 @@ Steps 0 to 6 are done. What remains:
   - *Done:* the package is public.
   - **Documentation comes before publishing.** No version tag (`v0.1.0`, which publishes `:latest`) until the README's quick start and `docs/deploy-digitalocean.md` describe that release and have been followed on a fresh droplet. Until then the README says plainly that `:edge` is a test build.
   - *Done:* `image smoke test` is a required check on `main`.
-- Docker Compose with Snug, Caddy and Litestream; an rclone sidecar for uploaded originals; backups encrypted with an age key generated during setup, which the founder must store.
+- Docker Compose with Snug, Caddy and Litestream; an rclone sidecar for uploaded originals and the logo (`originals/` and `branding/`); backups encrypted with an age key generated during setup, which the founder must store.
 - cloud-init for a fresh Ubuntu LTS droplet.
 - `snug doctor`, checking DNS, TLS, email (send a code, type it back), the latest backup, the render worker's confinement level (Landlock), and housekeeping: it warns when `snug housekeeping` has not completed successfully in the last three hours. Housekeeping must record when it last succeeded for this.
 - The admin Overview's status line shows any problem `snug doctor` would report, including failing housekeeping, so a founder sees it without running a command.
@@ -312,9 +311,6 @@ Steps 0 to 6 are done. What remains:
 **Step 8.** UK-only mode, per link or per room (`authorise()` check 4), with DB-IP attribution; first-open email notifications to admins.
 
 **Step 9.** README, `docs/using-snug.md` (how to use the admin interface and what investors see, with annotated screenshots generated by the Playwright tests, so rebuilding the guide refreshes them), `docs/deploy-digitalocean.md`, `docs/security.md` (including what watermarks, the NDA record and UK-only mode do not protect against), then a full deployment to a test droplet from the guide alone, using a wildcard DNS name such as `sslip.io` rather than a bought domain, and a restore onto a second fresh droplet. Both droplets are destroyed afterwards.
-
-**Before version 1: features not built yet.**
-- Founder branding, the logo: PNG or JPEG, re-encoded in the confined worker, shown at the top of investors' pages on a light tile and as their favicon. (The accent colour is built.)
 
 **After version 1.** Once version 1 is out, each of these becomes a public GitHub issue labelled `enhancement`, along with anything else specified and still not built:
 - A second logo for dark mode, in place of the light tile.

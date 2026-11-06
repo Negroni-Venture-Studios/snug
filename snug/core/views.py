@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
@@ -10,7 +10,7 @@ from django.views.decorators.http import require_safe
 
 from snug.analytics import charts, summary
 from snug.analytics.models import Visit
-from snug.core import brand
+from snug.core import brand, logo
 from snug.core.models import SiteSettings
 from snug.documents.models import Document
 from snug.links.models import Link
@@ -52,3 +52,19 @@ def brand_css(request: HttpRequest) -> HttpResponse:
 def csrf_failure(request: HttpRequest, reason: str = "") -> HttpResponse:
     """Django's own page uses inline styles, which our CSP forbids. This one does not."""
     return render(request, "core/csrf_failure.html", status=403)
+
+
+@require_safe
+def brand_logo(request: HttpRequest, name: str) -> FileResponse:
+    """The founder's logo, for viewer pages. Only the current one, by its stored name."""
+    current = SiteSettings.load().logo_name
+    if not current or name != current:
+        raise Http404
+    try:
+        stored = logo.path(current).open("rb")
+    except OSError as error:
+        raise Http404 from error
+    response = FileResponse(stored, content_type="image/png")
+    # The name is a fingerprint of the file, so a long cache is safe.
+    response["Cache-Control"] = "public, max-age=31536000, immutable"
+    return response

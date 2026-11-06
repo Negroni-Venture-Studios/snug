@@ -207,7 +207,7 @@ def test_saving_the_period_says_so_beside_it(client: Client) -> None:
     page = client.post(
         "/admin/settings/retention", {"months": "24"}, secure=True, follow=True
     ).content.decode()
-    form = page[page.index('action="/admin/settings/retention"') :]
+    form = page[page.index('action="/admin/settings/retention#retention"') :]
     assert "Saved. Reading data is kept for 24 months" in form
 
 
@@ -216,9 +216,9 @@ def test_every_settings_form_is_the_same_width(client: Client) -> None:
 
     page = client.get("/admin/settings/", secure=True).content.decode()
     forms = re.findall(r'<form class="(panel [^"]*)"', page)
-    # Password, authenticator, branding, NDA, privacy link and retention; the
-    # invite form needs email, which the tests leave off.
-    assert len(forms) == 6
+    # Password, authenticator, colour, logo, NDA, privacy link and retention;
+    # the invite form needs email, which this test leaves off.
+    assert len(forms) == 7
     assert all("settings-form" in classes.split() for classes in forms), forms
 
 

@@ -223,6 +223,14 @@ def stamp_pdf(
     return stamped
 
 
+def logo(image: os.PathLike[str] | str) -> bytes:
+    """The founder's logo, re-encoded as PNG by a confined worker."""
+    drawn = run(image, "logo", timeout=RENDER_TIMEOUT)
+    if len(drawn) > OUTPUT_BYTES or not drawn.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise WorkerError("unreadable")
+    return drawn
+
+
 def inspect(pdf: os.PathLike[str] | str) -> dict[str, Any]:
     output = run(pdf, "inspect", timeout=INSPECT_TIMEOUT)
     try:

@@ -19,11 +19,12 @@ from snug.accounts import limits, passwords, recovery, setup, totp
 from snug.accounts.models import Admin, AdminSetup
 from snug.analytics import retention
 from snug.audit.models import AuditEvent, record
-from snug.core import brand, mail, ratelimit
+from snug.core import brand, logo, mail, ratelimit
 from snug.core.client import client_ip, user_agent
 from snug.core.models import SiteSettings
 from snug.nda import terms as nda_terms
 from snug.nda.models import NdaVersion
+from snug.rendering import sandbox
 
 SETUP_SESSION = "snug.setup"
 WRONG_CODE = "That code is not right, or it has just been used. Wait for the next one."
@@ -130,7 +131,7 @@ def invite_view(request: HttpRequest) -> HttpResponse:
         subject=f"{email} was invited as an admin",
         what=(f"{by.email} invited {email} to be an admin, at {_now()}."),
     )
-    return redirect("/admin/settings/?invited=1")
+    return redirect("/admin/settings/?invited=1#invite")
 
 
 # ---------------------------------------------------------------- your own password
@@ -227,13 +228,15 @@ DEFAULT_ACCENT = "#1f5f8b"  # the viewer's own navy, used until a colour is chos
 
 
 def _branding_context(request: HttpRequest) -> dict[str, Any]:
-    accent = SiteSettings.load().accent_colour
+    row = SiteSettings.load()
+    accent = row.accent_colour
     return {
         "accent": accent,
         "accent_shown": accent or DEFAULT_ACCENT,
         "brand_css": f"/brand/brand.css?v={brand.version(accent)}" if accent else "",
         "brand_adjusted": bool(accent) and brand.palette(accent).adjusted,
         "company": settings.CONFIG.company_name,
+        "logo_url": f"/brand/{row.logo_name}" if row.logo_name else "",
     }
 
 
@@ -257,6 +260,43 @@ def branding_view(request: HttpRequest) -> HttpResponse:
         row.save(update_fields=["accent_colour"])
         _audit(request, "settings.branding_changed", _admin(request).email, "", accent=accent)
     return redirect("/admin/settings/?saved=branding#branding")
+
+
+LOGO_TOO_BIG = f"The logo must be at most {logo.MAX_BYTES // (1024 * 1024)} MB."
+NOT_AN_IMAGE = "Upload a PNG or JPEG image."
+
+
+@never_cache
+@login_required
+@require_POST
+def logo_view(request: HttpRequest) -> HttpResponse:
+    """Upload, replace or remove the founder's logo."""
+    row = SiteSettings.load()
+    old = row.logo_name
+    if request.POST.get("remove"):
+        name = ""
+    else:
+        upload = request.FILES.get("logo")
+        error = None
+        if upload is None:
+            error = "Choose a PNG or JPEG image."
+        elif upload.size is None or upload.size > logo.MAX_BYTES:
+            error = LOGO_TOO_BIG
+        else:
+            try:
+                name = logo.store(logo.draw(upload))
+            except sandbox.WorkerError as refused:
+                # Only the server's own problem gets its own message; anything
+                # about the file is the same advice.
+                error = str(refused) if refused.code == "unconfined" else NOT_AN_IMAGE
+        if error:
+            return _settings_page(request, status=400, logo_error=error)
+    if name != old:
+        row.logo_name = name
+        row.save(update_fields=["logo_name"])
+        logo.discard(old)
+        _audit(request, "settings.logo_changed", _admin(request).email, "", logo=name)
+    return redirect("/admin/settings/?saved=logo#branding-logo")
 
 
 # ---------------------------------------------------------------- privacy
@@ -395,7 +435,7 @@ def remove_view(request: HttpRequest) -> HttpResponse:
         what=f"{by.email} removed {email} as an admin, at {_now()}.",
         also=email,
     )
-    return redirect("/admin/settings/?removed=1")
+    return redirect("/admin/settings/?removed=1#admins")
 
 
 @never_cache
@@ -438,7 +478,7 @@ def reset_view(request: HttpRequest) -> HttpResponse:
             f"They have been emailed a link to set up their authenticator again."
         ),
     )
-    return redirect("/admin/settings/?reset=1")
+    return redirect("/admin/settings/?reset=1#admins")
 
 
 # ---------------------------------------------------------------- setup
