@@ -39,6 +39,8 @@ class SiteSettings(models.Model):
     company_name = models.CharField(max_length=100, blank=True)
     # Whether the name shows beside the logo. Off for a logo that spells it out.
     show_name_with_logo = models.BooleanField(default=True)
+    # The tab icon, as re-encoded by Snug (snug.core.logo), or "" to choose one.
+    icon_name = models.CharField(max_length=40, blank=True)
 
     class Meta:
         verbose_name_plural = "site settings"

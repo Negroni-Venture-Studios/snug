@@ -191,7 +191,7 @@ def test_investors_see_it(client: Client) -> None:
     name = SiteSettings.load().logo_name
     page = viewer.get(f"/v/{issued.token}", secure=True).content.decode()
     assert f'<img class="founder-logo-image" src="/brand/{name}"' in page
-    assert f'<link rel="icon" href="/brand/{name}" type="image/png">' in page
+    # This logo is wide, so the tab icon is not it (see test_brand_icon.py).
 
 
 def test_the_name_sits_beside_the_logo(client: Client) -> None:

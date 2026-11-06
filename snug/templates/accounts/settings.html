@@ -76,12 +76,21 @@
 </form>
 <form class="panel form settings-form" id="branding-logo" method="post" action="{% url 'accounts:logo' %}#branding-logo" enctype="multipart/form-data" novalidate>
   {% csrf_token %}
-  {% if saved == "logo" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if logo_url %}Saved. Investors' pages show your logo at the top, and as the icon in their browser tab.{% else %}Removed. Investors' pages show your company name instead.{% endif %}</span></div>{% endif %}
+  {% if saved == "logo" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if logo_url %}Saved. Investors' pages show your logo at the top.{% else %}Removed. Investors' pages show your company name instead.{% endif %}</span></div>{% endif %}
   <div class="field"><label for="logo">Logo</label>
     {% if logo_url %}<div class="logo-current"><img src="{{ logo_url }}" alt="Your logo, as investors see it"></div>{% endif %}
     <input id="logo" name="logo" type="file" accept="image/png,image/jpeg"{% if logo_error %} aria-invalid="true" aria-describedby="logo-error"{% endif %}>
-    {% if logo_error %}<div class="error" id="logo-error" role="alert">{% icon "warning-circle" %}{{ logo_error }}</div>{% else %}<div class="hint">PNG or JPEG, up to 2 MB. Shown at the top of investors' pages, on a light tile in dark mode, and as the icon in their browser tab. Without one, they see your company name.</div>{% endif %}</div>
+    {% if logo_error %}<div class="error" id="logo-error" role="alert">{% icon "warning-circle" %}{{ logo_error }}</div>{% else %}<div class="hint">PNG or JPEG, up to 2 MB. Shown at the top of investors' pages, on a light tile in dark mode. If it is roughly square, it is their tab icon too, unless you upload one below. Without one, they see your company name.</div>{% endif %}</div>
   <div class="inline-form"><button class="btn btn-primary" type="submit">{% if logo_url %}Replace{% else %}Upload{% endif %}</button>{% if logo_url %}<button class="btn" type="submit" name="remove" value="1">Remove</button>{% endif %}</div>
+</form>
+<form class="panel form settings-form" id="branding-icon" method="post" action="{% url 'accounts:icon' %}#branding-icon" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  {% if saved == "icon" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if icon_url %}Saved. Investors' browser tabs show this icon.{% else %}Removed. Investors' browser tabs show the icon below.{% endif %}</span></div>{% endif %}
+  <div class="field"><label for="icon">Tab icon</label>
+    <div class="icon-current"><img src="{{ favicon }}" alt="The icon investors' browser tabs show now" width="32" height="32"><span>{% if icon_url %}Your icon.{% elif favicon == logo_url %}Your logo, which is square enough to use.{% else %}Your initial on your accent colour.{% endif %}</span></div>
+    <input id="icon" name="icon" type="file" accept="image/png,image/jpeg"{% if icon_error %} aria-invalid="true" aria-describedby="icon-error"{% endif %}>
+    {% if icon_error %}<div class="error" id="icon-error" role="alert">{% icon "warning-circle" %}{{ icon_error }}</div>{% else %}<div class="hint">A square PNG or JPEG, up to 2 MB, for the small icon in investors' browser tabs. Without one, Snug uses your logo if it is roughly square, and otherwise your initial on your accent colour.</div>{% endif %}</div>
+  <div class="inline-form"><button class="btn btn-primary" type="submit">{% if icon_url %}Replace{% else %}Upload{% endif %}</button>{% if icon_url %}<button class="btn" type="submit" name="remove" value="1">Remove</button>{% endif %}</div>
 </form>
 </div>
 

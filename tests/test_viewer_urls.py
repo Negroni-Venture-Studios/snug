@@ -21,7 +21,7 @@ GATES = {"viewer:send_code", "viewer:verify_code", "viewer:open"}
 # Routes outside admin/ and v/. A viewer page anywhere else would escape the
 # checks below, so nothing may be added here lightly.
 # The root redirect; the founder's colour and logo.
-OTHER_ROUTES = {"", "brand/brand.css", "brand/<str:name>"}
+OTHER_ROUTES = {"", "brand/brand.css", "brand/initial.svg", "brand/<str:name>"}
 ALLOWED_PARAMETERS = {"token", "document_token", "page", "width"}
 # Integers only for positions within the document the token grants.
 INTEGER_PARAMETERS = {"page", "width"}

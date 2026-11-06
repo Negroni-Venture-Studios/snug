@@ -225,7 +225,7 @@ def replace_authenticator_view(request: HttpRequest) -> HttpResponse:
 # ---------------------------------------------------------------- branding
 
 COMPANY_MAX = 100
-DEFAULT_ACCENT = "#1f5f8b"  # the viewer's own navy, used until a colour is chosen
+DEFAULT_ACCENT = brand.DEFAULT
 
 
 def _branding_context(request: HttpRequest) -> dict[str, Any]:
@@ -240,6 +240,8 @@ def _branding_context(request: HttpRequest) -> dict[str, Any]:
         "company_value": row.company_name or settings.CONFIG.company_name,
         "show_name": row.show_name_with_logo,
         "logo_url": f"/brand/{row.logo_name}" if row.logo_name else "",
+        "icon_url": f"/brand/{row.icon_name}" if row.icon_name else "",
+        "favicon": logo.favicon(row.logo_name, row.icon_name, company_name(), accent)[0],
     }
 
 
@@ -283,41 +285,53 @@ def branding_view(request: HttpRequest) -> HttpResponse:
     return redirect("/admin/settings/?saved=branding#branding")
 
 
-LOGO_TOO_BIG = f"The logo must be at most {logo.MAX_BYTES // (1024 * 1024)} MB."
+MEGABYTES = logo.MAX_BYTES // (1024 * 1024)
 NOT_AN_IMAGE = "Upload a PNG or JPEG image."
+
+
+def _picture(request: HttpRequest, kind: logo.Kind) -> HttpResponse:
+    """Upload, replace or remove the founder's logo or tab icon."""
+    row = SiteSettings.load()
+    field = f"{kind}_name"
+    old: str = getattr(row, field)
+    if request.POST.get("remove"):
+        name = ""
+    else:
+        upload = request.FILES.get(kind)
+        error = None
+        if upload is None:
+            error = "Choose a PNG or JPEG image."
+        elif upload.size is None or upload.size > logo.MAX_BYTES:
+            error = f"The {kind} must be at most {MEGABYTES} MB."
+        else:
+            try:
+                name = logo.store(logo.draw(upload, kind), kind)
+            except sandbox.WorkerError as refused:
+                # Only the server's own problem gets its own message; anything
+                # about the file is the same advice.
+                error = str(refused) if refused.code == "unconfined" else NOT_AN_IMAGE
+        if error:
+            return _settings_page(request, status=400, **{f"{kind}_error": error})
+    if name != old:
+        setattr(row, field, name)
+        row.save(update_fields=[field])
+        logo.discard(old)
+        _audit(request, f"settings.{kind}_changed", _admin(request).email, "", **{kind: name})
+    return redirect(f"/admin/settings/?saved={kind}#branding-{kind}")
 
 
 @never_cache
 @login_required
 @require_POST
 def logo_view(request: HttpRequest) -> HttpResponse:
-    """Upload, replace or remove the founder's logo."""
-    row = SiteSettings.load()
-    old = row.logo_name
-    if request.POST.get("remove"):
-        name = ""
-    else:
-        upload = request.FILES.get("logo")
-        error = None
-        if upload is None:
-            error = "Choose a PNG or JPEG image."
-        elif upload.size is None or upload.size > logo.MAX_BYTES:
-            error = LOGO_TOO_BIG
-        else:
-            try:
-                name = logo.store(logo.draw(upload))
-            except sandbox.WorkerError as refused:
-                # Only the server's own problem gets its own message; anything
-                # about the file is the same advice.
-                error = str(refused) if refused.code == "unconfined" else NOT_AN_IMAGE
-        if error:
-            return _settings_page(request, status=400, logo_error=error)
-    if name != old:
-        row.logo_name = name
-        row.save(update_fields=["logo_name"])
-        logo.discard(old)
-        _audit(request, "settings.logo_changed", _admin(request).email, "", logo=name)
-    return redirect("/admin/settings/?saved=logo#branding-logo")
+    return _picture(request, "logo")
+
+
+@never_cache
+@login_required
+@require_POST
+def icon_view(request: HttpRequest) -> HttpResponse:
+    return _picture(request, "icon")
 
 
 # ---------------------------------------------------------------- privacy

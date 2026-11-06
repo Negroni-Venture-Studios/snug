@@ -369,13 +369,16 @@ def stamp(data: bytes, font: bytes, email: str, date: str, ref: str) -> bytes:
 
 # The founder's logo is drawn no larger than this, in pixels.
 LOGO_BOX = (800, 240)
+# The tab icon is a square this many pixels a side: enough for a phone's home screen.
+ICON_SIDE = 180
 
 
-def logo(data: bytes) -> bytes:
-    """The founder's logo, decoded and drawn afresh as a PNG that fits LOGO_BOX.
+def _picture(data: bytes) -> Any:
+    """A PNG or JPEG, decoded to its pixels alone, upright, with any transparency kept.
 
-    PNG or JPEG only. Nothing of the original file survives but its pixels:
-    no metadata, and nothing hidden after the image data.
+    Nothing of the original file survives but its pixels: no metadata, and
+    nothing hidden after the image data. The size limits are checked from the
+    header, before any pixels are decoded.
     """
     from PIL import Image, ImageOps, UnidentifiedImageError
 
@@ -389,11 +392,34 @@ def logo(data: bytes) -> bytes:
             raise _Refused("unreadable")
         clear = source.mode in ("RGBA", "LA", "PA") or "transparency" in source.info
         image = ImageOps.exif_transpose(source).convert("RGBA" if clear else "RGB")
-    image.thumbnail(LOGO_BOX, Image.Resampling.LANCZOS)
     image.info.clear()
+    return image
+
+
+def _png(image: Any) -> bytes:
     out = io.BytesIO()
     image.save(out, "PNG", optimize=True)
     return out.getvalue()
+
+
+def logo(data: bytes) -> bytes:
+    """The founder's logo, drawn afresh as a PNG that fits LOGO_BOX."""
+    from PIL import Image
+
+    image = _picture(data)
+    image.thumbnail(LOGO_BOX, Image.Resampling.LANCZOS)
+    return _png(image)
+
+
+def icon(data: bytes) -> bytes:
+    """The founder's tab icon: the picture fitted, centred, on a clear ICON_SIDE square."""
+    from PIL import Image
+
+    image = _picture(data).convert("RGBA")
+    image.thumbnail((ICON_SIDE, ICON_SIDE), Image.Resampling.LANCZOS)
+    square = Image.new("RGBA", (ICON_SIDE, ICON_SIDE), (0, 0, 0, 0))
+    square.paste(image, ((ICON_SIDE - image.width) // 2, (ICON_SIDE - image.height) // 2))
+    return _png(square)
 
 
 # The PDF overlay is drawn at this many pixels per point, within MAX_PIXELS.
@@ -553,7 +579,7 @@ def main(argv: list[str], *, confined: bool = True) -> int:
     try:
         page = width = 0
         font = b""
-        if len(argv) == 2 and argv[0] in ("inspect", "logo"):
+        if len(argv) == 2 and argv[0] in ("inspect", "logo", "icon"):
             mode = argv[0]
         elif len(argv) == 4 and argv[0] == "render":
             mode, page, width = "render", int(argv[2]), int(argv[3])
@@ -582,6 +608,8 @@ def main(argv: list[str], *, confined: bool = True) -> int:
                 output = stamp(data, font, argv[3], argv[4], argv[5])
             elif mode == "logo":
                 output = logo(data)
+            elif mode == "icon":
+                output = icon(data)
             else:
                 output = stamp_pdf(data, font, argv[3], argv[4], argv[5])
             sys.stdout.flush()

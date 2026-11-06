@@ -1,7 +1,7 @@
 from django.urls import include, path
 from django.views.generic import RedirectView
 
-from snug.core.views import brand_css, brand_logo
+from snug.core.views import brand_css, brand_initial, brand_logo
 
 # The health check is answered by snug.core.middleware.health_check, before
 # routing. Everything a viewer sees is under v/, behind snug.viewer.access.
@@ -17,5 +17,6 @@ urlpatterns = [
     path("v/", include("snug.viewer.urls")),
     # The founder's accent colour and logo for viewer pages. Public: neither is a secret.
     path("brand/brand.css", brand_css, name="brand_css"),
+    path("brand/initial.svg", brand_initial, name="brand_initial"),
     path("brand/<str:name>", brand_logo, name="brand_logo"),
 ]
