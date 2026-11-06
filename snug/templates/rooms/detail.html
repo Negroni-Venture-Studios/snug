@@ -1,7 +1,7 @@
 {% extends "snug/admin_base.html" %}
 {% load snug %}
 {% block title %}{{ room.name }} in Snug{% endblock %}
-{% block scripts %}{% load static %}<script src="{% static 'snug/js/nda-first.js' %}" defer></script>{% endblock %}
+{% block scripts %}{{ block.super }}{% load static %}<script src="{% static 'snug/js/nda-first.js' %}" defer></script>{% endblock %}
 {% block content %}
 <div class="crumbs"><a href="{% url 'rooms:list' %}">Rooms</a> / {{ room.name }}</div>
 <div class="title-row"><div><h1 class="page-title">{{ room.name }}</h1>

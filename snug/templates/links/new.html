@@ -1,7 +1,7 @@
 {% extends "snug/admin_base.html" %}
 {% load snug %}
 {% block title %}New link for {{ target.title }}{% endblock %}
-{% block scripts %}{% load static %}<script src="{% static 'snug/js/nda-first.js' %}" defer></script>{% endblock %}
+{% block scripts %}{{ block.super }}{% load static %}<script src="{% static 'snug/js/nda-first.js' %}" defer></script>{% endblock %}
 {% block content %}
 <div class="crumbs"><a href="{{ target.section_url }}">{{ target.section }}</a> / <a href="{{ target.url }}">{{ target.title }}</a> / New link</div>
 <div class="title-row"><div><h1 class="page-title">New link</h1><div class="page-meta">One link for one person, for {{ target.title }}.</div></div></div>

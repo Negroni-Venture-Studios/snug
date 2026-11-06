@@ -228,13 +228,13 @@ The company's name at the top left (its logo, once founder branding is built), a
 - **Templates.** Django templates with `{% include %}` partials. No front-end framework and no build step.
 - **Stylesheets.** One stylesheet, `snug.css`, holds the tokens and components for the admin and the viewer. Founder branding will add a generated `/brand.css`. Static files are fingerprinted by `ManifestStaticFilesStorage` and served by whitenoise. Fonts and icons are served from the instance.
 - **Charts.** Server-rendered inline SVG. Geometry is set by attributes, which the CSP allows, and colour comes from CSS classes. The reading grid's chart and per-viewer strips share one coordinate system of at least 18 slots, which keeps them aligned at any width.
-- **JavaScript**, as separate files: `theme-init.js` (blocking, tiny, in `<head>`), then deferred `theme.js` (the toggle), `admin.js` (copy buttons, and the tabs on a narrow screen), `viewer.js` (the reader's keys and page picker, and reading-time heartbeats sent only while the tab is visible), `reveal.js` (showing a password) and `nda-first.js` (the box for writing the first NDA). Every page works without JavaScript.
+- **JavaScript**, as separate files: `theme-init.js` (blocking, tiny, in `<head>`), then deferred `theme.js` (the toggle), `admin.js` (copy buttons, the tabs on a narrow screen, and upload progress: it sends an upload form itself, and the server answers that request with the address to go to, since a followed redirect would lose its `#section`), `viewer.js` (the reader's keys and page picker, and reading-time heartbeats sent only while the tab is visible), `reveal.js` (showing a password) and `nda-first.js` (the box for writing the first NDA). Every page works without JavaScript.
 - **CSP.** `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'`. The default is `'none'`, so anything not listed is refused.
 
 ### 3.11 Empty, loading and error states
 
 - **Empty.** Each list says what will appear there and how to start. For example: "No documents yet. Upload a PDF to get started", next to the upload control. Or: "No one has opened this yet. Links you create for it appear below."
-- **Loading.** The reader reserves each page's exact size from stored dimensions, so nothing moves while it loads. No spinners: the next page is prefetched, and an upload will show its progress as a bar on the form (before version 1, section 4).
+- **Loading.** The reader reserves each page's exact size from stored dimensions, so nothing moves while it loads. No spinners: the next page is prefetched. An upload shows its progress as a bar on the form, then "Checking the PDF" while the server reads it, with the button disabled throughout: a large PDF takes a while, and a page that seems to do nothing gets clicked again or abandoned. Without JavaScript the form posts as before.
 - **Errors.** Shown inline, beneath the field they concern, saying what to do next. Whole-page errors (an unavailable link, a failed upload) use the same calm layout as the rest of the page.
 - **Passwords.** Every password box has an eye at its right that shows or hides what is typed, for phones where autocorrect makes typing hard. The button appears only once its script has run, and the box turns off autocorrect, capitalisation and spellcheck. A form never submits with the password showing.
 - **Saved.** Every admin save says it worked. The page returns to the section the save was made in, not the top, with a green notice there saying what changed: "Saved. Links to this room no longer ask for the NDA." Shown once; a reload does not repeat it. A failed save shows its error in red in the same place.
@@ -314,7 +314,6 @@ Steps 0 to 6 are done. What remains:
 **Before version 1: features not built yet.**
 - Founder branding: a logo (PNG or JPEG, re-encoded) and an accent colour in Settings, with a live preview and a contrast warning; the logo and colour in the viewer, as its favicon and in its emails, through a generated `/brand.css`.
 - A cover message on a link, shown before the first page.
-- A progress bar on uploads. A large PDF takes a while, and a page that seems to do nothing gets clicked again or abandoned.
 
 **After version 1.** Once version 1 is out, each of these becomes a public GitHub issue labelled `enhancement`, along with anything else specified and still not built:
 - *Extend* on a link, beside *Revoke*.
