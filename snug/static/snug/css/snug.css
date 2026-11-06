@@ -363,7 +363,7 @@ input.code-field { font-family: var(--mono); letter-spacing: 0.15em; }
 .reader-note { max-width: 40rem; text-align: center; font-size: 0.8rem; color: var(--text-3); }
 .reader-controls { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: center; color: var(--text-2); font-size: 0.9rem; }
 .reader-controls .pos { min-width: 6.5rem; text-align: center; font-family: var(--mono); font-size: 0.85rem; }
-.reader-controls select { width: auto; padding: 0.4rem 0.6rem; font-size: 0.875rem; }
+.reader-controls select { width: auto; padding: 0.5rem 2.2rem 0.5rem 0.8rem; font-size: 0.875rem; background-position: right 0.75rem center; }
 .v-foot { text-align: center; font-size: 0.8rem; color: var(--text-3); padding: 0 1.5rem 2rem; }
 
 /* Stand-in slide artwork (in the product: a rendered PDF page image) */
