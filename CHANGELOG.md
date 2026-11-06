@@ -15,6 +15,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 - Downloading a PDF that opens without a password but is encrypted against copying (common for published PDFs) failed with "could not be prepared for download". It is now stamped from an unencrypted copy. The confined worker also preloads every text codec it may need, since a PDF with UTF-16 metadata failed the same way.
 - Links from a Snug on your own computer now work: `SNUG_DOMAIN` can be `localhost` with a port, like `localhost:8000`, and every link and email includes it. The README's trial command uses it. A real domain still cannot name a port.
 - The admin and sign-in footers link to Negroni Venture Studios, and to the source on GitHub with GitHub's mark beside the repository name.
+- Investors' pages show the company's name beside the logo, rather than the logo alone.
 - Inviting an admin is a row at the foot of the admins list, the full width of the list, rather than a separate panel.
 - The reader's page picker leaves room for its arrow, which sat on top of the page number, and is the same height as the buttons beside it.
 - The company's name is set in Settings under Branding, beside the colour. It was only in the server's settings, as `SNUG_COMPANY_NAME`, which is now used only until a name is saved.

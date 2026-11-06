@@ -3,7 +3,7 @@
 <div class="screen v">
 <div class="chrome v-chrome" aria-hidden="true"></div>
 <header class="v-head">
-  <div class="founder-logo">{% if brand_logo %}<img class="founder-logo-image" src="{{ brand_logo }}" alt="{{ company }}">{% else %}{{ company }}{% endif %}</div>
+  <div class="founder-logo">{% if brand_logo %}<img class="founder-logo-image" src="{{ brand_logo }}" alt="">{% endif %}{% if company %}<span class="founder-name">{{ company }}</span>{% endif %}</div>
   <div class="v-tools">{% block tools %}{% endblock %}{% include "snug/partials/theme_toggle.html" %}</div>
 </header>
 <main class="v-main">
