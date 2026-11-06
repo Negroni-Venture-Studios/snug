@@ -97,6 +97,9 @@ class AdminSetup(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
+    # Wrong codes on a forgotten-password link. Kept on the link, not in a
+    # clock-aligned window, so the count never resets while the link works.
+    failures = models.PositiveSmallIntegerField(default=0)
 
     def __str__(self) -> str:
         return f"{self.get_purpose_display()} for {self.admin.email}"
