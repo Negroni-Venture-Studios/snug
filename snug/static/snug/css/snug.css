@@ -212,6 +212,8 @@ svg.bars { height: 64px; }
 
 /* ---------- Forms ---------- */
 .form { display: grid; gap: 1.25rem; }
+/* A button placed straight in a form is as wide as its label, not the form. */
+.form > .btn { justify-self: start; }
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.5rem; }
 .form.invite { max-width: 30rem; }
 /* Settings forms share one width, wide enough for the NDA text at a
@@ -321,6 +323,8 @@ footer.admin-foot .source-link:hover .github-mark { opacity: 0.9; }
 .linkish { font: inherit; color: var(--brand-text); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 0.15em; }
 .gate .resend .btn { width: auto; }
 input.code { font-family: var(--mono); font-size: 1.5rem; letter-spacing: 0.45em; padding: 0.6rem 0.4rem 0.6rem 0.85rem; text-align: center; }
+/* A code beside other fields: monospaced, but the same height as they are. */
+input.code-field { font-family: var(--mono); letter-spacing: 0.15em; }
 .about { border: 1px solid var(--border); border-radius: var(--r); padding: 1.25rem 1.35rem; font-size: 0.9rem; align-self: start; background: var(--surface); }
 .about h2 { font-size: 0.95rem; font-weight: 500; margin-bottom: 0.9rem; }
 .about .cover { margin-bottom: 1rem; padding-left: 0.85rem; border-left: 2px solid var(--border); color: var(--text); overflow-wrap: anywhere; }

@@ -3,7 +3,7 @@
 {% block scripts %}{% load static %}<script src="{% static 'snug/js/reveal.js' %}" defer></script>{% endblock %}
 {% block card %}
 <h1>Sign in</h1>
-<p class="lede">{% if request.GET.again %}Too many wrong codes. Enter your password again.{% else %}Admins only. You will need your authenticator app next.{% endif %}</p>
+<p class="lede">{% if request.GET.again %}Too many wrong codes. Enter your password again.{% elif request.GET.expired %}That took more than five minutes. Enter your password again.{% else %}Admins only. You will need your authenticator app next.{% endif %}</p>
 <form class="form" method="post" action="{% url 'accounts:login' %}" novalidate>
   {% csrf_token %}
   <input type="hidden" name="next" value="{{ next }}">

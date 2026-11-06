@@ -23,6 +23,14 @@ from snug.core import mail, ratelimit
 from snug.core.client import client_ip, user_agent
 
 TOO_MANY = "Too many attempts. Wait 15 minutes, then try again."
+# An authenticator's code changes every 30 seconds; a recovery code never does.
+WRONG_CODE = {
+    "totp": (
+        "That code is not right. Codes change every 30 seconds, "
+        "so enter the one your app shows now."
+    ),
+    "recovery": "That code is not right.",
+}
 
 
 def _audit(
@@ -94,9 +102,12 @@ def _second_step(
     per_admin: ratelimit.Limit,
     method: str,
 ) -> HttpResponse:
+    started = sessions.PENDING in request.session
     pending = sessions.get_pending(request)
     if pending is None:
-        return redirect("accounts:login")
+        # Past the five minutes after the password, say so; otherwise there
+        # was no password step at all.
+        return redirect(reverse("accounts:login") + ("?expired=1" if started else ""))
     if request.method == "GET":
         return render(request, template)
 
@@ -129,7 +140,7 @@ def _second_step(
         if sessions.record_code_failure(request, pending) >= limits.CODE_FAILURES_PER_PASSWORD:
             sessions.clear_pending(request)
             return redirect(reverse("accounts:login") + "?again=1")
-        return render(request, template, {"error": "That code is not right."})
+        return render(request, template, {"error": WRONG_CODE[method]})
 
     sessions.clear_pending(request)
     # login() rotates the session key again and stores the session auth hash.
