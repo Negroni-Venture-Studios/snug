@@ -17,22 +17,18 @@
   </div>
   {% endfor %}
 </div>
-</div>
-
-<div class="section" id="invite">
-<div class="section-head"><h2>Invite an admin</h2></div>
 {% if email_enabled %}
-<form class="panel form settings-form" method="post" action="{% url 'accounts:invite' %}#invite" novalidate>
+<form class="admin-invite" id="invite" method="post" action="{% url 'accounts:invite' %}#invite" novalidate>
   {% csrf_token %}
-  {% if done == "invited" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Invite sent. The link works for 72 hours.</span></div>{% endif %}
-  <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="off" required value="{{ values.email }}"{% if invite_error %} aria-invalid="true" aria-describedby="email-error"{% endif %}>
-    {% if invite_error %}<div class="error" id="email-error" role="alert">{% icon "warning-circle" %}{{ invite_error }}</div>{% endif %}</div>
-  <div class="field"><label for="code">Code from your authenticator app</label><input id="code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required{% if code_error %} aria-invalid="true" aria-describedby="code-error"{% endif %}>
-    {% if code_error %}<div class="error" id="code-error" role="alert">{% icon "warning-circle" %}{{ code_error }}</div>{% else %}<div class="hint">Asked for every change to the admins, so nobody at an unlocked computer can add themselves.</div>{% endif %}</div>
+  <h3 class="invite-title">Invite an admin</h3>
+  {% if done == "invited" %}<div class="notice notice-ok invite-wide" role="status">{% icon "check" %}<span>Invite sent. The link works for 72 hours.</span></div>{% endif %}
+  <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="off" required value="{{ values.email }}"{% if invite_error %} aria-invalid="true" aria-describedby="email-error"{% endif %}></div>
+  <div class="field"><label for="code">Code from your authenticator app</label><input id="code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required{% if code_error %} aria-invalid="true" aria-describedby="code-error"{% endif %}></div>
   <button class="btn btn-primary" type="submit">Send invite</button>
+  <div class="field invite-wide">{% if invite_error %}<div class="error" id="email-error" role="alert">{% icon "warning-circle" %}{{ invite_error }}</div>{% endif %}{% if code_error %}<div class="error" id="code-error" role="alert">{% icon "warning-circle" %}{{ code_error }}</div>{% endif %}{% if not invite_error and not code_error %}<div class="hint">The code is asked for every change to the admins, so nobody at an unlocked computer can add themselves.</div>{% endif %}</div>
 </form>
 {% else %}
-<div class="panel"><p>Inviting needs email. See <code>docs/email.md</code>, or create admins on the server with <code>snug createadmin</code>.</p></div>
+<p class="admin-invite-off">Inviting needs email. See <code>docs/email.md</code>, or create admins on the server with <code>snug createadmin</code>.</p>
 {% endif %}
 </div>
 

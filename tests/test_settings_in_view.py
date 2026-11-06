@@ -82,6 +82,23 @@ def test_the_admins_come_first(email_on: None) -> None:
     session[sessions.LOGIN_AT] = session[sessions.LAST_ACTIVITY] = time.time()
     session.save()
     page = browser.get("/admin/settings/", secure=True).content.decode()
-    order = ["admins", "invite", "account", "branding", "nda", "privacy"]
+    order = ["admins", "account", "branding", "nda", "privacy"]
     found = sorted(order, key=lambda anchor: page.index(f'class="section" id="{anchor}"'))
     assert found == order
+
+
+def test_inviting_is_a_row_at_the_foot_of_the_admins_list(email_on: None) -> None:
+    admin = Admin.objects.create(email="ruth@fernlea.example", is_active=True)
+    browser = Client()
+    browser.force_login(admin)
+    session = browser.session
+    session[sessions.LOGIN_AT] = session[sessions.LAST_ACTIVITY] = time.time()
+    session.save()
+    page = browser.get("/admin/settings/", secure=True).content.decode()
+    admins = page[
+        page.index('class="section" id="admins"') : page.index('class="section" id="account"')
+    ]
+    assert admins.index('class="rows admin-rows"') < admins.index(
+        '<form class="admin-invite" id="invite"'
+    )
+    assert 'class="section" id="invite"' not in page
