@@ -7,6 +7,7 @@ no filesystem access at all beyond reading system fonts.
 
 import contextlib
 import json
+import logging
 import os
 import selectors
 import signal
@@ -15,7 +16,9 @@ import sys
 import time
 from typing import Any
 
-from snug.rendering.worker import OUTPUT_BYTES
+from snug.rendering.worker import ALLOW_UNCONFINED, MIN_LANDLOCK_ABI, OUTPUT_BYTES
+
+log = logging.getLogger(__name__)
 
 INSPECT_TIMEOUT = 60
 RENDER_TIMEOUT = 30
@@ -33,6 +36,10 @@ MESSAGES = {
     "memory": "This PDF needs more memory to read than Snug allows.",
     "no_such_page": "That page does not exist.",
     "usage": "Snug could not read this PDF.",
+    "unconfined": (
+        "This server cannot open documents safely: Snug reads every PDF in a confined "
+        "process, which needs Linux 6.7 or later with Landlock. Ask whoever runs the server."
+    ),
 }
 
 
@@ -48,8 +55,14 @@ def worker_env() -> dict[str, str]:
 
 
 def command(*args: str) -> list[str]:
+    from django.conf import settings
+
+    # Only with SNUG_UNSAFE_UNCONFINED_RENDERING, for development without Landlock.
+    # Without Snug's settings (a script calling the sandbox directly), confined.
+    allowed = settings.configured and settings.CONFIG.unsafe_unconfined_rendering
+    unsafe = [ALLOW_UNCONFINED] if allowed else []
     # -I: isolated mode, ignoring PYTHON* variables, the user site and the cwd.
-    return [sys.executable, "-I", "-m", "snug.rendering.worker", *args]
+    return [sys.executable, "-I", "-m", "snug.rendering.worker", *unsafe, *args]
 
 
 def run(
@@ -92,7 +105,14 @@ def run(
     if process.returncode in (-signal.SIGKILL, -signal.SIGXCPU, -signal.SIGSEGV):
         raise WorkerError("memory" if process.returncode == -signal.SIGKILL else "unreadable")
     if process.returncode != 0:
-        raise WorkerError(_error_code(output))
+        code = _error_code(output)
+        if code == "unconfined":
+            log.error(
+                "The PDF worker could not confine itself (Landlock ABI %s or later and a "
+                "seccomp filter are needed), so it refused to read the file.",
+                MIN_LANDLOCK_ABI,
+            )
+        raise WorkerError(code)
     return output
 
 

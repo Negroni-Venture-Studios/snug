@@ -66,7 +66,7 @@ def test_the_worker_gets_no_secrets() -> None:
 
 
 def test_the_worker_runs_isolated_and_is_given_no_path() -> None:
-    argv = sandbox.command("inspect", "3")
+    argv = [arg for arg in sandbox.command("inspect", "3") if arg != worker.ALLOW_UNCONFINED]
     assert argv[:4] == [sys.executable, "-I", "-m", "snug.rendering.worker"]
     assert argv[4:] == ["inspect", "3"]
 
@@ -172,18 +172,32 @@ def test_a_confined_worker_cannot_open_files(tmp_path: Path) -> None:
 
 
 @linux_only
-def test_a_confined_worker_cannot_connect_out(tmp_path: Path) -> None:
+def test_a_confined_worker_cannot_open_any_socket(tmp_path: Path) -> None:
+    # Landlock's network rules cover TCP only; a UDP packet still left the
+    # confined worker until 6 November 2026 (security audit). A seccomp filter
+    # now refuses every socket, of any kind, before it exists.
     script = (
-        "s = socket.socket(); s.settimeout(2)\n"
-        "try:\n    s.connect(('127.0.0.1', 9))\n"
-        "except PermissionError:\n    print('blocked')\n"
-        "except OSError as e:\n    print('reached the network stack:', e)\n"
+        "for family, kind in ((socket.AF_INET, socket.SOCK_DGRAM),\n"
+        "                     (socket.AF_INET, socket.SOCK_STREAM),\n"
+        "                     (socket.AF_INET6, socket.SOCK_DGRAM),\n"
+        "                     (socket.AF_UNIX, socket.SOCK_STREAM)):\n"
+        "    try:\n"
+        "        socket.socket(family, kind); print('OPENED', family, kind)\n"
+        "    except PermissionError:\n"
+        "        print('refused')\n"
     )
     result = _confined(script, tmp_path, setup="import socket")
-    abi = int(result.stdout.split()[1].lstrip("v"))
-    if abi < 4:
-        pytest.skip("Landlock network rules need ABI 4 (Linux 6.7)")
-    assert "blocked" in result.stdout, result.stdout + result.stderr
+    assert result.stdout.splitlines()[0].endswith(", no sockets"), result.stdout + result.stderr
+    assert result.stdout.splitlines()[1:] == ["refused"] * 4, result.stdout + result.stderr
+
+
+@linux_only
+def test_a_confined_worker_reports_full_confinement(tmp_path: Path) -> None:
+    result = _confined("", tmp_path)
+    how = result.stdout.strip()
+    assert worker.fully_confined(how), how
+    abi = int(how.split()[1].rstrip(",").lstrip("v"))
+    assert abi >= worker.MIN_LANDLOCK_ABI
 
 
 @linux_only
@@ -223,6 +237,109 @@ def test_make_undumpable_is_a_no_op_elsewhere() -> None:
 def test_confine_reports_when_unavailable() -> None:
     if sys.platform != "linux":
         assert worker.confine() == "unconfined: not Linux"
+
+
+@pytest.mark.parametrize(
+    ("how", "full"),
+    [
+        ("landlock v4, no sockets", True),
+        ("landlock v6, no sockets", True),
+        ("landlock v3, no sockets", False),  # no network rules: below the minimum
+        ("landlock v4, socket filter refused", False),
+        ("landlock v4, socket filter unavailable", False),
+        ("unconfined: Landlock unavailable", False),
+        ("unconfined: ruleset refused", False),
+        ("unconfined: restrict_self refused", False),
+        ("unconfined: not Linux", False),
+    ],
+)
+def test_what_counts_as_confined(how: str, full: bool) -> None:
+    assert worker.fully_confined(how) is full
+
+
+# ---------------------------------------------------------------- failing closed
+
+
+@pytest.fixture
+def no_limits(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """main() with confinement on, but without limiting the test process itself."""
+    parsed: list[str] = []
+
+    def inspect(data: bytes) -> dict[str, int]:
+        parsed.append("parsed")
+        return {"pages": 1}
+
+    monkeypatch.setattr(worker, "apply_limits", lambda: None)
+    monkeypatch.setattr(worker, "inspect", inspect)
+    return parsed
+
+
+@pytest.mark.parametrize(
+    "how", ["unconfined: Landlock unavailable", "landlock v3, no sockets", "unconfined: not Linux"]
+)
+def test_the_worker_refuses_to_read_a_pdf_it_cannot_confine(
+    deck: Path,
+    how: str,
+    no_limits: list[str],
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Security audit, 6 November 2026: the worker used to carry on unconfined.
+    monkeypatch.setattr(worker, "confine", lambda: how)
+    assert worker.main(["inspect", _fd(deck)]) == 3
+    assert json.loads(capsys.readouterr().out) == {"error": "unconfined"}
+    assert no_limits == []  # the file was never parsed
+
+
+def test_unconfined_rendering_needs_the_operator_to_ask_for_it(
+    deck: Path,
+    no_limits: list[str],
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(worker, "confine", lambda: "unconfined: not Linux")
+    assert worker.main([worker.ALLOW_UNCONFINED, "inspect", _fd(deck)]) == 0
+    assert no_limits == ["parsed"]
+
+
+def test_a_fully_confined_worker_reads_the_pdf(
+    deck: Path, no_limits: list[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(worker, "confine", lambda: "landlock v4, no sockets")
+    assert worker.main(["inspect", _fd(deck)]) == 0
+    assert no_limits == ["parsed"]
+
+
+def test_snug_passes_the_opt_in_only_when_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    import dataclasses
+
+    from django.conf import settings
+
+    for allowed in (False, True):
+        config = dataclasses.replace(settings.CONFIG, unsafe_unconfined_rendering=allowed)
+        monkeypatch.setattr(settings, "CONFIG", config)
+        argv = sandbox.command("inspect", "3")
+        assert (worker.ALLOW_UNCONFINED in argv) is allowed
+        assert argv[-2:] == ["inspect", "3"]
+
+
+def test_the_launcher_works_without_django_and_never_opts_in() -> None:
+    # The image smoke test calls the sandbox with no settings loaded. Unknown
+    # settings must mean "confined", never an error and never the opt-in.
+    code = "from snug.rendering import sandbox; print(sandbox.command('inspect', '3'))"
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("DJANGO_", "SNUG_"))}
+    result = subprocess.run(
+        [sys.executable, "-c", code], env=env, capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
+    assert "'inspect', '3']" in result.stdout
+    assert worker.ALLOW_UNCONFINED not in result.stdout
+
+
+def test_an_unconfined_refusal_is_explained() -> None:
+    message = str(sandbox.WorkerError("unconfined"))
+    assert message.startswith("This server cannot open documents safely")
+    assert "Linux 6.7" in message
 
 
 # ---------------------------------------------------------------- in-process, for coverage

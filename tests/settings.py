@@ -6,6 +6,7 @@ never leak into the tests. The secret key is random for each run.
 
 import os
 import secrets
+import sys
 import tempfile
 from pathlib import Path
 
@@ -19,6 +20,11 @@ os.environ.pop("SNUG_HTTPS", None)
 if _E2E:
     os.environ["SNUG_HTTPS"] = "false"
 os.environ.pop("SNUG_DEBUG", None)
+# The PDF worker refuses to run unconfined. Landlock is Linux only, so tests on
+# a developer's Mac opt in; on Linux, as in CI, the real confinement is tested.
+os.environ.pop("SNUG_UNSAFE_UNCONFINED_RENDERING", None)
+if sys.platform != "linux":
+    os.environ["SNUG_UNSAFE_UNCONFINED_RENDERING"] = "true"
 
 from snug.settings import *  # noqa: E402, F403
 from snug.settings import ALLOWED_HOSTS, DATABASES, STORAGES  # noqa: E402

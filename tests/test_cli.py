@@ -84,7 +84,14 @@ def test_missing_env_file_is_explained_in_process(
 
 
 @pytest.mark.django_db
-def test_main_runs_management_commands(capsys: pytest.CaptureFixture[str]) -> None:
+def test_main_runs_management_commands(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import dataclasses
+
+    # Tests on macOS opt in to unconfined rendering, which `check` warns about.
+    config = dataclasses.replace(settings.CONFIG, unsafe_unconfined_rendering=False)
+    monkeypatch.setattr(settings, "CONFIG", config)
     assert main(["check"]) == 0
     assert "no issues" in capsys.readouterr().out
 

@@ -62,6 +62,8 @@ class Config:
     smtp_username: str = ""
     smtp_password: str = ""
     smtp_security: str = "starttls"
+    # Development only: read PDFs even where the worker cannot be confined.
+    unsafe_unconfined_rendering: bool = False
 
     @property
     def database_path(self) -> Path:
@@ -180,6 +182,9 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
 
     https = _flag(env, "SNUG_HTTPS", default=True, problems=problems)
     debug = _flag(env, "SNUG_DEBUG", default=False, problems=problems)
+    unsafe_unconfined_rendering = _flag(
+        env, "SNUG_UNSAFE_UNCONFINED_RENDERING", default=False, problems=problems
+    )
 
     # Plain HTTP and debug pages are for a developer's own machine only. On a
     # real domain they would expose cookies and internals to the internet.
@@ -212,6 +217,7 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         smtp_username=env.get("SNUG_SMTP_USERNAME", "").strip(),
         smtp_password=env.get("SNUG_SMTP_PASSWORD", ""),
         smtp_security=smtp_security,
+        unsafe_unconfined_rendering=unsafe_unconfined_rendering,
     )
 
 
