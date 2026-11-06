@@ -223,12 +223,21 @@ def stamp_pdf(
     return stamped
 
 
-def logo(image: os.PathLike[str] | str) -> bytes:
-    """The founder's logo, re-encoded as PNG by a confined worker."""
-    drawn = run(image, "logo", timeout=RENDER_TIMEOUT)
+def _picture(image: os.PathLike[str] | str, mode: str) -> bytes:
+    drawn = run(image, mode, timeout=RENDER_TIMEOUT)
     if len(drawn) > OUTPUT_BYTES or not drawn.startswith(b"\x89PNG\r\n\x1a\n"):
         raise WorkerError("unreadable")
     return drawn
+
+
+def logo(image: os.PathLike[str] | str) -> bytes:
+    """The founder's logo, re-encoded as PNG by a confined worker."""
+    return _picture(image, "logo")
+
+
+def icon(image: os.PathLike[str] | str) -> bytes:
+    """The founder's tab icon, re-encoded as a square PNG by a confined worker."""
+    return _picture(image, "icon")
 
 
 def inspect(pdf: os.PathLike[str] | str) -> dict[str, Any]:

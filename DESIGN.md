@@ -189,7 +189,7 @@ Real URLs, not hash routing, because every action is a CSRF-protected form post.
 - **Settings.**
   - Admins: the list, with inviting as a row at its foot (email address, code and button side by side); remove; reset second factor.
   - Your account: change your password, with the current one and a code from the authenticator; and replace your authenticator, with the password and a code from the old one or a recovery code.
-  - Branding: the company's name, as investors see it on their pages and in every email (`SNUG_COMPANY_NAME` is used until one is saved); the accent colour on investors' pages, with a picker, a live preview, and a note when Snug deepens a shade to keep it readable; and the logo, uploaded, replaced or removed, with the current one shown on its light tile.
+  - Branding: the company's name, as investors see it on their pages and in every email (`SNUG_COMPANY_NAME` is used until one is saved); the accent colour on investors' pages, with a picker, a live preview, and a note when Snug deepens a shade to keep it readable; the logo, uploaded, replaced or removed, with the current one shown on its light tile; and the tab icon, with the one investors see now and why.
   - NDA: the instance's one agreement, versioned.
   - Privacy: an optional link to the founder's own privacy policy, and how long reading data is kept.
 - **New link.** The form is on the left. On the right is what happens next, including the link to copy.
@@ -215,7 +215,8 @@ The company's logo at the top left with its name beside it, or either alone, and
 **Founder branding under a strict CSP.**
 - The accent colour shows as a band across the top of every investor page, as the admin has in orange, and on their buttons, links and the reader's Download button. It reaches viewer pages through a generated `/brand/brand.css`, linked with a fingerprint of the colour so a change is fetched at once (`snug.core.brand`). The server works out three shades: the button fill (`--brand`), text and links (`--brand-text`, which viewer links use) and the button label (`--on-brand`, white or near-black). Each is nudged towards black or white until it reaches 4.5:1 against what it sits on, in light and dark mode. Emails carry the company's name, not the colour: colouring them would need inline styles.
 - The logo is accepted as PNG or JPEG only, up to 2 MB. SVG is not accepted, because an uploaded SVG can carry script. The render worker decodes it in its confinement, as it does a PDF, and draws a fresh PNG of at most 800 by 240 pixels, so nothing but the pixels survives (`snug.core.logo`). It is stored as `branding/logo-<fingerprint>.png`, and served at `/brand/<that name>` only while it is the current logo, with a long cache because a new logo gets a new name.
-- Investors see it at the top of every page, with the company's name beside it (so the image has empty alt text) unless the founder unticks Show the name beside the logo, for a logo that spells it out, and as the page's icon. In dark mode it sits on a light rounded tile, since most logos are drawn for a light page.
+- Investors see it at the top of every page, with the company's name beside it (so the image has empty alt text) unless the founder unticks Show the name beside the logo, for a logo that spells it out.
+- The tab icon is the founder's own square icon if they upload one, redrawn by the worker on a clear 180-pixel square; else the logo, if it is within 5:4 of square; else a rounded tile with the company's initial on the accent colour, generated as `/brand/initial.svg`. A browser draws a tab icon in a small square, where a wide logo would be an unreadable sliver. In dark mode it sits on a light rounded tile, since most logos are drawn for a light page.
 
 ### 3.9 Email
 
@@ -272,7 +273,7 @@ The Snug icon is a **half-glazed snug door**, chosen from eight concepts. A snug
 - **Colourways.** Campari tile with a cream (Vermouth 100) glyph is the primary. Vermouth 500 with a Campari glyph is for dark backgrounds, and Citrus 300 with a Vermouth glyph for bright ones.
 - **The lockup.** A square tile, then "Snug" in Geist Medium, as the Negroni site sets its own tile beside its wordmark. In the admin header the tile is 40px. The tile is square, an exception to the radius rule, to match Negroni's.
 - **Sizes.** The full icon holds down to 32px. The favicon is a simplified drawing for 16 and 32px: no sparkle and no s, heavier strokes, and the door enlarged to fill the tile.
-- **Where it appears.** The admin interface, the admin's browser tab, the README and the GitHub social preview. Never on viewer pages, which use the founder's logo, including as their favicon.
+- **Where it appears.** The admin interface, the admin's browser tab, the README and the GitHub social preview. Never on viewer pages, which use the founder's logo and tab icon.
 - **Inline use.** The glyph takes `currentColor`. Each inline copy on a page needs its own mask id, so the template include takes a suffix.
 - **Files** are in `docs/design/logo/`:
   - `snug-glyph.svg`, the glyph alone;

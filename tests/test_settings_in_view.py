@@ -26,6 +26,7 @@ RETURNS_TO = {
     "/admin/settings/admins/invite": "invite",
     "/admin/settings/branding": "branding",
     "/admin/settings/logo": "branding-logo",
+    "/admin/settings/icon": "branding-icon",
     "/admin/settings/nda": "nda",
     "/admin/settings/privacy": "privacy",
     "/admin/settings/retention": "retention",

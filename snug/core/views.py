@@ -11,7 +11,7 @@ from django.views.decorators.http import require_safe
 from snug.analytics import charts, summary
 from snug.analytics.models import Visit
 from snug.core import brand, logo
-from snug.core.models import SiteSettings
+from snug.core.models import SiteSettings, company_name
 from snug.documents.models import Document
 from snug.links.models import Link
 
@@ -56,15 +56,27 @@ def csrf_failure(request: HttpRequest, reason: str = "") -> HttpResponse:
 
 @require_safe
 def brand_logo(request: HttpRequest, name: str) -> FileResponse:
-    """The founder's logo, for viewer pages. Only the current one, by its stored name."""
-    current = SiteSettings.load().logo_name
-    if not current or name != current:
+    """The founder's logo or tab icon, for viewer pages. Only a current one, by its name."""
+    row = SiteSettings.load()
+    if not name or name not in (row.logo_name, row.icon_name):
         raise Http404
     try:
-        stored = logo.path(current).open("rb")
+        stored = logo.path(name).open("rb")
     except OSError as error:
         raise Http404 from error
     response = FileResponse(stored, content_type="image/png")
     # The name is a fingerprint of the file, so a long cache is safe.
+    response["Cache-Control"] = "public, max-age=31536000, immutable"
+    return response
+
+
+@require_safe
+def brand_initial(request: HttpRequest) -> HttpResponse:
+    """A tab icon from the company's initial on the accent colour, when there is no other."""
+    accent = SiteSettings.load().accent_colour or brand.DEFAULT
+    shades = brand.palette(accent)
+    svg = logo.initial_svg(company_name(), shades.fill_light, shades.on_light)
+    response = HttpResponse(svg, content_type="image/svg+xml")
+    # The address carries a fingerprint of the initial and colour.
     response["Cache-Control"] = "public, max-age=31536000, immutable"
     return response

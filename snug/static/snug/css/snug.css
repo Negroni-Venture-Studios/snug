@@ -259,6 +259,9 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--focus); out
 /* The current logo in Settings, on the same light tile investors see in dark mode. */
 .logo-current { width: fit-content; margin-bottom: 0.25rem; padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: var(--r); background: #fafaf9; }
 .logo-current img { display: block; max-height: 3rem; max-width: 16rem; width: auto; height: auto; }
+/* The tab icon investors see now, at the size a browser draws it, with what it is. */
+.icon-current { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem; color: var(--text-2); font-size: 0.875rem; }
+.icon-current img { width: 32px; height: 32px; border-radius: 6px; }
 /* Upload progress: shown by admin.js while a PDF is sent and checked. */
 .upload-status { display: grid; gap: 0.4rem; font-size: 0.875rem; color: var(--text-2); }
 .upload-status[hidden] { display: none; }

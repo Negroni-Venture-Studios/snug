@@ -10,6 +10,8 @@ import hashlib
 import re
 from dataclasses import dataclass
 
+# The viewer's own navy, used until the founder chooses a colour.
+DEFAULT = "#1f5f8b"
 MINIMUM = 4.5
 # The viewer's backgrounds and surfaces (DESIGN.md section 3.4).
 LIGHT_SURFACES = ("#fafaf9", "#ffffff")
