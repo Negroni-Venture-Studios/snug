@@ -66,7 +66,55 @@ services:
       - no-new-privileges:true
     logging: *logging
 
+  litestream:
+    # Copies every change to the database into backup/database, in the same
+    # volume, within a second. See litestream.yml.
+    image: litestream/litestream:0.5.17@sha256:4b02b9859a6b6b4087d8b8944e15f7e984bd7957cba322bbeee38b0e27b9656a
+    restart: unless-stopped
+    command: ["replicate"]
+    user: "10001:10001"  # Snug's user, which owns the data volume
+    volumes:
+      - snug-data:/var/lib/snug
+      - ./litestream.yml:/etc/litestream.yml:ro
+    depends_on:
+      - snug
+    network_mode: none
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
+  backup:
+    # Encrypts the database replica, originals/ and branding/ and copies them
+    # to the bucket every 5 minutes. See backup.sh and docs/backups.md.
+    image: rclone/rclone:1.75.2@sha256:2687085f718d3c628f7fdfb77c52a1d344332aed543110bb88088f2c70d43eb5
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/usr/local/bin/snug-backup"]
+    user: "10001:10001"
+    environment:
+      SNUG_BACKUP_EVERY: ${SNUG_BACKUP_EVERY:-300}
+    volumes:
+      - snug-data:/var/lib/snug
+      - ./backup.sh:/usr/local/bin/snug-backup:ro
+      # rclone.conf: the bucket's keys and the encryption password. Only this
+      # container sees them; Snug never does.
+      - ./backup:/config/rclone:ro
+    networks:
+      - outbound
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
 networks:
+  # The backup container reaches the bucket from here, apart from Snug.
+  outbound:
   web:
     # With IPv6 on, Docker forwards IPv6 visitors to Caddy with their own
     # address. Without it, they all arrive from one proxy address and share

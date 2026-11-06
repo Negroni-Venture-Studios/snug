@@ -1,0 +1,14 @@
+# Litestream copies every change to Snug's database into a replica folder in
+# the data volume, within a second. The rclone sidecar (backup.sh) then
+# encrypts that folder and copies it to the bucket.
+dbs:
+  - path: /var/lib/snug/snug.sqlite3
+    replica:
+      type: file
+      path: /var/lib/snug/backup/database
+
+# A full snapshot every day, and every change for the last 7 days, so the
+# database can be restored to any moment in the past week.
+snapshot:
+  interval: 24h
+  retention: 168h
