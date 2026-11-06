@@ -239,6 +239,7 @@ The founder's logo at the top left, and nothing competing with the document. It 
 - **Empty.** Each list says what will appear there and how to start. For example: "No documents yet. Upload a PDF to get started", next to the upload control. Or: "No one has opened this yet. Links you create for it appear below."
 - **Loading.** The reader reserves each page's exact size from stored dimensions, so nothing moves while it loads. No spinners: pages are prefetched, and upload progress shows as a bar on the form.
 - **Errors.** Shown inline, beneath the field they concern, saying what to do next. Whole-page errors (an unavailable link, a failed upload) use the same calm layout as the rest of the page.
+- **Passwords.** Every password box has an eye at its right that shows or hides what is typed (asked for 6 November 2026, for phones where autocorrect makes typing hard). The button appears only once its script has run, and the box turns off autocorrect, capitalisation and spellcheck. A form never submits with the password showing.
 - **Saved.** Every admin save says it worked (asked for 6 November 2026). The page returns to the section the save was made in, not the top, with a green notice there saying what changed: "Saved. Links to this room no longer ask for the NDA." Shown once; a reload does not repeat it. A failed save shows its error in red in the same place.
 
 ### 3.12 Testing the front end
