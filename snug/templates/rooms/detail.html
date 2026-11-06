@@ -1,6 +1,7 @@
 {% extends "snug/admin_base.html" %}
 {% load snug %}
 {% block title %}{{ room.name }} in Snug{% endblock %}
+{% block scripts %}{% load static %}<script src="{% static 'snug/js/nda-first.js' %}" defer></script>{% endblock %}
 {% block content %}
 <div class="crumbs"><a href="{% url 'rooms:list' %}">Rooms</a> / {{ room.name }}</div>
 <div class="title-row"><div><h1 class="page-title">{{ room.name }}</h1>
@@ -56,9 +57,10 @@
     <form class="panel form" method="post" action="{% url 'rooms:nda' room.token %}">
       {% csrf_token %}
       {% include "snug/partials/saved.html" with here="nda" %}
-      <label class="check"><input type="checkbox" name="require_nda"{% if room.require_nda %} checked{% endif %}{% if not nda %} disabled{% endif %}><span>Ask for the NDA before anything is shown<span class="hint">{% if nda %}Version {{ nda.number }}. Each link accepts it once; a new version asks again.{% else %}Write the NDA in <a href="{% url 'accounts:settings' %}#nda">Settings</a> first.{% endif %}</span></span></label>
-      {% if nda_error %}<div class="error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% endif %}
-      <div class="form-foot"><button class="btn" type="submit"{% if not nda %} disabled{% endif %}>Save</button></div>
+      <label class="check"><input id="room-require-nda" type="checkbox" name="require_nda"{% if room.require_nda %} checked{% endif %}><span>Ask for the NDA before anything is shown<span class="hint">{% if nda %}Version {{ nda.number }}. Each link accepts it once; a new version asks again.{% else %}There is no NDA yet. Write it below: it becomes version 1, for every room and link that asks for it, and you can change it in Settings.{% endif %}</span></span></label>
+      {% if not nda %}<div class="field nda-first" data-nda-for="room-require-nda"><label for="room-nda-text">The NDA</label><textarea id="room-nda-text" name="nda_text" rows="6"{% if nda_error %} aria-invalid="true" aria-describedby="room-nda-error"{% endif %}>{{ nda_draft|default:'' }}</textarea>{% if nda_error %}<div class="error" id="room-nda-error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% endif %}</div>
+      {% elif nda_error %}<div class="error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% endif %}
+      <div class="form-foot"><button class="btn" type="submit">Save</button></div>
     </form>
   </section>
   <section class="section" id="rename">
