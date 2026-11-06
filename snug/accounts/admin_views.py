@@ -19,7 +19,7 @@ from snug.accounts import limits, passwords, recovery, setup, totp
 from snug.accounts.models import Admin, AdminSetup
 from snug.analytics import retention
 from snug.audit.models import AuditEvent, record
-from snug.core import mail, ratelimit
+from snug.core import brand, mail, ratelimit
 from snug.core.client import client_ip, user_agent
 from snug.core.models import SiteSettings
 from snug.nda import terms as nda_terms
@@ -65,6 +65,7 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
         # Which section was just saved, so it can say so in place.
         "saved": request.GET.get("saved", ""),
         "privacy_url": SiteSettings.load().privacy_url,
+        **_branding_context(request),
         "retention_months": SiteSettings.load().reading_retention_months,
         "nda": nda_terms.current(),
         "nda_history": NdaVersion.objects.select_related("created_by")[:10],
@@ -218,6 +219,44 @@ def replace_authenticator_view(request: HttpRequest) -> HttpResponse:
         what=f"{admin.email} replaced their authenticator, at {_now()}.",
     )
     return redirect(setup.setup_url(token).removeprefix(settings.CONFIG.origin))
+
+
+# ---------------------------------------------------------------- branding
+
+DEFAULT_ACCENT = "#1f5f8b"  # the viewer's own navy, used until a colour is chosen
+
+
+def _branding_context(request: HttpRequest) -> dict[str, Any]:
+    accent = SiteSettings.load().accent_colour
+    return {
+        "accent": accent,
+        "accent_shown": accent or DEFAULT_ACCENT,
+        "brand_css": f"/brand/brand.css?v={brand.version(accent)}" if accent else "",
+        "brand_adjusted": bool(accent) and brand.palette(accent).adjusted,
+        "company": settings.CONFIG.company_name,
+    }
+
+
+@never_cache
+@login_required
+@require_POST
+def branding_view(request: HttpRequest) -> HttpResponse:
+    """The accent colour on investors' pages, or "" for Snug's default."""
+    raw = request.POST.get("accent", "").strip()
+    accent = brand.parse(raw) if raw else ""
+    if accent is None:
+        return _settings_page(
+            request,
+            status=400,
+            branding_error="Enter a colour like #1f5f8b.",
+            accent_typed=raw[:20],
+        )
+    row = SiteSettings.load()
+    if row.accent_colour != accent:
+        row.accent_colour = accent
+        row.save(update_fields=["accent_colour"])
+        _audit(request, "settings.branding_changed", _admin(request).email, "", accent=accent)
+    return redirect("/admin/settings/?saved=branding#branding")
 
 
 # ---------------------------------------------------------------- privacy

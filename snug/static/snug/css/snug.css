@@ -86,6 +86,8 @@
     --brand-text: light-dark(#1f5f8b, #7fb8e0);
     --on-brand:   light-dark(#ffffff, #0b1a24);
     --focus:      var(--brand-text);
+    /* Links on viewer pages are the founder's, not Snug's. */
+    --link:       var(--brand-text);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -243,6 +245,12 @@ select {
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--focus); outline-offset: -1px; }
 /* A password box with an eye at its right that shows or hides what is typed. */
 .nda-first[hidden] { display: none; }
+/* Settings: the accent colour's picker and its preview, in the viewer's palette. */
+#accent-picker { width: 3rem; height: 2.4rem; padding: 0.2rem; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); cursor: pointer; }
+#accent { max-width: 9rem; font-family: var(--mono); }
+.brand-preview { display: grid; gap: 0.9rem; padding: 1rem 1.1rem; border: 1px solid var(--border); border-radius: var(--r); background: var(--bg); color: var(--text); }
+.brand-preview a { color: var(--brand-text); }
+.brand-preview .btn-brand { justify-self: start; width: auto; pointer-events: none; }
 /* Upload progress: shown by admin.js while a PDF is sent and checked. */
 .upload-status { display: grid; gap: 0.4rem; font-size: 0.875rem; color: var(--text-2); }
 .upload-status[hidden] { display: none; }
