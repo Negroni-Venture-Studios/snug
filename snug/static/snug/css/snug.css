@@ -454,6 +454,8 @@ input.code-field { font-family: var(--mono); letter-spacing: 0.15em; }
 .auth-card { width: 100%; max-width: 24rem; }
 .auth-card h1 { font-size: 1.75rem; font-weight: 300; letter-spacing: -0.02em; margin-bottom: 0.4rem; text-wrap: balance; }
 .auth-card .lede { color: var(--text-2); margin-bottom: 1.75rem; }
+/* Sign-in: which company's Snug this is, under the heading. */
+.auth-card .auth-company { font-size: 1.1rem; font-weight: 500; margin-bottom: 0.35rem; overflow-wrap: anywhere; }
 .auth-card .btn-primary { width: 100%; justify-content: center; padding: 0.65rem 1rem; font-size: 0.95rem; }
 .auth-card .alt { font-size: 0.875rem; color: var(--text-2); margin-top: 1.25rem; }
 .notice-error { display: flex; gap: 0.5rem; align-items: flex-start; background: var(--danger-tint); color: var(--danger); }

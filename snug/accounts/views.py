@@ -21,6 +21,7 @@ from snug.accounts.models import Admin
 from snug.audit.models import AuditEvent, record
 from snug.core import mail, ratelimit
 from snug.core.client import client_ip, user_agent
+from snug.core.models import company_name
 
 TOO_MANY = "Too many attempts. Wait 15 minutes, then try again."
 # An authenticator's code changes every 30 seconds; a recovery code never does.
@@ -66,7 +67,11 @@ def _identity(request: HttpRequest) -> str:
 def login_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         return redirect("core:overview")
-    context: dict[str, Any] = {"next": request.GET.get("next", ""), "email": ""}
+    context: dict[str, Any] = {
+        "next": request.GET.get("next", ""),
+        "email": "",
+        "company": company_name(),
+    }
     if request.method == "GET":
         return render(request, "accounts/login.html", context)
 
