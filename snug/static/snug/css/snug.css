@@ -305,6 +305,7 @@ footer.admin-foot .source-link:hover .github-mark { opacity: 0.9; }
 input.code { font-family: var(--mono); font-size: 1.5rem; letter-spacing: 0.45em; padding: 0.6rem 0.4rem 0.6rem 0.85rem; text-align: center; }
 .about { border: 1px solid var(--border); border-radius: var(--r); padding: 1.25rem 1.35rem; font-size: 0.9rem; align-self: start; background: var(--surface); }
 .about h2 { font-size: 0.95rem; font-weight: 500; margin-bottom: 0.9rem; }
+.about .cover { margin-bottom: 1rem; padding-left: 0.85rem; border-left: 2px solid var(--border); color: var(--text); overflow-wrap: anywhere; }
 .about dl { display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem; }
 .about dt { color: var(--text-3); }
 .about dd { color: var(--text); }

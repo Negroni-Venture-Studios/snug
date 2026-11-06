@@ -23,7 +23,7 @@ from snug.core import mail, notices
 from snug.core.client import client_ip, user_agent
 from snug.documents.models import Document
 from snug.links import service
-from snug.links.models import Link
+from snug.links.models import MAX_MESSAGE, Link
 from snug.nda import terms as nda_terms
 from snug.rooms.models import Room
 
@@ -161,6 +161,7 @@ def _new_link(
 
     email = Admin.objects.normalize_email(request.POST.get("email", ""))
     note = " ".join(request.POST.get("note", "").split())[:200]
+    message = request.POST.get("message", "").strip()
     expires_at, expiry_error = _parse_expiry(request.POST.get("expires", "").strip())
     require_verification = request.POST.get("require_verification") == "on"
     require_nda = document is not None and request.POST.get("require_nda") == "on"
@@ -171,6 +172,7 @@ def _new_link(
     values = {
         "email": email,
         "note": note,
+        "message": message[: MAX_MESSAGE * 2],
         "expires": request.POST.get("expires", ""),
         "require_verification": require_verification,
         "allow_download": allow_download,
@@ -179,6 +181,8 @@ def _new_link(
     }
     context["values"] = values
     error = expiry_error
+    if len(message) > MAX_MESSAGE:
+        error = "Keep the message to 1,000 characters or fewer."
     try:
         validate_email(email)
     except ValidationError:
@@ -200,6 +204,7 @@ def _new_link(
         room=room,
         email=email,
         note=note,
+        message=message,
         expires_at=expires_at,
         require_verification=require_verification,
         require_nda=require_nda,

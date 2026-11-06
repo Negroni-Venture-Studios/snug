@@ -1,5 +1,7 @@
 {% autoescape off %}{% if company %}{{ company }} has shared {{ title }} with you.{% else %}{{ title }} has been shared with you.{% endif %}
-
+{% if link.message %}
+{{ link.message }}
+{% endif %}
 Open it here:
 {{ url }}
 
