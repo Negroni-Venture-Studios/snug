@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
-from django.db import DatabaseError, connections
+from django.db import connections
 from django.utils import timezone
 
 from snug.core.models import SystemCheck
@@ -55,7 +55,7 @@ def _record(*, ok: bool, message: str) -> None:
     """For the Overview's status line: whether the last email went. Never who or what.
 
     Written only when that changes, so most sends only read. A note about
-    email must never stop one being sent, so a busy database is ignored.
+    email must never stop one being sent, so any error here is only logged.
     """
     try:
         current = SystemCheck.objects.filter(name="email").first()
@@ -64,8 +64,8 @@ def _record(*, ok: bool, message: str) -> None:
         SystemCheck.objects.update_or_create(
             name="email", defaults={"ok": ok, "message": message, "checked_at": timezone.now()}
         )
-    except DatabaseError:
-        log.warning("Could not record whether email works: the database was busy.")
+    except Exception as error:  # noqa: BLE001 - never let the note stop an email
+        log.warning("Could not record whether email works: %s", type(error).__name__)
 
 
 def in_background(task: Callable[[], object]) -> None:

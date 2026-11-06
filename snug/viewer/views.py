@@ -15,6 +15,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
+from django.db import connections
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.template.loader import render_to_string
@@ -184,8 +185,19 @@ def _code_page(
 
 
 def _in_background(task: Callable[[], object]) -> threading.Thread:
-    """Run a task without making the reply wait for it."""
-    thread = threading.Thread(target=task, daemon=True)
+    """Run a task without making the reply wait for it.
+
+    Sending records whether email works, so the thread closes the database
+    connection it opens.
+    """
+
+    def run() -> None:
+        try:
+            task()
+        finally:
+            connections.close_all()
+
+    thread = threading.Thread(target=run, daemon=True)
     thread.start()
     return thread
 
