@@ -196,8 +196,30 @@ def test_the_code_must_follow_within_five_minutes(
     later = time.time() + sessions.PENDING_SECONDS + 1
     monkeypatch.setattr(time, "time", lambda: later)
     response = post(client, "/admin/login/code", {"code": code_for(admin)})
-    assert response["Location"] == "/admin/login"
+    assert response["Location"] == "/admin/login?expired=1"
     assert not signed_in(client)
+    page = client.get(response["Location"], secure=True).content.decode()
+    assert "That took more than five minutes. Enter your password again." in page
+
+
+def test_a_wrong_code_says_codes_change(client: Client, admin: Admin) -> None:
+    password_step(client)
+    response = post(client, "/admin/login/code", {"code": "000000"})
+    assert (
+        b"Codes change every 30 seconds, so enter the one your app shows now." in response.content
+    )
+
+
+def test_a_wrong_recovery_code_does_not(client: Client, admin: Admin) -> None:
+    password_step(client)
+    response = post(client, "/admin/login/recovery", {"code": "aaaa-bbbb-cccc-dddd"})
+    assert b"That code is not right." in response.content
+    assert b"30 seconds" not in response.content
+
+
+def test_without_a_password_first_the_page_says_nothing_of_time(client: Client) -> None:
+    response = post(client, "/admin/login/code", {"code": "000000"})
+    assert response["Location"] == "/admin/login"
 
 
 def test_a_deactivated_admin_cannot_finish_signing_in(client: Client, admin: Admin) -> None:

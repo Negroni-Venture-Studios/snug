@@ -187,9 +187,9 @@ Real URLs, not hash routing, because every action is a CSRF-protected form post.
 - **People.** One row per viewer email address, with everything that person has opened across the instance, using the same page strips. Each document row also says how many times that person downloaded it, and the person's summary line gives their total when it is above zero. The counts come from the audit log's download events, which outlast reading data, so only documents the person is still shown reading are counted.
 - **Audit log.** A dense, filterable table and a CSV export.
 - **Settings.**
-  - Branding: the accent colour on investors' pages, with a picker, a live preview, and a note when Snug deepens a shade to keep it readable; and the logo, uploaded, replaced or removed, with the current one shown on its light tile.
-  - Your account: change your password, with the current one and a code from the authenticator; and replace your authenticator, with the password and a code from the old one or a recovery code.
   - Admins: invite, remove, reset second factor.
+  - Your account: change your password, with the current one and a code from the authenticator; and replace your authenticator, with the password and a code from the old one or a recovery code.
+  - Branding: the accent colour on investors' pages, with a picker, a live preview, and a note when Snug deepens a shade to keep it readable; and the logo, uploaded, replaced or removed, with the current one shown on its light tile.
   - NDA: the instance's one agreement, versioned.
   - Privacy: an optional link to the founder's own privacy policy, and how long reading data is kept.
 - **New link.** The form is on the left. On the right is what happens next, including the link to copy.

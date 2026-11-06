@@ -8,6 +8,7 @@ any script. Without it, the page opens at the top.
 
 import re
 import time
+from pathlib import Path
 
 import pytest
 from django.test import Client
@@ -45,3 +46,42 @@ def test_every_form_opens_where_it_was_made(email_on: None) -> None:
     assert found == RETURNS_TO
     for anchor in (*RETURNS_TO.values(), "admins"):  # removals and resets return there
         assert page.count(f'id="{anchor}"') == 1, anchor
+
+
+def test_a_code_beside_other_fields_is_the_same_height() -> None:
+    """The large code style is for pages where the code is the only field."""
+    templates = Path(__file__).parent.parent / "snug" / "templates" / "accounts"
+    for name in ("settings.html", "password_reset.html"):
+        page = (templates / name).read_text()
+        assert 'class="code"' not in page, name
+        assert 'class="code-field"' in page, name
+    assert 'class="code"' in (templates / "login_code.html").read_text()
+
+
+def test_replacing_the_authenticator_is_a_main_button(email_on: None) -> None:
+    admin = Admin.objects.create(email="ruth@fernlea.example", is_active=True)
+    browser = Client()
+    browser.force_login(admin)
+    session = browser.session
+    session[sessions.LOGIN_AT] = session[sessions.LAST_ACTIVITY] = time.time()
+    session.save()
+    page = browser.get("/admin/settings/", secure=True).content.decode()
+    assert '<button class="btn btn-primary" type="submit">Replace authenticator</button>' in page
+
+
+def test_settings_buttons_are_as_wide_as_their_labels() -> None:
+    css = (Path(__file__).parent.parent / "snug/static/snug/css/snug.css").read_text()
+    assert ".form > .btn { justify-self: start; }" in css
+
+
+def test_the_admins_come_first(email_on: None) -> None:
+    admin = Admin.objects.create(email="ruth@fernlea.example", is_active=True)
+    browser = Client()
+    browser.force_login(admin)
+    session = browser.session
+    session[sessions.LOGIN_AT] = session[sessions.LAST_ACTIVITY] = time.time()
+    session.save()
+    page = browser.get("/admin/settings/", secure=True).content.decode()
+    order = ["admins", "invite", "account", "branding", "nda", "privacy"]
+    found = sorted(order, key=lambda anchor: page.index(f'class="section" id="{anchor}"'))
+    assert found == order
