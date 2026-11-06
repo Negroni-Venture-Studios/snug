@@ -8,6 +8,7 @@ already show in red beside the form.
 
 import re
 import time
+from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
@@ -51,9 +52,9 @@ def deck() -> Document:
     return Document.objects.create(title="Seed deck")
 
 
-def saved(client: Client, url: str, data: dict[str, object] | None = None) -> tuple[str, str]:
+def saved(client: Client, url: str, data: Mapping[str, object] | None = None) -> tuple[str, str]:
     """POST, check it redirects to a section, and return (anchor, that section's HTML)."""
-    response = client.post(url, data or {}, secure=True)
+    response = client.post(url, dict(data or {}), secure=True)
     assert response.status_code == 302, response.content.decode()[:500]
     location = response["Location"]
     match = re.fullmatch(r"([^?#]+)#([a-z-]+)", location)
@@ -180,3 +181,19 @@ def test_revoking_a_link(client: Client, deck: Document, room: Room) -> None:
         assert notice(section) == (
             f"Revoked L-{link.ref}. It stopped working at once, for anyone already in too."
         )
+
+
+@pytest.mark.parametrize(
+    ("url", "data"),
+    [
+        ("rename", {"name": "Series A"}),
+        ("nda", {}),
+        ("folders", {"name": "Legal"}),
+    ],
+)
+def test_room_tool_notices_sit_inside_their_panel(
+    client: Client, room: Room, url: str, data: dict[str, str]
+) -> None:
+    # Above the panel, a notice would push one box of a row lower than its neighbour.
+    _, section = saved(client, f"/admin/rooms/{room.token}/{url}", data)
+    assert section.index('class="panel') < section.index("notice-ok")

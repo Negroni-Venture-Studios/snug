@@ -30,22 +30,22 @@
 <div class="room-tools">
   <section class="section" id="add-document">
     <div class="section-head"><h2>Add a document</h2></div>
-    {% include "snug/partials/saved.html" with here="add-document" %}
     {% if addable %}
     <form class="panel form" method="post" action="{% url 'rooms:document_add' room.token %}">
       {% csrf_token %}
+      {% include "snug/partials/saved.html" with here="add-document" %}
       <div class="field"><label for="document">Document</label><select id="document" name="document">{% for document in addable %}<option value="{{ document.token }}">{{ document.title }}</option>{% endfor %}</select></div>
       <div class="field"><label for="folder">Folder</label><select id="folder" name="folder"><option value="">None, at the top</option>{% for folder in folders %}<option value="{{ folder.pk }}">{{ folder.name }}</option>{% endfor %}</select>
         {% if add_error %}<div class="error" role="alert">{% icon "warning-circle" %}{{ add_error }}</div>{% endif %}</div>
       <div class="form-foot"><button class="btn btn-primary" type="submit">{% icon "plus" %}Add to room</button></div>
     </form>
-    {% else %}<div class="panel"><p>Every document is already in this room. <a href="{% url 'documents:new' %}">Upload another</a>.</p></div>{% endif %}
+    {% else %}<div class="panel">{% include "snug/partials/saved.html" with here="add-document" %}<p>Every document is already in this room. <a href="{% url 'documents:new' %}">Upload another</a>.</p></div>{% endif %}
   </section>
   <section class="section" id="add-folder">
     <div class="section-head"><h2>Add a folder</h2></div>
-    {% include "snug/partials/saved.html" with here="add-folder" %}
     <form class="panel form" method="post" action="{% url 'rooms:folder_add' room.token %}" novalidate>
       {% csrf_token %}
+      {% include "snug/partials/saved.html" with here="add-folder" %}
       <div class="field"><label for="folder-name">Name</label><input id="folder-name" name="name" type="text" maxlength="80" required{% if folder_error %} aria-invalid="true" aria-describedby="folder-error"{% endif %}>
         {% if folder_error %}<div class="error" id="folder-error" role="alert">{% icon "warning-circle" %}{{ folder_error }}</div>{% else %}<div class="hint">One level only. Viewers see folders as headings.</div>{% endif %}</div>
       <div class="form-foot"><button class="btn" type="submit">Add folder</button></div>
@@ -53,9 +53,9 @@
   </section>
   <section class="section" id="nda">
     <div class="section-head"><h2>NDA</h2></div>
-    {% include "snug/partials/saved.html" with here="nda" %}
     <form class="panel form" method="post" action="{% url 'rooms:nda' room.token %}">
       {% csrf_token %}
+      {% include "snug/partials/saved.html" with here="nda" %}
       <label class="check"><input type="checkbox" name="require_nda"{% if room.require_nda %} checked{% endif %}{% if not nda %} disabled{% endif %}><span>Ask for the NDA before anything is shown<span class="hint">{% if nda %}Version {{ nda.number }}. Each link accepts it once; a new version asks again.{% else %}Write the NDA in <a href="{% url 'accounts:settings' %}#nda">Settings</a> first.{% endif %}</span></span></label>
       {% if nda_error %}<div class="error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% endif %}
       <div class="form-foot"><button class="btn" type="submit"{% if not nda %} disabled{% endif %}>Save</button></div>
@@ -63,9 +63,9 @@
   </section>
   <section class="section" id="rename">
     <div class="section-head"><h2>Rename</h2></div>
-    {% include "snug/partials/saved.html" with here="rename" %}
     <form class="panel form" method="post" action="{% url 'rooms:rename' room.token %}" novalidate>
       {% csrf_token %}
+      {% include "snug/partials/saved.html" with here="rename" %}
       <div class="field"><label for="room-name">Name</label><input id="room-name" name="name" type="text" maxlength="120" required value="{{ room.name }}"{% if rename_error %} aria-invalid="true" aria-describedby="rename-error"{% endif %}>
         {% if rename_error %}<div class="error" id="rename-error" role="alert">{% icon "warning-circle" %}{{ rename_error }}</div>{% endif %}</div>
       <div class="form-foot"><button class="btn" type="submit">Rename</button></div>
