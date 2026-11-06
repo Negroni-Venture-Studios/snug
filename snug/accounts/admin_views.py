@@ -436,12 +436,9 @@ def _new_password(request: HttpRequest, row: AdminSetup) -> HttpResponse:
     method = passwords.change(row, password, code)
     if method == "gone":
         return render(request, "accounts/setup_gone.html", status=404)
-    if method is None:
+    if method in (None, "spent"):
         _audit(request, "admin.password_reset_failed", "", admin.email, reason="wrong_code")
-        if ratelimit.hit(limits.RESET_CODE_FAILURES, str(row.pk)) >= (
-            limits.RESET_CODE_FAILURES_PER_LINK
-        ):
-            AdminSetup.objects.filter(pk=row.pk).delete()
+        if method == "spent":
             return page(400, code="Too many wrong codes. Ask for a new link.")
         return page(400, code="That code is not right.")
 

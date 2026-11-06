@@ -243,6 +243,17 @@ def test_five_wrong_codes_spend_the_link(client: Client, admin: Admin, link: str
     assert check_password(PASSWORD, admin.password)
 
 
+def test_the_wrong_code_count_lives_on_the_link(client: Client, admin: Admin, link: str) -> None:
+    # Security review, 6 November 2026: a count in a clock-aligned window reset
+    # partway through a link's hour. Kept on the link itself, it never resets.
+    assert choose(client, link, "000000").status_code == 400
+    assert AdminSetup.objects.get(admin=admin).failures == 1
+    AdminSetup.objects.update(failures=limits.RESET_CODE_FAILURES_PER_LINK - 1)
+    response = choose(client, link, "000000")
+    assert "Too many wrong codes. Ask for a new link." in response.content.decode()
+    assert not AdminSetup.objects.exists()
+
+
 def test_wrong_codes_on_a_link_never_stop_the_admin_signing_in(
     client: Client, admin: Admin, link: str
 ) -> None:
