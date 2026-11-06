@@ -34,6 +34,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- UK-only mode: a link to a document, or a whole room, can open only for visitors in the UK, Jersey, Guernsey and the Isle of Man. Anyone elsewhere, or anyone Snug cannot place, sees a page saying so and is sent no code, and the refusal is in the audit log. Countries come from DB-IP's free database, kept on the server; `snug doctor` and the Overview warn if it is missing or out of date.
 - Housekeeping downloads DB-IP's free country database once a month and keeps it in the data folder, for UK-only links. Lookups use that copy alone: no visitor's address leaves the server.
 - The admin sign-in page names the company, under the heading, once a name is set in Settings or `SNUG_COMPANY_NAME`.
 - `deploy/cloud-init.yaml` prepares a fresh Ubuntu 24.04 droplet: Docker, automatic security updates, a firewall and Snug's files. Then `sudo snug setup` asks for the domain, email and backup bucket on the server, so no secret is stored with the hosting provider, generates the backup's encryption passwords for you to keep, and starts Snug, or restores it when a saved backup configuration is already in place. [docs/deployment.md](docs/deployment.md) walks through it.

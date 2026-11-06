@@ -56,6 +56,8 @@ class Link(models.Model):
     # For a link to a single document. A room link follows its room's setting.
     require_nda = models.BooleanField(default=False)
     allow_download = models.BooleanField(default=True)
+    # Opens only from the UK (snug.viewer.access). A room link follows its room instead.
+    uk_only = models.BooleanField(default=False)
     expires_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

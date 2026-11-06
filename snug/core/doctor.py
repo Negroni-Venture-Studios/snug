@@ -17,7 +17,7 @@ from typing import Literal
 from django.conf import settings
 from django.utils.timesince import timesince
 
-from snug.core import mail
+from snug.core import geoip, mail
 from snug.core.models import SystemCheck
 from snug.rendering import sandbox
 from snug.rendering.worker import MIN_LANDLOCK_ABI, fully_confined
@@ -214,6 +214,35 @@ def email_setup() -> Finding:
     return _ok(label, f"Sending through {config.smtp_host}.")
 
 
+def geoip_data(now: datetime) -> Finding:
+    """DB-IP's country data, which UK-only links need: this month's or last month's."""
+    from snug.links.models import Link
+    from snug.rooms.models import Room
+
+    label = "GeoIP"
+    in_use = (
+        Room.objects.filter(uk_only=True).exists()
+        or Link.objects.filter(uk_only=True, revoked_at__isnull=True).exists()
+    )
+    if not in_use:
+        return Finding(label, "skipped", "Nothing is UK-only.")
+    held = geoip.edition()
+    if held is None:
+        return _problem(
+            label,
+            "UK-only links refuse everyone: there is no country data yet. Housekeeping "
+            "downloads it from DB-IP; check that the server can reach download.db-ip.com.",
+        )
+    previous = f"{(now.replace(day=1) - timedelta(days=1)):%Y-%m}"
+    if held < previous:
+        return _problem(
+            label,
+            f"DB-IP's country data is from {held} and should be renewed monthly. Check that "
+            "the server can reach download.db-ip.com.",
+        )
+    return _ok(label, f"DB-IP's country data from {held}, for UK-only links.")
+
+
 def everything(now: datetime) -> list[Finding]:
     """Every check except the email test, which needs someone to type a code."""
     return [
@@ -223,6 +252,7 @@ def everything(now: datetime) -> list[Finding]:
         dns(),
         https(now),
         email_setup(),
+        geoip_data(now),
     ]
 
 
@@ -256,7 +286,7 @@ def refresh(now: datetime) -> None:
 
 def problems(now: datetime) -> list[Finding]:
     """What the Overview shows: live cheap checks, then the stored slower ones."""
-    live = [housekeeping(now), backups(now), email_setup()]
+    live = [housekeeping(now), backups(now), email_setup(), geoip_data(now)]
     found = [f for f in live if f.problem]
     stored = SystemCheck.objects.filter(name__in=_STORED, ok=False).order_by("name")
     found += [_problem(_STORED[row.name], row.message) for row in stored]

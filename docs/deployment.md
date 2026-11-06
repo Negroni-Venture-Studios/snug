@@ -90,6 +90,7 @@ sudo snug doctor --email you@example.com
 | DNS | The domain resolves; the report lists the addresses it points to |
 | HTTPS | The domain answers Snug's health check over HTTPS, with a valid certificate that has more than 14 days left |
 | Email | Email is set up; with `--email`, a code sent to that address is typed back |
+| GeoIP | When anything is UK-only: DB-IP's country data is this month's or last month's |
 
 The admin Overview shows the same problems, so a founder sees them without running a command. It checks housekeeping, the backups and the email settings on each visit; housekeeping runs the PDF worker, DNS and HTTPS checks every hour, and a failed email is recorded when it fails.
 

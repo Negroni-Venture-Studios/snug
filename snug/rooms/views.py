@@ -164,6 +164,25 @@ def room_nda(request: HttpRequest, token: str) -> HttpResponse:
 @never_cache
 @login_required
 @require_POST
+def room_uk_only(request: HttpRequest, token: str) -> HttpResponse:
+    """Whether every link to the room opens only from the UK."""
+    room = get_object_or_404(Room, token=token)
+    wanted = request.POST.get("uk_only") == "on"
+    if wanted != room.uk_only:
+        room.uk_only = wanted
+        room.save(update_fields=["uk_only"])
+        _audit(request, "room.uk_only" if wanted else "room.not_uk_only", room)
+    text = (
+        "Saved. Links to this room open only in the UK, Jersey, Guernsey and the Isle of Man."
+        if wanted
+        else "Saved. Links to this room open anywhere."
+    )
+    return _saved(request, room, "uk-only", text)
+
+
+@never_cache
+@login_required
+@require_POST
 def folder_add(request: HttpRequest, token: str) -> HttpResponse:
     room = get_object_or_404(Room, token=token)
     name = _clean(request.POST.get("name", ""), FOLDER_NAME)

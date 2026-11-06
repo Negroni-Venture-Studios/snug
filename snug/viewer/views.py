@@ -36,7 +36,16 @@ from snug.nda import terms
 from snug.rendering import pages as rendering
 from snug.rendering.sandbox import WorkerError
 from snug.viewer import codes, limits, sessions
-from snug.viewer.access import Access, NeedsNda, NotVerified, Unavailable, authorise, find_link
+from snug.viewer.access import (
+    Access,
+    NeedsNda,
+    NotVerified,
+    OutsideUK,
+    Unavailable,
+    authorise,
+    check_place,
+    find_link,
+)
 from snug.viewer.models import VerificationCode
 
 CHECK_ATTRIBUTE = "snug_viewer_check"
@@ -56,15 +65,31 @@ def _see_other(token: str, name: str = "viewer:entry") -> HttpResponse:
     return response
 
 
+def _outside(request: HttpRequest, refused: OutsideUK) -> HttpResponse:
+    """A UK-only link opened from elsewhere, or from somewhere nobody can place."""
+    _audit(
+        request,
+        "viewer.outside_uk",
+        refused.link,
+        actor="",
+        country=refused.country or "unknown",
+    )
+    return render(request, "viewer/outside.html", status=403)
+
+
 def viewer_gate(view: GateView) -> Callable[..., HttpResponse]:
-    """For pages that start a session: the link must exist and be active."""
+    """For pages that start a session: the link must exist and be active, and a
+    UK-only link must be opened from the UK, so nobody abroad is sent a code."""
 
     @wraps(view)
     def wrapper(request: HttpRequest, token: str) -> HttpResponse:
         try:
             link = find_link(token)
+            check_place(request, link)
         except Unavailable:
             return _unavailable(request)
+        except OutsideUK as refused:
+            return _outside(request, refused)
         return view(request, link, token)
 
     setattr(wrapper, CHECK_ATTRIBUTE, "find_link")
@@ -83,9 +108,15 @@ def viewer_content(
             try:
                 access = authorise(request, token, document_token=document_token)
             except NotVerified as denied:
+                try:
+                    check_place(request, denied.link)
+                except OutsideUK as refused:
+                    return _outside(request, refused)
                 if not_verified is not None:
                     return not_verified(request, denied.link, token)
                 return _see_other(token)
+            except OutsideUK as refused:
+                return _outside(request, refused)
             except NeedsNda:
                 return _see_other(token, "viewer:nda")
             except Unavailable:

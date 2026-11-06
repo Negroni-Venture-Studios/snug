@@ -7,7 +7,7 @@ Every viewer request for content calls authorise(), which checks, in order:
    verified if the link requires verification;
 3. the current NDA has been accepted on this link, if the link or its room
    requires it;
-4. the geographic restriction is met, if one is set (step 8);
+4. the visitor is in the UK, if the link or its room is UK-only;
 5. the requested document belongs to the link's document, or to its room.
 
 A link that fails the first check, or a document outside the link, is
@@ -20,6 +20,8 @@ from dataclasses import dataclass
 
 from django.http import HttpRequest
 
+from snug.core import geoip
+from snug.core.client import client_ip
 from snug.documents.models import Document
 from snug.links.models import Link
 from snug.nda import terms
@@ -44,6 +46,15 @@ class NotVerified(Denied):
         self.link = link
 
 
+class OutsideUK(Denied):
+    """The link is UK-only, and this visitor is elsewhere, or nobody can tell where."""
+
+    def __init__(self, link: Link, country: str | None) -> None:
+        super().__init__(link.label)
+        self.link = link
+        self.country = country
+
+
 class NeedsNda(Denied):
     """The session is fine, but the NDA must be accepted on this link first."""
 
@@ -60,8 +71,27 @@ class Access:
     document: Document | None
 
 
+# The UK for UK-only links: Great Britain and Northern Ireland, and the Crown
+# Dependencies, which DB-IP lists apart (decided 6 November 2026).
+UK = frozenset({"GB", "JE", "GG", "IM"})
+
+
+def uk_only(link: Link) -> bool:
+    """Whether this link opens only from the UK: its room's setting, or its own."""
+    return link.room.uk_only if link.room is not None else link.uk_only
+
+
+def check_place(request: HttpRequest, link: Link) -> None:
+    """Check 4. Fails closed: an unknown country, or no data, is outside."""
+    if not uk_only(link):
+        return
+    country = geoip.country(client_ip(request) or "")
+    if country not in UK:
+        raise OutsideUK(link, country)
+
+
 def find_link(token: str) -> Link:
-    """Check 1: the link exists and is active. Gate pages use this alone."""
+    """Check 1: the link exists and is active. Gate pages use this, then check_place."""
     link = Link.find(token)
     if link is None or not link.is_active():
         raise Unavailable
@@ -95,7 +125,7 @@ def authorise(
         if version is not None and not terms.accepted(link, version):
             raise NeedsNda(link)
 
-    # Check 4, the geographic restriction, arrives in step 8.
+    check_place(request, link)
 
     # Check 5: the document belongs to the link's document, or to its room.
     # Room membership is looked up on every request, so removing a document

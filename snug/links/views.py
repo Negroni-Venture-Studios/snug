@@ -166,6 +166,7 @@ def _new_link(
     require_verification = request.POST.get("require_verification") == "on"
     require_nda = document is not None and request.POST.get("require_nda") == "on"
     allow_download = request.POST.get("allow_download") == "on"
+    uk_only = document is not None and request.POST.get("uk_only") == "on"
     # With no NDA yet, the form offers a box to write version 1.
     nda_text = request.POST.get("nda_text", "")
     write_nda = require_nda and nda_terms.current() is None
@@ -176,6 +177,7 @@ def _new_link(
         "expires": request.POST.get("expires", ""),
         "require_verification": require_verification,
         "allow_download": allow_download,
+        "uk_only": uk_only,
         "require_nda": require_nda,
         "nda_text": nda_text[: nda_terms.MAX_TEXT + 1000],
     }
@@ -209,6 +211,7 @@ def _new_link(
         require_verification=require_verification,
         require_nda=require_nda,
         allow_download=allow_download,
+        uk_only=uk_only,
         created_by=_admin(request),
     )
     _audit(
@@ -217,6 +220,7 @@ def _new_link(
         issued.link,
         verification=issued.link.require_verification,
         download=issued.link.allow_download,
+        uk_only=issued.link.uk_only,
         expires=issued.link.expires_at.isoformat() if issued.link.expires_at else None,
     )
     wanted = request.POST.get("action") == "email" and mail.enabled()
