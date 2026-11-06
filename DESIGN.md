@@ -122,7 +122,7 @@ On the taste guide's dials: variance 3 (orderly, aligned, few surprises), motion
 
 Each token is written once with CSS `light-dark()`, resolved by `color-scheme` on the root element, so there are no duplicated dark-mode blocks.
 
-**Dark is the default** on both surfaces. A round three-state toggle in every header cycles light, dark and system (system follows the operating system). It is the toggle from agentlanguages.dev: a moon, a sun, and a half-filled circle. Its label names the current state, and the choice is saved per browser. A small `theme-init.js` in `<head>` applies the saved choice before first paint; it is a file, not an inline script, because of the CSP. Contrast figures below are the lowest measured against any surface the token is used on.
+**Dark is the default** on both surfaces. A round three-state toggle in every header cycles light, dark and system (system follows the operating system). It shows Phosphor's moon, sun and half circle. Its label names the current state, and the choice is saved per browser. A small `theme-init.js` in `<head>` applies the saved choice before first paint; it is a file, not an inline script, because of the CSP. Contrast figures below are the lowest measured against any surface the token is used on.
 
 **Admin palette** (Negroni).
 

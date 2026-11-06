@@ -328,7 +328,7 @@ input.code { font-family: var(--mono); font-size: 1.5rem; letter-spacing: 0.45em
 .brand-tile { width: 2.5rem; height: 2.5rem; display: block; flex: none; color: #FFE2CE; }
 .brand-tile .tile { fill: #FF6200; }
 
-/* ---------- Theme toggle (from agentlanguages.dev): dark, light, auto ---------- */
+/* ---------- Theme toggle: dark, light, auto ---------- */
 .theme-toggle {
     display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; padding: 0;
     border: 1px solid var(--border-strong); border-radius: 999px; background: none; color: var(--text-2);
