@@ -234,6 +234,32 @@ def test_make_undumpable_is_a_no_op_elsewhere() -> None:
         assert make_undumpable() is False
 
 
+def test_preload_loads_every_text_codec_pypdf_uses() -> None:
+    # Once confined, the worker cannot open Python's own files, so a codec
+    # pypdf loads lazily (UTF-16 for metadata, found 6 November 2026) fails.
+    code = (
+        "import sys; from snug.rendering import worker; worker.preload(); "
+        "print(' '.join(m for m in sys.modules if m.startswith('encodings.')))"
+    )
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", code], capture_output=True, text=True, timeout=60, check=True
+    )
+    loaded = set(result.stdout.split())
+    for module in (
+        "utf_16",
+        "utf_16_be",
+        "utf_16_le",
+        "utf_8",
+        "latin_1",
+        "cp1252",
+        "charmap",
+        "mac_roman",
+        "iso8859_15",
+        "ascii",
+    ):
+        assert f"encodings.{module}" in loaded, module
+
+
 def test_confine_reports_when_unavailable() -> None:
     if sys.platform != "linux":
         assert worker.confine() == "unconfined: not Linux"

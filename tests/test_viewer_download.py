@@ -147,6 +147,21 @@ def test_a_pdf_that_only_pdfium_can_read_is_still_stamped(tmp_path: Path) -> Non
     assert f"Shared with {INVESTOR}" in text
 
 
+ENCRYPTED = Path(__file__).parent / "fixtures" / "aes256-owner-password.pdf"
+
+
+def test_an_encrypted_pdf_that_opens_without_a_password_is_stamped() -> None:
+    # Found 6 November 2026: a PDF with AES-256 and only an owner password
+    # (it opens freely, but restricts copying) could not be downloaded. pypdf
+    # needs the `cryptography` library for AES; Snug stamps PDFium's
+    # unencrypted copy instead. The fixture's title is stored as UTF-16, whose
+    # codec pypdf loads lazily, which confinement then refused.
+    reader = PdfReader(io.BytesIO(stamp_pdf(ENCRYPTED)))
+    assert not reader.is_encrypted
+    assert len(reader.pages) == 2
+    assert f"Shared with {INVESTOR}" in reader.pages[0].extract_text()
+
+
 def test_odd_addresses_are_written_safely(deck: Path) -> None:
     # Parentheses and backslashes are PDF string syntax; they must not break out.
     odd = "o(d)d\\one@example.com"
