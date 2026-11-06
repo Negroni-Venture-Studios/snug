@@ -35,7 +35,7 @@ Always use `uv run`. Never install into the system Python.
 | `scripts/` | CI and maintenance scripts (`check_licences.py`) |
 | `docs/` | Operator and design documentation; `docs/design/` holds the mockups, stylesheet seed and logo |
 | `Dockerfile` | The container image, published by the `Image` workflow |
-| `deploy/` | `compose.yaml` (Snug, Caddy, Litestream and the rclone backup sidecar), `Caddyfile`, `litestream.yml`, `backup.sh`, `rclone.conf.example` and `snug.env.example`; cloud-init joins them in step 7 |
+| `deploy/` | `compose.yaml` (Snug, Caddy, Litestream and the rclone backup sidecar), `Caddyfile`, `litestream.yml`, `backup.sh`, `restore.sh`, `snug` (the server's command), `rclone.conf.example` and `snug.env.example`; cloud-init joins them in step 7 |
 | `.github/` | CI workflows, CodeQL, Dependabot, templates |
 
 ## Rules

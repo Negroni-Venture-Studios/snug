@@ -6,7 +6,7 @@ The standard deployment backs Snug up continuously to a storage bucket of your o
 
 | What | How often | History kept |
 |---|---|---|
-| The database: admins, links, rooms, the audit log, NDA acceptances, reading data and settings | Litestream records every change within a second; the bucket gets a copy every 5 minutes | Any moment in the last 7 days |
+| The database: admins, links, rooms, the audit log, NDA acceptances, reading data and settings | Litestream records every change within a second; the bucket gets a copy every 5 minutes | Any moment in the last 7 days can be restored |
 | Uploaded documents (`originals/`) | Every 5 minutes | A deleted or replaced file is kept for 30 days |
 | Your logo and tab icon (`branding/`) | Every 5 minutes | As documents |
 
@@ -89,4 +89,31 @@ sudo docker compose exec backup rclone lsf -R snug-backup:
 
 ## Restoring
 
-Snug has no restore command yet; it is the next piece of the deployment work in [DESIGN.md](../DESIGN.md), section 4.
+`snug restore` brings everything back from the bucket: the database, the uploaded documents and the branding images. It works on the same server, after a mistake, or on a new one, after losing the old.
+
+On a new server, set it up as [deployment.md](deployment.md) describes, but do not start it. Put the copy of `rclone.conf` from your password manager in `/opt/snug/backup/`, readable by the backup container alone, and restore:
+
+```bash
+cd /opt/snug
+sudo chown 10001:10001 backup/rclone.conf
+sudo chmod 600 backup/rclone.conf
+sudo snug restore
+```
+
+It stops Snug and its backups, fetches everything from the bucket, rebuilds the database with Litestream, and starts them again. Then sign in to check, and run `sudo snug doctor`.
+
+To go back to an earlier moment within the last 7 days, give the time in UTC:
+
+```bash
+sudo snug restore --at 2026-11-05T14:00:00Z
+```
+
+If the server already has a database, `snug restore` asks you to type `replace` first. Nothing is deleted: the data it replaces is moved to a folder named `previous-` and the time, in the data volume.
+
+Each Snug has a random identity, kept in the data volume and, from the first backup, in the bucket. The backup container never copies into a bucket that holds another Snug's backups. If a new server is started before it is restored, its backups stop with that problem, rather than replacing the real backups with an empty database, until `snug restore` brings the bucket's data, and its identity, to the server.
+
+Documents deleted in the last 30 days are not restored with the rest. They are in the bucket under `deleted/` and the date they were deleted, and can be copied back by hand:
+
+```bash
+sudo docker compose exec backup rclone lsf -R snug-backup:deleted
+```

@@ -34,6 +34,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- `sudo snug restore` brings Snug back from its backups, on the same server or a new one: the latest, or as it was at a moment in the last 7 days. Any data it replaces is kept, not deleted. A `snug` command on the server runs Snug's other commands in its container. The backups refuse to copy into a bucket holding another Snug's backups, so a new server started before its restore cannot overwrite them.
 - The admin Overview has a status line: any problem `snug doctor` would report, such as a late backup, failing housekeeping, an expiring certificate or an email that could not be sent, or else that everything is working.
 - `snug doctor` checks housekeeping, the backups, the PDF worker's confinement, DNS, HTTPS and the certificate's expiry, and email, by sending a code you type back. It says what to fix, and exits with status 1 if anything is wrong. [docs/deployment.md](docs/deployment.md) lists the checks.
 - Continuous, encrypted backups to a storage bucket of your own: Litestream records every change to the database, and an rclone container copies it, the uploaded documents and the branding images to the bucket every 5 minutes, encrypted on the server with a key only you hold. [docs/backups.md](docs/backups.md) explains how to set it up.
