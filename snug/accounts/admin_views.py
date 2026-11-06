@@ -430,10 +430,7 @@ def _new_password(request: HttpRequest, row: AdminSetup) -> HttpResponse:
         return page(400, password=" ".join(problem.messages))
 
     code = request.POST.get("code", "")
-    allowed = ratelimit.allow(limits.CODE_PER_ADMIN, str(admin.pk))
-    if allowed and not passwords.is_app_code(code):
-        allowed = ratelimit.allow(limits.RECOVERY_PER_ADMIN, str(admin.pk))
-    if not allowed:
+    if not ratelimit.allow(limits.RESET_CODE_PER_ADMIN, str(admin.pk)):
         return page(429, code=TOO_MANY)
 
     method = passwords.change(row, password, code)
@@ -441,6 +438,11 @@ def _new_password(request: HttpRequest, row: AdminSetup) -> HttpResponse:
         return render(request, "accounts/setup_gone.html", status=404)
     if method is None:
         _audit(request, "admin.password_reset_failed", "", admin.email, reason="wrong_code")
+        if ratelimit.hit(limits.RESET_CODE_FAILURES, str(row.pk)) >= (
+            limits.RESET_CODE_FAILURES_PER_LINK
+        ):
+            AdminSetup.objects.filter(pk=row.pk).delete()
+            return page(400, code="Too many wrong codes. Ask for a new link.")
         return page(400, code="That code is not right.")
 
     details: dict[str, Any] = {"method": method}
