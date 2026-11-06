@@ -10,7 +10,7 @@ from django.views.decorators.http import require_safe
 
 from snug.analytics import charts, summary
 from snug.analytics.models import Visit
-from snug.core import brand, logo
+from snug.core import brand, doctor, logo
 from snug.core.models import SiteSettings, company_name
 from snug.documents.models import Document
 from snug.links.models import Link
@@ -22,7 +22,11 @@ from snug.links.models import Link
 def overview(request: HttpRequest) -> HttpResponse:
     now = timezone.now()
     documents = Document.objects.count()
-    context: dict[str, object] = {"tab": "overview", "documents": documents}
+    context: dict[str, object] = {
+        "tab": "overview",
+        "documents": documents,
+        "problems": doctor.problems(now),
+    }
     if documents:
         live = Q(expires_at__isnull=True) | Q(expires_at__gt=now)
         context["stats"] = {

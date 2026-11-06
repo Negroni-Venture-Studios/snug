@@ -12,7 +12,7 @@ from django.utils import timezone
 from snug.accounts.models import AdminSetup
 from snug.analytics import retention
 from snug.audit.models import AuditEvent, record
-from snug.core import ratelimit
+from snug.core import doctor, ratelimit
 from snug.core.models import SiteSettings, SystemCheck
 from snug.viewer.models import VerificationCode, ViewerSession
 
@@ -41,6 +41,8 @@ class Command(BaseCommand):
             name="housekeeping",
             defaults={"ok": True, "message": "", "checked_at": timezone.now()},
         )
+        # The checks too slow for the Overview to run on each visit.
+        doctor.refresh(timezone.now())
         self.stdout.write(
             f"Housekeeping: reading data: {visits} visit{'s' if visits != 1 else ''}; "
             f"codes: {codes}; viewer sessions: {viewer_sessions}; setup links: {setups}; "

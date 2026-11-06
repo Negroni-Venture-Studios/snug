@@ -79,6 +79,8 @@ sudo docker compose exec snug snug doctor --email you@example.com
 | HTTPS | The domain answers Snug's health check over HTTPS, with a valid certificate that has more than 14 days left |
 | Email | Email is set up; with `--email`, a code sent to that address is typed back |
 
+The admin Overview shows the same problems, so a founder sees them without running a command. It checks housekeeping, the backups and the email settings on each visit; housekeeping runs the PDF worker, DNS and HTTPS checks every hour, and a failed email is recorded when it fails.
+
 Snug cannot read your inbox, so the email check sends a six-digit code and asks you to type it in. Without `--email`, `snug doctor` asks for an address, or skips the email test when it is not run in a terminal. It exits with status 1 if anything is a problem.
 
 ## Running commands

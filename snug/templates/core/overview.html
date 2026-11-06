@@ -3,6 +3,14 @@
 {% block title %}Snug overview{% endblock %}
 {% block content %}
 <div class="title-row"><div><h1 class="page-title">Overview</h1></div></div>
+{% if problems %}
+<div class="system-status notice notice-warn" role="alert">{% icon "warning-circle" %}<div>
+  <ul class="system-problems">{% for found in problems %}<li><strong>{{ found.label }}.</strong> {{ found.message }}</li>{% endfor %}</ul>
+  <p>Run <code>snug doctor</code> on the server for more.</p>
+</div></div>
+{% else %}
+<div class="system-status system-status-ok" role="status">{% icon "check" %}<span>Everything is working.</span></div>
+{% endif %}
 {% if not documents %}
 <div class="empty">
   <h2>Nothing to show yet</h2>

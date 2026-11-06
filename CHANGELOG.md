@@ -10,6 +10,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- On a phone, the Overview's recent activity no longer pushes the page sideways: each visit shows who, then what. A browser test now checks every admin page at phone width.
 - Settings, the new-link form and the room page kept the shared admin script out when adding their own, so their tabs did not scroll to the current one on a narrow screen.
 - The README and guides describe Snug as it is: downloads are on by default, UK-only mode is still to come, and local emails can be read with one command. The design record lists the specified features not yet built. The container image now includes `THIRD_PARTY_LICENCES.md`, and pypdf is listed in it.
 - Downloading a PDF that opens without a password but is encrypted against copying (common for published PDFs) failed with "could not be prepared for download". It is now stamped from an unencrypted copy. The confined worker also preloads every text codec it may need, since a PDF with UTF-16 metadata failed the same way.
@@ -33,6 +34,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- The admin Overview has a status line: any problem `snug doctor` would report, such as a late backup, failing housekeeping, an expiring certificate or an email that could not be sent, or else that everything is working.
 - `snug doctor` checks housekeeping, the backups, the PDF worker's confinement, DNS, HTTPS and the certificate's expiry, and email, by sending a code you type back. It says what to fix, and exits with status 1 if anything is wrong. [docs/deployment.md](docs/deployment.md) lists the checks.
 - Continuous, encrypted backups to a storage bucket of your own: Litestream records every change to the database, and an rclone container copies it, the uploaded documents and the branding images to the bucket every 5 minutes, encrypted on the server with a key only you hold. [docs/backups.md](docs/backups.md) explains how to set it up.
 - A Docker Compose deployment: Snug behind Caddy, which gets and renews HTTPS certificates, with Snug's settings in `/opt/snug/snug.env`. [docs/deployment.md](docs/deployment.md) explains it. Both containers have read-only filesystems and no privileges they do not need, and Snug believes a visitor's address only from Caddy, over IPv4 and IPv6.
