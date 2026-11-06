@@ -61,6 +61,10 @@ jobs:
               assert sandbox.render(f.name, 1, 800)[:4] == b'RIFF'
           print('rendered in the worker')
           "
+      - name: Ships the third-party licence notices
+        run: |
+          docker exec snug test -f /app/THIRD_PARTY_LICENCES.md
+          docker exec snug sh -c 'ls -d /app/.venv/lib/python3*/site-packages/pypdfium2*.dist-info/licenses/LICENSES'
       - name: Stop
         if: always()
         run: docker rm --force snug || true

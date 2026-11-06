@@ -25,7 +25,7 @@ Add your domain in the provider's dashboard. The provider then gives you DNS rec
 
 DKIM signs each message with a key that only your provider holds, and publishes the matching public key in your DNS. It is the record that matters most: it is what proves to Gmail and Outlook that the message really came from your domain.
 
-The provider gives you one or more records, usually `CNAME` or `TXT`, with names like `pm._domainkey.example.com` or `s1._domainkey.example.com`. Copy them exactly. Some DNS hosts add your domain to the end of every name automatically, so `pm._domainkey` may be all you should type.
+The provider gives you one or more records, usually `CNAME` or `TXT`, with names like `pm._domainkey.example.com` or `s1._domainkey.example.com`; copy them exactly. Some DNS hosts add your domain to the end of every name automatically, so `pm._domainkey` may be all you should type.
 
 ### SPF
 

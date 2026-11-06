@@ -22,17 +22,17 @@ You will get a response within 72 hours. We will work with you on a fix and agre
 In scope:
 
 - Snug's own code: authorisation, sessions, links, verification codes, file handling, rendering, analytics and the admin interface.
-- The deployment files we ship: the container image, Compose file, Caddy and Litestream configuration, and cloud-init.
+- The deployment files we ship: the container image, and, once they ship, the Compose file, Caddy and Litestream configuration, and cloud-init.
 
 Out of scope:
 
 - Weaknesses in an operator's own infrastructure or configuration that Snug's documentation already warns against.
-- The limits Snug documents openly: a watermark cannot stop someone photographing a screen, and UK-only mode can be bypassed with a VPN.
+- The limits Snug documents openly, such as a watermark being unable to stop someone photographing a screen.
 - Social engineering of founders or investors.
 
 ## Supported versions
 
-Snug has not been released yet. Once it is, security fixes go into the latest release.
+Snug has not been released yet. Security fixes go into `main`, and so into the `:edge` test image. After the first release, they go into the latest release.
 
 ## How the project guards itself
 
@@ -40,7 +40,9 @@ Every change to `main` goes through a pull request that must pass CI. Administra
 
 - ruff's security rules;
 - strict type checking;
-- the test suite;
+- the test suite, with the PDF worker's confinement tested on Linux;
+- the investor's journey and the admin controls in a real browser;
+- a smoke test of the container image, including a confined render;
 - gitleaks over the full git history;
 - pip-audit against known vulnerabilities;
 - a licence check;

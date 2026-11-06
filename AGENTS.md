@@ -30,11 +30,12 @@ Always use `uv run`. Never install into the system Python.
 
 | Path | What |
 |---|---|
-| `snug/` | The Django project package (arrives in step 1; a stub until then) |
-| `tests/` | pytest suite |
+| `snug/` | The Django project: settings and configuration, and the apps `accounts`, `analytics`, `audit`, `core`, `documents`, `links`, `nda`, `rendering` (the confined PDF worker), `rooms` and `viewer` |
+| `tests/` | pytest suite; `tests/e2e/` drives a real browser with Playwright |
 | `scripts/` | CI and maintenance scripts (`check_licences.py`) |
 | `docs/` | Operator and design documentation; `docs/design/` holds the mockups, stylesheet seed and logo |
-| `deploy/` | Container, Compose, Caddy, Litestream and cloud-init (arrives in step 7) |
+| `Dockerfile` | The container image, published by the `Image` workflow |
+| `deploy/` | `snug.env.example`; the Compose, Caddy, Litestream and cloud-init files join it in step 7 |
 | `.github/` | CI workflows, CodeQL, Dependabot, templates |
 
 ## Rules
@@ -71,7 +72,7 @@ Write the test that proves the change, and confirm it fails for the reason you e
 5. **A strict content security policy.** No inline scripts, no inline styles and no `on*=` handlers, ever.
 6. **CSRF protection** on every state-changing admin request.
 7. **Rate limits** on login, code requests and code verification.
-8. **File handling.** Store uploads under generated names. Resolve paths from database records, never from request parameters. Render PDFs in a separate process with a timeout and a memory limit.
+8. **File handling.** Store uploads under generated names. Resolve paths from database records, never from request parameters. Read and render PDFs only in the worker process: a timeout and a memory limit, confined by Landlock and a seccomp filter that refuses sockets, and refusing to read anything if it cannot confine itself.
 9. **Never log** tokens, one-time codes, session identifiers or passwords.
 10. **Dependencies.** Ask before adding one, and check that its licence is MIT-compatible (`scripts/check_licences.py`).
 
@@ -85,6 +86,7 @@ Write the test that proves the change, and confirm it fails for the reason you e
   - server-rendered SVG charts.
 - Every text colour pairing must pass WCAG AA (4.5:1) in both themes.
 - Interface copy is British English, in sentence case, with no em or en dashes and no middle dots used as separators.
+- Every admin save returns to its own section with a green notice saying what changed (`snug.core.notices`); errors show in red beside the field.
 - Verify a UI change with a real click in a browser, not only a screenshot. The CSP silently kills inline handlers, and a screenshot cannot show a dead click.
 
 ### Versions

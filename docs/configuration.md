@@ -1,6 +1,6 @@
 # Configuration
 
-All of Snug's configuration comes from environment variables, set in one file. On a server that file is `/etc/snug/snug.env` (the deployment guide sets it up), and Docker Compose loads it into the container. [deploy/snug.env.example](../deploy/snug.env.example) is a starting point.
+All of Snug's configuration comes from environment variables, set in one file and passed to the container. [deploy/snug.env.example](../deploy/snug.env.example) is a starting point. The production setup, still to come, keeps the file at `/etc/snug/snug.env` on the server.
 
 Snug checks every setting when it starts. If any are missing or wrong, it lists every problem at once and refuses to start, rather than starting half-configured.
 
@@ -52,7 +52,10 @@ SNUG_DOMAIN=localhost:8000
 SNUG_HTTPS=false
 SNUG_DEBUG=true
 SNUG_DATA_DIR=/Users/you/snug-dev-data
+SNUG_UNSAFE_UNCONFINED_RENDERING=true
 ```
+
+The last line is for macOS only, which has no Landlock: without it, Snug refuses to read PDFs. Leave it out on Linux, and never set it on a server.
 
 Then:
 
@@ -64,8 +67,8 @@ uv run snug --env-file ~/snug-dev.env serve --bind 127.0.0.1:8000
 
 Without SMTP settings, Snug on `localhost` writes each email to the `outbox` folder inside the data folder instead of sending it, so you can read the links it would have sent.
 
-To create an admin, run `uv run snug --env-file ~/snug-dev.env createadmin`. See [admin-accounts.md](admin-accounts.md).
+To create an admin, run `uv run snug --env-file ~/snug-dev.env createadmin --email you@example.com`; [the admin accounts guide](admin-accounts.md) explains the rest.
 
 ## What Snug never logs
 
-Snug does not write a request access log. Viewer links carry their access token in the URL, and the security requirements forbid logging tokens, one-time codes, session identifiers or passwords.
+Snug does not write a request access log. Viewer links have their access token in the URL, and the security requirements forbid logging tokens, one-time codes, session identifiers or passwords. An unexpected error is logged with its traceback, and any link or setup token in it is replaced with `[redacted]`.

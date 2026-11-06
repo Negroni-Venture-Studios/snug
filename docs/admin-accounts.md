@@ -13,7 +13,7 @@ snug createadmin --email you@yourcompany.com
 Snug then:
 
 1. asks for a password twice. It must be at least 12 characters, and not a common password;
-2. shows a QR code. Scan it with an authenticator app, such as 1Password, Google Authenticator or Authy. If you can't scan it, type in the key printed beneath it;
+2. shows a QR code. Scan it with an authenticator app, such as 1Password, Google Authenticator or Authy. If you cannot scan it, type in the key printed beneath it;
 3. asks for the six-digit code the app now shows. Nothing is saved until a working code is entered;
 4. prints ten recovery codes.
 
@@ -30,7 +30,7 @@ Snug then:
 
 The link takes them to a page where they choose a password, scan a QR code with their authenticator app, enter a code from it, and see their recovery codes once. They can then sign in.
 
-Inviting needs email. Without it, create each admin on the server with `snug createadmin`, as above.
+Inviting needs email; without it, create each admin on the server with `snug createadmin`, as above.
 
 ## Removing an admin
 
@@ -40,7 +40,7 @@ You cannot remove yourself, and Snug never lets the last admin be removed. For a
 
 ## Resetting another admin's second factor
 
-If another admin has lost their phone and their recovery codes, choose **Reset second factor** beside them in **Settings**, and enter a fresh code from your own authenticator. Their old authenticator and recovery codes stop working at once, and they are signed out everywhere. They are emailed a link, which works for 72 hours, to set up their authenticator again. Their password does not change. Every admin is emailed.
+If another admin has lost their phone and their recovery codes, choose **Reset second factor** beside them in **Settings**, and enter a fresh code from your own authenticator. Their old authenticator and recovery codes stop working at once, and they are signed out everywhere. They are emailed a link, which works for 72 hours, to set up their authenticator again. Their password does not change, and every admin is emailed.
 
 To replace your own authenticator, sign in with a recovery code, or ask another admin.
 
@@ -58,8 +58,8 @@ Go to `/admin/` on your Snug domain. Enter your email address and password, then
 
   Every attempt counts, right or wrong. You will only meet these limits if something is wrong.
 
-  The account limit is deliberately generous, so that someone typing wrong passwords cannot easily lock you out.
-- **Changing your password, or resetting your second factor, signs you out everywhere.**
+  The account limit is generous, so that someone typing wrong passwords cannot easily lock you out.
+- **Changing your password, or resetting your second factor, signs you out everywhere.** To change your password, use **Forgotten your password?**, below.
 
 ## Forgetting your password
 
@@ -82,7 +82,7 @@ It asks for the new password twice. Like the link, it signs you out everywhere a
 
 ## Losing your phone
 
-- If you still have your recovery codes, sign in with one of them, then set up the authenticator again.
+- If you still have your recovery codes, sign in with one of them. To set up a new authenticator, ask another admin to reset your second factor.
 - If you have lost the recovery codes too, another admin can reset your second factor from the admin interface.
 - If you are the only admin, run this on the server:
 
@@ -100,4 +100,4 @@ Creating an admin, resetting a second factor, and asking for and changing a forg
 
 - **Passwords** are hashed with argon2id, using Django's defaults of 100 MiB of memory and two passes.
 - **Recovery codes** are random, 80 bits each, and stored only as SHA-256 hashes.
-- **Authenticator keys** have to be readable by Snug to check codes, so they are stored as they are. They live in the database on your server, and your backups are encrypted with a key only you hold.
+- **Authenticator keys** have to be readable by Snug to check codes, so they are stored as they are. They live in the database on your server. The production setup, still to come, encrypts backups with a key only you hold.
