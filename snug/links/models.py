@@ -69,6 +69,9 @@ class Link(models.Model):
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
     reissued_at = models.DateTimeField(null=True, blank=True)
+    # When this link first showed anyone a document: claimed once, for the
+    # first-open email (snug.analytics.notify).
+    first_opened_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ("-created_at",)

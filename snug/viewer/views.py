@@ -25,7 +25,7 @@ from django.utils.http import content_disposition_header
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
-from snug.analytics import reading
+from snug.analytics import notify, reading
 from snug.audit.models import AuditEvent, record
 from snug.core import mail, ratelimit
 from snug.core.client import client_ip, user_agent
@@ -347,6 +347,7 @@ def entry(request: HttpRequest, access: Access, token: str) -> HttpResponse:
 
     visit, new = reading.page_shown(access, access.document, version, number)
     if new:
+        notify.first_open(request, access, access.document)
         _audit(
             request,
             "viewer.document_viewed",

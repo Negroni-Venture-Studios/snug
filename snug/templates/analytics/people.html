@@ -3,7 +3,7 @@
 {% block content %}
 <div class="title-row"><div><h1 class="page-title">People</h1><div class="page-meta">Everyone who has opened a document, most recent first. Each document's strip has one cell per page, shaded by the time spent on it; hover over a cell for its page and time.</div></div>{% if people %}<div class="actions">{{ legend }}</div>{% endif %}</div>
 {% for person in people %}
-<section class="section person">
+<section class="section person" id="{{ person.anchor }}">
   <div class="section-head"><h2>{{ person.email }}</h2><p>{% if person.note %}{{ person.note }}. {% endif %}{{ person.total }} in all, {% if person.downloads %}{{ person.downloads }} download{{ person.downloads|pluralize }}, {% endif %}last seen {{ person.last_seen|date:"j M, H:i" }}</p></div>
   <div class="matrix with-downloads">
     <div class="row head">

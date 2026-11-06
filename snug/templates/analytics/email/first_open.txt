@@ -1,0 +1,11 @@
+{% autoescape off %}Who: {{ who }}{% if note %} ({{ note }}){% endif %}
+What: {{ document }}{% if room %}, in {{ room }}{% endif %}
+When: {{ when }}
+Where: {% if where %}{{ where }}{% else %}Snug cannot tell, from their internet address{% endif %}
+
+This is the first time anyone has opened link {{ ref }}. See what they read:
+{{ person_url }}
+
+Every admin of {{ company|default:"this Snug instance" }} gets an email like this the first time each link is opened. To stop them, untick the box under Your account in Settings:
+{{ settings_url }}
+{% endautoescape %}
