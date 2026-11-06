@@ -13,6 +13,7 @@ Sections 1 to 3 describe Snug as it is, apart from the features section 4 lists 
 | Audit log | Every admin and viewer event, in an append-only table, with a filtered view and a CSV export in the admin interface | Every sign-in and every access is on record from the first one. |
 | Lost second factor | One-time recovery codes issued at enrolment; `snug reset-2fa` on the server; any admin can reset another admin's second factor | A lost phone must not lock an admin out for good. |
 | Forgotten password | A "Forgotten your password?" link on the sign-in page emails a one-time link that works for one hour. The reply is the same whether or not the address belongs to an admin, and the link is created and emailed in the background, so the reply does the same work, and takes as long, either way. Limited to 5 requests per IP address and 3 per email address in 15 minutes. The page that sets the new password also asks for a code from the authenticator, or a recovery code, with its own limit of 5 codes per admin in 15 minutes, so someone holding a link cannot use up the admin's sign-in attempts and lock them out. Sharing one allowance with sign-in would bring that lockout back; keeping this one to a single link's worth means someone with both the password and the mailbox gets 15 guesses in 15 minutes rather than 10, and every wrong code is audited. A bad password spends no code; a wrong code leaves the link working, and the fifth spends it. The count is kept on the link itself, so it never resets while the link works. Changing the password signs the admin out everywhere and emails them; the request, failures and the change are audited. Without email, the page says to ask another admin or run `snug reset-password` on the server, an audited command that replaces Django's unaudited `changepassword`. | People forget passwords. Asking for the second factor on the reset page means someone in the admin's mailbox cannot change the password at all, rather than only being unable to sign in. |
+| Changing your password | In Settings, with the current password, the new one twice and a fresh code from the authenticator, under the same 10-in-15-minutes limit as confirming admin changes. The new password is checked first, so a weak one spends no code. This browser stays signed in; every other session ends. The admin is emailed and the change is audited. | The same proof as any other change to an admin account, so someone at an unlocked computer cannot change it. Signing out elsewhere ends any session a thief may hold. |
 | Removing admins | An admin cannot delete themselves, and the last admin cannot be deleted | Avoids locking a company out of its own instance. |
 | Second factor | TOTP with a one-step window either side and replay protection (the last used step is stored). Codes must be ASCII digits. Ten recovery codes of 80 bits each, stored as SHA-256 hashes. TOTP keys stored unencrypted. | The window covers clock drift; replay protection stops a shoulder-surfed code being used twice. TOTP keys must be readable to check codes; the database stays on the founder's server, and backups are encrypted. Encrypting them would need a new dependency, its key would sit on the same server, and losing that key would wipe every admin's second factor. A stolen database copy still needs each admin's password. |
 | Sign-in limits | Per address: 20 password, 20 code and 10 recovery attempts. Per account: 30 password attempts, 10 code attempts and 5 recovery attempts. All in 15-minute windows, held in SQLite so every process shares them. Each attempt is counted before it is checked (`ratelimit.allow`), so simultaneous requests cannot slip under a limit. 5 wrong codes after one correct password returns to the password step. | The account limit is generous on purpose: a low one lets anyone lock a founder out by typing wrong passwords, and a correct password only reaches the code step. |
@@ -185,6 +186,7 @@ Real URLs, not hash routing, because every action is a CSRF-protected form post.
 - **People.** One row per viewer email address, with everything that person has opened across the instance, using the same page strips. Each document row also says how many times that person downloaded it, and the person's summary line gives their total when it is above zero. The counts come from the audit log's download events, which outlast reading data, so only documents the person is still shown reading are counted.
 - **Audit log.** A dense, filterable table and a CSV export.
 - **Settings.**
+  - Your account: change your password, with the current one and a code from the authenticator.
   - Admins: invite, remove, reset second factor.
   - NDA: the instance's one agreement, versioned.
   - Privacy: an optional link to the founder's own privacy policy, and how long reading data is kept.
@@ -288,7 +290,7 @@ The Snug icon is a **half-glazed snug door**, chosen from eight concepts. A snug
 
 ## 4. Order of work
 
-As the brief, with step 0 added: repository guard rails, then branch protection. Each step lands as small pull requests that leave CI green.
+As the brief, with step 0 added: repository guard rails, then branch protection. Each step is made of small pull requests that leave CI green.
 
 Steps 0 to 6 are done. What remains:
 
@@ -311,7 +313,6 @@ Steps 0 to 6 are done. What remains:
 **Before version 1: features not built yet.**
 - Founder branding: a logo (PNG or JPEG, re-encoded) and an accent colour in Settings, with a live preview and a contrast warning; the logo and colour in the viewer, as its favicon and in its emails, through a generated `/brand.css`.
 - A cover message on a link, shown before the first page.
-- Changing your own password while signed in, with the current password and a code from the authenticator.
 - Replacing your own authenticator while signed in, for a new phone, without asking another admin.
 - A progress bar on uploads. A large PDF takes a while, and a page that seems to do nothing gets clicked again or abandoned.
 

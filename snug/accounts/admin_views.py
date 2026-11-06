@@ -4,6 +4,7 @@ from typing import Any
 
 import segno
 from django.conf import settings
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -129,6 +130,52 @@ def invite_view(request: HttpRequest) -> HttpResponse:
         what=(f"{by.email} invited {email} to be an admin, at {_now()}."),
     )
     return redirect("/admin/settings/?invited=1")
+
+
+# ---------------------------------------------------------------- your own password
+
+
+@never_cache
+@login_required
+@require_POST
+def change_password_view(request: HttpRequest) -> HttpResponse:
+    """Change your own password: the current one, the new one twice, and a fresh code.
+
+    This browser stays signed in; every other session ends, because each
+    session holds a hash of the password.
+    """
+    admin = _admin(request)
+
+    def refused(status: int, field: str, error: str) -> HttpResponse:
+        return _settings_page(request, status=status, account_errors={field: error})
+
+    # One allowance for the whole attempt, so the current password cannot be
+    # guessed here any faster than a code can.
+    if not ratelimit.allow(limits.CONFIRM_PER_ADMIN, str(admin.pk)):
+        _audit(request, "admin.password_change_failed", admin.email, admin.email, reason="limited")
+        return refused(429, "code", TOO_MANY)
+    # The new password first: a weak one must not spend a code.
+    password = request.POST.get("password", "")
+    if password != request.POST.get("password2", ""):
+        return refused(400, "password", "The passwords do not match.")
+    try:
+        validate_password(password, user=admin)
+    except ValidationError as problem:
+        return refused(400, "password", " ".join(problem.messages))
+    if not admin.check_password(request.POST.get("current", "")):
+        _audit(request, "admin.password_change_failed", admin.email, admin.email, reason="password")
+        return refused(400, "current", "That is not your current password.")
+    if not setup.confirm(admin, request.POST.get("code", "")):
+        _audit(request, "admin.password_change_failed", admin.email, admin.email, reason="code")
+        return refused(400, "code", WRONG_CODE)
+
+    admin = Admin.objects.get(pk=admin.pk)  # with the step confirm() just recorded
+    admin.set_password(password)
+    admin.save(update_fields=["password"])
+    update_session_auth_hash(request, admin)  # this browser stays signed in
+    _audit(request, "admin.password_changed", admin.email, admin.email)
+    passwords.send_changed(admin, how="from Settings, while signed in")
+    return redirect("/admin/settings/?saved=password#account")
 
 
 # ---------------------------------------------------------------- privacy

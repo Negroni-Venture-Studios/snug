@@ -1,8 +1,25 @@
 {% extends "snug/admin_base.html" %}
 {% load snug %}
 {% block title %}Snug settings{% endblock %}
+{% block scripts %}{% load static %}<script src="{% static 'snug/js/reveal.js' %}" defer></script>{% endblock %}
 {% block content %}
 <div class="title-row"><div><h1 class="page-title">Settings</h1></div></div>
+<div class="section" id="account">
+<div class="section-head stacked"><h2>Your account</h2><p>Signed in as {{ request.user.email }}.</p></div>
+<form class="panel form settings-form" method="post" action="{% url 'accounts:change_password' %}" novalidate>
+  {% csrf_token %}
+  {% if saved == "password" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Password changed. You are still signed in here; everywhere else is signed out.</span></div>{% endif %}
+  <div class="field"><label for="account-current">Current password</label>{% include "snug/partials/password_field.html" with id="account-current" name="current" autocomplete="current-password" invalid=account_errors.current %}
+    {% if account_errors.current %}<div class="error" id="account-current-error" role="alert">{% icon "warning-circle" %}{{ account_errors.current }}</div>{% endif %}</div>
+  <div class="field"><label for="account-password">New password</label>{% include "snug/partials/password_field.html" with id="account-password" name="password" autocomplete="new-password" minlength="12" invalid=account_errors.password %}
+    {% if account_errors.password %}<div class="error" id="account-password-error" role="alert">{% icon "warning-circle" %}{{ account_errors.password }}</div>{% else %}<div class="hint">At least 12 characters. A few unrelated words work well.</div>{% endif %}</div>
+  <div class="field"><label for="account-password2">New password again</label>{% include "snug/partials/password_field.html" with id="account-password2" name="password2" autocomplete="new-password" %}</div>
+  <div class="field"><label for="account-code">Code from your authenticator app</label><input id="account-code" name="code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required{% if account_errors.code %} aria-invalid="true" aria-describedby="account-code-error"{% endif %}>
+    {% if account_errors.code %}<div class="error" id="account-code-error" role="alert">{% icon "warning-circle" %}{{ account_errors.code }}</div>{% else %}<div class="hint">Changing your password signs you out everywhere else.</div>{% endif %}</div>
+  <button class="btn btn-primary" type="submit">Change password</button>
+</form>
+</div>
+
 <div class="section">
 <div class="section-head"><h2>Admins</h2><p>Every admin has the same rights, and every admin is emailed about any change.</p></div>
 {% if done == "removed" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Removed. Every admin has been emailed.</span></div>{% elif done == "reset" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Second factor reset. They have been emailed a link to set it up again.</span></div>{% endif %}
