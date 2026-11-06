@@ -7,6 +7,7 @@ from collections.abc import Callable
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from django.db import connections
 
 log = logging.getLogger(__name__)
 
@@ -40,5 +41,15 @@ def send(*, to: str, subject: str, text: str, html: str = "", reply_to: str = ""
 
 
 def in_background(task: Callable[[], object]) -> None:
-    """Send without making the reply wait, so it takes as long as one that sends nothing."""
-    threading.Thread(target=task, daemon=True).start()
+    """Send without making the reply wait, so it takes as long as one that sends nothing.
+
+    The task may use the database; the thread closes its own connection after.
+    """
+
+    def run() -> None:
+        try:
+            task()
+        finally:
+            connections.close_all()
+
+    threading.Thread(target=run, daemon=True).start()

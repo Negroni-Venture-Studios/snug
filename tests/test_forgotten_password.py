@@ -229,13 +229,75 @@ def test_a_bad_password_spends_no_code(
     assert recovery.remaining(admin) == len(codes)
 
 
-def test_codes_on_the_link_are_rate_limited(client: Client, admin: Admin, link: str) -> None:
-    for _ in range(limits.CODE_PER_ADMIN.limit):
-        choose(client, link, "000000")
-    response = choose(client, link, code_for(admin))
-    assert response.status_code == 429
+def test_five_wrong_codes_spend_the_link(client: Client, admin: Admin, link: str) -> None:
+    # Security review, 6 November 2026: the holder of a link must not be able to
+    # keep guessing, so the link goes after five wrong codes.
+    for _ in range(limits.RESET_CODE_FAILURES_PER_LINK - 1):
+        assert choose(client, link, "000000").status_code == 400
+    response = choose(client, link, "000000")
+    assert response.status_code == 400
+    assert "Too many wrong codes. Ask for a new link." in response.content.decode()
+    assert not AdminSetup.objects.exists()
+    assert choose(client, link, code_for(admin)).status_code == 404
     admin.refresh_from_db()
     assert check_password(PASSWORD, admin.password)
+
+
+def test_the_wrong_code_count_lives_on_the_link(client: Client, admin: Admin, link: str) -> None:
+    # Security review, 6 November 2026: a count in a clock-aligned window reset
+    # partway through a link's hour. Kept on the link itself, it never resets.
+    assert choose(client, link, "000000").status_code == 400
+    assert AdminSetup.objects.get(admin=admin).failures == 1
+    AdminSetup.objects.update(failures=limits.RESET_CODE_FAILURES_PER_LINK - 1)
+    response = choose(client, link, "000000")
+    assert "Too many wrong codes. Ask for a new link." in response.content.decode()
+    assert not AdminSetup.objects.exists()
+
+
+def test_wrong_codes_on_a_link_never_stop_the_admin_signing_in(
+    client: Client, admin: Admin, link: str
+) -> None:
+    # Security review, 6 November 2026: the reset page has its own limit, so
+    # someone holding a link cannot use up the admin's sign-in code attempts.
+    for _ in range(limits.RESET_CODE_FAILURES_PER_LINK):
+        choose(client, link, "000000")
+    owner = Client(REMOTE_ADDR="203.0.113.9")
+    post(owner, "/admin/login", {"email": EMAIL, "password": PASSWORD})
+    response = post(owner, "/admin/login/code", {"code": code_for(admin)})
+    assert response.status_code == 302 and response["Location"] == "/admin/"
+
+
+@pytest.mark.usefixtures("email_on", "sent_now")
+def test_reset_codes_are_limited_per_admin_across_links(admin: Admin) -> None:
+    attempts = 0
+    statuses: list[int] = []
+    for n in range(3):  # three links, each spent by wrong codes
+        asker = Client(REMOTE_ADDR=f"203.0.113.{n + 10}")
+        ask(asker)
+        path = link_in(django_mail.outbox[-1])
+        for _ in range(limits.RESET_CODE_FAILURES_PER_LINK):
+            attempts += 1
+            statuses.append(choose(asker, path, "000000").status_code)
+    allowed = limits.RESET_CODE_PER_ADMIN.limit
+    assert statuses[:allowed] == [400] * allowed
+    assert set(statuses[allowed:]) == {429}
+
+
+@pytest.mark.usefixtures("email_on")
+def test_the_reply_does_the_same_work_for_any_address(
+    client: Client, admin: Admin, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Security review, 6 November 2026: the link is created in the background
+    # too, so the reply writes nothing more for a real admin than for anyone.
+    waiting: list[Callable[[], object]] = []
+    monkeypatch.setattr(mail, "in_background", waiting.append)
+    ask(client)
+    assert not AdminSetup.objects.exists()
+    assert django_mail.outbox == []
+    [task] = waiting
+    task()
+    assert AdminSetup.objects.filter(admin=admin).exists()
+    assert len(django_mail.outbox) == 1
 
 
 def test_the_link_lasts_one_hour(client: Client, admin: Admin, link: str) -> None:
@@ -287,3 +349,25 @@ def test_snug_reset_password_needs_a_real_admin() -> None:
 def test_django_changepassword_points_to_the_audited_command() -> None:
     with pytest.raises(CommandError, match="snug reset-password"):
         call_command("changepassword", EMAIL)
+
+
+def test_background_tasks_run_on_their_own_thread(monkeypatch: pytest.MonkeyPatch) -> None:
+    import threading
+
+    done = threading.Event()
+    seen: list[str] = []
+    closed: list[bool] = []
+    monkeypatch.setattr("django.db.connections.close_all", lambda: closed.append(True))
+
+    def task() -> None:
+        seen.append(threading.current_thread().name)
+        done.set()
+
+    mail.in_background(task)
+    assert done.wait(timeout=5)
+    for _ in range(50):  # close_all runs just after the task returns
+        if closed:
+            break
+        threading.Event().wait(0.01)
+    assert seen and seen[0] != threading.current_thread().name
+    assert closed == [True]

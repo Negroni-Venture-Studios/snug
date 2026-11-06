@@ -14,7 +14,7 @@ from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from snug.accounts import recovery, setup
+from snug.accounts import limits, recovery, setup
 from snug.accounts.models import Admin, AdminSetup
 from snug.core import mail
 
@@ -68,24 +68,35 @@ def is_app_code(code: str) -> bool:
 def change(row: AdminSetup, password: str, code: str) -> str | None:
     """Spend the link and the code, and set the new password.
 
-    Returns how the second factor was proved ("totp" or "recovery"), "gone"
-    if the link was used or expired meanwhile, or None if the code was wrong.
-    A wrong code changes nothing: the link still works and no code is spent.
+    Returns how the second factor was proved ("totp" or "recovery"); "gone" if
+    the link was used or expired meanwhile; "spent" if this wrong code was the
+    last allowed, which deletes the link; or None for any other wrong code,
+    which counts it on the link and leaves the link working. A wrong code
+    spends no code. SQLite runs transactions in IMMEDIATE mode, so parallel
+    attempts are handled one at a time.
     """
     # Hashed before the transaction: argon2 is slow on purpose.
     hashed = make_password(password)
     with transaction.atomic():
-        # Deleting the link is the claim, as in setup.complete.
-        claimed, _ = AdminSetup.objects.filter(pk=row.pk, expires_at__gt=timezone.now()).delete()
-        if not claimed:
+        link = (
+            AdminSetup.objects.select_for_update()
+            .filter(pk=row.pk, expires_at__gt=timezone.now())
+            .first()
+        )
+        if link is None:
             return "gone"
-        admin = Admin.objects.get(pk=row.admin_id)
+        admin = Admin.objects.get(pk=link.admin_id)
         if is_app_code(code):
             method, ok = "totp", setup.confirm(admin, code)
         else:
             method, ok = "recovery", recovery.use(admin, code)
         if not ok:
-            transaction.set_rollback(True)  # the link stays
+            link.failures += 1
+            if link.failures >= limits.RESET_CODE_FAILURES_PER_LINK:
+                link.delete()
+                return "spent"
+            link.save(update_fields=["failures"])
             return None
+        link.delete()  # the link works once
         Admin.objects.filter(pk=admin.pk).update(password=hashed)
     return method
