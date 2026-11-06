@@ -35,7 +35,7 @@ Always use `uv run`. Never install into the system Python.
 | `scripts/` | CI and maintenance scripts (`check_licences.py`) |
 | `docs/` | Operator and design documentation; `docs/design/` holds the mockups, stylesheet seed and logo |
 | `Dockerfile` | The container image, published by the `Image` workflow |
-| `deploy/` | `snug.env.example`; the Compose, Caddy, Litestream and cloud-init files join it in step 7 |
+| `deploy/` | `compose.yaml` (Snug behind Caddy), `Caddyfile` and `snug.env.example`; the backup and cloud-init files join them in step 7 |
 | `.github/` | CI workflows, CodeQL, Dependabot, templates |
 
 ## Rules

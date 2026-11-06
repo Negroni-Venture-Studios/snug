@@ -1,0 +1,12 @@
+# Caddy in front of Snug: HTTPS certificates from Let's Encrypt, renewed
+# automatically, and every request passed to Snug. The domain comes from
+# SNUG_DOMAIN in snug.env.
+{
+	# Nothing needs to reconfigure Caddy while it runs; restart it instead.
+	admin off
+}
+
+{$SNUG_DOMAIN} {
+	# No access log: investors' links carry their token in the URL.
+	reverse_proxy snug:8000
+}

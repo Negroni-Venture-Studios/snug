@@ -81,7 +81,7 @@ nc -zv -w 5 smtp.mailgun.org 2525
 
 ## Step 4: configure Snug
 
-Add these to `/etc/snug/snug.env`:
+Add these to `/opt/snug/snug.env`:
 
 ```bash
 SNUG_EMAIL_FROM=rooms@example.com
