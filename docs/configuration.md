@@ -16,6 +16,7 @@ Snug checks every setting when it starts. If any are missing or wrong, it lists 
 | `SNUG_VIEWER_SESSION_DAYS` | No | `7` | How long a viewer stays signed in to a link after verifying, in days, from 1 to 90. Revoking a link ends its sessions at once, whatever this says. |
 | `SNUG_HTTPS` | No | `true` | Snug expects to sit behind Caddy, which provides HTTPS. Can only be `false` when `SNUG_DOMAIN` is `localhost`. |
 | `SNUG_DEBUG` | No | `false` | Shows detailed error pages. Can only be `true` when `SNUG_DOMAIN` is `localhost`. Never use it on a real server. |
+| `SNUG_UNSAFE_UNCONFINED_RENDERING` | No | `false` | Snug reads every PDF in a worker confined by Linux Landlock (Linux 6.7 or later) and a filter that blocks network sockets, and refuses to read the file if it cannot confine itself. `true` lets it read unconfined instead, for development on a machine without Landlock, such as macOS. A hostile PDF could then reach the database and every document, so never set it on a server; `snug check` warns while it is on. The Docker image on a Mac does not need it, because Docker runs a Linux kernel. |
 
 ### Email
 

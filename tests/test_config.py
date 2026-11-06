@@ -232,3 +232,30 @@ def test_viewer_session_days_must_be_sensible(value: str) -> None:
     assert any(
         "SNUG_VIEWER_SESSION_DAYS must be a whole number of days from 1 to 90" in p for p in found
     )
+
+
+def test_unconfined_rendering_is_off_unless_asked_for() -> None:
+    assert load_config(GOOD).unsafe_unconfined_rendering is False
+    env = {**GOOD, "SNUG_UNSAFE_UNCONFINED_RENDERING": "true"}
+    assert load_config(env).unsafe_unconfined_rendering is True
+
+
+def test_unconfined_rendering_raises_a_warning_when_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    import dataclasses
+
+    from django.conf import settings
+    from django.core import checks
+
+    from snug.core.checks import unconfined_rendering
+
+    assert unconfined_rendering in checks.registry.registry.get_checks()
+    monkeypatch.setattr(
+        settings, "CONFIG", dataclasses.replace(settings.CONFIG, unsafe_unconfined_rendering=True)
+    )
+    [warning] = unconfined_rendering()
+    assert warning.id == "snug.W001" and warning.level == checks.WARNING
+    assert "unconfined" in warning.msg
+    monkeypatch.setattr(
+        settings, "CONFIG", dataclasses.replace(settings.CONFIG, unsafe_unconfined_rendering=False)
+    )
+    assert unconfined_rendering() == []

@@ -26,6 +26,8 @@ secrets, so even a PDF that took over the renderer would find nothing to take.
 import io
 import json
 import os
+import re
+import struct
 import sys
 from typing import Any
 
@@ -39,6 +41,13 @@ MAX_PAGES = 2000
 MAX_PIXELS = 1600 * 4000
 MAX_SIDE = 8000
 FONT_DIRS = ("/usr/share/fonts", "/usr/local/share/fonts", "/etc/fonts")
+# Landlock ABI 4 (Linux 6.7) is the minimum: it adds network rules, after ABI 3
+# made truncation a controlled right, so a worker cannot empty the database.
+MIN_LANDLOCK_ABI = 4
+# Passed first on the command line only when the operator has set
+# SNUG_UNSAFE_UNCONFINED_RENDERING, for development on a machine without Landlock.
+ALLOW_UNCONFINED = "--unsafe-unconfined"
+_FULLY_CONFINED = re.compile(r"^landlock v(\d+), no sockets$")
 MAX_STAMP_TEXT = 254
 _REF_CHARACTERS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-")
 # The watermark: a faint diagonal mark across the page, and a footer band.
@@ -98,11 +107,51 @@ def _warm_up_pypdf() -> None:
     _stamp_pdf_pages(blank.getvalue(), None, "warm@up.example", "1 Jan 2026", "WARM")
 
 
+def fully_confined(how: str) -> bool:
+    """True if `confine` reported Landlock at the minimum ABI and the socket filter."""
+    found = _FULLY_CONFINED.match(how)
+    return found is not None and int(found.group(1)) >= MIN_LANDLOCK_ABI
+
+
+# Seccomp: architecture audit value, then the socket and io_uring_setup syscall
+# numbers. io_uring can open sockets without calling socket(), so it goes too.
+_SECCOMP_ARCHES = {"x86_64": (0xC000003E, 41, 425), "aarch64": (0xC00000B7, 198, 425)}
+
+
+def _socket_filter(machine: str) -> bytes | None:
+    """A seccomp program refusing socket() and io_uring_setup() with EPERM.
+
+    Landlock's network rules cover TCP only, so without this a compromised
+    worker could still send UDP. Any other architecture or ABI (32-bit
+    compatibility calls, x32) is killed outright rather than filtered.
+    """
+    if machine not in _SECCOMP_ARCHES:
+        return None
+    arch, socket_nr, io_uring_nr = _SECCOMP_ARCHES[machine]
+    load, jump_eq, jump_ge, ret = 0x20, 0x15, 0x35, 0x06  # BPF_LD|W|ABS, JEQ, JGE, RET
+
+    def op(code: int, jt: int, jf: int, k: int) -> bytes:
+        return struct.pack("HBBI", code, jt, jf, k)
+
+    refuse = [(jump_eq, socket_nr), (jump_eq, io_uring_nr)]
+    if machine == "x86_64":
+        refuse.insert(0, (jump_ge, 0x40000000))  # x32 calls carry this bit
+    program = [op(load, 0, 0, 4), op(jump_eq, 1, 0, arch), op(ret, 0, 0, 0x80000000)]
+    program.append(op(load, 0, 0, 0))  # the syscall number
+    for index, (code, value) in enumerate(refuse):
+        program.append(op(code, len(refuse) - index, 0, value))  # to the EPERM below
+    program.append(op(ret, 0, 0, 0x7FFF0000))  # allow
+    program.append(op(ret, 0, 0, 0x00050000 | 1))  # EPERM
+    return b"".join(program)
+
+
 def confine() -> str:  # pragma: no cover - runs only inside the worker process
     """Drop all filesystem and network access, except reading fonts (Linux Landlock).
 
-    Returns how the worker is confined, for tests and `snug doctor`. Coverage
-    cannot see into the worker process; tests/test_render_worker.py proves the
+    Then a seccomp filter refuses to create sockets of any kind. Returns how
+    the worker is confined, for the caller (which refuses to go on unless
+    `fully_confined` says so), tests and `snug doctor`. Coverage cannot see
+    into the worker process; tests/test_render_worker.py proves the
     confinement on Linux, where CI runs.
     """
     if not _is_linux():
@@ -156,11 +205,23 @@ def confine() -> str:  # pragma: no cover - runs only inside the worker process
             syscall(add_rule, ruleset, 1, ctypes.byref(rule), 0)  # LANDLOCK_RULE_PATH_BENEATH
             os.close(fd)
 
+    # Built before Landlock applies: afterwards not even Python's own files open.
+    program = _socket_filter(os.uname().machine)
+
+    class SockFprog(ctypes.Structure):
+        _fields_ = (("len", ctypes.c_ushort), ("filter", ctypes.c_void_p))
+
     restricted = syscall(restrict_self, ruleset, 0)
     os.close(ruleset)
     if restricted != 0:
         return "unconfined: restrict_self refused"
-    return f"landlock v{abi}"
+    if program is None:
+        return f"landlock v{abi}, socket filter unavailable"
+    buffer = ctypes.create_string_buffer(program, len(program))
+    fprog = SockFprog(len(program) // 8, ctypes.cast(buffer, ctypes.c_void_p))
+    if libc.prctl(22, 2, ctypes.byref(fprog), 0, 0) != 0:  # PR_SET_SECCOMP, MODE_FILTER
+        return f"landlock v{abi}, socket filter refused"
+    return f"landlock v{abi}, no sockets"
 
 
 def _fail(code: str) -> int:
@@ -425,6 +486,9 @@ def stamp_pdf(data: bytes, font: bytes, email: str, date: str, ref: str) -> byte
 
 
 def main(argv: list[str], *, confined: bool = True) -> int:
+    allow_unconfined = bool(argv) and argv[0] == ALLOW_UNCONFINED
+    if allow_unconfined:
+        argv = argv[1:]
     if confined:
         apply_limits()
     preload()
@@ -447,8 +511,10 @@ def main(argv: list[str], *, confined: bool = True) -> int:
             return _fail("usage")
         with os.fdopen(int(argv[1]), "rb") as source:
             data = source.read()
-        if confined:
-            confine()
+        # Fail closed: a hostile PDF is never parsed outside the confinement,
+        # unless the operator asked for that on a development machine.
+        if confined and not fully_confined(confine()) and not allow_unconfined:
+            return _fail("unconfined")
         if mode == "inspect":
             sys.stdout.write(json.dumps(inspect(data)) + "\n")
         else:
