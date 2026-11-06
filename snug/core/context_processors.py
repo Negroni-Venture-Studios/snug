@@ -19,4 +19,6 @@ def brand(request: HttpRequest) -> dict[str, str]:
         found["brand_css"] = f"/brand/brand.css?v={brand_colours.version(row.accent_colour)}"
     if row.logo_name:
         found["brand_logo"] = f"/brand/{row.logo_name}"
+        if not row.show_name_with_logo:
+            found["brand_logo_only"] = "1"
     return found

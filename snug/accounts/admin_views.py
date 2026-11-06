@@ -238,6 +238,7 @@ def _branding_context(request: HttpRequest) -> dict[str, Any]:
         "brand_adjusted": bool(accent) and brand.palette(accent).adjusted,
         "company": company_name(),
         "company_value": row.company_name or settings.CONFIG.company_name,
+        "show_name": row.show_name_with_logo,
         "logo_url": f"/brand/{row.logo_name}" if row.logo_name else "",
     }
 
@@ -256,6 +257,8 @@ def branding_view(request: HttpRequest) -> HttpResponse:
     accent = brand.parse(raw) if raw else ""
     typed = request.POST.get("company")
     company = row.company_name if typed is None else " ".join(typed.split())
+    # The checkbox is only sent with the name; a form without it leaves both.
+    show_name = row.show_name_with_logo if typed is None else bool(request.POST.get("show_name"))
     errors: dict[str, Any] = {}
     if accent is None:
         errors.update(branding_error="Enter a colour like #1f5f8b.", accent_typed=raw[:20])
@@ -268,12 +271,14 @@ def branding_view(request: HttpRequest) -> HttpResponse:
         for field, value, old in (
             ("company", company, row.company_name),
             ("accent", accent, row.accent_colour),
+            ("show_name", show_name, row.show_name_with_logo),
         )
         if value != old
     }
     if changed:
         row.company_name, row.accent_colour = company, str(accent)
-        row.save(update_fields=["company_name", "accent_colour"])
+        row.show_name_with_logo = show_name
+        row.save(update_fields=["company_name", "accent_colour", "show_name_with_logo"])
         _audit(request, "settings.branding_changed", _admin(request).email, "", **changed)
     return redirect("/admin/settings/?saved=branding#branding")
 

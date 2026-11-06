@@ -37,6 +37,8 @@ class SiteSettings(models.Model):
     logo_name = models.CharField(max_length=40, blank=True)
     # The company's name, as investors know it, or "" to use SNUG_COMPANY_NAME.
     company_name = models.CharField(max_length=100, blank=True)
+    # Whether the name shows beside the logo. Off for a logo that spells it out.
+    show_name_with_logo = models.BooleanField(default=True)
 
     class Meta:
         verbose_name_plural = "site settings"
