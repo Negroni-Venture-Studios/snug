@@ -452,6 +452,14 @@ form.inline { display: inline; }
 /* ---------- Documents ---------- */
 .doc-rows .item, .version-rows .item { grid-template-columns: minmax(14rem, 1.6fr) 7rem 7rem 8rem; }
 .admin-rows .item { grid-template-columns: minmax(14rem, 1.6fr) 6rem 11rem minmax(12rem, auto); }
+/* Inviting an admin: a row at the foot of the admins list, not a panel. The
+   hint and any error sit on their own line, so the fields stay level. */
+.admin-invite { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; gap: 0.75rem 1rem; align-items: end; padding: 1.25rem 0; border-bottom: 1px solid var(--border); }
+.admin-invite .invite-title { grid-column: 1 / -1; font-size: 0.95rem; font-weight: 500; }
+.admin-invite .invite-wide { grid-column: 1 / -1; }
+.admin-invite > .btn { min-height: 2.8rem; }  /* level with the inputs */
+.admin-invite .field .hint, .admin-invite .field .error { margin-top: 0; }
+.admin-invite-off { padding: 1.25rem 0; color: var(--text-2); border-bottom: 1px solid var(--border); }
 .audit-rows .item { grid-template-columns: 10rem minmax(14rem, 1.4fr) minmax(10rem, 1.6fr) 8rem; }
 .audit-rows .details { overflow-wrap: anywhere; font-size: 0.8rem; }
 .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
@@ -498,6 +506,8 @@ input[type="file"]::file-selector-button {
     .doc-split, .room-tools { grid-template-columns: 1fr; }
     .doc-rows .item, .version-rows .item { grid-template-columns: 1fr auto; }
     .admin-rows .item { grid-template-columns: 1fr auto; }
+    .admin-invite { grid-template-columns: 1fr; align-items: stretch; }
+    .admin-invite .btn { justify-self: start; }
     .admin-rows .item > .num { display: none; }
     .doc-rows .item > .muted:not(.r) { display: none; }
 }
