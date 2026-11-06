@@ -20,11 +20,14 @@ def _read(relative: str) -> str:
 
 
 @register.simple_tag
-def icon(name: str) -> SafeString:
-    """A Phosphor icon, inline, coloured by the surrounding text."""
-    if not _NAME.match(name):
-        raise template.TemplateSyntaxError(f"Bad icon name: {name!r}")
-    svg = _read(f"icons/{name}.svg").replace("<svg ", '<svg class="icon" aria-hidden="true" ', 1)
+def icon(name: str, extra_class: str = "") -> SafeString:
+    """A Phosphor icon (or the GitHub mark), inline, coloured by the surrounding text."""
+    if not _NAME.match(name) or (extra_class and not _NAME.match(extra_class)):
+        raise template.TemplateSyntaxError(f"Bad icon name or class: {name!r} {extra_class!r}")
+    classes = f"icon {extra_class}".strip()
+    svg = _read(f"icons/{name}.svg").replace(
+        "<svg ", f'<svg class="{classes}" aria-hidden="true" ', 1
+    )
     return mark_safe(svg)  # noqa: S308 - our own vendored files, never user input
 
 
