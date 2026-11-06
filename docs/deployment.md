@@ -62,6 +62,25 @@ Rate limits and the audit log depend on knowing each visitor's real address. Cad
 
 IPv6 is turned on for the Compose network. Without it, Docker would relay visitors arriving over IPv6 through a proxy of its own, and they would all reach Caddy from one address and share one set of rate limits.
 
+## Checking it works
+
+`snug doctor` checks everything an operator would want to know, and says what to fix:
+
+```bash
+sudo docker compose exec snug snug doctor --email you@example.com
+```
+
+| Check | Fine when |
+|---|---|
+| Housekeeping | `snug housekeeping`, which Snug runs every hour to clear expired codes, sessions and old reading data, has completed in the last 3 hours |
+| Backups | The backup container has copied everything to the bucket in the last 15 minutes ([backups.md](backups.md)) |
+| PDF worker | A fresh worker confines itself with Landlock ABI 4 or later and the socket filter, so it is allowed to read documents |
+| DNS | The domain resolves; the report lists the addresses it points to |
+| HTTPS | The domain answers Snug's health check over HTTPS, with a valid certificate that has more than 14 days left |
+| Email | Email is set up; with `--email`, a code sent to that address is typed back |
+
+Snug cannot read your inbox, so the email check sends a six-digit code and asks you to type it in. Without `--email`, `snug doctor` asks for an address, or skips the email test when it is not run in a terminal. It exits with status 1 if anything is a problem.
+
 ## Running commands
 
 Snug's commands run inside its container:
@@ -70,6 +89,7 @@ Snug's commands run inside its container:
 sudo docker compose exec snug snug createadmin --email someone@example.com
 sudo docker compose exec snug snug reset-2fa someone@example.com
 sudo docker compose exec snug snug check
+sudo docker compose exec snug snug doctor
 ```
 
 ## Updating

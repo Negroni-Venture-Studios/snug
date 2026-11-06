@@ -1,0 +1,225 @@
+"""The checks behind `snug doctor` and the Overview's status line.
+
+Each check returns a Finding: whether it passed, and a sentence an operator
+can act on. Cheap checks read the database or the data folder; the network
+checks (DNS and HTTPS) and the worker's confinement take a few seconds.
+"""
+
+import contextlib
+import http.client
+import socket
+import ssl
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+from typing import Literal
+
+from django.conf import settings
+from django.utils.timesince import timesince
+
+from snug.core import mail
+from snug.core.models import SystemCheck
+from snug.rendering import sandbox
+from snug.rendering.worker import MIN_LANDLOCK_ABI, fully_confined
+
+Status = Literal["ok", "problem", "skipped"]
+
+# Housekeeping runs every hour; three missed runs is a problem.
+HOUSEKEEPING_LATE = timedelta(hours=3)
+# The backup container copies every 5 minutes; three missed copies is a problem.
+BACKUP_LATE = timedelta(minutes=15)
+# Caddy renews 30 days before expiry, so 14 days left means renewal is failing.
+CERTIFICATE_SOON = timedelta(days=14)
+# Landlock ABI 4 arrived in Linux 6.7.
+_LINUX_FOR_ABI = {4: "6.7"}
+
+
+@dataclass(frozen=True)
+class Finding:
+    label: str
+    status: Status
+    message: str
+
+    @property
+    def problem(self) -> bool:
+        return self.status == "problem"
+
+
+def _ok(label: str, message: str) -> Finding:
+    return Finding(label, "ok", message)
+
+
+def _problem(label: str, message: str) -> Finding:
+    return Finding(label, "problem", message)
+
+
+def _ago(then: datetime, now: datetime) -> str:
+    if now - then < timedelta(minutes=1):
+        return "less than a minute"
+    return timesince(then, now)
+
+
+def _day(moment: datetime) -> str:
+    return f"{moment.day} {moment:%B %Y}"
+
+
+def housekeeping(now: datetime) -> Finding:
+    label = "Housekeeping"
+    row = SystemCheck.objects.filter(name="housekeeping").first()
+    if row is None:
+        return _problem(label, "Housekeeping has never completed.")
+    if now - row.checked_at > HOUSEKEEPING_LATE:
+        return _problem(
+            label,
+            f"Housekeeping has not completed for {_ago(row.checked_at, now)}. "
+            "It should run every hour.",
+        )
+    return _ok(label, f"Last completed {_ago(row.checked_at, now)} ago.")
+
+
+def _read_time(text: str) -> datetime | None:
+    try:
+        moment = datetime.fromisoformat(text.strip())
+    except ValueError:
+        return None
+    return moment if moment.tzinfo else None
+
+
+def backups(now: datetime) -> Finding:
+    """Reads what the backup container records in the data folder (deploy/backup.sh)."""
+    label = "Backups"
+    folder = settings.CONFIG.data_dir / "backup"
+    success: datetime | None = None
+    problem = ""
+    with contextlib.suppress(OSError):
+        success = _read_time((folder / "last-success").read_text(encoding="utf-8"))
+    with contextlib.suppress(OSError):
+        problem = (folder / "problem").read_text(encoding="utf-8").strip()[:200]
+    if problem:
+        if success is not None:
+            problem += f" The last complete copy was {_ago(success, now)} ago."
+        return _problem(label, problem)
+    if success is None:
+        return _problem(label, "Nothing has been backed up yet. See docs/backups.md.")
+    if now - success > BACKUP_LATE:
+        return _problem(label, f"Nothing has been copied to the bucket for {_ago(success, now)}.")
+    return _ok(label, f"Last copied to the bucket {_ago(success, now)} ago.")
+
+
+def confinement() -> Finding:
+    label = "PDF worker"
+    if settings.CONFIG.unsafe_unconfined_rendering:
+        return _problem(
+            label,
+            "SNUG_UNSAFE_UNCONFINED_RENDERING is on, so documents are read unconfined. "
+            "Never use it on a server.",
+        )
+    how = sandbox.confinement()
+    if fully_confined(how):
+        return _ok(label, f"Documents are read in a confined worker ({how}).")
+    return _problem(
+        label,
+        f"The PDF worker cannot confine itself ({how}), so Snug will not read documents. "
+        f"It needs Linux {_LINUX_FOR_ABI[MIN_LANDLOCK_ABI]} or later.",
+    )
+
+
+def _on_localhost() -> bool:
+    return bool(settings.CONFIG.domain == "localhost")
+
+
+def _listed(items: list[str]) -> str:
+    return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} and {items[-1]}"
+
+
+def dns() -> Finding:
+    label = "DNS"
+    domain = settings.CONFIG.domain
+    if _on_localhost():
+        return Finding(label, "skipped", "Not checked for localhost.")
+    try:
+        answers = socket.getaddrinfo(domain, 443, type=socket.SOCK_STREAM)
+    except (socket.gaierror, UnicodeError):
+        return _problem(
+            label,
+            f"{domain} does not resolve. Point its A record, and its AAAA record "
+            "if the server has IPv6, at this server.",
+        )
+    families = {str(sockaddr[0]): family for family, *_, sockaddr in answers}
+    addresses = sorted(families, key=lambda a: (families[a] == socket.AF_INET6, a))
+    return _ok(label, f"{domain} points to {_listed(addresses)}.")
+
+
+def _fetch_health(domain: str) -> tuple[int, datetime]:
+    """GET https://domain/healthz, verifying the certificate: the status and its expiry."""
+    connection = http.client.HTTPSConnection(
+        domain, 443, timeout=10, context=ssl.create_default_context()
+    )
+    try:
+        connection.connect()
+        certificate = connection.sock.getpeercert()
+        connection.request("GET", "/healthz", headers={"User-Agent": "snug-doctor"})
+        response = connection.getresponse()
+        response.read(1000)
+    finally:
+        connection.close()
+    expires = ssl.cert_time_to_seconds(str(certificate["notAfter"]))  # type: ignore[index]
+    return response.status, datetime.fromtimestamp(expires, UTC)
+
+
+def https(now: datetime) -> Finding:
+    label = "HTTPS"
+    domain = settings.CONFIG.domain
+    if _on_localhost():
+        return Finding(label, "skipped", "Not checked for localhost.")
+    try:
+        status, expires = _fetch_health(domain)
+    except ssl.SSLCertVerificationError as error:
+        return _problem(
+            label,
+            f"The certificate for {domain} is not valid ({type(error).__name__}). "
+            "Check Caddy's log.",
+        )
+    except (OSError, http.client.HTTPException) as error:
+        return _problem(
+            label,
+            f"Snug cannot be reached at https://{domain} ({type(error).__name__}). "
+            "Check its DNS records, that ports 80 and 443 are open, and that Caddy is running.",
+        )
+    if status != 200:
+        return _problem(
+            label,
+            f"https://{domain}/healthz answered {status}, not 200. Check that Snug is running.",
+        )
+    if expires - now < CERTIFICATE_SOON:
+        return _problem(
+            label,
+            f"The certificate for {domain} expires on {_day(expires)}, and Caddy has not "
+            "renewed it. Check that ports 80 and 443 are open, and Caddy's log.",
+        )
+    return _ok(label, f"https://{domain} answers, with a certificate valid until {_day(expires)}.")
+
+
+def email_setup() -> Finding:
+    label = "Email"
+    config = settings.CONFIG
+    if not mail.enabled():
+        return _problem(
+            label,
+            "Email is not set up, so investors cannot be sent codes and admins cannot be "
+            "invited. See docs/email.md.",
+        )
+    if config.email_outbox:
+        return _ok(label, "Emails are written to the outbox folder, on localhost only.")
+    return _ok(label, f"Sending through {config.smtp_host}.")
+
+
+def everything(now: datetime) -> list[Finding]:
+    """Every check except the email test, which needs someone to type a code."""
+    return [
+        housekeeping(now),
+        backups(now),
+        confinement(),
+        dns(),
+        https(now),
+        email_setup(),
+    ]

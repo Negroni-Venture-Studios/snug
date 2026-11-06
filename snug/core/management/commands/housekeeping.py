@@ -1,6 +1,7 @@
 """`snug housekeeping`: clear what has expired, and reading data past its time.
 
-`snug serve` runs this every hour. It reports counts only, never who.
+`snug serve` runs this every hour. It reports counts only, never who, and
+records when it last succeeded for `snug doctor`.
 """
 
 from typing import Any
@@ -12,7 +13,7 @@ from snug.accounts.models import AdminSetup
 from snug.analytics import retention
 from snug.audit.models import AuditEvent, record
 from snug.core import ratelimit
-from snug.core.models import SiteSettings
+from snug.core.models import SiteSettings, SystemCheck
 from snug.viewer.models import VerificationCode, ViewerSession
 
 
@@ -34,6 +35,12 @@ class Command(BaseCommand):
         viewer_sessions, _ = ViewerSession.objects.filter(expires_at__lte=now).delete()
         setups, _ = AdminSetup.objects.filter(expires_at__lte=now).delete()
         windows = ratelimit.purge_expired()
+        # Recorded only when everything above worked: `snug doctor` and the
+        # Overview warn when this falls more than three hours behind.
+        SystemCheck.objects.update_or_create(
+            name="housekeeping",
+            defaults={"ok": True, "message": "", "checked_at": timezone.now()},
+        )
         self.stdout.write(
             f"Housekeeping: reading data: {visits} visit{'s' if visits != 1 else ''}; "
             f"codes: {codes}; viewer sessions: {viewer_sessions}; setup links: {setups}; "

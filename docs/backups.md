@@ -66,6 +66,8 @@ sudo docker compose up --detach
 
 ## Checking
 
+`snug doctor` reports a problem if nothing has been copied to the bucket for 15 minutes, with the reason when the backup container recorded one ([deployment.md](deployment.md)).
+
 Within 5 minutes of starting, the backup container records its first complete copy:
 
 ```bash
