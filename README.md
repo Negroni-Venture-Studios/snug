@@ -110,7 +110,7 @@ To remove it all: `docker rm --force snug && docker volume rm snug-data`, then d
 
 ## How it is built
 
-Python and Django, with SQLite in WAL mode, server-rendered pages and very little JavaScript. PDFs are read and rendered with pypdfium2 in a separate process, limited in memory and time and confined by Linux Landlock and a filter that blocks network access, so a hostile PDF cannot reach your data. Snug ships as one container image. [DESIGN.md](DESIGN.md) records every decision and why.
+Python and Django, with SQLite in WAL mode, server-rendered pages and very little JavaScript. PDFs are read and rendered with pypdfium2 in a separate process, limited in memory and time and confined by Linux Landlock and a filter that blocks network access, so a hostile PDF cannot reach your data. Snug ships as one container image. The full design is in [DESIGN.md](DESIGN.md).
 
 ## Contributing and security
 

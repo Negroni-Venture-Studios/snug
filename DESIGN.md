@@ -1,6 +1,6 @@
 # Snug: design
 
-This file records what Snug is, how it works and why. The original brief is kept in [docs/BRIEF.md](docs/BRIEF.md); where the two disagree, this file wins.
+What Snug is and how it works. The original brief is kept in [docs/BRIEF.md](docs/BRIEF.md); where the two disagree, this file wins.
 
 Sections 1 to 3 describe Snug as it is, apart from the features section 4 lists as not built yet. Section 4 is the order of the remaining work. Section 5 is a proposal for after version 1, not yet agreed.
 
