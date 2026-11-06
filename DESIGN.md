@@ -175,7 +175,7 @@ Real URLs, not hash routing, because every action is a CSRF-protected form post.
 
 **Header.** The chrome bar, then the Snug lockup (section 3.14) with the company name beside it, the admin's email address and *Sign out*. The tabs are **Overview**, **Documents**, **Rooms**, **Links**, **People**, **Audit log** and **Settings**. The active tab is underlined in Campari.
 
-- **Overview.** A stat strip, recent activity with first opens marked "New", and, from step 7, a status line. The strip counts documents, active links, people who have read anything, and visits in the last 7 days. Recent activity lists the ten latest visits: who, which document (and room), reading time and when. The status line names any problem from the `snug doctor` checks, such as an old backup or failing email.
+- **Overview.** A status line, a stat strip, and recent activity with first opens marked "New". The strip counts documents, active links, people who have read anything, and visits in the last 7 days. Recent activity lists the ten latest visits: who, which document (and room), reading time and when. The status line names any problem from the `snug doctor` checks, such as an old backup or failing email, in an amber notice with a pointer to `snug doctor`; with none, it says everything is working. Housekeeping, the backups and whether email is set up are checked on each visit. The slower checks (the PDF worker, DNS and HTTPS) are run by housekeeping every hour and stored, and every email sent records whether it went, written only when that changes.
 - **Documents.**
   - The list shows name, current version, page count and upload date.
   - The page title is set in Geist Light, with the version, page count and upload date beneath it.
@@ -307,7 +307,7 @@ Steps 0 to 6 are done. What remains:
 - *Done:* Litestream, and an rclone sidecar that copies Litestream's replica, the uploaded originals and the branding images (`originals/` and `branding/`) to a bucket, encrypted by an rclone crypt remote whose password and salt are generated during setup, which the founder must store ([docs/backups.md](docs/backups.md)). Setup is by hand for now; cloud-init will do it.
 - cloud-init for a fresh Ubuntu LTS droplet.
 - *Done:* `snug doctor`, checking DNS, HTTPS and the certificate's expiry (a problem with under 14 days left, since Caddy renews at 30), email (send a code, type it back), the latest backup (a problem after 15 minutes), the render worker's confinement level (Landlock), and housekeeping (a problem when `snug housekeeping` has not completed in the last three hours; it records each success in the `SystemCheck` table).
-- The admin Overview's status line shows any problem `snug doctor` would report, including failing housekeeping, so a founder sees it without running a command.
+- *Done:* the admin Overview's status line shows any problem `snug doctor` would report, including failing housekeeping, so a founder sees it without running a command.
 - `snug restore`, documented and tested.
 
 **Step 8.** UK-only mode, per link or per room (`authorise()` check 4), with DB-IP attribution; first-open email notifications to admins.

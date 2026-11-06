@@ -7,7 +7,10 @@ from collections.abc import Callable
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
-from django.db import connections
+from django.db import DatabaseError, connections
+from django.utils import timezone
+
+from snug.core.models import SystemCheck
 
 log = logging.getLogger(__name__)
 
@@ -36,8 +39,33 @@ def send(*, to: str, subject: str, text: str, html: str = "", reply_to: str = ""
         message.send(fail_silently=False)
     except (smtplib.SMTPException, OSError) as error:
         log.warning("Email could not be sent: %s", type(error).__name__)
+        _record(
+            ok=False,
+            message=(
+                f"An email could not be sent ({type(error).__name__}). "
+                "Run snug doctor --email you@example.com to test."
+            ),
+        )
         return False
+    _record(ok=True, message="The last email was sent.")
     return True
+
+
+def _record(*, ok: bool, message: str) -> None:
+    """For the Overview's status line: whether the last email went. Never who or what.
+
+    Written only when that changes, so most sends only read. A note about
+    email must never stop one being sent, so a busy database is ignored.
+    """
+    try:
+        current = SystemCheck.objects.filter(name="email").first()
+        if current is not None and current.ok == ok and current.message == message:
+            return
+        SystemCheck.objects.update_or_create(
+            name="email", defaults={"ok": ok, "message": message, "checked_at": timezone.now()}
+        )
+    except DatabaseError:
+        log.warning("Could not record whether email works: the database was busy.")
 
 
 def in_background(task: Callable[[], object]) -> None:

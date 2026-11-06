@@ -293,6 +293,14 @@ label.check { display: grid; grid-template-columns: 1.1rem 1fr; gap: 0.65rem; fo
 .link-out .btn { white-space: normal; text-align: left; }
 .notice { display: flex; gap: 0.55rem; align-items: flex-start; font-size: 0.9rem; padding: 0.75rem 0.9rem; border-radius: var(--r); }
 .notice-ok { background: var(--ok-tint); color: var(--ok); }
+.notice-warn { background: var(--warn-tint); color: var(--warn); }
+/* The Overview's status line: problems from the snug doctor checks, or a quiet all-clear. */
+.system-status { margin-bottom: 1.5rem; }
+.system-status > svg { flex: none; margin-top: 0.15rem; }
+.system-problems { list-style: none; display: grid; gap: 0.35rem; margin-bottom: 0.5rem; }
+.system-status code { font-family: var(--mono); font-size: 0.85em; }
+.system-status-ok { display: flex; gap: 0.45rem; align-items: center; font-size: 0.875rem; color: var(--text-2); }
+.system-status-ok > svg { color: var(--ok); }
 .side-note { font-size: 0.9rem; color: var(--text-2); }
 .side-note h2 { font-size: 1rem; font-weight: 500; color: var(--text); margin-bottom: 0.75rem; }
 
@@ -472,6 +480,10 @@ form.inline { display: inline; }
 .activity-rows .item { grid-template-columns: minmax(14rem, 1.3fr) minmax(12rem, 1.5fr) 6.5rem 7rem; }
 .what .note { display: block; font-size: 0.82rem; color: var(--text-3); }
 .room-rows .item { grid-template-columns: minmax(14rem, 1.6fr) minmax(12rem, 1fr) auto; }
+@media (max-width: 860px) {
+    /* After the desktop columns above, which would otherwise win: who, then what. */
+    .activity-rows .item { grid-template-columns: minmax(0, 1fr); gap: 0.2rem; }
+}
 .inline-form { display: flex; gap: 0.4rem; align-items: center; }
 .inline-form select { width: auto; }
 .inline-form input[type="number"] { width: 6rem; }

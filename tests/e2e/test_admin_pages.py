@@ -138,3 +138,23 @@ def test_a_refused_upload_shows_its_error(live_server: Any, page: Page, data_fol
     page.get_by_role("button", name="Upload").click()  # no title
     expect(page.locator(".notice-error")).to_contain_text("Give the document a title.")
     expect(page.get_by_role("button", name="Upload")).to_be_enabled()
+
+
+def test_admin_pages_fit_a_phone(live_server: Any, page: Page) -> None:
+    """At phone width nothing pushes the page sideways (the tabs scroll in their own strip)."""
+    from datetime import timedelta
+
+    from snug.documents.models import Document
+    from snug.rooms.models import Room, RoomDocument
+    from tests.test_overview import make_link, visit
+
+    deck = Document.objects.create(title="Seed deck with a long title for the narrow screen")
+    room = Room.objects.create(name="Series A room")
+    RoomDocument.objects.create(room=room, document=deck)
+    link = make_link("priya.someone-long@northfield-capital.example", room=room)
+    visit(link, deck, ago=timedelta(hours=1), seconds=95)
+    sign_in(live_server, page)
+    for path in ("", "documents/", "rooms/", "links/", "people/", "audit/", "settings/"):
+        page.goto(f"{live_server.url}/admin/{path}")
+        wide = page.evaluate("document.documentElement.scrollWidth")
+        assert wide <= page.viewport_size["width"], (path, wide)  # type: ignore[index]

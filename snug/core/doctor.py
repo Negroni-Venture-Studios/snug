@@ -9,6 +9,7 @@ import contextlib
 import http.client
 import socket
 import ssl
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Literal
@@ -223,3 +224,40 @@ def everything(now: datetime) -> list[Finding]:
         https(now),
         email_setup(),
     ]
+
+
+# The slower checks, run by housekeeping every hour and stored for the
+# Overview, with the label each is shown under. "email" is recorded by
+# snug.core.mail whenever an email fails, or succeeds.
+_STORED = {"confinement": "PDF worker", "dns": "DNS", "https": "HTTPS", "email": "Email"}
+
+
+def record(name: str, found: Finding, now: datetime) -> None:
+    SystemCheck.objects.update_or_create(
+        name=name,
+        defaults={"ok": not found.problem, "message": found.message[:300], "checked_at": now},
+    )
+
+
+def refresh(now: datetime) -> None:
+    """Run the slower checks and store them. One that breaks never stops the others."""
+    checks: dict[str, Callable[[], Finding]] = {
+        "confinement": confinement,
+        "dns": dns,
+        "https": lambda: https(now),
+    }
+    for name, check in checks.items():
+        try:
+            found = check()
+        except Exception:  # noqa: BLE001, S112 - a broken check must not stop housekeeping
+            continue
+        record(name, found, now)
+
+
+def problems(now: datetime) -> list[Finding]:
+    """What the Overview shows: live cheap checks, then the stored slower ones."""
+    live = [housekeeping(now), backups(now), email_setup()]
+    found = [f for f in live if f.problem]
+    stored = SystemCheck.objects.filter(name__in=_STORED, ok=False).order_by("name")
+    found += [_problem(_STORED[row.name], row.message) for row in stored]
+    return found

@@ -1,6 +1,6 @@
 """The Overview: a stat strip and recent activity, first opens marked New.
 
-DESIGN.md section 2. The status line arrives with `snug doctor` (step 7).
+DESIGN.md section 3.7. The status line is in test_overview_status.py.
 """
 
 import time
