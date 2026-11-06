@@ -59,7 +59,11 @@ Go to `/admin/` on your Snug domain. Enter your email address and password, then
   Every attempt counts, right or wrong. You will only meet these limits if something is wrong.
 
   The account limit is generous, so that someone typing wrong passwords cannot easily lock you out.
-- **Changing your password, or resetting your second factor, signs you out everywhere.** To change your password, use **Forgotten your password?**, below.
+- **Changing your password signs you out everywhere else, and resetting your second factor signs you out everywhere.**
+
+## Changing your password
+
+In **Settings**, under **Your account**, enter your current password, the new one twice and a fresh code from your authenticator app, then choose **Change password**. You stay signed in on that browser; everywhere else is signed out. Snug emails you to say it changed, and writes the change to the audit log. The attempts share the 10-in-15-minutes limit on confirming admin changes.
 
 ## Forgetting your password
 
@@ -94,7 +98,7 @@ It asks you to confirm, shows a new QR code, and issues new recovery codes. The 
 
 ## What is recorded
 
-Creating an admin, resetting a second factor, and asking for and changing a forgotten password are all written to the audit log, along with every sign-in. Passwords, authenticator keys and recovery codes are never written to the log.
+Creating an admin, resetting a second factor, changing a password, and asking for and using a forgotten-password link are all written to the audit log, along with every sign-in. Passwords, authenticator keys and recovery codes are never written to the log.
 
 ## How the secrets are kept
 

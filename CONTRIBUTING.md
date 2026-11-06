@@ -34,7 +34,7 @@ uv run mypy                        # strict type checking
 uv run pre-commit run --all-files  # everything CI runs, locally
 ```
 
-## How changes land
+## How a change gets into `main`
 
 `main` is protected:
 

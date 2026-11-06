@@ -100,7 +100,8 @@ def test_a_pending_invite_is_listed(client: Client, admin: Admin) -> None:
 
 def test_without_email_there_is_no_invite_form(client: Client, admin: Admin) -> None:
     page = client.get("/admin/settings/", secure=True).content.decode()
-    assert "Inviting needs email" in page and 'name="code"' not in page
+    assert "Inviting needs email" in page
+    assert 'action="/admin/settings/admins/invite"' not in page
     assert invite(client, admin).status_code == 503
     assert not Admin.objects.filter(email=NEW).exists()
 

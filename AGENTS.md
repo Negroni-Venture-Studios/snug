@@ -43,7 +43,7 @@ Always use `uv run`. Never install into the system Python.
 ### Git and pull requests
 
 - `main` is protected. **Never commit to `main` or push to it.** Create a branch, push it, open a pull request, and let CI pass.
-- Keep pull requests small and focused. Each step of the plan lands as several of them, each leaving the suite green.
+- Keep pull requests small and focused. Each step of the plan is several of them, each leaving the suite green.
 - Commit messages are in the imperative mood, with a first line under 72 characters.
 - When you author or co-author a commit, end the message with this trailer:
 
