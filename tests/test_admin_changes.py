@@ -120,7 +120,9 @@ def test_changes_need_csrf(admin: Admin, other: Admin, what: str) -> None:
 def test_removing_an_admin(client: Client, admin: Admin, other: Admin) -> None:
     theirs = signed_in(other)
     response = change(client, admin, "remove", OTHER)
-    assert response.status_code == 302 and response["Location"] == "/admin/settings/?removed=1#admins"
+    assert (
+        response.status_code == 302 and response["Location"] == "/admin/settings/?removed=1#admins"
+    )
     assert not Admin.objects.filter(email=OTHER).exists()
     assert not is_signed_in(theirs)
     event = AuditEvent.objects.get(action="admin.removed")

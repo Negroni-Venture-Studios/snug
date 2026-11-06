@@ -140,7 +140,9 @@ def test_inviting_sends_a_setup_link_and_alerts_every_admin(
     client: Client, admin: Admin, other: Admin
 ) -> None:
     response = invite(client, admin, email=" Jo@Fernlea.example ")
-    assert response.status_code == 302 and response["Location"] == "/admin/settings/?invited=1#invite"
+    assert (
+        response.status_code == 302 and response["Location"] == "/admin/settings/?invited=1#invite"
+    )
 
     invited = Admin.objects.get(email=NEW)
     assert not invited.is_active and not invited.has_usable_password()
