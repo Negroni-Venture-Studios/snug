@@ -42,7 +42,9 @@ def client() -> Client:
 
 def save(client: Client, company: str, accent: str = "") -> Any:
     return client.post(
-        "/admin/settings/branding", {"company": company, "accent": accent}, secure=True
+        "/admin/settings/branding",
+        {"company": company, "accent": accent, "show_name": "1"},  # as the form sends it
+        secure=True,
     )
 
 

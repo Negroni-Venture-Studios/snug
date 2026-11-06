@@ -206,7 +206,9 @@ def test_the_name_sits_beside_the_logo(client: Client) -> None:
         created_by=None,
     )
     upload(client, image("PNG"))
-    client.post("/admin/settings/branding", {"company": "Fernlea Robotics"}, secure=True)
+    client.post(
+        "/admin/settings/branding", {"company": "Fernlea Robotics", "show_name": "1"}, secure=True
+    )
     name = SiteSettings.load().logo_name
     page = Client().get(f"/v/{issued.token}", secure=True).content.decode()
     # The name follows as text, so the image itself needs no alt text.
@@ -214,3 +216,36 @@ def test_the_name_sits_beside_the_logo(client: Client) -> None:
         f'<img class="founder-logo-image" src="/brand/{name}" alt="">'
         '<span class="founder-name">Fernlea Robotics</span>'
     ) in page
+
+
+def test_the_name_can_be_left_off_beside_the_logo(client: Client) -> None:
+    """For a logo that already spells out the name."""
+    page = client.get("/admin/settings/", secure=True).content.decode()
+    form = page[page.index('action="/admin/settings/branding') :]
+    form = form[: form.index("</form>")]
+    assert 'name="show_name" type="checkbox" value="1" checked' in form
+
+    deck = Document.objects.create(title="Seed deck")
+    issued = service.create(
+        document=deck,
+        email="priya@northfield.example",
+        note="",
+        expires_at=None,
+        require_verification=True,
+        allow_download=True,
+        created_by=None,
+    )
+    upload(client, image("PNG"))
+    client.post("/admin/settings/branding", {"company": "Fernlea Robotics"}, secure=True)
+    assert SiteSettings.load().show_name_with_logo is False
+    event = AuditEvent.objects.filter(action="settings.branding_changed").latest("pk")
+    assert event.details == {"company": "Fernlea Robotics", "show_name": False}
+    viewer = Client()
+    page = viewer.get(f"/v/{issued.token}", secure=True).content.decode()
+    assert 'class="founder-name"' not in page
+    assert '<img class="founder-logo-image"' in page
+
+    # Without a logo the name always shows: there is nothing else.
+    client.post("/admin/settings/logo", {"remove": "1"}, secure=True)
+    page = viewer.get(f"/v/{issued.token}", secure=True).content.decode()
+    assert '<span class="founder-name">Fernlea Robotics</span>' in page
