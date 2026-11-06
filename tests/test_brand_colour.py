@@ -91,7 +91,7 @@ def save(client: Client, accent: str) -> Any:
 def test_settings_offers_it(client: Client) -> None:
     page = client.get("/admin/settings/", secure=True).content.decode()
     section = page[page.index('id="branding"') :]
-    assert 'action="/admin/settings/branding"' in section
+    assert 'action="/admin/settings/branding#branding"' in section
     assert 'name="accent"' in section and 'type="color"' in section
 
 

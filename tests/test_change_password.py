@@ -60,7 +60,7 @@ def test_settings_offers_it(admin: Admin) -> None:
     section = page[
         page.index('id="account"') : page.index('class="section"', page.index('id="account"'))
     ]
-    assert 'action="/admin/settings/password"' in section
+    assert 'action="/admin/settings/password#account"' in section
     assert 'autocomplete="current-password"' in section
     assert section.count('autocomplete="new-password"') == 2
     assert 'name="code"' in section

@@ -120,7 +120,7 @@ def test_changes_need_csrf(admin: Admin, other: Admin, what: str) -> None:
 def test_removing_an_admin(client: Client, admin: Admin, other: Admin) -> None:
     theirs = signed_in(other)
     response = change(client, admin, "remove", OTHER)
-    assert response.status_code == 302 and response["Location"] == "/admin/settings/?removed=1"
+    assert response.status_code == 302 and response["Location"] == "/admin/settings/?removed=1#admins"
     assert not Admin.objects.filter(email=OTHER).exists()
     assert not is_signed_in(theirs)
     event = AuditEvent.objects.get(action="admin.removed")
@@ -177,7 +177,7 @@ def test_removing_a_pending_invite_cancels_it(client: Client, admin: Admin) -> N
 def test_resetting_another_admins_second_factor(client: Client, admin: Admin, other: Admin) -> None:
     theirs = signed_in(other)
     response = change(client, admin, "reset", OTHER)
-    assert response.status_code == 302 and response["Location"] == "/admin/settings/?reset=1"
+    assert response.status_code == 302 and response["Location"] == "/admin/settings/?reset=1#admins"
 
     account = Admin.objects.get(email=OTHER)
     assert account.totp_secret == "" and account.totp_confirmed_at is None

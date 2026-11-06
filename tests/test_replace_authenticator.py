@@ -67,7 +67,7 @@ def test_settings_offers_it(admin: Admin) -> None:
     section = page[
         page.index('id="account"') : page.index('class="section"', page.index('id="account"'))
     ]
-    assert 'action="/admin/settings/authenticator"' in section
+    assert 'action="/admin/settings/authenticator#authenticator"' in section
     assert "Replace your authenticator" in section
 
 

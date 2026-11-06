@@ -131,7 +131,7 @@ def invite_view(request: HttpRequest) -> HttpResponse:
         subject=f"{email} was invited as an admin",
         what=(f"{by.email} invited {email} to be an admin, at {_now()}."),
     )
-    return redirect("/admin/settings/?invited=1")
+    return redirect("/admin/settings/?invited=1#invite")
 
 
 # ---------------------------------------------------------------- your own password
@@ -435,7 +435,7 @@ def remove_view(request: HttpRequest) -> HttpResponse:
         what=f"{by.email} removed {email} as an admin, at {_now()}.",
         also=email,
     )
-    return redirect("/admin/settings/?removed=1")
+    return redirect("/admin/settings/?removed=1#admins")
 
 
 @never_cache
@@ -478,7 +478,7 @@ def reset_view(request: HttpRequest) -> HttpResponse:
             f"They have been emailed a link to set up their authenticator again."
         ),
     )
-    return redirect("/admin/settings/?reset=1")
+    return redirect("/admin/settings/?reset=1#admins")
 
 
 # ---------------------------------------------------------------- setup
