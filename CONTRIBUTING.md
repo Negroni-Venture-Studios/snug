@@ -4,7 +4,7 @@ Thank you for helping. Snug guards founders' most sensitive documents, so correc
 
 ## Before you start
 
-- Read [DESIGN.md](DESIGN.md). It records what we are building and why, and it wins over the original brief in `docs/BRIEF.md`.
+- Read [DESIGN.md](DESIGN.md). It records what Snug is and the decisions behind it, and it wins over the original brief in `docs/BRIEF.md`.
 - For anything larger than a small fix, open an issue first so we can agree the approach.
 - Report security problems privately, as [SECURITY.md](SECURITY.md) describes, never in a public issue.
 
