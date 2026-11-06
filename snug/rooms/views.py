@@ -134,8 +134,18 @@ def room_nda(request: HttpRequest, token: str) -> HttpResponse:
     room = get_object_or_404(Room, token=token)
     wanted = request.POST.get("require_nda") == "on"
     if wanted and nda_terms.current() is None:
-        error = "Write the NDA in Settings first."
-        return _detail(request, room, status=400, nda_error=error)
+        # With no NDA yet, the panel offers a box to write version 1.
+        text = request.POST.get("nda_text", "")
+        problem = nda_terms.first_problem(text)
+        if problem:
+            error = (
+                "Write the NDA, or untick Ask for the NDA."
+                if problem == "missing"
+                else nda_terms.TOO_LONG
+            )
+            draft = text[: nda_terms.MAX_TEXT + 1000]
+            return _detail(request, room, status=400, nda_error=error, nda_draft=draft)
+        nda_terms.publish_first(request, text, by=_admin(request), written_on="room")
     if wanted != room.require_nda:
         room.require_nda = wanted
         room.save(update_fields=["require_nda"])

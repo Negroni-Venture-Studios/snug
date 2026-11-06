@@ -1,6 +1,7 @@
 {% extends "snug/admin_base.html" %}
 {% load snug %}
 {% block title %}New link for {{ target.title }}{% endblock %}
+{% block scripts %}{% load static %}<script src="{% static 'snug/js/nda-first.js' %}" defer></script>{% endblock %}
 {% block content %}
 <div class="crumbs"><a href="{{ target.section_url }}">{{ target.section }}</a> / <a href="{{ target.url }}">{{ target.title }}</a> / New link</div>
 <div class="title-row"><div><h1 class="page-title">New link</h1><div class="page-meta">One link for one person, for {{ target.title }}.</div></div></div>
@@ -14,7 +15,8 @@
     <div class="field"><span class="label">Options</span>
       <div class="choices">
         <label class="check"><input type="checkbox" name="require_verification"{% if values.require_verification %} checked{% endif %}><span>Require email verification<span class="hint">Recommended. A forwarded link is then useless to anyone else.</span></span></label>
-        {% if not for_room %}<label class="check"><input type="checkbox" name="require_nda"{% if values.require_nda %} checked{% endif %}{% if not nda %} disabled{% endif %}><span>Ask for the NDA first<span class="hint">{% if nda %}They accept version {{ nda.number }} before they see the document.{% else %}Write the NDA in <a href="{% url 'accounts:settings' %}#nda">Settings</a> to use this.{% endif %}</span></span></label>{% endif %}
+        {% if not for_room %}<label class="check"><input id="require-nda" type="checkbox" name="require_nda"{% if values.require_nda %} checked{% endif %}><span>Ask for the NDA first<span class="hint">{% if nda %}They accept version {{ nda.number }} before they see the document.{% else %}There is no NDA yet. Write it below: it becomes version 1, for every room and link that asks for it, and you can change it in Settings.{% endif %}</span></span></label>
+        {% if not nda %}<div class="field nda-first" data-nda-for="require-nda"><label for="nda-text">The NDA</label><textarea id="nda-text" name="nda_text" rows="8"{% if nda_error %} aria-invalid="true" aria-describedby="nda-text-error"{% endif %}>{{ values.nda_text|default:'' }}</textarea>{% if nda_error %}<div class="error" id="nda-text-error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% else %}<div class="hint">Used only if you ask for the NDA.</div>{% endif %}</div>{% endif %}{% endif %}
         <label class="check"><input type="checkbox" name="allow_download"{% if values.allow_download %} checked{% endif %}><span>Allow download<span class="hint">The original PDF, stamped with their email address, the date and the link.</span></span></label>
       </div></div>
     <div class="form-foot">
