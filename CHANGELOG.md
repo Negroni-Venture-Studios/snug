@@ -6,6 +6,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- Every save in the admin interface now says it worked, in a green notice in the section where it was made, and the page stays there instead of jumping to the top. A room's page says beside its name when it asks for the NDA, and its four tools sit two by two.
 - Link expiry dates are shown as the last day the link works. The links list and the link email showed the day after.
 - The README's instructions for trying Snug locally now keep the secret key in a file, and say how to update the container and set a forgotten password.
 - The server no longer stalls, and then answers "Internal Server Error", when a browser holds connections open without using them. `snug serve` now runs threaded workers (`--threads`, 4 by default).

@@ -69,8 +69,9 @@
       </form>
     </section>
 
-    <section class="section">
+    <section class="section" id="versions">
       <div class="section-head"><h2>Versions</h2></div>
+      {% include "snug/partials/saved.html" with here="versions" %}
       <div class="rows version-rows">
         {% for version in versions %}
         <div class="item">
@@ -84,8 +85,9 @@
   </div>
 </div>
 
-<section class="section">
+<section class="section" id="links">
   <div class="section-head"><h2>Links</h2><a class="btn btn-primary" href="{% url 'links:new' document.token %}">{% icon "plus" %}New link</a></div>
+  {% include "snug/partials/saved.html" with here="links" %}
   {% include "links/_rows.html" with links=links %}
 </section>
 {% endblock %}
