@@ -108,6 +108,11 @@ def test_no_backup_yet_is_a_problem(data_folder: Path) -> None:
     assert found.message == "Nothing has been backed up yet. See docs/backups.md."
 
 
+def test_a_backup_this_minute(data_folder: Path) -> None:
+    backup_files(data_folder, success=NOW - timedelta(seconds=20))
+    assert doctor.backups(NOW).message == "Last copied to the bucket less than a minute ago."
+
+
 def test_a_recent_backup_is_fine(data_folder: Path) -> None:
     backup_files(data_folder, success=NOW - timedelta(minutes=4))
     found = doctor.backups(NOW)

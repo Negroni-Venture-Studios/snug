@@ -53,6 +53,8 @@ def _problem(label: str, message: str) -> Finding:
 
 
 def _ago(then: datetime, now: datetime) -> str:
+    if now - then < timedelta(minutes=1):
+        return "less than a minute"
     return timesince(then, now)
 
 
