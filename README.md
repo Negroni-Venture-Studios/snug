@@ -14,7 +14,7 @@ Snug is a self-hosted data room for early-stage founders. You run it on your own
 
 Snug is open source, published by [Negroni Venture Studios](https://negroniventurestudios.com/). Negroni does not host it. You own your instance and your data, and Negroni never sees either.
 
-> **Status: test builds only.** You can run Snug on your own computer today, but it is not ready for real documents yet. See [Status](#status).
+> **Status: test builds only.** You can run Snug on your own computer today, and the server setup is written, but it has not yet been tested end to end on a real server. Please do not put real documents in it yet. See [Status](#status).
 
 ## Who it is for
 
@@ -25,30 +25,31 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 - **Documents.** PDF only. Upload new versions; links always show the latest.
 - **Rooms.** Collections of documents, with one level of folders. A document can be in any number of rooms.
 - **Links.** One per person, to a document or a room, with an optional message from you. Email verification (on by default), optional expiry, downloads (on by default), and immediate revocation.
+- **UK-only mode.** A link, or a whole room, can open only for visitors in the UK, Jersey, Guernsey and the Isle of Man, judged by their internet address against a country database kept on your server.
 - **An NDA.** One click-through agreement for your instance, versioned, which a room or a single-document link can ask for first. Snug records who accepted which text, and when.
 - **The reader.** Pages are rendered on your server and shown one at a time, watermarked with the reader's email address, the date and the link. A download is the original PDF, stamped with the same details, so its text stays searchable.
-- **Analytics.** Who opened each document, how long they spent on each page, and how often they downloaded it, on an Overview, each document's page and a People page. Reading data is deleted 12 months after a link ends, or after a period you set. Nothing is sent anywhere outside your instance, and Snug does not phone home.
+- **Analytics.** Who opened each document, how long they spent on each page, and how often they downloaded it, on an Overview, each document's page and a People page. Every admin is emailed the first time each link is opened, unless they turn it off. Reading data is deleted 12 months after a link ends, or after a period you set. Nothing about your visitors leaves your instance, and Snug does not phone home.
 - **An audit log** of every admin action and every viewer access, filterable and exportable as CSV.
 - **Admin accounts** with a password and an authenticator app, recovery codes, invitations by email, and an email to every admin whenever the admins change.
+- **Running it.** Docker Compose with Caddy for HTTPS; continuous backups to a storage bucket of your own, encrypted on your server with a key only you hold; `snug doctor`, which checks the server and says what to fix, and a status line on the Overview showing the same; and `snug restore`.
 
 ## What Snug does not do
 
 - **It only shows PDFs.** Export decks, spreadsheets and drawings to PDF first.
 - **Watermarks deter casual leaks; they cannot stop one.** Nothing stops someone photographing a screen.
 - **NDA acceptance is a record, not a signature.** Snug records who accepted which text, and when.
+- **UK-only mode is not export control.** It goes by the visitor's internet address, so a VPN gets round it.
 - It is not a hosted service, and one instance serves one company.
 - No Office or image rendering, comments, e-signatures, single sign-on, investor updates or AI features.
 
 ## Status
 
-**Snug is not ready to run for real yet.** The application is built and tested, and the container image is published as a test build, `ghcr.io/negroni-venture-studios/snug:edge`. There is no release yet, so please do not put real documents in a test instance.
+**Snug is not ready to run for real yet.** Everything planned for version 1 is built and tested, and the container image is published as a test build, `ghcr.io/negroni-venture-studios/snug:edge`. The server setup is written and tested in CI, but has not yet run on a real server. There is no release, so please do not put real documents in a test instance.
 
-Still to come:
+Still to come before the first release:
 
-- the production setup: Docker Compose with Caddy for HTTPS, and Litestream for continuous backups encrypted with a key only you hold;
-- `snug doctor`, which checks a server's setup, and `snug restore`;
-- UK-only mode, per link or room, and an email to admins when someone first opens a link;
-- a step-by-step guide for a DigitalOcean droplet in London, and a guide to using Snug.
+- a full deployment to a DigitalOcean droplet, following the guide alone, and a restore onto a second one;
+- a step-by-step guide for a DigitalOcean droplet in London, a guide to using Snug, and a guide to what Snug does and does not protect against.
 
 The order of work in [DESIGN.md](DESIGN.md) has the details.
 
@@ -78,7 +79,7 @@ Create the first admin, which asks for a password and shows a QR code for your a
 docker exec --interactive --tty snug snug createadmin --email you@example.com
 ```
 
-and sign in at <http://localhost:8000/admin/>. Without email settings, Snug writes each email, such as a viewer's code, to a file in the container instead of sending it. To read them:
+and sign in at <http://localhost:8000/admin/>. The Overview will say nothing has been backed up: backups need the server setup below. Without email settings, Snug writes each email, such as a viewer's code, to a file in the container instead of sending it. To read them:
 
 ```bash
 docker exec snug sh -c 'cat /var/lib/snug/outbox/*'
@@ -108,9 +109,15 @@ docker exec --interactive --tty snug snug reset-password you@example.com
 
 To remove it all: `docker rm --force snug && docker volume rm snug-data`, then delete `snug.env`.
 
+## Running it on a server
+
+[The deployment guide](docs/deployment.md) sets up a fresh Ubuntu server, such as a DigitalOcean droplet, with cloud-init and `sudo snug setup`, which asks for your domain, email and backup bucket on the server itself. [The backups guide](docs/backups.md) explains what is backed up, how to check it and how to restore, and [the email guide](docs/email.md) how to get your provider's details. These are untested on a real server until the full deployment above.
+
 ## How it is built
 
-Python and Django, with SQLite in WAL mode, server-rendered pages and very little JavaScript. PDFs are read and rendered with pypdfium2 in a separate process, limited in memory and time and confined by Linux Landlock and a filter that blocks network access, so a hostile PDF cannot reach your data. Snug ships as one container image. The full design is in [DESIGN.md](DESIGN.md).
+Python and Django, with SQLite in WAL mode, server-rendered pages and very little JavaScript. PDFs are read and rendered with pypdfium2 in a separate process, limited in memory and time and confined by Linux Landlock and a filter that blocks network access, so a hostile PDF cannot reach your data. Snug is one container image, run beside Caddy, Litestream and rclone. The full design is in [DESIGN.md](DESIGN.md).
+
+UK-only mode uses [IP geolocation by DB-IP](https://db-ip.com), licensed CC BY 4.0, which your server downloads once a month.
 
 ## Contributing and security
 

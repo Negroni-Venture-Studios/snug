@@ -117,4 +117,4 @@ Creating an admin, resetting or replacing a second factor, changing a password, 
 
 - **Passwords** are hashed with argon2id, using Django's defaults of 100 MiB of memory and two passes.
 - **Recovery codes** are random, 80 bits each, and stored only as SHA-256 hashes.
-- **Authenticator keys** have to be readable by Snug to check codes, so they are stored as they are. They live in the database on your server. The production setup, still to come, encrypts backups with a key only you hold.
+- **Authenticator keys** have to be readable by Snug to check codes, so they are stored as they are. They live in the database on your server. The standard deployment's backups are encrypted with a key only you hold.

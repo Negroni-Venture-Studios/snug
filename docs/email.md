@@ -81,7 +81,7 @@ nc -zv -w 5 smtp.mailgun.org 2525
 
 ## Step 4: configure Snug
 
-Add these to `/opt/snug/snug.env`:
+`sudo snug setup` asks for these when it sets up the server ([deployment.md](deployment.md)). To change them later, edit `/opt/snug/snug.env`:
 
 ```bash
 SNUG_EMAIL_FROM=rooms@example.com
@@ -103,11 +103,13 @@ Emails name your company, as set in Settings under Branding, such as "Fernlea Ro
 | `SNUG_SMTP_PASSWORD` | No | | The SMTP password or API key. Snug never shows it or writes it to a log. |
 | `SNUG_SMTP_SECURITY` | No | `starttls` | `starttls` connects in plain text and then switches to encryption, which is what most ports, including 587 and 2525, expect. `tls` encrypts from the start, which port 465 expects. `none` is allowed only when `SNUG_DOMAIN` is `localhost`: links and codes must never cross the internet unencrypted. |
 
-Restart Snug after changing the file. If a setting is wrong, Snug lists the problem and refuses to start.
+Then restart Snug with `sudo docker compose up --detach` in `/opt/snug`. If a setting is wrong, Snug lists the problem and refuses to start.
 
 ## Step 5: send yourself a test
 
-Open a document in the admin interface, choose **New link**, enter an address of your own and choose **Create and email**. If the email cannot be sent, Snug says so on the next page and shows you the link to copy instead.
+`sudo snug doctor --email you@example.com` sends a six-digit code to that address and asks you to type it back, which proves the whole path works.
+
+Then try a real link. Open a document in the admin interface, choose **New link**, enter an address of your own and choose **Create and email**. If the email cannot be sent, Snug says so on the next page and shows you the link to copy instead.
 
 When the email arrives, check that it passed authentication. In Gmail, open the message, choose **Show original** from the menu, and look for:
 
@@ -121,7 +123,7 @@ Try an address at a different provider from your own too: a domain's own mail se
 
 ## When it goes wrong
 
-Snug logs only the kind of error, never the recipient, subject or contents, because those carry links and codes. Look for a line such as `Email could not be sent: SMTPAuthenticationError` in the logs.
+Snug logs only the kind of error, never the recipient, subject or contents, because those carry links and codes. The admin Overview shows a problem when an email could not be sent. Look for a line such as `Email could not be sent: SMTPAuthenticationError` in Snug's log, with `sudo docker compose logs snug` in `/opt/snug`.
 
 | What you see | Likely cause |
 |---|---|
