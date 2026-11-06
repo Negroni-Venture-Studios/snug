@@ -200,7 +200,7 @@ Real URLs, not hash routing, because every action is a CSRF-protected form post.
 
 ### 3.8 Viewer
 
-The company's logo at the top left, or its name without one, and nothing competing with the document, designed phone-first.
+The company's logo at the top left with its name beside it, or either alone, and nothing competing with the document, designed phone-first.
 
 1. **Landing.** "**Fernlea Robotics** has shared **Seed deck** with you", then an email field and *Send code*. On wide screens, an **About this link** panel sits beside it:
    - who sent it, which document, the access given and the expiry;
@@ -215,7 +215,7 @@ The company's logo at the top left, or its name without one, and nothing competi
 **Founder branding under a strict CSP.**
 - The accent colour shows as a band across the top of every investor page, as the admin has in orange, and on their buttons, links and the reader's Download button. It reaches viewer pages through a generated `/brand/brand.css`, linked with a fingerprint of the colour so a change is fetched at once (`snug.core.brand`). The server works out three shades: the button fill (`--brand`), text and links (`--brand-text`, which viewer links use) and the button label (`--on-brand`, white or near-black). Each is nudged towards black or white until it reaches 4.5:1 against what it sits on, in light and dark mode. Emails carry the company's name, not the colour: colouring them would need inline styles.
 - The logo is accepted as PNG or JPEG only, up to 2 MB. SVG is not accepted, because an uploaded SVG can carry script. The render worker decodes it in its confinement, as it does a PDF, and draws a fresh PNG of at most 800 by 240 pixels, so nothing but the pixels survives (`snug.core.logo`). It is stored as `branding/logo-<fingerprint>.png`, and served at `/brand/<that name>` only while it is the current logo, with a long cache because a new logo gets a new name.
-- Investors see it at the top of every page, with the company's name as its alt text, and as the page's icon. In dark mode it sits on a light rounded tile, since most logos are drawn for a light page.
+- Investors see it at the top of every page, with the company's name beside it (so the image has empty alt text), and as the page's icon. In dark mode it sits on a light rounded tile, since most logos are drawn for a light page.
 
 ### 3.9 Email
 

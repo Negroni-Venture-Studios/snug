@@ -306,12 +306,13 @@ footer.admin-foot .source-link:hover .github-mark { opacity: 0.9; }
 
 /* ---------- Viewer ---------- */
 .v-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: 1080px; margin: 0 auto; padding: 1.25rem 1.5rem; }
-.founder-logo { display: flex; align-items: center; gap: 0.6rem; font-weight: 600; font-size: 1.05rem; letter-spacing: -0.01em; }
+.founder-logo { display: flex; align-items: center; gap: 0.6rem; min-width: 0; font-weight: 600; font-size: 1.05rem; letter-spacing: -0.01em; }
 .founder-logo svg { width: 1.7rem; height: 1.7rem; }
 .founder-logo .mark { fill: var(--brand); }
+.founder-name { overflow-wrap: anywhere; }
 /* The founder's own logo. In dark mode it sits on a light tile, since most
    logos are drawn for a light page; the tile matches the page in light mode. */
-.founder-logo-image { display: block; width: auto; height: auto; max-height: 3rem; max-width: min(16rem, 55vw); padding: 0.35rem 0.5rem; margin: -0.35rem -0.5rem; border-radius: var(--r-sm); background: light-dark(transparent, #fafaf9); }
+.founder-logo-image { display: block; width: auto; height: auto; max-height: 3rem; max-width: min(16rem, 55vw); padding: 0.35rem 0.5rem; margin: -0.35rem 0.25rem -0.35rem -0.5rem; border-radius: var(--r-sm); background: light-dark(transparent, #fafaf9); }
 .v-head .doc { font-size: 0.875rem; color: var(--text-2); }
 .v-tools { display: flex; align-items: center; gap: 1rem; }
 .v-main { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem 3rem; }

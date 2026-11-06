@@ -192,3 +192,25 @@ def test_investors_see_it(client: Client) -> None:
     page = viewer.get(f"/v/{issued.token}", secure=True).content.decode()
     assert f'<img class="founder-logo-image" src="/brand/{name}"' in page
     assert f'<link rel="icon" href="/brand/{name}" type="image/png">' in page
+
+
+def test_the_name_sits_beside_the_logo(client: Client) -> None:
+    deck = Document.objects.create(title="Seed deck")
+    issued = service.create(
+        document=deck,
+        email="priya@northfield.example",
+        note="",
+        expires_at=None,
+        require_verification=True,
+        allow_download=True,
+        created_by=None,
+    )
+    upload(client, image("PNG"))
+    client.post("/admin/settings/branding", {"company": "Fernlea Robotics"}, secure=True)
+    name = SiteSettings.load().logo_name
+    page = Client().get(f"/v/{issued.token}", secure=True).content.decode()
+    # The name follows as text, so the image itself needs no alt text.
+    assert (
+        f'<img class="founder-logo-image" src="/brand/{name}" alt="">'
+        '<span class="founder-name">Fernlea Robotics</span>'
+    ) in page
