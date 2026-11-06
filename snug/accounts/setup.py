@@ -47,7 +47,14 @@ def new_token() -> str:
     return secrets.token_urlsafe(32)
 
 
-def issue(admin: Admin, purpose: str, by: Admin | None, token: str | None = None) -> str:
+def issue(
+    admin: Admin,
+    purpose: str,
+    by: Admin | None,
+    token: str | None = None,
+    *,
+    hours: int = SETUP_HOURS,
+) -> str:
     """A new setup link for this admin, replacing any other. Returns the token, once."""
     token = token or new_token()
     with transaction.atomic():
@@ -57,7 +64,7 @@ def issue(admin: Admin, purpose: str, by: Admin | None, token: str | None = None
             purpose=purpose,
             token_hash=_hash(token),
             created_by=by,
-            expires_at=timezone.now() + timedelta(hours=SETUP_HOURS),
+            expires_at=timezone.now() + timedelta(hours=hours),
         )
     return token
 

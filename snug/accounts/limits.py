@@ -24,6 +24,11 @@ CODE_FAILURES_PER_PASSWORD = 5
 # Confirming an admin change (invite, remove, reset) with a fresh code.
 CONFIRM_PER_ADMIN = Limit("admin.confirm.admin", limit=10, window=WINDOW)
 
+# Asking for a forgotten-password link. The reply never says whether the
+# address belongs to an admin, and each request may send an email.
+FORGOT_PER_IP = Limit("login.forgot.ip", limit=5, window=WINDOW)
+FORGOT_PER_ACCOUNT = Limit("login.forgot.account", limit=3, window=WINDOW)
+
 # Submitting the setup page, from one address. Each submission may hash a
 # password, which is deliberately slow.
 SETUP_PER_IP = Limit("admin.setup.ip", limit=20, window=WINDOW)

@@ -78,7 +78,7 @@ class RecoveryCode(models.Model):
 
 
 class AdminSetup(models.Model):
-    """A one-time, emailed link to set up an account or a new authenticator.
+    """A one-time, emailed link: an invite, a new authenticator, or a new password.
 
     Only a SHA-256 hash of the link's token is stored. An admin has at most
     one live link: sending another replaces it.
@@ -87,6 +87,7 @@ class AdminSetup(models.Model):
     class Purpose(models.TextChoices):
         INVITE = "invite", "Invite"
         RESET = "reset", "Second factor reset"
+        PASSWORD = "password", "Forgotten password"
 
     admin = models.ForeignKey(Admin, on_delete=models.CASCADE, related_name="setups")
     purpose = models.CharField(max_length=10, choices=Purpose.choices)

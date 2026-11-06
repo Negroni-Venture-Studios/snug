@@ -1,6 +1,6 @@
 # Email
 
-Snug sends two kinds of email: links to the people you share documents with, and the six-digit codes they use to prove they own the address a link was sent to. Without working email you can still create links and send them yourself, but nobody can verify, so links that require verification cannot be opened.
+Snug sends two kinds of email to investors: links to the people you share documents with, and the six-digit codes they use to prove they own the address a link was sent to. It also emails admins: invites, notices of changes to the admins, and forgotten-password links. Without working email you can still create links and send them yourself, but nobody can verify, so links that require verification cannot be opened.
 
 Most failed Snug setups fail here. Email sent from a new server, from a domain with no authentication records, goes to spam or is refused outright. This guide sets it up properly, once.
 
