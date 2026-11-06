@@ -321,7 +321,7 @@ Steps 0 to 6 are done. What remains:
 
 **Held Dependabot updates.** These stay open, never closed: closing a Dependabot pull request tells it to skip that version for good. Merge each once its release is two weeks old.
 - docker/login-action 4.7.0: Dependabot proposes it again once its two weeks have passed.
-- #2: uv-build 0.13.6 or later, the build backend (eligible 10 November).
+- #2: the build backend, `uv_build>=0.13.5,<0.14`. A range lets a build take the newest 0.13 release, 0.13.7 today, so it waits for that one and merges with #32 (17 November).
 - #32: uv 0.13.7 in the image (eligible 17 November).
 - Python 3.15 for the image is not proposed: Dependabot offers Python patch releases only. Moving to 3.15 is a deliberate change: add 3.15 to CI's test matrix, then take the newest 3.15 patch release, which must include the 25 October security fixes that 3.14.10 carries.
 
