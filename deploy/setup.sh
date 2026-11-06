@@ -13,6 +13,11 @@
 set -eu
 cd "$(dirname "$0")"
 
+if [ "$(id -u)" != 0 ]; then
+	echo "snug setup must run as root: sudo snug setup" >&2
+	exit 1
+fi
+
 say() { printf '%s\n' "$*"; }
 
 # ask PROMPT [DEFAULT]: the answer, or the default, in $reply.
@@ -160,7 +165,8 @@ else
 	fi
 fi
 if [ -s backup/rclone.conf ]; then
-	chown 10001:10001 backup/rclone.conf 2> /dev/null || true
+	# Readable by the backup container's user alone.
+	chown 10001:10001 backup/rclone.conf
 	chmod 600 backup/rclone.conf
 fi
 
