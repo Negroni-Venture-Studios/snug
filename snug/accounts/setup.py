@@ -161,6 +161,22 @@ def send_reset(admin: Admin, token: str, by: Admin) -> bool:
     )
 
 
+def send_replace(admin: Admin, token: str) -> bool:
+    """The setup link for an admin replacing their own authenticator, in case they close the tab."""
+    context = {
+        "email": admin.email,
+        "company": settings.CONFIG.company_name,
+        "url": setup_url(token),
+        "hours": SETUP_HOURS,
+    }
+    return mail.send(
+        to=admin.email,
+        subject="Finish setting up your new authenticator for Snug",
+        text=render_to_string("accounts/email/replace.txt", context),
+        html=render_to_string("accounts/email/replace.html", context),
+    )
+
+
 def send_invite(admin: Admin, token: str, by: Admin) -> bool:
     company = settings.CONFIG.company_name
     context = {

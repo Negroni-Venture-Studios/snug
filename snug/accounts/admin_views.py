@@ -178,6 +178,48 @@ def change_password_view(request: HttpRequest) -> HttpResponse:
     return redirect("/admin/settings/?saved=password#account")
 
 
+@never_cache
+@login_required
+@require_POST
+def replace_authenticator_view(request: HttpRequest) -> HttpResponse:
+    """Replace your own authenticator: the password, and a code from the old app or a recovery code.
+
+    The old authenticator and recovery codes stop working at once, which also
+    ends every session, this one included. The admin goes straight to the setup
+    page for the new one; the link is also emailed, in case they close the tab.
+    """
+    admin = _admin(request)
+
+    def refused(status: int, field: str, error: str) -> HttpResponse:
+        return _settings_page(request, status=status, authenticator_errors={field: error})
+
+    if not ratelimit.allow(limits.CONFIRM_PER_ADMIN, str(admin.pk)):
+        _audit(request, "admin.replace_failed", admin.email, admin.email, reason="limited")
+        return refused(429, "code", TOO_MANY)
+    if not admin.check_password(request.POST.get("current", "")):
+        _audit(request, "admin.replace_failed", admin.email, admin.email, reason="password")
+        return refused(400, "current", "That is not your current password.")
+    code = request.POST.get("code", "")
+    if passwords.is_app_code(code):
+        method, ok = "totp", setup.confirm(admin, code)
+    else:
+        method, ok = "recovery", recovery.use(admin, code)
+    if not ok:
+        _audit(request, "admin.replace_failed", admin.email, admin.email, reason="code")
+        return refused(400, "code", WRONG_CODE)
+
+    token = setup.new_token()
+    setup.reset_second_factor(admin, token, admin)
+    if mail.enabled():
+        setup.send_replace(admin, token)
+    _audit(request, "admin.second_factor_replaced", admin.email, admin.email, method=method)
+    setup.alert_admins(
+        subject=f"{admin.email} replaced their authenticator",
+        what=f"{admin.email} replaced their authenticator, at {_now()}.",
+    )
+    return redirect(setup.setup_url(token).removeprefix(settings.CONFIG.origin))
+
+
 # ---------------------------------------------------------------- privacy
 
 
@@ -327,8 +369,7 @@ def reset_view(request: HttpRequest) -> HttpResponse:
         return _change_page(request, target, "reset")
     if target == by:
         error = (
-            "To replace your own authenticator, sign in with a recovery code, "
-            "or ask another admin to reset it."
+            "To replace your own authenticator, use Replace your authenticator, under Your account."
         )
         return _change_page(request, target, "reset", error=error, status=400)
     if target.totp_confirmed_at is None:

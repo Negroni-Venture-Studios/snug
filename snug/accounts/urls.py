@@ -12,6 +12,11 @@ urlpatterns = [
     path("logout", views.logout_view, name="logout"),
     path("settings/", admin_views.settings_view, name="settings"),
     path("settings/password", admin_views.change_password_view, name="change_password"),
+    path(
+        "settings/authenticator",
+        admin_views.replace_authenticator_view,
+        name="replace_authenticator",
+    ),
     path("settings/privacy", admin_views.privacy_view, name="privacy"),
     path("settings/nda", admin_views.nda_view, name="nda"),
     path("settings/retention", admin_views.retention_view, name="retention"),

@@ -1,0 +1,7 @@
+{% autoescape off %}You started replacing your authenticator for Snug{% if company %} at {{ company }}{% endif %} ({{ email }}). Your old authenticator and recovery codes no longer work. Your password has not changed.
+
+If you closed the page before finishing, carry on here:
+{{ url }}
+
+The link works once, for {{ hours }} hours. If this was not you, ask another admin to remove your account at once.
+{% endautoescape %}

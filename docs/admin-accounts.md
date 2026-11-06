@@ -84,9 +84,18 @@ snug reset-password you@yourcompany.com
 
 It asks for the new password twice. Like the link, it signs you out everywhere and is written to the audit log; your authenticator keeps working. Django's own `changepassword` is disabled, because it writes nothing to the audit log.
 
+## Replacing your authenticator
+
+For a new phone: in **Settings**, under **Your account**, choose **Replace your authenticator**. Enter your password, and a code from your current authenticator app or one of your recovery codes. Snug then:
+
+1. stops your old authenticator and recovery codes working at once, which also signs you out everywhere;
+2. takes you straight to a page that shows a new QR code, asks for a code from the new app, and shows ten new recovery codes;
+3. emails you the same page's link, which works for 72 hours, in case you close the tab before finishing;
+4. emails every admin to say you replaced your authenticator, and writes it to the audit log.
+
 ## Losing your phone
 
-- If you still have your recovery codes, sign in with one of them. To set up a new authenticator, ask another admin to reset your second factor.
+- If you still have your recovery codes, sign in with one of them, then replace your authenticator as below.
 - If you have lost the recovery codes too, another admin can reset your second factor from the admin interface.
 - If you are the only admin, run this on the server:
 
@@ -98,7 +107,7 @@ It asks you to confirm, shows a new QR code, and issues new recovery codes. The 
 
 ## What is recorded
 
-Creating an admin, resetting a second factor, changing a password, and asking for and using a forgotten-password link are all written to the audit log, along with every sign-in. Passwords, authenticator keys and recovery codes are never written to the log.
+Creating an admin, resetting or replacing a second factor, changing a password, and asking for and using a forgotten-password link are all written to the audit log, along with every sign-in. Passwords, authenticator keys and recovery codes are never written to the log.
 
 ## How the secrets are kept
 
