@@ -10,7 +10,7 @@ The standard deployment backs Snug up continuously to a storage bucket of your o
 | Uploaded documents (`originals/`) | Every 5 minutes | A deleted or replaced file is kept for 30 days |
 | Your logo and tab icon (`branding/`) | Every 5 minutes | As documents |
 
-The page images Snug renders, and the files it keeps while uploading, are not backed up: Snug rebuilds them as needed.
+The page images Snug renders, the files it keeps while uploading, and DB-IP's country data are not backed up: Snug rebuilds or fetches them again as needed.
 
 If the server is lost, you lose at most the last 5 minutes of changes.
 

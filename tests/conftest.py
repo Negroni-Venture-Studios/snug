@@ -35,6 +35,17 @@ def email_on(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture(autouse=True)
+def no_network_downloads(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Housekeeping fetches DB-IP's data; no test may reach the internet for it."""
+    import urllib.request
+
+    def refuse(*args: object, **kwargs: object) -> None:
+        raise OSError("tests do not download")
+
+    monkeypatch.setattr(urllib.request, "urlopen", refuse)
+
+
+@pytest.fixture(autouse=True)
 def steady_rate_limit_clock(monkeypatch: pytest.MonkeyPatch) -> None:
     """Rate limits count in fixed windows on the clock (15 minutes for sign-in).
 
