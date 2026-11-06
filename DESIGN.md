@@ -95,7 +95,7 @@ On the taste guide's dials: variance 3 (orderly, aligned, few surprises), motion
 
 ### 3.2 Principles
 
-- **Two surfaces, two owners.** The admin is Snug's own, built from the Negroni palette. The viewer belongs to the founder: plain neutrals, with no Snug or Negroni branding, and, once founder branding is built, their logo and accent colour.
+- **Two surfaces, two owners.** The admin is Snug's own, built from the Negroni palette. The viewer belongs to the founder: plain neutrals, with no Snug or Negroni branding: their accent colour and, once it is built, their logo.
 - **Server-rendered first.** Every page works as plain HTML forms and links. JavaScript only enhances.
 - **The strict CSP shapes the design.** No inline scripts, no `style=""` attributes and no third-party origins. Section 3.10 lists the consequences.
 - **Accessible by default.** WCAG 2.2 AA throughout, with tests where possible.
@@ -187,6 +187,7 @@ Real URLs, not hash routing, because every action is a CSRF-protected form post.
 - **People.** One row per viewer email address, with everything that person has opened across the instance, using the same page strips. Each document row also says how many times that person downloaded it, and the person's summary line gives their total when it is above zero. The counts come from the audit log's download events, which outlast reading data, so only documents the person is still shown reading are counted.
 - **Audit log.** A dense, filterable table and a CSV export.
 - **Settings.**
+  - Branding: the accent colour on investors' pages, with a picker, a live preview, and a note when Snug deepens a shade to keep it readable.
   - Your account: change your password, with the current one and a code from the authenticator; and replace your authenticator, with the password and a code from the old one or a recovery code.
   - Admins: invite, remove, reset second factor.
   - NDA: the instance's one agreement, versioned.
@@ -199,7 +200,7 @@ Real URLs, not hash routing, because every action is a CSRF-protected form post.
 
 ### 3.8 Viewer
 
-The company's name at the top left (its logo, once founder branding is built), and nothing competing with the document, designed phone-first.
+The company's name at the top left (its logo, once that is built), and nothing competing with the document, designed phone-first.
 
 1. **Landing.** "**Fernlea Robotics** has shared **Seed deck** with you", then an email field and *Send code*. On wide screens, an **About this link** panel sits beside it:
    - who sent it, which document, the access given and the expiry;
@@ -211,10 +212,11 @@ The company's name at the top left (its logo, once founder branding is built), a
 5. **Reader.** One page image at a time, with *Previous*, "5 of 18", *Next* and a page picker. Arrow keys work and pinch-zoom is never disabled. The watermark footer reads "Shared with *email*", the date, and "Link 7Q2K" in three columns, with no separators. *Download* gives the original PDF, stamped for the reader, unless the founder has turned downloads off for this link.
 6. **Unavailable.** One page for unknown, expired and revoked links alike.
 
-**Founder branding under a strict CSP** (not built yet: section 4).
-- The accent colour reaches the page through a generated `/brand.css`, served with a cache-busting hash. The server picks `--brand-text` and `--on-brand` so that both pass 4.5:1.
+**Founder branding under a strict CSP.**
+- The accent colour reaches viewer pages through a generated `/brand/brand.css`, linked with a fingerprint of the colour so a change is fetched at once (`snug.core.brand`). The server works out three shades: the button fill (`--brand`), text and links (`--brand-text`, which viewer links use) and the button label (`--on-brand`, white or near-black). Each is nudged towards black or white until it reaches 4.5:1 against what it sits on, in light and dark mode. Emails carry the company's name, not the colour: colouring them would need inline styles.
+- The logo is not built yet (section 4).
 - Logos are accepted as PNG or JPEG only and re-encoded through Pillow. SVG is not accepted, because an uploaded SVG can carry script.
-- An optional second logo can be uploaded for dark mode. Without one, the logo sits on a light rounded tile.
+- In dark mode the logo sits on a light rounded tile. A second logo for dark mode comes after version 1.
 
 ### 3.9 Email
 
@@ -226,9 +228,9 @@ The company's name at the top left (its logo, once founder branding is built), a
 ### 3.10 Front-end architecture
 
 - **Templates.** Django templates with `{% include %}` partials. No front-end framework and no build step.
-- **Stylesheets.** One stylesheet, `snug.css`, holds the tokens and components for the admin and the viewer. Founder branding will add a generated `/brand.css`. Static files are fingerprinted by `ManifestStaticFilesStorage` and served by whitenoise. Fonts and icons are served from the instance.
+- **Stylesheets.** One stylesheet, `snug.css`, holds the tokens and components for the admin and the viewer, and a generated `/brand/brand.css` sets the founder's colour on viewer pages. Static files are fingerprinted by `ManifestStaticFilesStorage` and served by whitenoise. Fonts and icons are served from the instance.
 - **Charts.** Server-rendered inline SVG. Geometry is set by attributes, which the CSP allows, and colour comes from CSS classes. The reading grid's chart and per-viewer strips share one coordinate system of at least 18 slots, which keeps them aligned at any width.
-- **JavaScript**, as separate files: `theme-init.js` (blocking, tiny, in `<head>`), then deferred `theme.js` (the toggle), `admin.js` (copy buttons, the tabs on a narrow screen, and upload progress: it sends an upload form itself, and the server answers that request with the address to go to, since a followed redirect would lose its `#section`), `viewer.js` (the reader's keys and page picker, and reading-time heartbeats sent only while the tab is visible), `reveal.js` (showing a password) and `nda-first.js` (the box for writing the first NDA). Every page works without JavaScript.
+- **JavaScript**, as separate files: `theme-init.js` (blocking, tiny, in `<head>`), then deferred `theme.js` (the toggle), `admin.js` (copy buttons, the tabs on a narrow screen, and upload progress: it sends an upload form itself, and the server answers that request with the address to go to, since a followed redirect would lose its `#section`), `viewer.js` (the reader's keys and page picker, and reading-time heartbeats sent only while the tab is visible), `reveal.js` (showing a password), `brand.js` (the colour picker and its preview) and `nda-first.js` (the box for writing the first NDA). Every page works without JavaScript.
 - **CSP.** `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'`. The default is `'none'`, so anything not listed is refused.
 
 ### 3.11 Empty, loading and error states
@@ -312,9 +314,10 @@ Steps 0 to 6 are done. What remains:
 **Step 9.** README, `docs/using-snug.md` (how to use the admin interface and what investors see, with annotated screenshots generated by the Playwright tests, so rebuilding the guide refreshes them), `docs/deploy-digitalocean.md`, `docs/security.md` (including what watermarks, the NDA record and UK-only mode do not protect against), then a full deployment to a test droplet from the guide alone, using a wildcard DNS name such as `sslip.io` rather than a bought domain, and a restore onto a second fresh droplet. Both droplets are destroyed afterwards.
 
 **Before version 1: features not built yet.**
-- Founder branding: a logo (PNG or JPEG, re-encoded) and an accent colour in Settings, with a live preview and a contrast warning; the logo and colour in the viewer, as its favicon and in its emails, through a generated `/brand.css`.
+- Founder branding, the logo: PNG or JPEG, re-encoded in the confined worker, shown at the top of investors' pages on a light tile and as their favicon. (The accent colour is built.)
 
 **After version 1.** Once version 1 is out, each of these becomes a public GitHub issue labelled `enhancement`, along with anything else specified and still not built:
+- A second logo for dark mode, in place of the light tile.
 - *Extend* on a link, beside *Revoke*.
 - Filters on the Links page.
 - The documents list's number of links and when each document was last viewed.

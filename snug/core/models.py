@@ -30,6 +30,9 @@ class SiteSettings(models.Model):
     # How long reading data (visits, time per page) is kept after its link is
     # revoked or expires. 12 months by default; some founders need 7 years.
     reading_retention_months = models.PositiveSmallIntegerField(default=12)
+    # The founder's accent colour for investors' pages, as #rrggbb, or "" for
+    # Snug's default. snug.core.brand makes it readable wherever it is used.
+    accent_colour = models.CharField(max_length=7, blank=True)
 
     class Meta:
         verbose_name_plural = "site settings"

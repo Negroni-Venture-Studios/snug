@@ -1,7 +1,7 @@
 {% extends "snug/admin_base.html" %}
 {% load snug %}
 {% block title %}Snug settings{% endblock %}
-{% block scripts %}{{ block.super }}{% load static %}<script src="{% static 'snug/js/reveal.js' %}" defer></script>{% endblock %}
+{% block scripts %}{{ block.super }}{% load static %}<script src="{% static 'snug/js/reveal.js' %}" defer></script><script src="{% static 'snug/js/brand.js' %}" defer></script>{% if brand_css %}<link rel="stylesheet" href="{{ brand_css }}">{% endif %}{% endblock %}
 {% block content %}
 <div class="title-row"><div><h1 class="page-title">Settings</h1></div></div>
 <div class="section" id="account">
@@ -60,6 +60,20 @@
 {% else %}
 <div class="panel"><p>Inviting needs email. See <code>docs/email.md</code>, or create admins on the server with <code>snug createadmin</code>.</p></div>
 {% endif %}
+</div>
+
+<div class="section" id="branding">
+<div class="section-head stacked"><h2>Branding</h2><p>How your pages look to investors.</p></div>
+<form class="panel form settings-form" method="post" action="{% url 'accounts:branding' %}" novalidate>
+  {% csrf_token %}
+  {% if saved == "branding" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if accent %}Saved. Investors' pages use this colour.{% if brand_adjusted %} Text and links use a deeper shade where they need one to stay readable.{% endif %}{% else %}Saved. Investors' pages use Snug's default colour.{% endif %}</span></div>{% endif %}
+  <div class="field"><label for="accent">Accent colour</label>
+    <div class="inline-form"><input id="accent-picker" type="color" value="{{ accent_shown }}" aria-label="Choose a colour" data-accent-picker><input id="accent" name="accent" type="text" maxlength="7" autocomplete="off" spellcheck="false" value="{{ accent_typed|default:accent }}" placeholder="{{ accent_shown }}"{% if branding_error %} aria-invalid="true" aria-describedby="accent-error"{% endif %}></div>
+    {% if branding_error %}<div class="error" id="accent-error" role="alert">{% icon "warning-circle" %}{{ branding_error }}</div>{% else %}<div class="hint">Used for buttons and links on investors' pages. Snug adjusts the shade where it needs to, so text stays readable in light and dark mode. Leave it empty for Snug's default.</div>{% endif %}</div>
+  <div class="field"><span class="label">Preview</span>
+    <div class="v brand-preview" data-brand-preview><p>{% if company %}{{ company }}{% else %}Your company{% endif %} has shared <strong>Seed deck</strong> with you. <a href="#branding">About this link</a></p><span class="btn btn-brand">Send code</span></div></div>
+  <button class="btn btn-primary" type="submit">Save</button>
+</form>
 </div>
 
 <div class="section" id="nda">

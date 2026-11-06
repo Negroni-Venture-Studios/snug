@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
@@ -10,6 +10,8 @@ from django.views.decorators.http import require_safe
 
 from snug.analytics import charts, summary
 from snug.analytics.models import Visit
+from snug.core import brand
+from snug.core.models import SiteSettings
 from snug.documents.models import Document
 from snug.links.models import Link
 
@@ -33,6 +35,18 @@ def overview(request: HttpRequest) -> HttpResponse:
             for visit in summary.recent_visits()
         ]
     return render(request, "core/overview.html", context)
+
+
+@require_safe
+def brand_css(request: HttpRequest) -> HttpResponse:
+    """The founder's colour as CSS custom properties, for viewer pages."""
+    accent = SiteSettings.load().accent_colour
+    if not accent:
+        raise Http404
+    response = HttpResponse(brand.stylesheet(accent), content_type="text/css; charset=utf-8")
+    # The address carries a fingerprint of the colour, so a long cache is safe.
+    response["Cache-Control"] = "public, max-age=31536000, immutable"
+    return response
 
 
 def csrf_failure(request: HttpRequest, reason: str = "") -> HttpResponse:
