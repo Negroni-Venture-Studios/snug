@@ -24,6 +24,9 @@ sudo curl -fsSLO https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/
 sudo curl -fsSLO https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/main/deploy/Caddyfile
 sudo curl -fsSLO https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/main/deploy/litestream.yml
 sudo curl -fsSLO https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/main/deploy/backup.sh
+sudo curl -fsSLO https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/main/deploy/restore.sh
+sudo curl -fsSLO https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/main/deploy/snug
+sudo install -m 755 snug /usr/local/bin/snug
 sudo curl -fsSL -o snug.env https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/main/deploy/snug.env.example
 sudo chmod 600 snug.env
 sudo ln -s snug.env .env
@@ -33,7 +36,7 @@ Fill in `snug.env` as [configuration.md](configuration.md) describes: at least `
 
 ```bash
 sudo docker compose up --detach
-sudo docker compose exec snug snug createadmin --email you@example.com
+sudo snug createadmin --email you@example.com
 ```
 
 [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. Then set up the backups, as [backups.md](backups.md) describes; until then, the backup container records that they are not set up.
@@ -67,7 +70,7 @@ IPv6 is turned on for the Compose network. Without it, Docker would relay visito
 `snug doctor` checks everything an operator would want to know, and says what to fix:
 
 ```bash
-sudo docker compose exec snug snug doctor --email you@example.com
+sudo snug doctor --email you@example.com
 ```
 
 | Check | Fine when |
@@ -85,14 +88,16 @@ Snug cannot read your inbox, so the email check sends a six-digit code and asks 
 
 ## Running commands
 
-Snug's commands run inside its container:
+The `snug` command installed in `/usr/local/bin` runs Snug's commands inside its container, from `/opt/snug`:
 
 ```bash
-sudo docker compose exec snug snug createadmin --email someone@example.com
-sudo docker compose exec snug snug reset-2fa someone@example.com
-sudo docker compose exec snug snug check
-sudo docker compose exec snug snug doctor
+sudo snug createadmin --email someone@example.com
+sudo snug reset-2fa someone@example.com
+sudo snug check
+sudo snug doctor
 ```
+
+`sudo snug restore` is the exception: it runs on the server itself, because it stops and starts the containers, as [backups.md](backups.md) explains.
 
 ## Updating
 

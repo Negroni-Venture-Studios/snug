@@ -1,0 +1,27 @@
+#!/bin/sh
+# The snug command on the server, installed as /usr/local/bin/snug.
+#
+#   sudo snug restore [--at TIME]    restore from the backups (restore.sh)
+#   sudo snug doctor                 any other command runs in Snug's container
+#
+# SNUG_HOME is the folder holding compose.yaml: /opt/snug unless set.
+
+set -eu
+cd "${SNUG_HOME:-/opt/snug}"
+
+case "${1:-}" in
+	restore)
+		shift
+		exec sh ./restore.sh "$@"
+		;;
+	"")
+		exec docker compose exec snug snug help
+		;;
+	*)
+		# A terminal for commands that ask questions, such as doctor's email test.
+		if [ -t 0 ]; then
+			exec docker compose exec snug snug "$@"
+		fi
+		exec docker compose exec -T snug snug "$@"
+		;;
+esac

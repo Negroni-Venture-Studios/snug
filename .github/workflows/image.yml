@@ -166,6 +166,39 @@ jobs:
           # On localhost without SMTP, emails go to the outbox folder.
           echo "$report" | grep -q '^ok        Email'
           echo "$report" | grep -q '^Everything is working.$'
+      - name: A wiped server will not back up over the bucket, and snug restore brings it back
+        working-directory: deploy
+        env:
+          SNUG_IMAGE: snug:smoke
+        run: |
+          docker compose exec -T snug snug shell --command \
+            "from snug.core.models import SiteSettings as S; s = S.load(); s.company_name = 'Restore Check Ltd'; s.save()"
+          docker compose exec -T snug sh -c 'echo the-deck > /var/lib/snug/originals/kept.pdf'
+          sleep 25  # Litestream, then a backup cycle
+          docker compose exec -T snug test ! -e /var/lib/snug/backup/problem
+
+          docker compose down --volumes
+          docker compose up --detach --wait --wait-timeout 120
+          sleep 15
+          docker compose exec -T snug cat /var/lib/snug/backup/problem | grep -q "another Snug's backups"
+
+          echo replace | sh restore.sh
+          seen=$(docker compose exec -T snug snug shell --command \
+            "from snug.core.models import SiteSettings as S; print(S.load().company_name)" | tail -n 1)
+          test "$seen" = "Restore Check Ltd"
+          test "$(docker compose exec -T snug cat /var/lib/snug/originals/kept.pdf)" = "the-deck"
+          sleep 15
+          docker compose exec -T snug test ! -e /var/lib/snug/backup/problem
+      - name: snug restore works on a server where Snug never started
+        working-directory: deploy
+        env:
+          SNUG_IMAGE: snug:smoke
+        run: |
+          docker compose down --volumes
+          sh restore.sh < /dev/null
+          seen=$(docker compose exec -T snug snug shell --command \
+            "from snug.core.models import SiteSettings as S; print(S.load().company_name)" | tail -n 1)
+          test "$seen" = "Restore Check Ltd"
       - name: Stop the Compose deployment
         if: always()
         working-directory: deploy

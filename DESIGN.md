@@ -308,7 +308,7 @@ Steps 0 to 6 are done. What remains:
 - cloud-init for a fresh Ubuntu LTS droplet.
 - *Done:* `snug doctor`, checking DNS, HTTPS and the certificate's expiry (a problem with under 14 days left, since Caddy renews at 30), email (send a code, type it back), the latest backup (a problem after 15 minutes), the render worker's confinement level (Landlock), and housekeeping (a problem when `snug housekeeping` has not completed in the last three hours; it records each success in the `SystemCheck` table).
 - *Done:* the admin Overview's status line shows any problem `snug doctor` would report, including failing housekeeping, so a founder sees it without running a command.
-- `snug restore`, documented and tested.
+- *Done:* `snug restore` ([docs/backups.md](docs/backups.md)), run on the server through the `snug` command in `/usr/local/bin`: it fetches the bucket's backups, rebuilds the database with Litestream (the latest, or `--at` a moment in the last 7 days), and moves any data it replaces aside rather than deleting it. Each instance has a random identity, kept in the bucket from its first backup; the backup sidecar refuses to copy into a bucket holding another instance's backups, so a new server started before its restore cannot overwrite them. The image smoke test wipes a server, checks the refusal, restores it, and restores onto a server that never started.
 
 **Step 8.** UK-only mode, per link or per room (`authorise()` check 4), with DB-IP attribution; first-open email notifications to admins.
 
