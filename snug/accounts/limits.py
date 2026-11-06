@@ -29,6 +29,15 @@ CONFIRM_PER_ADMIN = Limit("admin.confirm.admin", limit=10, window=WINDOW)
 FORGOT_PER_IP = Limit("login.forgot.ip", limit=5, window=WINDOW)
 FORGOT_PER_ACCOUNT = Limit("login.forgot.account", limit=3, window=WINDOW)
 
+# Codes on the forgotten-password page: their own allowance, so someone holding
+# a link cannot use up the admin's sign-in attempts. Five wrong codes spend
+# the link; asking for another is limited above.
+RESET_CODE_PER_ADMIN = Limit("admin.reset_code.admin", limit=10, window=WINDOW)
+RESET_CODE_FAILURES_PER_LINK = 5
+RESET_CODE_FAILURES = Limit(
+    "admin.reset_code.link", limit=RESET_CODE_FAILURES_PER_LINK, window=60 * 60
+)
+
 # Submitting the setup page, from one address. Each submission may hash a
 # password, which is deliberately slow.
 SETUP_PER_IP = Limit("admin.setup.ip", limit=20, window=WINDOW)

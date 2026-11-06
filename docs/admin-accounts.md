@@ -67,6 +67,7 @@ Use **Forgotten your password?** on the sign-in page and enter your email addres
 
 - **The link works once, for one hour.** Asking again replaces it.
 - **You also need a code from your authenticator app**, or one of your recovery codes, to set the new password. So someone who gets into your mailbox cannot change your password.
+- **Five wrong codes spend the link**, and you need to ask for a new one. Codes on this page have their own limit, so they never stop you signing in.
 - **The page never says whether an address belongs to an admin.** It gives the same reply either way, and the reply takes as long either way.
 - **Asking is limited** to 5 times from one IP address, and 3 times for one email address, in 15 minutes.
 - **Changing your password signs you out everywhere**, and Snug emails you to say it changed.

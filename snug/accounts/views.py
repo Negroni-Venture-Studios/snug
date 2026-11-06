@@ -198,9 +198,9 @@ def forgot_view(request: HttpRequest) -> HttpResponse:
 
     admin = passwords.resettable(email)
     if admin is not None:
-        token = passwords.issue(admin)
-        # Sent without waiting, so the reply takes as long as one for an address
-        # that is not an admin. A failure is logged by mail.send, not shown.
-        mail.in_background(lambda: passwords.send_link(admin, token))
+        # The link is created and sent without waiting, so the reply does the
+        # same work, and takes as long, as one for an address that is not an
+        # admin. A failure is logged by mail.send, not shown.
+        mail.in_background(lambda: passwords.send_link(admin, passwords.issue(admin)))
     _audit(request, "admin.password_reset_requested", email, admin=admin is not None)
     return render(request, "accounts/forgot_sent.html", {"email": email})
