@@ -15,6 +15,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 - Downloading a PDF that opens without a password but is encrypted against copying (common for published PDFs) failed with "could not be prepared for download". It is now stamped from an unencrypted copy. The confined worker also preloads every text codec it may need, since a PDF with UTF-16 metadata failed the same way.
 - Links from a Snug on your own computer now work: `SNUG_DOMAIN` can be `localhost` with a port, like `localhost:8000`, and every link and email includes it. The README's trial command uses it. A real domain still cannot name a port.
 - The admin and sign-in footers link to Negroni Venture Studios, and to the source on GitHub with GitHub's mark beside the repository name.
+- The company's name is set in Settings under Branding, beside the colour. It was only in the server's settings, as `SNUG_COMPANY_NAME`, which is now used only until a name is saved.
+- The accent colour shows as a band across the top of every investor page, and on the reader's Download button. Once a document was open, it had been on almost nothing.
 - Signing in, a wrong code from the authenticator app now says that codes change every 30 seconds, and taking more than five minutes after the password says so on the password page.
 - Settings lists the admins first, then inviting one, then your account. Its buttons are as wide as their labels, Replace authenticator is orange like the others, and a code box beside other fields is the same height as they are.
 - The theme toggle's sun, moon and half circle are Phosphor icons, like every other icon in Snug.

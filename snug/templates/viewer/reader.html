@@ -3,7 +3,7 @@
 {% block title %}{{ title }}{% endblock %}
 {% block scripts %}<script src="{% static 'snug/js/viewer.js' %}" defer></script>{% if prefetch %}
 <link rel="prefetch" href="{{ prefetch }}" as="image">{% endif %}{% endblock %}
-{% block tools %}{% if room_url %}<a class="btn btn-quiet" href="{{ room_url }}">{% icon "caret-left" %}{{ link.room.name }}</a>{% endif %}<span class="doc">{{ title }}</span>{% if page and link.allow_download %}<a class="btn" href="{{ download_url }}">{% icon "download-simple" %}Download</a>{% endif %}{% endblock %}
+{% block tools %}{% if room_url %}<a class="btn btn-quiet" href="{{ room_url }}">{% icon "caret-left" %}{{ link.room.name }}</a>{% endif %}<span class="doc">{{ title }}</span>{% if page and link.allow_download %}<a class="btn btn-brand" href="{{ download_url }}">{% icon "download-simple" %}Download</a>{% endif %}{% endblock %}
 {% block main %}
 {% if page %}
 <div class="reader" data-visit="{{ visit }}" data-page="{{ page }}" data-beat-url="{{ beat_url }}" data-interval="{{ beat_seconds }}">

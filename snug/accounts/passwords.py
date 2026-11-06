@@ -17,6 +17,7 @@ from django.utils import timezone
 from snug.accounts import limits, recovery, setup
 from snug.accounts.models import Admin, AdminSetup
 from snug.core import mail
+from snug.core.models import company_name
 
 LINK_HOURS = 1
 _TOTP = re.compile(r"^\s*\d{6}\s*$")
@@ -34,7 +35,7 @@ def issue(admin: Admin) -> str:
 
 
 def send_link(admin: Admin, token: str) -> bool:
-    company = settings.CONFIG.company_name
+    company = company_name()
     context = {"email": admin.email, "company": company, "url": setup.setup_url(token)}
     return mail.send(
         to=admin.email,
@@ -48,7 +49,7 @@ def send_changed(admin: Admin, *, how: str) -> bool:
     context = {
         "email": admin.email,
         "how": how,
-        "company": settings.CONFIG.company_name,
+        "company": company_name(),
         "origin": settings.CONFIG.origin,
         "when": timezone.localtime().strftime("%-d %B %Y at %H:%M"),
     }

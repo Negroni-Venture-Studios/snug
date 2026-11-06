@@ -67,6 +67,9 @@
 <form class="panel form settings-form" method="post" action="{% url 'accounts:branding' %}#branding" novalidate>
   {% csrf_token %}
   {% if saved == "branding" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if accent %}Saved. Investors' pages use this colour.{% if brand_adjusted %} Text and links use a deeper shade where they need one to stay readable.{% endif %}{% else %}Saved. Investors' pages use Snug's default colour.{% endif %}</span></div>{% endif %}
+  <div class="field"><label for="company">Company name</label>
+    <input id="company" name="company" type="text" maxlength="100" autocomplete="organization" value="{{ company_value }}"{% if company_error %} aria-invalid="true" aria-describedby="company-error"{% endif %}>
+    {% if company_error %}<div class="error" id="company-error" role="alert">{% icon "warning-circle" %}{{ company_error }}</div>{% else %}<div class="hint">As investors know it. Shown at the top of their pages when there is no logo, and in every email Snug sends.</div>{% endif %}</div>
   <div class="field"><label for="accent">Accent colour</label>
     <div class="inline-form"><input id="accent-picker" type="color" value="{{ accent_shown }}" aria-label="Choose a colour" data-accent-picker><input id="accent" name="accent" type="text" maxlength="7" autocomplete="off" spellcheck="false" value="{{ accent_typed|default:accent }}" placeholder="{{ accent_shown }}"{% if branding_error %} aria-invalid="true" aria-describedby="accent-error"{% endif %}></div>
     {% if branding_error %}<div class="error" id="accent-error" role="alert">{% icon "warning-circle" %}{{ branding_error }}</div>{% else %}<div class="hint">Used for buttons and links on investors' pages. Snug adjusts the shade where it needs to, so text stays readable in light and dark mode. Leave it empty for Snug's default.</div>{% endif %}</div>

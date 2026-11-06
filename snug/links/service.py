@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from snug.accounts.models import Admin
 from snug.core import mail
+from snug.core.models import company_name
 from snug.documents.models import Document
 from snug.links.models import Link, new_ref
 
@@ -89,7 +90,7 @@ def revoke(link: Link, by: Admin | None) -> None:
 
 
 def send_link_email(issued: Issued, sender: Admin) -> bool:
-    company = settings.CONFIG.company_name
+    company = company_name()
     context = {
         "company": company,
         "document": issued.link.document,

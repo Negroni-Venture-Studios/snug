@@ -35,6 +35,8 @@ class SiteSettings(models.Model):
     accent_colour = models.CharField(max_length=7, blank=True)
     # The founder's logo, as re-encoded by Snug (snug.core.logo), or "" for none.
     logo_name = models.CharField(max_length=40, blank=True)
+    # The company's name, as investors know it, or "" to use SNUG_COMPANY_NAME.
+    company_name = models.CharField(max_length=100, blank=True)
 
     class Meta:
         verbose_name_plural = "site settings"
@@ -46,3 +48,11 @@ class SiteSettings(models.Model):
     def load(cls) -> "SiteSettings":
         row, _ = cls.objects.get_or_create(pk=1)
         return row
+
+
+def company_name() -> str:
+    """The company's name: as saved in Settings, or else SNUG_COMPANY_NAME, or ""."""
+    from django.conf import settings
+
+    saved = SiteSettings.load().company_name
+    return saved or str(settings.CONFIG.company_name)
