@@ -20,6 +20,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 ### Added
 
 - The People page shows how many times each person downloaded each document, and their total.
+- An eye at the right of every password box shows or hides what is typed, for phones and fiddly keyboards. Password boxes also turn off autocorrect and capitalisation.
 - "Forgotten your password?" on the sign-in page. It emails a link that works once, for one hour; setting the new password also needs a code from the authenticator app or a recovery code. The reply never says whether an address belongs to an admin. Without email, `snug reset-password EMAIL` does the same on the server, and is written to the audit log; Django's unaudited `changepassword` is disabled.
 - The Overview: how many documents, active links, people who have read and visits this week, then the ten latest visits, with a person's first open of a document marked New.
 - A container image, `ghcr.io/negroni-venture-studios/snug`, for amd64 and arm64: `:edge` from `main`, and a version tag and `:latest` from each release. It runs as an unprivileged user, and its render worker is confined by Landlock.
