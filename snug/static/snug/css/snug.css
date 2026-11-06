@@ -164,6 +164,9 @@ h1.page-title { overflow-wrap: anywhere; font-size: 2.1rem; font-weight: 300; le
 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
 .section-head h2 { font-size: 1.1rem; font-weight: 500; letter-spacing: -0.01em; }
 .section-head p { font-size: 0.85rem; color: var(--text-2); }
+/* Above a form there is no top rule for flush-right text to line up with,
+   so the explanation sits under the heading, at the form's left edge. */
+.section-head.stacked { flex-direction: column; align-items: flex-start; gap: 0.3rem; }
 
 /* ---------- Reading matrix: one aligned grid for the chart and every viewer ---------- */
 .matrix { display: grid; grid-template-columns: minmax(13rem, 1.25fr) minmax(15rem, 2fr) 5rem 8rem 9rem; align-items: stretch; }

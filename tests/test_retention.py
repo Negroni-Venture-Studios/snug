@@ -226,3 +226,12 @@ def test_the_period_reads_as_one_sentence(client: Client) -> None:
     row = row[: row.index("</div>")]
     assert row.index('<label for="months">Keep reading data for</label>') < row.index('id="months"')
     assert row.index('id="months"') < row.index("months after a link ends")
+
+
+def test_explanations_above_a_form_sit_under_the_heading(client: Client) -> None:
+    # Set flush right, an explanation lines up with a ruled list's top line;
+    # above a form there is no line, so it goes under the heading instead.
+    page = client.get("/admin/settings/", secure=True).content.decode()
+    assert '<div class="section-head stacked"><h2>NDA</h2>' in page
+    assert '<div class="section-head stacked"><h2>Privacy</h2>' in page
+    assert '<div class="section-head"><h2>Admins</h2>' in page  # above the list

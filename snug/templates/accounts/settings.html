@@ -36,7 +36,7 @@
 </div>
 
 <div class="section" id="nda">
-<div class="section-head"><h2>NDA</h2><p>One agreement for every room and link that asks for it. {% if nda %}Version {{ nda.number }}, {{ nda.created_at|date:"j M Y" }}.{% else %}None yet.{% endif %}</p></div>
+<div class="section-head stacked"><h2>NDA</h2><p>One agreement for every room and link that asks for it. {% if nda %}Version {{ nda.number }}, {{ nda.created_at|date:"j M Y" }}.{% else %}None yet.{% endif %}</p></div>
 <form class="panel form settings-form" method="post" action="{% url 'accounts:nda' %}" novalidate>
   {% csrf_token %}
   {% if saved == "nda" and nda %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved as version {{ nda.number }}. Anyone asked for the NDA accepts this version on their next visit.</span></div>{% endif %}
@@ -48,7 +48,7 @@
 </div>
 
 <div class="section" id="privacy">
-<div class="section-head"><h2>Privacy</h2><p>Viewers are told what Snug records about them. You can add a link to your own privacy policy.</p></div>
+<div class="section-head stacked"><h2>Privacy</h2><p>Viewers are told what Snug records about them. You can add a link to your own privacy policy.</p></div>
 <form class="panel form settings-form" method="post" action="{% url 'accounts:privacy' %}" novalidate>
   {% csrf_token %}
   {% if saved == "privacy" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved.</span></div>{% endif %}
