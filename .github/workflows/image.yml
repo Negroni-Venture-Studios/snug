@@ -72,10 +72,20 @@ jobs:
         working-directory: deploy
         env:
           SNUG_IMAGE: snug:smoke
+          RCLONE: rclone/rclone:1.75.2@sha256:2687085f718d3c628f7fdfb77c52a1d344332aed543110bb88088f2c70d43eb5
         run: |
           printf 'SNUG_SECRET_KEY=%s\nSNUG_DOMAIN=localhost\n' \
             "$(python3 -c 'import secrets; print(secrets.token_urlsafe(64))')" > snug.env
           ln -s snug.env .env
+          # Back up to a folder standing in for the bucket, every 10 seconds.
+          mkdir -m 777 bucket backup
+          password=$(docker run --rm "$RCLONE" obscure "$(openssl rand -base64 32)")
+          salt=$(docker run --rm "$RCLONE" obscure "$(openssl rand -base64 32)")
+          printf '[bucket]\ntype = local\n\n[snug-backup]\ntype = crypt\nremote = bucket:/bucket/snug\npassword = %s\npassword2 = %s\n' \
+            "$password" "$salt" > backup/rclone.conf
+          chmod 644 backup/rclone.conf
+          printf 'services:\n  backup:\n    environment:\n      SNUG_BACKUP_EVERY: "10"\n    volumes:\n      - ./bucket:/bucket\n' \
+            > compose.override.yaml
           docker compose up --detach --wait --wait-timeout 120
       - name: Caddy serves HTTPS and redirects HTTP
         run: |
@@ -115,6 +125,35 @@ jobs:
           print('rendered in the worker')
           "
           docker compose exec -T snug snug housekeeping
+      - name: The database and uploads reach the bucket, encrypted
+        working-directory: deploy
+        run: |
+          docker compose exec -T snug sh -c \
+            'mkdir -p -m 700 /var/lib/snug/originals && echo plain-text-marker > /var/lib/snug/originals/deck.pdf'
+          for _ in $(seq 30); do
+            listing=$(docker compose exec -T backup rclone lsf -R snug-backup: || true)
+            if echo "$listing" | grep -q '^originals/deck.pdf$' \
+              && echo "$listing" | grep -q '^database/ltx/'; then break; fi
+            sleep 2
+          done
+          echo "$listing"
+          echo "$listing" | grep -q '^originals/deck.pdf$'
+          echo "$listing" | grep -q '^database/ltx/'
+          docker compose exec -T snug test -s /var/lib/snug/backup/last-success
+          docker compose exec -T snug test ! -e /var/lib/snug/backup/problem
+          ! grep -r --quiet plain-text-marker bucket
+          ! find bucket -name 'deck.pdf' | grep --quiet .
+      - name: A deleted upload is kept under deleted/ in the bucket
+        working-directory: deploy
+        run: |
+          docker compose exec -T snug rm /var/lib/snug/originals/deck.pdf
+          kept="deleted/$(date -u +%Y-%m-%d)/originals/deck.pdf"
+          for _ in $(seq 30); do
+            if docker compose exec -T backup rclone lsf -R snug-backup: | grep -qx "$kept"; then exit 0; fi
+            sleep 2
+          done
+          docker compose exec -T backup rclone lsf -R snug-backup:
+          exit 1
       - name: Stop the Compose deployment
         if: always()
         working-directory: deploy

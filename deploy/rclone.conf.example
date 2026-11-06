@@ -1,0 +1,24 @@
+# Where Snug's backups go, and the key that encrypts them. Copy to
+# /opt/snug/backup/rclone.conf and fill in; docs/backups.md explains each step.
+# Keep a copy of the finished file in your password manager: without it, the
+# backups cannot be read by anyone, including you.
+
+# The bucket. This is for DigitalOcean Spaces; rclone supports most S3-
+# compatible stores, with their own provider and endpoint.
+[bucket]
+type = s3
+provider = DigitalOcean
+access_key_id =
+secret_access_key =
+endpoint = lon1.digitaloceanspaces.com
+acl = private
+no_check_bucket = true
+
+# Everything is written through this remote, which encrypts names and
+# contents before they leave the server. Replace your-bucket with the
+# bucket's name. password and password2 come from `rclone obscure`.
+[snug-backup]
+type = crypt
+remote = bucket:your-bucket/snug
+password =
+password2 =
