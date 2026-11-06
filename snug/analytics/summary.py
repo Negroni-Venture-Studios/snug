@@ -5,9 +5,10 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from django.db.models import Exists, OuterRef, Sum
+from django.db.models import Count, Exists, OuterRef, Sum
 
 from snug.analytics.models import PageView, Visit
+from snug.audit.models import AuditEvent
 from snug.documents.models import Document
 
 
@@ -101,6 +102,7 @@ class PersonDocument:
     last_seen: datetime | None = None
     seconds: list[float] = field(default_factory=list)
     seen: list[bool] = field(default_factory=list)
+    downloads: int = 0
 
     @property
     def total_seconds(self) -> float:
@@ -117,6 +119,10 @@ class Person:
     @property
     def total_seconds(self) -> float:
         return sum(d.total_seconds for d in self.documents)
+
+    @property
+    def downloads(self) -> int:
+        return sum(d.downloads for d in self.documents)
 
 
 def for_people() -> list[Person]:
@@ -161,6 +167,19 @@ def for_people() -> list[Person]:
         read = reads[owner[view["visit_id"]]]
         read.seconds[view["page"] - 1] += view["seconds"]
         read.seen[view["page"] - 1] = True
+
+    # Downloads live in the audit log, which outlasts reading data: count only
+    # those that match a document the person is shown reading.
+    token_of = {visit.document.token: visit.document_id for visit in visits}
+    downloads = (
+        AuditEvent.objects.filter(action="viewer.downloaded")
+        .values("actor", "details__document")
+        .annotate(n=Count("id"))
+    )
+    for row in downloads:
+        read_id = token_of.get(row["details__document"])
+        if read_id is not None and (row["actor"], read_id) in reads:
+            reads[(row["actor"], read_id)].downloads = int(row["n"] or 0)
 
     for person in people.values():
         person.documents.sort(key=lambda d: d.last_seen or datetime.min, reverse=True)

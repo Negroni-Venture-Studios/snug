@@ -91,3 +91,56 @@ def test_the_people_page_before_anyone_reads() -> None:
 
 def test_people_need_a_signed_in_admin() -> None:
     assert Client().get("/admin/people/", secure=True).status_code == 302
+
+
+# ---------------------------------------------------------------- downloads
+#
+# Asked for 6 November 2026: the People page flags documents a person has
+# downloaded, and how many times. Downloads are recorded in the audit log.
+
+
+def downloaded(email: str, document: Document, times: int = 1) -> None:
+    from snug.audit.models import AuditEvent, record
+
+    for _ in range(times):
+        record(
+            "viewer.downloaded",
+            actor_type=AuditEvent.ActorType.VIEWER,
+            actor=email,
+            target=email,
+            details={"link": "L-ABCD", "document": document.token, "version": 1},
+        )
+
+
+@pytest.mark.usefixtures("library")
+def test_downloads_are_counted_per_person_and_document() -> None:
+    seed = Document.objects.get(title="Seed deck")
+    model = Document.objects.get(title="Financial model")
+    downloaded("priya@northfield.example", seed, times=2)
+    downloaded("priya@northfield.example", model)
+    downloaded("sam@eastgate.example", model)  # never read it: not on Sam's rows
+    sam, priya = summary.for_people()
+    assert [(d.title, d.downloads) for d in priya.documents] == [
+        ("Financial model", 1),
+        ("Seed deck", 2),
+    ]
+    assert priya.downloads == 3
+    assert [(d.title, d.downloads) for d in sam.documents] == [("Seed deck", 0)]
+    assert sam.downloads == 0
+
+
+@pytest.mark.usefixtures("library")
+def test_the_people_page_shows_downloads() -> None:
+    downloaded("priya@northfield.example", Document.objects.get(title="Seed deck"), times=2)
+    page = admin_client().get("/admin/people/", secure=True).content.decode()
+    assert '<div class="matrix with-downloads">' in page
+    assert '<div class="cell r">Downloads</div>' in page
+    priya = page[page.index("<h2>priya@northfield.example</h2>") :]
+    assert "2 min 50 s in all, 2 downloads, last seen" in priya
+    seed_row = priya[priya.index("Seed deck") :]
+    seed_row = seed_row[: seed_row.index('class="cell r last"')]
+    count = '<div class="cell r count downloaded">2<span class="visually-hidden"> downloads</span>'
+    assert count in seed_row
+    sam = page[page.index("<h2>sam@eastgate.example</h2>") : page.index("<h2>priya")]
+    assert "downloads, last seen" not in sam  # no downloads, no mention
+    assert '<div class="cell r count">0<span class="visually-hidden"> downloads</span>' in sam

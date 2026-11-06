@@ -185,7 +185,7 @@ Real URLs, not hash routing, because every action is a CSRF-protected form post.
   - **Links to this document** as plain rows, with *Revoke* or *Extend* where they apply.
 - **Rooms.** A list, and for each room its folders and documents, the NDA text (versioned, with history), the room's links and the UK-only setting.
 - **Links.** Every link, filterable: recipient, note, target, created, expiry and status. Revoking goes through a confirmation page that names the recipient.
-- **People.** One row per viewer email address, with everything that person has opened across the instance, using the same page strips.
+- **People.** One row per viewer email address, with everything that person has opened across the instance, using the same page strips. Each document row also says how many times that person downloaded it, and the person's summary line gives their total when it is above zero (asked for 6 November 2026). The counts come from the audit log's download events, which outlast reading data, so only documents the person is still shown reading are counted.
 - **Audit log.** A dense, filterable table and a CSV export.
 - **Settings.**
   - Branding: logo and accent colour, with a live preview and a contrast warning.
