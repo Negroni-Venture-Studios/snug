@@ -22,12 +22,13 @@ CSRF_TRUSTED_ORIGINS = [CONFIG.origin]
 # The Django admin is deliberately absent: it would not enforce TOTP, and it
 # is attack surface Snug does not need. ruff bans importing it.
 INSTALLED_APPS = [
+    # First, so its `changepassword` replaces Django's, which is not audited.
+    "snug.accounts",
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "django.contrib.sessions",
     "django.contrib.staticfiles",
     "snug.core",
-    "snug.accounts",
     "snug.audit",
     "snug.documents",
     "snug.links",

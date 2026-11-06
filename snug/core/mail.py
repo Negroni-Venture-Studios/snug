@@ -2,6 +2,8 @@
 
 import logging
 import smtplib
+import threading
+from collections.abc import Callable
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
@@ -35,3 +37,8 @@ def send(*, to: str, subject: str, text: str, html: str = "", reply_to: str = ""
         log.warning("Email could not be sent: %s", type(error).__name__)
         return False
     return True
+
+
+def in_background(task: Callable[[], object]) -> None:
+    """Send without making the reply wait, so it takes as long as one that sends nothing."""
+    threading.Thread(target=task, daemon=True).start()

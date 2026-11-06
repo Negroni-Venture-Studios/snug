@@ -16,10 +16,10 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
 
-from snug.accounts import limits, recovery, sessions, totp
+from snug.accounts import limits, passwords, recovery, sessions, totp
 from snug.accounts.models import Admin
 from snug.audit.models import AuditEvent, record
-from snug.core import ratelimit
+from snug.core import mail, ratelimit
 from snug.core.client import client_ip, user_agent
 
 TOO_MANY = "Too many attempts. Wait 15 minutes, then try again."
@@ -173,3 +173,34 @@ def logout_view(request: HttpRequest) -> HttpResponse:
         _audit(request, "admin.logout", email, actor=email)
     logout(request)
     return redirect(settings.LOGIN_URL)
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def forgot_view(request: HttpRequest) -> HttpResponse:
+    """Ask for a link to choose a new password. The reply never says who is an admin."""
+    if not mail.enabled():
+        return render(
+            request,
+            "accounts/forgot.html",
+            {"no_email": True},
+            status=(404 if request.method == "POST" else 200),
+        )
+    if request.method == "GET":
+        return render(request, "accounts/forgot.html", {"email": ""})
+
+    email = Admin.objects.normalize_email(request.POST.get("email", "")).strip()
+    if not ratelimit.allow(limits.FORGOT_PER_IP, _identity(request)) or not ratelimit.allow(
+        limits.FORGOT_PER_ACCOUNT, email
+    ):
+        context = {"email": email, "error": TOO_MANY}
+        return render(request, "accounts/forgot.html", context, status=429)
+
+    admin = passwords.resettable(email)
+    if admin is not None:
+        token = passwords.issue(admin)
+        # Sent without waiting, so the reply takes as long as one for an address
+        # that is not an admin. A failure is logged by mail.send, not shown.
+        mail.in_background(lambda: passwords.send_link(admin, token))
+    _audit(request, "admin.password_reset_requested", email, admin=admin is not None)
+    return render(request, "accounts/forgot_sent.html", {"email": email})

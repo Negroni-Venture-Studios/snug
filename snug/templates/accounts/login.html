@@ -11,4 +11,5 @@
   <div class="field"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required{% if email %} autofocus{% endif %}></div>
   <button class="btn btn-primary" type="submit">Continue</button>
 </form>
+<p class="alt"><a href="{% url 'accounts:forgot' %}">Forgotten your password?</a></p>
 {% endblock %}

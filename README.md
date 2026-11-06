@@ -87,10 +87,10 @@ docker inspect snug --format '{{range .Config.Env}}{{println .}}{{end}}' | grep 
 chmod 600 snug.env
 ```
 
-**A forgotten password.** Set a new one from the command line; the authenticator app keeps working as before:
+**A forgotten password.** With email set up, use "Forgotten your password?" on the sign-in page. Without it, set a new one from the command line; the authenticator app keeps working as before:
 
 ```bash
-docker exec --interactive --tty snug snug changepassword you@example.com
+docker exec --interactive --tty snug snug reset-password you@example.com
 ```
 
 To remove it all: `docker rm --force snug && docker volume rm snug-data`, then delete `snug.env`.

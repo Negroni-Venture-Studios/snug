@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
-from snug.accounts import limits, setup, totp
+from snug.accounts import limits, passwords, recovery, setup, totp
 from snug.accounts.models import Admin, AdminSetup
 from snug.analytics import retention
 from snug.audit.models import AuditEvent, record
@@ -51,7 +51,9 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
     now = timezone.now()
     pending = {
         row.admin_id: row
-        for row in AdminSetup.objects.filter(expires_at__gt=now).select_related("admin")
+        for row in AdminSetup.objects.filter(expires_at__gt=now)
+        .exclude(purpose=AdminSetup.Purpose.PASSWORD)  # private to the admin who asked
+        .select_related("admin")
     }
     admins = [{"account": a, "setup": pending.get(a.pk)} for a in Admin.objects.all()]
     context = {
@@ -362,6 +364,8 @@ def setup_view(request: HttpRequest, token: str) -> HttpResponse:
     row = setup.find(token)
     if row is None:
         return render(request, "accounts/setup_gone.html", status=404)
+    if row.purpose == AdminSetup.Purpose.PASSWORD:
+        return _new_password(request, row)
 
     secret = _secret_for(request, row)
     if request.method == "GET" or secret is None:
@@ -401,3 +405,48 @@ def setup_view(request: HttpRequest, token: str) -> HttpResponse:
         return render(request, "accounts/setup_gone.html", status=404)
     _audit(request, "admin.setup_completed", email, email, purpose=purpose)
     return render(request, "accounts/setup_done.html", {"email": email, "codes": codes})
+
+
+def _new_password(request: HttpRequest, row: AdminSetup) -> HttpResponse:
+    """The forgotten-password link: a new password, proved with the second factor."""
+    admin = row.admin
+
+    def page(status: int = 200, **errors: str) -> HttpResponse:
+        context = {"email": admin.email, "errors": errors}
+        return render(request, "accounts/password_reset.html", context, status=status)
+
+    if request.method == "GET":
+        return page()
+    if not ratelimit.allow(limits.SETUP_PER_IP, client_ip(request) or "unknown"):
+        return page(429, code=TOO_MANY)
+
+    # The password first: a bad one must not spend a code.
+    password = request.POST.get("password", "")
+    if password != request.POST.get("password2", ""):
+        return page(400, password="The passwords do not match.")  # noqa: S106 - a message
+    try:
+        validate_password(password, user=admin)
+    except ValidationError as problem:
+        return page(400, password=" ".join(problem.messages))
+
+    code = request.POST.get("code", "")
+    allowed = ratelimit.allow(limits.CODE_PER_ADMIN, str(admin.pk))
+    if allowed and not passwords.is_app_code(code):
+        allowed = ratelimit.allow(limits.RECOVERY_PER_ADMIN, str(admin.pk))
+    if not allowed:
+        return page(429, code=TOO_MANY)
+
+    method = passwords.change(row, password, code)
+    if method == "gone":
+        return render(request, "accounts/setup_gone.html", status=404)
+    if method is None:
+        _audit(request, "admin.password_reset_failed", "", admin.email, reason="wrong_code")
+        return page(400, code="That code is not right.")
+
+    details: dict[str, Any] = {"method": method}
+    if method == "recovery":
+        details["recovery_codes_left"] = recovery.remaining(admin)
+    _audit(request, "admin.password_reset", admin.email, admin.email, **details)
+    passwords.send_changed(admin, how="with the forgotten-password link")
+    context = {"codes_left": details.get("recovery_codes_left")}
+    return render(request, "accounts/password_reset_done.html", context)

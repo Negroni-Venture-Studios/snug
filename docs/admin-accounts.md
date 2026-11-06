@@ -61,6 +61,24 @@ Go to `/admin/` on your Snug domain. Enter your email address and password, then
   The account limit is deliberately generous, so that someone typing wrong passwords cannot easily lock you out.
 - **Changing your password, or resetting your second factor, signs you out everywhere.**
 
+## Forgetting your password
+
+Use **Forgotten your password?** on the sign-in page and enter your email address. If it belongs to an admin, Snug emails a link to choose a new password.
+
+- **The link works once, for one hour.** Asking again replaces it.
+- **You also need a code from your authenticator app**, or one of your recovery codes, to set the new password. So someone who gets into your mailbox cannot change your password.
+- **The page never says whether an address belongs to an admin.** It gives the same reply either way, and the reply takes as long either way.
+- **Asking is limited** to 5 times from one IP address, and 3 times for one email address, in 15 minutes.
+- **Changing your password signs you out everywhere**, and Snug emails you to say it changed.
+
+Without email, ask another admin to help, or run this on the server:
+
+```bash
+snug reset-password you@yourcompany.com
+```
+
+It asks for the new password twice. Like the link, it signs you out everywhere and is written to the audit log; your authenticator keeps working. Django's own `changepassword` is disabled, because it writes nothing to the audit log.
+
 ## Losing your phone
 
 - If you still have your recovery codes, sign in with one of them, then set up the authenticator again.
@@ -75,7 +93,7 @@ It asks you to confirm, shows a new QR code, and issues new recovery codes. The 
 
 ## What is recorded
 
-Creating an admin and resetting a second factor are both written to the audit log, along with every sign-in. Passwords, authenticator keys and recovery codes are never written to the log.
+Creating an admin, resetting a second factor, and asking for and changing a forgotten password are all written to the audit log, along with every sign-in. Passwords, authenticator keys and recovery codes are never written to the log.
 
 ## How the secrets are kept
 
