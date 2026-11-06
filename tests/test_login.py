@@ -422,3 +422,24 @@ def test_a_null_origin_is_refused(admin: Admin) -> None:
         headers={"Origin": "null"},
     )
     assert response.status_code == 403
+
+
+def test_the_sign_in_page_names_the_company(client: Client) -> None:
+    from snug.core.models import SiteSettings
+
+    settings_row = SiteSettings.load()
+    settings_row.company_name = "Fernlea & Robotics"
+    settings_row.save()
+    page = client.get("/admin/login", secure=True).content.decode()
+    heading = page.index("<h1>Sign in</h1>")
+    named = page.index('<p class="auth-company">Fernlea &amp; Robotics</p>')
+    assert heading < named < page.index('<p class="lede">')
+    # And after a wrong password, too.
+    page = client.post(
+        "/admin/login", {"email": "nobody@example.com", "password": "wrong"}, secure=True
+    ).content.decode()
+    assert '<p class="auth-company">Fernlea &amp; Robotics</p>' in page
+
+
+def test_without_a_name_there_is_no_line(client: Client) -> None:
+    assert "auth-company" not in client.get("/admin/login", secure=True).content.decode()

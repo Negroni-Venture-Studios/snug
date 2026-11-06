@@ -8,12 +8,14 @@ Feather and Lucide, which would each need their own credit.
 import re
 from pathlib import Path
 
+import pytest
 from django.test import Client
 
 ICONS = Path(__file__).parent.parent / "snug" / "static" / "snug" / "icons"
 TOGGLE = {"sun": "sun", "moon": "moon", "auto": "circle-half"}  # class: Phosphor icon
 
 
+@pytest.mark.django_db  # the sign-in page reads the company's name
 def test_the_toggle_uses_the_vendored_phosphor_icons() -> None:
     page = Client().get("/admin/login", secure=True).content.decode()
     toggle = re.search(r'<button class="theme-toggle".*?</button>', page, re.S)
