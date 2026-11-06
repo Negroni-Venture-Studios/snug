@@ -436,7 +436,12 @@ input[type="file"]::file-selector-button {
 }
 .doc-split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 2.5rem; align-items: start; }
 /* The room page's four tools, two by two, so neither column runs on alone. */
-.room-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.5rem; align-items: start; }
+.room-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.5rem; }
+/* Both panels in a row share its height, with their buttons along the bottom. */
+.room-tools > .section { display: flex; flex-direction: column; }
+.room-tools > .section > .panel { flex: 1 1 auto; }
+.room-tools .panel.form { display: flex; flex-direction: column; gap: 1.25rem; }
+.room-tools .form-foot { margin-top: auto; }
 .preview-frame { border: 1px solid var(--border); border-radius: 2px; overflow: hidden; background: #ffffff; }
 .preview-frame img { display: block; width: 100%; height: auto; }
 @media (max-width: 860px) {
