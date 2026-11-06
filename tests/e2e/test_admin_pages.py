@@ -1,9 +1,10 @@
 """Admin pages in a real browser: what only a click can prove under the CSP."""
 
+import re
 from typing import Any
 
 import pytest
-from playwright.sync_api import Page, expect
+from playwright.sync_api import FilePayload, Page, expect
 
 pytestmark = [pytest.mark.django_db(transaction=True)]
 
@@ -89,3 +90,51 @@ def test_the_link_form_shows_the_box_only_when_asked(live_server: Any, page: Pag
     expect(box).to_be_visible()
     page.get_by_text("Ask for the NDA first").click()
     expect(box).to_be_hidden()
+
+
+# ---------------------------------------------------------------- upload progress
+
+
+def test_an_upload_shows_its_progress_and_cannot_be_sent_twice(
+    live_server: Any, page: Page, data_folder: Any
+) -> None:
+    import time
+
+    from tests.pdfs import make_pdf
+
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/documents/new")
+    page.get_by_label("Title").fill("Seed deck")
+    page.get_by_label("PDF").set_input_files(
+        files=FilePayload(
+            name="deck.pdf", mimeType="application/pdf", buffer=make_pdf((960, 540), (595, 842))
+        )
+    )
+
+    def slowly(route: Any) -> None:
+        time.sleep(1.5)  # long enough to see the form while it waits
+        route.continue_()
+
+    page.route("**/admin/documents/new", slowly)
+    button = page.get_by_role("button", name="Upload")
+    button.click()
+    expect(page.locator("[data-upload-status]")).to_be_visible()
+    expect(button).to_be_disabled()
+    # The server's reply replaces the page, with its notice in view.
+    notice = page.locator(".notice-ok")
+    expect(notice).to_contain_text("Uploaded, 2 pages", timeout=15000)
+    expect(notice).to_be_in_viewport()
+    expect(page).to_have_url(re.compile(r"/admin/documents/[A-Za-z0-9_-]+#links$"))
+
+
+def test_a_refused_upload_shows_its_error(live_server: Any, page: Page, data_folder: Any) -> None:
+    from tests.pdfs import make_pdf
+
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/documents/new")
+    page.get_by_label("PDF").set_input_files(
+        files=FilePayload(name="deck.pdf", mimeType="application/pdf", buffer=make_pdf((960, 540)))
+    )
+    page.get_by_role("button", name="Upload").click()  # no title
+    expect(page.locator(".notice-error")).to_contain_text("Give the document a title.")
+    expect(page.get_by_role("button", name="Upload")).to_be_enabled()

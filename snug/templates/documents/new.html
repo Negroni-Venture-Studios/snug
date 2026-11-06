@@ -4,11 +4,12 @@
 {% block content %}
 <div class="crumbs"><a href="{% url 'documents:list' %}">Documents</a> / Upload</div>
 <div class="title-row"><div><h1 class="page-title">Upload a PDF</h1><div class="page-meta">PDF only, up to {{ limit_mb }} MB. Later uploads become new versions of the same document.</div></div></div>
-<form class="panel form narrow-form" method="post" action="{% url 'documents:new' %}" enctype="multipart/form-data" novalidate>
+<form class="panel form narrow-form" method="post" action="{% url 'documents:new' %}" enctype="multipart/form-data" novalidate data-upload>
   {% csrf_token %}
   {% include "snug/partials/form_error.html" %}
   <div class="field"><label for="title">Title</label><input id="title" name="title" type="text" maxlength="200" required value="{{ title }}" autofocus><div class="hint">What investors will see, for example "Seed deck".</div></div>
   <div class="field"><label for="pdf">PDF</label><input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf" required><div class="hint">Export decks, spreadsheets and drawings to PDF first. Password-protected PDFs cannot be read.</div></div>
+  <div class="upload-status" data-upload-status hidden><progress max="100" value="0"></progress><span role="status" aria-live="polite">Uploading</span></div>
   <div class="form-foot"><a class="btn" href="{% url 'documents:list' %}">Cancel</a><button class="btn btn-primary" type="submit">{% icon "upload-simple" %}Upload</button></div>
 </form>
 {% endblock %}

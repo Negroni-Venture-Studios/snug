@@ -40,4 +40,51 @@
       navigator.clipboard.writeText(text).then(function () { say('Copied'); }, fallback);
     });
   });
+
+  // Upload forms (<form data-upload>): send the form here, to show a progress
+  // bar and stop a second click, then show the page the server sends back, as
+  // a plain submission would. Without this script the form posts as before.
+  document.querySelectorAll('form[data-upload]').forEach(function (form) {
+    var status = form.querySelector('[data-upload-status]');
+    if (!status || !window.FormData || !window.XMLHttpRequest) return;
+    var bar = status.querySelector('progress');
+    var words = status.querySelector('[role="status"]');
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var button = form.querySelector('button[type="submit"]');
+      if (button) button.disabled = true;
+      status.hidden = false;
+      var request = new XMLHttpRequest();
+      request.open('POST', form.action);
+      request.setRequestHeader('X-Snug-Upload', '1');
+      request.upload.addEventListener('progress', function (progress) {
+        if (!progress.lengthComputable) return;
+        var percent = Math.round((progress.loaded / progress.total) * 100);
+        bar.value = percent;
+        words.textContent = 'Uploading, ' + percent + '%';
+      });
+      request.upload.addEventListener('load', function () {
+        bar.removeAttribute('value');  // indeterminate while the server reads it
+        words.textContent = 'Checking the PDF';
+      });
+      request.addEventListener('load', function () {
+        // Saved: the server says where to go, so the page shows its notice.
+        var next = request.getResponseHeader('Snug-Location');
+        if (request.status === 204 && next) {
+          window.location.assign(next);
+          return;
+        }
+        // Refused: show the form the server sent back, with its error.
+        document.open();
+        document.write(request.responseText);
+        document.close();
+      });
+      request.addEventListener('error', function () {
+        if (button) button.disabled = false;
+        bar.removeAttribute('value');
+        words.textContent = 'The upload stopped. Check your connection, then try again.';
+      });
+      request.send(new FormData(form));
+    });
+  });
 })();

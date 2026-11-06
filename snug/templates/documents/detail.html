@@ -61,10 +61,11 @@
   <div>
     <section class="section">
       <div class="section-head"><h2>Upload a new version</h2></div>
-      <form class="panel form" method="post" action="{% url 'documents:upload_version' document.token %}" enctype="multipart/form-data" novalidate>
+      <form class="panel form" method="post" action="{% url 'documents:upload_version' document.token %}" enctype="multipart/form-data" novalidate data-upload>
         {% csrf_token %}
         {% include "snug/partials/form_error.html" %}
         <div class="field"><label for="pdf">PDF</label><input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf" required><div class="hint">Up to {{ limit_mb }} MB. Every link to this document will show the new version.</div></div>
+        <div class="upload-status" data-upload-status hidden><progress max="100" value="0"></progress><span role="status" aria-live="polite">Uploading</span></div>
         <div class="form-foot"><button class="btn btn-primary" type="submit">{% icon "upload-simple" %}Upload version</button></div>
       </form>
     </section>

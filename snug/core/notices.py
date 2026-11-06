@@ -5,13 +5,18 @@ session and redirects to the section's anchor. The page that renders next
 calls `take`, which removes it, so a reload does not repeat it.
 """
 
-from django.http import HttpRequest, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 
 SESSION_KEY = "snug.notice"
 
 
-def saved(request: HttpRequest, url: str, section: str, text: str) -> HttpResponseRedirect:
+def saved(request: HttpRequest, url: str, section: str, text: str) -> HttpResponse:
     request.session[SESSION_KEY] = {"section": section, "text": text}
+    if request.headers.get("X-Snug-Upload") == "1":
+        # An upload sent by admin.js, to show its progress. A script that
+        # followed the redirect would lose the #section, so it is told the
+        # address instead and goes there itself.
+        return HttpResponse(status=204, headers={"Snug-Location": f"{url}#{section}"})
     return HttpResponseRedirect(f"{url}#{section}")
 
 

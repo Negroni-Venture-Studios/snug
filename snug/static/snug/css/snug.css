@@ -243,6 +243,10 @@ select {
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--focus); outline-offset: -1px; }
 /* A password box with an eye at its right that shows or hides what is typed. */
 .nda-first[hidden] { display: none; }
+/* Upload progress: shown by admin.js while a PDF is sent and checked. */
+.upload-status { display: grid; gap: 0.4rem; font-size: 0.875rem; color: var(--text-2); }
+.upload-status[hidden] { display: none; }
+.upload-status progress { width: 100%; height: 0.5rem; accent-color: var(--action); }
 .password-field { position: relative; }
 .password-field input { padding-right: 2.9rem; }
 .password-field .reveal { position: absolute; top: 50%; right: 0.4rem; transform: translateY(-50%); display: inline-flex; align-items: center; justify-content: center; width: 2.3rem; height: 2.3rem; padding: 0; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--text-2); cursor: pointer; }
