@@ -19,12 +19,14 @@ def people(request: HttpRequest) -> HttpResponse:
             "note": person.note,
             "last_seen": person.last_seen,
             "total": charts.duration(person.total_seconds),
+            "downloads": person.downloads,
             "documents": [
                 {
                     "title": read.title,
                     "token": read.token,
                     "strip": charts.strip(read.seconds, read.seen, f"{person.email}, {read.title}"),
                     "visits": read.visits,
+                    "downloads": read.downloads,
                     "total": charts.duration(read.total_seconds),
                     "last_seen": read.last_seen,
                 }
