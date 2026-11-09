@@ -10,6 +10,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- The Google Workspace guide takes someone who has never used Google Cloud through every screen, and covers SPF, DKIM and DMARC for each sending domain, user alias domains, and the things DNS hosts and multiple Google accounts get wrong.
 - A saved Google client secret or SMTP password shows as dots, so the field no longer looks empty. The value itself is still never sent to the browser.
 - Connecting Google says before you leave for Google that one more authenticator code is needed on your return, and the return shows a green notice naming the approved mailbox.
 - On a Mac, connecting Google killed Snug's server process, and the browser showed an empty response when Google sent you back. Snug's calls to Google and DB-IP now take proxy settings from the environment only, rather than asking macOS, whose frameworks refuse to run in a process gunicorn has forked. A server on Linux was not affected.
