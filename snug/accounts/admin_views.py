@@ -381,6 +381,47 @@ def privacy_view(request: HttpRequest) -> HttpResponse:
 # ---------------------------------------------------------------- email
 
 
+def _describe(now: mail.Outgoing) -> str:
+    if now.kind == "google":
+        return f"It now sends as {now.from_address}, through Google Workspace."
+    if now.kind == "smtp":
+        return f"It now sends through {now.host} as {now.from_address}."
+    if now.kind == "outbox":
+        return "It now writes emails to the outbox folder."
+    return "Email is now off."
+
+
+def _alert_if_changed(request: HttpRequest, before: mail.Outgoing) -> None:
+    """Tell every admin when how Snug sends email has changed.
+
+    Through the settings in force before, so whoever made the change cannot
+    swallow the alert (unless email was off, when there is no other way).
+    """
+    after = mail.outgoing()
+    if (before.kind, before.host, before.from_address) == (
+        after.kind,
+        after.host,
+        after.from_address,
+    ):
+        return
+    setup.alert_admins(
+        subject="Email settings changed",
+        what=f"{_admin(request).email} changed how Snug sends email. {_describe(after)}",
+        via=before if before.kind != "off" else None,
+    )
+
+
+def _let_go_of_google(row: EmailSettings) -> None:
+    """Withdraw Snug's permission at Google, and forget it."""
+    if row.google_refresh_token:
+        with contextlib.suppress(gmail.GoogleError):
+            gmail.revoke(row.google_refresh_token)
+    row.google_refresh_token = ""
+    row.google_account = ""
+    row.google_connected_at = None
+    gmail.forget_tokens()
+
+
 def _email_status(now: mail.Outgoing) -> str:
     if now.kind == "google":
         return f"Snug sends email as {now.from_address}, through Google Workspace."
@@ -491,6 +532,7 @@ def email_view(request: HttpRequest) -> HttpResponse:
     password = post.get("smtp_password", "")
     if password:
         row.smtp_password = password[:500]
+    _let_go_of_google(row)
     row.save()
     _audit(
         request,
@@ -501,16 +543,7 @@ def email_view(request: HttpRequest) -> HttpResponse:
         host=row.smtp_host,
         **{"from": row.from_address},
     )
-    # Through the settings in force before, so whoever made the change cannot
-    # swallow the alert (unless email was off, when there is no other way).
-    setup.alert_admins(
-        subject="Email settings changed",
-        what=(
-            f"{_admin(request).email} changed how Snug sends email. It now sends through "
-            f"{row.smtp_host} as {row.from_address}."
-        ),
-        via=before if before.kind != "off" else None,
-    )
+    _alert_if_changed(request, before)
     return redirect("/admin/settings/?saved=email#email")
 
 
@@ -547,12 +580,10 @@ def _save_google_client(request: HttpRequest) -> HttpResponse:
         status = 429 if errors.get("code") == TOO_MANY else 400
         form = {"values": values, "errors": errors}
         return _settings_page(request, status=status, email_form=form)
+    before = mail.outgoing()
     if row.google_client_id != client_id:
         # Another client: the mailbox must approve it afresh.
-        row.google_refresh_token = ""
-        row.google_account = ""
-        row.google_connected_at = None
-        gmail.forget_tokens()
+        _let_go_of_google(row)
     row.provider = "google"
     row.google_client_id = client_id
     if secret:
@@ -566,6 +597,7 @@ def _save_google_client(request: HttpRequest) -> HttpResponse:
         provider="google",
         client=client_id,
     )
+    _alert_if_changed(request, before)
     return _google_redirect("email")
 
 
@@ -666,14 +698,7 @@ def google_confirm_view(request: HttpRequest) -> HttpResponse:
     gmail.forget_tokens()
     admin = _admin(request)
     _audit(request, "settings.email_google_connected", admin.email, "", account=row.google_account)
-    setup.alert_admins(
-        subject="Email settings changed",
-        what=(
-            f"{admin.email} changed how Snug sends email. It now sends as "
-            f"{row.google_account}, through Google Workspace."
-        ),
-        via=before if before.kind != "off" else None,
-    )
+    _alert_if_changed(request, before)
     return _google_redirect("email-google")
 
 
@@ -681,17 +706,22 @@ def google_confirm_view(request: HttpRequest) -> HttpResponse:
 @login_required
 @require_POST
 def google_disconnect_view(request: HttpRequest) -> HttpResponse:
-    """Stop sending through Google, and withdraw Snug's permission there."""
+    """Stop sending through Google, and withdraw Snug's permission there.
+
+    Turning email off stops investors' codes and admins' alerts, so it needs a
+    fresh code too, and every admin is told, through Google, while it still can.
+    """
+    refused = _confirmed(request, "email")
+    if refused:
+        status = 429 if refused == TOO_MANY else 400
+        values = _email_context(request, None)["values"]
+        form = {"values": values, "errors": {"google_disconnect_code": refused}}
+        return _settings_page(request, status=status, email_form=form)
+    before = mail.outgoing()
     row = EmailSettings.load()
-    if row.google_refresh_token:
-        with contextlib.suppress(gmail.GoogleError):
-            gmail.revoke(row.google_refresh_token)
     account = row.google_account
-    row.google_refresh_token = ""
-    row.google_account = ""
-    row.google_connected_at = None
+    _let_go_of_google(row)
     row.save()
-    gmail.forget_tokens()
     _audit(
         request,
         "settings.email_google_disconnected",
@@ -699,6 +729,7 @@ def google_disconnect_view(request: HttpRequest) -> HttpResponse:
         "",
         account=account,
     )
+    _alert_if_changed(request, before)
     return _google_redirect("email-google-off")
 
 

@@ -119,7 +119,10 @@
 {% elif email.values.provider == "google" and email.google_ready %}<div class="panel form settings-form" id="google-mailbox">
   <h3 class="panel-title">The sending mailbox</h3>
   {% if email.google_account %}<p>Connected as {{ email.google_account }}, since {{ email.google_connected_at|date:"j F Y" }}.</p>
-  <form method="post" action="{% url 'accounts:google_disconnect' %}#email">{% csrf_token %}<button class="btn" type="submit">Disconnect</button></form>
+  <form class="form" method="post" action="{% url 'accounts:google_disconnect' %}#email" novalidate>{% csrf_token %}
+    <div class="field"><label for="google-disconnect-code">Code from your authenticator app</label><input id="google-disconnect-code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7"{% if email.errors.google_disconnect_code %} aria-invalid="true" aria-describedby="google-disconnect-code-error"{% endif %}>
+      {% if email.errors.google_disconnect_code %}<div class="error" id="google-disconnect-code-error" role="alert">{% icon "warning-circle" %}{{ email.errors.google_disconnect_code }}</div>{% else %}<div class="hint">Disconnecting stops email until it is set up again. Every admin is told.</div>{% endif %}</div>
+    <button class="btn" type="submit">Disconnect</button></form>
   {% else %}<p class="hint">Sign in to Google as the mailbox Snug should send from, such as rooms@ on your domain, and approve. Snug can send from it, and nothing else.</p>
   <a class="btn btn-primary" href="{% url 'accounts:google_connect' %}">Connect Google</a>{% endif %}
 </div>{% endif %}

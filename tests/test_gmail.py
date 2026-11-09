@@ -428,18 +428,92 @@ def test_a_revoked_connection_is_a_failed_email(
 # ---------------------------------------------------------------- disconnecting
 
 
+def disconnect(client: Client, admin: Admin, code: str | None = None) -> Any:
+    form = {"code": fresh_code(admin) if code is None else code}
+    return client.post("/admin/settings/email/google/disconnect", form, secure=True)
+
+
 def test_disconnecting(client: Client, admin: Admin, google: Google) -> None:
+    Admin.objects.create(email="omar@fernlea.example", is_active=True)
     connected(client, admin)
     google.calls.clear()
-    response = client.post("/admin/settings/email/google/disconnect", secure=True)
+    django_mail.outbox.clear()
+    response = disconnect(client, admin)
     assert response["Location"] == "/admin/settings/?saved=email-google-off#email"
-    (revoke,) = google.calls
-    assert revoke["url"] == gmail.REVOKE_URL
+    revoke = next(c for c in google.calls if c["url"] == gmail.REVOKE_URL)
     assert revoke["form"] == {"token": "refresh-xyz"}
     row = EmailSettings.load()
     assert row.google_refresh_token == "" and row.google_account == ""
     assert mail.outgoing().kind == "off"
     assert AuditEvent.objects.filter(action="settings.email_google_disconnected").exists()
+    # Told through Google, which was in force until a moment ago.
+    alerts = [m for m in django_mail.outbox if "Email settings changed" in m.subject]
+    assert sorted(m.to[0] for m in alerts) == ["omar@fernlea.example", "ruth@fernlea.example"]
+    assert all(getattr(m, "snug_outgoing").kind == "google" for m in alerts)  # noqa: B009
+    assert "Email is now off." in alerts[0].body
+
+
+def test_disconnecting_needs_a_fresh_code(client: Client, admin: Admin, google: Google) -> None:
+    connected(client, admin)
+    response = disconnect(client, admin, code="000000")
+    assert response.status_code == 400
+    assert 'id="google-disconnect-code-error"' in response.content.decode()
+    assert EmailSettings.load().google_refresh_token == "refresh-xyz"
+
+
+def test_saving_a_google_client_over_smtp_tells_every_admin(
+    client: Client, admin: Admin, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The client alone sends nothing, so saved SMTP settings give way to nothing."""
+    monkeypatch.setattr(mail, "_addresses", lambda host, port: ["93.184.216.34"])
+    smtp = {
+        "provider": "smtp",
+        "from_address": "rooms@fernlea.example",
+        "smtp_host": "smtp.postmark.example",
+        "smtp_port": "2525",
+        "smtp_username": "u",
+        "smtp_password": "p",
+        "smtp_security": "starttls",
+        "code": fresh_code(admin),
+    }
+    client.post("/admin/settings/email", smtp, secure=True)
+    django_mail.outbox.clear()
+    save_client(client, admin)
+    alerts = [m for m in django_mail.outbox if "Email settings changed" in m.subject]
+    assert [m.to[0] for m in alerts] == ["ruth@fernlea.example"]
+    assert getattr(alerts[0], "snug_outgoing").host == "smtp.postmark.example"  # noqa: B009
+    assert "Email is now off." in alerts[0].body
+
+
+def test_nothing_changes_while_snug_env_stays_in_force(client: Client, admin: Admin) -> None:
+    settings.CONFIG = dataclasses.replace(
+        settings.CONFIG, smtp_host="smtp.env.example", email_from="env@fernlea.example"
+    )
+    save_client(client, admin)
+    assert not [m for m in django_mail.outbox if "Email settings changed" in m.subject]
+    assert mail.outgoing().host == "smtp.env.example"
+
+
+def test_saving_smtp_lets_go_of_google(
+    client: Client, admin: Admin, google: Google, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    connected(client, admin)
+    google.calls.clear()
+    monkeypatch.setattr(mail, "_addresses", lambda host, port: ["93.184.216.34"])
+    form = {
+        "provider": "smtp",
+        "from_address": "rooms@fernlea.example",
+        "smtp_host": "smtp.postmark.example",
+        "smtp_port": "2525",
+        "smtp_username": "u",
+        "smtp_password": "p",
+        "smtp_security": "starttls",
+        "code": fresh_code(admin),
+    }
+    client.post("/admin/settings/email", form, secure=True)
+    assert [c["url"] for c in google.calls if c["url"] == gmail.REVOKE_URL] == [gmail.REVOKE_URL]
+    row = EmailSettings.load()
+    assert row.google_refresh_token == "" and row.provider == "smtp"
 
 
 # ---------------------------------------------------------------- never in a log
