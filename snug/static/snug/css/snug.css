@@ -172,6 +172,10 @@ h1.page-title { overflow-wrap: anywhere; font-size: 2.1rem; font-weight: 300; le
 /* Above a form there is no top rule for flush-right text to line up with,
    so the explanation sits under the heading, at the form's left edge. */
 .section-head.stacked { flex-direction: column; align-items: flex-start; gap: 0.3rem; }
+/* A section's guide, on its own line under the heading. */
+/* Flush right above a ruled list, the guide sits under the explanation, on the right too. */
+.head-side { display: flex; flex-direction: column; align-items: flex-end; gap: 0.3rem; text-align: right; }
+.doc-link { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: var(--link); }
 
 /* ---------- Reading matrix: one aligned grid for the chart and every viewer ---------- */
 .matrix { display: grid; grid-template-columns: minmax(13rem, 1.25fr) minmax(15rem, 2fr) 5rem 8rem 9rem; align-items: stretch; }
@@ -443,6 +447,7 @@ input.code-field { font-family: var(--mono); letter-spacing: 0.15em; }
     .rows .item > .muted, .rows .item > .exp { display: none; }
 }
 @media (max-width: 640px) {
+    .head-side { align-items: flex-start; text-align: left; }
     .admin-header, main.admin, footer.admin-foot { padding-left: 1rem; padding-right: 1rem; }
     .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .stat:nth-child(3) { border-left: none; padding-left: 0; }

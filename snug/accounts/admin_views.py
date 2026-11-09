@@ -53,6 +53,11 @@ def _audit(request: HttpRequest, action: str, actor: str, target: str, **details
     )
 
 
+# The guides each Settings section links to. Snug has no tagged releases yet, so
+# they are the latest; once it has, link to the running version's tag instead.
+DOCS_URL = "https://github.com/Negroni-Venture-Studios/snug/blob/main/docs/"
+
+
 def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> HttpResponse:
     now = timezone.now()
     pending = {
@@ -64,6 +69,7 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
     admins = [{"account": a, "setup": pending.get(a.pk)} for a in Admin.objects.all()]
     context = {
         "tab": "settings",
+        "docs_url": DOCS_URL,
         "admins": admins,
         "email_enabled": mail.enabled(),
         "done": next((k for k in ("invited", "removed", "reset") if request.GET.get(k) == "1"), ""),
