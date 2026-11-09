@@ -22,7 +22,8 @@ from snug.viewer.access import Access
 BEAT_SECONDS = 15
 MAX_CREDIT = timedelta(seconds=BEAT_SECONDS + 5)
 VISIT_GAP = timedelta(minutes=30)
-KINDS = ("beat", "end", "resume")
+# "part": a video has moved into another part (see PART_SECONDS), its "page".
+KINDS = ("beat", "end", "resume", "part")
 
 
 def _credit(visit: Visit, now: datetime) -> None:
@@ -114,6 +115,20 @@ def workbook_opened(
     return visit, True
 
 
+def _move_to_part(visit: Visit, part: int, now: datetime) -> bool:
+    """A video playing on into another part: the part being left gets its time first."""
+    latest = visit.document.latest_version()
+    if latest is None or not latest.is_video or not 1 <= part <= latest.page_count:
+        return False
+    if part != visit.current_page:
+        _credit(visit, now)
+        PageView.objects.get_or_create(visit=visit, page=part, defaults={"first_seen_at": now})
+        visit.current_page = part
+    visit.clock_at = visit.last_seen_at = now
+    visit.save(update_fields=["current_page", "clock_at", "last_seen_at"])
+    return True
+
+
 def heartbeat(access: Access, token: str, page: int, kind: str) -> bool:
     """Credit a heartbeat to its visit. False if it belongs to no visit of this session."""
     now = timezone.now()
@@ -125,6 +140,8 @@ def heartbeat(access: Access, token: str, page: int, kind: str) -> bool:
         )
         if visit is None or kind not in KINDS:
             return False
+        if kind == "part":
+            return _move_to_part(visit, page, now)
         if page == visit.current_page and kind != "resume":
             _credit(visit, now)
         # "resume" restarts the clock without crediting the time the tab was hidden.

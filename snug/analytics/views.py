@@ -26,7 +26,9 @@ def people(request: HttpRequest) -> HttpResponse:
                     "title": read.title,
                     "token": read.token,
                     # A spreadsheet has no pages to shade.
-                    "strip": charts.strip(read.seconds, read.seen, f"{person.email}, {read.title}")
+                    "strip": charts.strip(
+                        read.seconds, read.seen, f"{person.email}, {read.title}", video=read.video
+                    )
                     if read.pages
                     else "Spreadsheet",
                     "visits": read.visits,

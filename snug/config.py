@@ -20,6 +20,9 @@ DEFAULT_DATA_DIR = "/var/lib/snug"
 DEFAULT_TRUSTED_PROXIES = "127.0.0.1/32, ::1/128"
 DEFAULT_MAX_UPLOAD_MB = 100
 MAX_UPLOAD_MB_CEILING = 1024
+# Videos have their own limit: a few minutes of 1080p is hundreds of megabytes.
+DEFAULT_MAX_VIDEO_MB = 1024
+MAX_VIDEO_MB_CEILING = 8192
 DEFAULT_VIEWER_SESSION_DAYS = 7
 MAX_VIEWER_SESSION_DAYS = 90
 SMTP_SECURITY = ("starttls", "tls", "none")
@@ -57,6 +60,7 @@ class Config:
     # Proxies whose X-Forwarded-For header is believed: Caddy, and only Caddy.
     trusted_proxies: tuple[IPNetwork, ...] = ()
     max_upload_mb: int = DEFAULT_MAX_UPLOAD_MB
+    max_video_mb: int = DEFAULT_MAX_VIDEO_MB
     viewer_session_days: int = DEFAULT_VIEWER_SESSION_DAYS
     company_name: str = ""
     email_from: str = ""
@@ -166,6 +170,17 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
                 f"{MAX_UPLOAD_MB_CEILING}, not {raw_upload!r}."
             )
 
+    raw_video = env.get("SNUG_MAX_VIDEO_MB", "").strip()
+    max_video_mb = DEFAULT_MAX_VIDEO_MB
+    if raw_video:
+        if raw_video.isdecimal() and 1 <= int(raw_video) <= MAX_VIDEO_MB_CEILING:
+            max_video_mb = int(raw_video)
+        else:
+            problems.append(
+                f"SNUG_MAX_VIDEO_MB must be a whole number of megabytes from 1 to "
+                f"{MAX_VIDEO_MB_CEILING}, not {raw_video!r}."
+            )
+
     raw_days = env.get("SNUG_VIEWER_SESSION_DAYS", "").strip()
     viewer_session_days = DEFAULT_VIEWER_SESSION_DAYS
     if raw_days:
@@ -231,6 +246,7 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         debug=debug,
         trusted_proxies=trusted_proxies,
         max_upload_mb=max_upload_mb,
+        max_video_mb=max_video_mb,
         viewer_session_days=viewer_session_days,
         company_name=company_name,
         email_from=email_from,

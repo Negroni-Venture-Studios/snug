@@ -29,12 +29,12 @@
 <div class="stats">
   <div class="stat"><div class="value">{{ reading.viewers }}</div><div class="label">Viewers</div></div>
   <div class="stat"><div class="value">{{ reading.visits }}</div><div class="label">Visits</div></div>
-  <div class="stat"><div class="value">{% if reading.median_minutes %}{{ reading.median_minutes }}<small>min</small> {% endif %}{{ reading.median_seconds }}<small>s</small></div><div class="label">Median reading time</div></div>
-  <div class="stat"><div class="value">{{ reading.read_all }}<small>of {{ reading.viewers }}</small></div><div class="label">Read every page</div></div>
+  <div class="stat"><div class="value">{% if reading.median_minutes %}{{ reading.median_minutes }}<small>min</small> {% endif %}{{ reading.median_seconds }}<small>s</small></div><div class="label">{% if reading.video %}Median watching time{% else %}Median reading time{% endif %}</div></div>
+  <div class="stat"><div class="value">{{ reading.read_all }}<small>of {{ reading.viewers }}</small></div><div class="label">{% if reading.video %}Watched to the end{% else %}Read every page{% endif %}</div></div>
 </div>
 
 <section class="section">
-  <div class="section-head"><h2>How it was read</h2>{{ reading.legend }}</div>
+  <div class="section-head"><h2>{% if reading.video %}How it was watched{% else %}How it was read{% endif %}</h2>{{ reading.legend }}</div>
   <div class="matrix">
     <div class="row head">
       <div class="cell">Viewer</div>
@@ -42,7 +42,7 @@
       <div class="cell r">Visits</div><div class="cell r">Time</div><div class="cell r last">Last seen</div>
     </div>
     <div class="row avg">
-      <div class="cell label">Average per page</div>
+      <div class="cell label">{% if reading.video %}Average per 10 seconds{% else %}Average per page{% endif %}</div>
       <div class="cell strip-cell">{{ reading.bars }}</div>
       <div class="cell r"></div><div class="cell r"></div><div class="cell r last"></div>
     </div>
@@ -59,11 +59,16 @@
   {% if reading.longest %}<p class="matrix-note">Longest average time: {{ reading.longest }}. Averages count only the viewers who reached each page.</p>{% endif %}
 </section>
 {% else %}
-<p class="empty-line reading-empty">Nobody has opened this document yet. Reading time appears here once someone does.</p>
+<p class="empty-line reading-empty">Nobody has opened this document yet. {% if latest.is_video %}Watching{% else %}Reading{% endif %} time appears here once someone does.</p>
 {% endif %}
 
 <div class="doc-split">
-  {% if not latest.is_workbook %}<section class="section">
+  {% if latest.is_video %}<section class="section">
+    <div class="section-head"><h2>Preview</h2></div>
+    <div class="video-frame"><video src="{% url 'documents:video_preview' document.token latest.number %}" width="{{ latest.page_sizes.0.0 }}" height="{{ latest.page_sizes.0.1 }}" controls playsinline preload="metadata"></video></div>
+    <p class="chart-note">Viewers also see their own watermark over the video.</p>
+  </section>
+  {% elif not latest.is_workbook %}<section class="section">
     <div class="section-head"><h2>First page</h2></div>
     {% if latest and preview %}
     <div class="preview-frame"><img src="{% url 'documents:preview' document.token latest.number 1 %}" width="{{ preview.width }}" height="{{ preview.height }}" alt="Page 1 of {{ document.title }}, version {{ latest.number }}"></div>
@@ -79,7 +84,7 @@
       <form class="panel form" method="post" action="{% url 'documents:upload_version' document.token %}" enctype="multipart/form-data" novalidate data-upload>
         {% csrf_token %}
         {% include "snug/partials/form_error.html" %}
-        <div class="field"><label for="pdf">File</label><input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" required><div class="hint">Up to {{ limit_mb }} MB. Every link to this document will show the new version.</div></div>
+        <div class="field"><label for="pdf">File</label><input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,video/mp4,.mp4" required><div class="hint">Up to {% if latest.is_video %}{{ video_mb }}{% else %}{{ limit_mb }}{% endif %} MB. Every link to this document will show the new version.</div></div>
         <div class="upload-status" data-upload-status hidden><progress max="100" value="0"></progress><span role="status" aria-live="polite">Uploading</span></div>
         <div class="form-foot"><button class="btn btn-primary" type="submit">{% icon "upload-simple" %}Upload version</button></div>
       </form>

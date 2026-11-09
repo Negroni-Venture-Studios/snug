@@ -4,8 +4,9 @@ A link points at a document and always shows its latest ready version;
 analytics record which version was read. Originals are stored under a
 generated name, never the name they were uploaded with.
 
-A document is a PDF, read page by page, or an Excel workbook (decided
-9 November 2026), shared for download only. Its versions are all one kind.
+A document is a PDF, read page by page; an Excel workbook (decided
+9 November 2026), shared for download only; or an MP4 video (the same day),
+watched in the browser. Its versions are all one kind.
 """
 
 import secrets
@@ -25,6 +26,8 @@ def new_stored_name(extension: str = "pdf") -> str:
 
 
 MAX_DESCRIPTION = 1000
+# A video is counted in parts of this many seconds, each treated as a page.
+PART_SECONDS = 10
 
 
 class Document(models.Model):
@@ -56,6 +59,7 @@ class DocumentVersion(models.Model):
     class Kind(models.TextChoices):
         PDF = "pdf", "PDF"
         XLSX = "xlsx", "Excel workbook"
+        MP4 = "mp4", "MP4 video"
 
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="versions")
     number = models.PositiveIntegerField()
@@ -73,6 +77,9 @@ class DocumentVersion(models.Model):
     kind = models.CharField(max_length=4, choices=Kind.choices, default=Kind.PDF)
     # A workbook's visible sheets, in order; hidden sheets are never listed.
     sheets = models.JSONField(default=list)
+    # A video's length. Its "pages" are its parts of PART_SECONDS each, so the
+    # reading analytics count time watched on each part.
+    seconds = models.FloatField(default=0)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.READY)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     uploaded_by = models.ForeignKey(
@@ -93,8 +100,22 @@ class DocumentVersion(models.Model):
         return self.kind == self.Kind.XLSX
 
     @property
+    def is_video(self) -> bool:
+        return self.kind == self.Kind.MP4
+
+    @property
+    def length(self) -> str:
+        """A video's length as m:ss, or h:mm:ss."""
+        whole = round(self.seconds)
+        hours, rest = divmod(whole, 3600)
+        minutes, seconds = divmod(rest, 60)
+        return f"{hours}:{minutes:02d}:{seconds:02d}" if hours else f"{minutes}:{seconds:02d}"
+
+    @property
     def describe(self) -> str:
-        """For admins and investors: "12 pages", or "Excel workbook, 3 sheets"."""
+        """For admins and investors: "12 pages", "Excel workbook, 3 sheets" or "MP4 video, 2:05"."""
+        if self.is_video:
+            return f"MP4 video, {self.length}"
         if self.is_workbook:
             count = len(self.sheets)
             return f"Excel workbook, {count} sheet{'' if count == 1 else 's'}"

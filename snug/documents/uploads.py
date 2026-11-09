@@ -24,7 +24,8 @@ def too_large(request: HttpRequest) -> bool:
         declared = int(request.META.get("CONTENT_LENGTH") or 0)
     except ValueError:
         return True
-    limit: int = settings.MAX_UPLOAD_BYTES
+    # The larger of the two limits: ingest holds each kind to its own once it knows it.
+    limit: int = max(settings.MAX_UPLOAD_BYTES, settings.MAX_VIDEO_BYTES)
     return declared > limit + FORM_OVERHEAD
 
 
@@ -33,7 +34,10 @@ def upload_size_limit(
 ) -> Callable[[HttpRequest], HttpResponse]:
     def middleware(request: HttpRequest) -> HttpResponse:
         if too_large(request):
-            context = {"limit_mb": settings.MAX_UPLOAD_BYTES // (1024 * 1024)}
+            context = {
+                "limit_mb": settings.MAX_UPLOAD_BYTES // (1024 * 1024),
+                "video_mb": settings.MAX_VIDEO_BYTES // (1024 * 1024),
+            }
             return render(request, "documents/too_large.html", context, status=413)
         return get_response(request)
 
