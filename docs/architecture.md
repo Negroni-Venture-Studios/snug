@@ -1,6 +1,6 @@
 # How Snug works
 
-This document explains how Snug's code works, for a developer new to it: the processes on the server, the path a request takes, the data, and the work done in the background. [DESIGN.md](../DESIGN.md) records why each choice was made, and [AGENTS.md](../AGENTS.md) the rules for changing the code.
+Snug is a Django application that runs in Docker on one server. [DESIGN.md](../DESIGN.md) records why it is built this way, and [AGENTS.md](../AGENTS.md) the rules for changing it.
 
 ## On one server
 
@@ -118,8 +118,6 @@ A room link's documents are checked on every request against the room's current 
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/data-model-dark.svg">
   <img alt="Snug's tables in five groups (admins, rooms, documents, sharing and reading) with their many-to-one relations, and the tables that stand alone beneath: the audit log, the site and email settings, the stored checks and the rate limits." src="images/diagrams/data-model-light.svg">
 </picture>
-
-A few details the diagram leaves out:
 
 - A `Link` points at a document or a room, never both; a check constraint in the database holds it to exactly one.
 - A link always shows its document's newest version. `Visit.version_number` records which version was read, as a number, so deleting an old version would not delete the reading data.
@@ -285,9 +283,9 @@ The company's accent colour reaches investors' pages as a small stylesheet, `/br
 
 ## Tests
 
-The tests are in `tests/`, run with pytest. Some of them check rules for the whole code rather than one feature:
+The tests are in `tests/`, run with pytest.
 
-- `test_viewer_urls.py` and `test_admin_urls.py` walk every URL, as described above.
+- `test_viewer_urls.py` and `test_admin_urls.py` walk every URL and check that each one's view is guarded.
 - A fixture in `tests/conftest.py` stops any test reaching the internet.
 - The confinement tests run the real worker under Landlock and seccomp, so they run on Linux only.
 - `tests/e2e/` drives Chromium with Playwright through the investor's journey and the admin controls that need a real click.
