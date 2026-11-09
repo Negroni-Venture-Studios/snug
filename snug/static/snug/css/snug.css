@@ -318,6 +318,8 @@ label.check { display: grid; grid-template-columns: 1.1rem 1fr; gap: 0.65rem; fo
 #email:has(#provider-google:checked) .step-waiting-google .panel-title::before,
 #email:has(#provider-smtp:checked) .step-waiting-smtp .panel-title::before { background: var(--tint); color: var(--text-2); }
 .step-action { justify-self: start; }
+/* A saved secret shows as dots, never its value: legible enough to read as filled in. */
+input[type="password"]::placeholder { color: var(--text-2); opacity: 1; letter-spacing: 0.12em; }
 #email code { font-family: var(--mono); font-size: 0.85em; overflow-wrap: anywhere; }
 #google-mailbox form { margin: 0; }
 /* The Overview's status line: problems from the snug doctor checks, or a quiet all-clear. */

@@ -10,6 +10,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- A saved Google client secret or SMTP password shows as dots, so the field no longer looks empty. The value itself is still never sent to the browser.
+- Connecting Google says before you leave for Google that one more authenticator code is needed on your return, and the return shows a green notice naming the approved mailbox.
 - On a Mac, connecting Google killed Snug's server process, and the browser showed an empty response when Google sent you back. Snug's calls to Google and DB-IP now take proxy settings from the environment only, rather than asking macOS, whose frameworks refuse to run in a process gunicorn has forked. A server on Linux was not affected.
 - Email in Settings is set up in numbered steps, all on the page from the start: your Google client or SMTP server, then for Google the sending mailbox, then a test. Each save lands on the step to do next, with its notice there. Saving the Google client used to leave Connect Google in a new panel below the page's fold. If Google refuses a connection, Snug now returns to the mailbox step with the reason, and Google's one-time code no longer stays in the address bar.
 - In Settings, the admins' statuses and dates line up in columns. Your own row has no buttons, and it used to sit out of line with the others.

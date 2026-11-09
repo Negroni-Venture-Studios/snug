@@ -34,7 +34,7 @@ from snug.core import gmail, mail
 from snug.core.email_backend import EmailBackend
 from snug.core.models import EmailSettings
 from snug.core.redaction import redact
-from tests.test_email_settings import step
+from tests.test_email_settings import DOTS, step
 
 pytestmark = pytest.mark.django_db
 
@@ -180,6 +180,8 @@ def test_saving_the_client(client: Client, admin: Admin) -> None:
     mailbox = step(panel(client, "?saved=email"), "google-mailbox")
     assert "Saved your Google client. Now connect the mailbox Snug sends from." in mailbox
     assert 'href="/admin/settings/email/google/connect"' in mailbox
+    # The second code is announced before the trip to Google, not sprung on the return.
+    assert "When Google sends you back, enter one more code from your authenticator app" in mailbox
     row = EmailSettings.load()
     assert (row.provider, row.google_client_id) == ("google", CLIENT_ID)
     assert row.google_client_secret == "GOCSPX-s"
@@ -187,6 +189,11 @@ def test_saving_the_client(client: Client, admin: Admin) -> None:
     assert event.details == {"provider": "google", "client": CLIENT_ID}
     text = panel(client, "?saved=email")
     assert "GOCSPX" not in text
+    assert (
+        'name="google_client_secret" type="password" autocomplete="new-password" value="" '
+        f'placeholder="{DOTS}"'
+    ) in text
+    assert "Saved, and never shown. Type a new one to replace it." in text
     assert not mail.enabled()  # not until a mailbox is connected
 
 
@@ -275,7 +282,9 @@ def test_coming_back_from_google_asks_for_a_code(
     # Nothing is saved until a fresh code confirms it.
     assert EmailSettings.load().google_refresh_token == ""
     text = step(panel(client, "?saved=google-pending"), "google-mailbox")
-    assert "Enter a code from your authenticator app to finish connecting" in text
+    assert "Google approved Snug for rooms@fernlea.example. One more code to finish." in text
+    assert "notice-ok" in text
+    assert "needs a fresh code of its own, even after the one in step 1" in text
     assert "rooms@fernlea.example" in text
     assert 'action="/admin/settings/email/google/confirm#google-mailbox"' in text
 
