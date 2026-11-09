@@ -392,6 +392,16 @@ input.code-field { font-family: var(--mono); letter-spacing: 0.15em; }
 .about .privacy { margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--text-2); font-size: 0.85rem; }
 
 .reader { display: grid; gap: 1.1rem; justify-items: center; }
+/* A video, with the viewer's watermark drawn over it: a deterrent, like the
+   page watermark, though the browser's tools could hide it. The frame, not
+   the bare video, goes full screen, so the mark goes with it. */
+.player { display: grid; gap: 1.1rem; justify-items: center; }
+.video-frame { position: relative; width: 100%; border-radius: 2px; overflow: hidden; border: 1px solid var(--border); background: #000000; }
+.video-frame video { display: block; width: 100%; height: auto; max-height: 80vh; }
+.video-frame:fullscreen video { max-height: none; height: 100%; }
+.video-mark { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; overflow: hidden; }
+.video-mark span { transform: rotate(-22deg); color: rgba(255, 255, 255, 0.28); font-size: clamp(0.9rem, 2.4vw, 1.6rem); font-weight: 500; white-space: nowrap; text-shadow: 0 0 2px rgba(0, 0, 0, 0.35); }
+.video-fullscreen { position: absolute; top: 0.6rem; right: 0.6rem; }
 .page-frame { width: 100%; border-radius: 2px; overflow: hidden; border: 1px solid var(--border); background: #ffffff;
     box-shadow: 0 1px 2px light-dark(rgba(28,25,23,0.05), rgba(0,0,0,0.3)), 0 12px 32px light-dark(rgba(28,25,23,0.07), rgba(0,0,0,0.35)); }
 .page-frame svg { display: block; width: 100%; height: auto; }

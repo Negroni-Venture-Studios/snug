@@ -130,7 +130,7 @@ def test_title_and_file_are_required(client: Client, data: dict[str, str], messa
 def test_a_refused_file_creates_nothing(client: Client, data_folder: Path) -> None:
     response = upload_new(client, data=b"Not a PDF at all")
     assert response.status_code == 400
-    assert "Snug takes PDFs and Excel workbooks (.xlsx)" in response.content.decode()
+    assert "Snug takes PDFs, Excel workbooks (.xlsx) and MP4 videos" in response.content.decode()
     assert not Document.objects.exists()
     assert actions() == ["document.upload_refused"]
     assert list((data_folder / "originals").iterdir()) == []
@@ -145,7 +145,8 @@ def test_oversized_uploads_are_refused_before_they_are_read(admin: Admin) -> Non
         "/admin/documents/new",
         {"title": "Huge"},
         secure=True,
-        CONTENT_LENGTH=str(500 * 1024 * 1024),
+        # Over the larger of the two limits: documents' and videos'.
+        CONTENT_LENGTH=str(5000 * 1024 * 1024),
     )
     assert response.status_code == 413
     assert "This file is too large" in response.content.decode()

@@ -85,9 +85,12 @@ def test_paths_come_only_from_generated_names(document: Document, name: str) -> 
         (b"", "empty"),
         (
             b"Hello, this is a Word document really",
-            r"Snug takes PDFs and Excel workbooks \(\.xlsx\)",
+            r"Snug takes PDFs, Excel workbooks \(\.xlsx\) and MP4 videos",
         ),
-        (b"\x89PNG\r\n\x1a\n" + b"\x00" * 100, r"Snug takes PDFs and Excel workbooks \(\.xlsx\)"),
+        (
+            b"\x89PNG\r\n\x1a\n" + b"\x00" * 100,
+            r"Snug takes PDFs, Excel workbooks \(\.xlsx\) and MP4 videos",
+        ),
         (b"%PDF-1.7\n" + b"garbage " * 200, "could not be read"),
         (DECK[: len(DECK) // 3], "could not be read"),
     ],

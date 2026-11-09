@@ -22,7 +22,7 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 
 ## What Snug does
 
-- **Documents.** PDFs, read page by page, and Excel workbooks (.xlsx), shared for download so investors get the working model. Upload new versions; links always show the latest.
+- **Documents.** PDFs, read page by page; Excel workbooks (.xlsx), shared for download so investors get the working model; and MP4 videos, watched in the browser with the viewer's watermark over them. Upload new versions; links always show the latest.
 - **Rooms.** Collections of documents, with one level of folders. A document can be in any number of rooms.
 - **Links.** One per person, to a document or a room, with an optional message from you. Email verification (on by default), optional expiry, downloads (on by default), and immediate revocation.
 - **UK-only mode.** A link, or a whole room, can open only for visitors in the UK, Jersey, Guernsey and the Isle of Man, judged by their internet address against a country database kept on your server.
@@ -36,7 +36,7 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 
 ## What Snug does not do
 
-- **It shows PDFs and shares Excel workbooks.** Export anything else, such as Word or PowerPoint files, to PDF first. A workbook is not previewed in the browser: investors download it, and each copy names its reader in its document properties.
+- **It shows PDFs and videos, and shares Excel workbooks.** Export anything else, such as Word or PowerPoint files, to PDF first, and video to MP4 with H.264. A workbook is not previewed in the browser: investors download it, and each copy names its reader in its document properties. A video's watermark is drawn over the player, so a downloaded copy carries no mark.
 - **Watermarks deter casual leaks; they cannot stop one.** Nothing stops someone photographing a screen.
 - **NDA acceptance is a record, not a signature.** Snug records who accepted which text, and when.
 - **UK-only mode is not export control.** It goes by the visitor's internet address, so a VPN gets round it.

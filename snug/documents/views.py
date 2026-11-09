@@ -12,6 +12,7 @@ from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from django.db.models import Prefetch
 from django.http import FileResponse, Http404, HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404, render
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
@@ -21,8 +22,9 @@ from django.views.decorators.http import require_http_methods, require_POST, req
 from snug.accounts.models import Admin
 from snug.analytics import charts, summary
 from snug.audit.models import AuditEvent, record
-from snug.core import notices
+from snug.core import notices, ranges
 from snug.core.client import client_ip, user_agent
+from snug.documents import storage
 from snug.documents.ingest import UploadRejectedError, ingest
 from snug.documents.models import MAX_DESCRIPTION, Document, DocumentVersion
 from snug.rendering import pages, sandbox
@@ -75,6 +77,8 @@ def _store(
         **(
             {"sheets": len(version.sheets)}
             if version.is_workbook
+            else {"seconds": version.seconds}
+            if version.is_video
             else {"pages": version.page_count}
         ),
         sha256=version.sha256[:16],
@@ -96,7 +100,12 @@ def document_list(request: HttpRequest) -> HttpResponse:
 @login_required
 @require_http_methods(["GET", "POST"])
 def document_new(request: HttpRequest) -> HttpResponse:
-    context: dict[str, Any] = {"tab": "documents", "limit_mb": _limit_mb(), "title": ""}
+    context: dict[str, Any] = {
+        "tab": "documents",
+        "limit_mb": _limit_mb(),
+        "video_mb": settings.MAX_VIDEO_BYTES // (1024 * 1024),
+        "title": "",
+    }
     if request.method == "GET":
         return render(request, "documents/new.html", context)
 
@@ -120,7 +129,9 @@ def document_new(request: HttpRequest) -> HttpResponse:
         context["error"] = str(error)
         return render(request, "documents/new.html", context, status=400)
     version = document.latest_version()
-    if version is not None and version.is_workbook:
+    if version is not None and version.is_video:
+        what = f"an MP4 video, {version.length} long"
+    elif version is not None and version.is_workbook:
         count = len(version.sheets)
         what = f"an Excel workbook with {count} sheet{pluralize(count)}"
     else:
@@ -134,7 +145,7 @@ def document_new(request: HttpRequest) -> HttpResponse:
     )
 
 
-def _reading(document: Document) -> dict[str, Any] | None:
+def _reading(document: Document, *, video: bool = False) -> dict[str, Any] | None:
     """The stat strip and reading grid, ready for the template."""
     reading = summary.for_document(document)
     if reading is None:
@@ -146,14 +157,15 @@ def _reading(document: Document) -> dict[str, Any] | None:
         "median_minutes": median // 60,
         "median_seconds": median % 60,
         "read_all": reading.read_all,
-        "axis": charts.axis(reading.pages),
-        "bars": charts.bars(reading.averages),
+        "video": video,
+        "axis": charts.axis(reading.pages, video=video),
+        "bars": charts.bars(reading.averages, video=video),
         "legend": charts.legend(),
         "rows": [
             {
                 "email": row.email,
                 "note": row.note,
-                "strip": charts.strip(row.seconds, row.seen, row.email),
+                "strip": charts.strip(row.seconds, row.seen, row.email, video=video),
                 "visits": row.visits,
                 "total": charts.duration(row.total_seconds),
                 "last_seen": row.last_seen,
@@ -161,7 +173,9 @@ def _reading(document: Document) -> dict[str, Any] | None:
             for row in reading.viewers
         ],
         "longest": " and ".join(
-            f"page {page} ({charts.duration(avg)})" for page, avg in reading.longest()
+            f"{charts.label(page - 1, video=video) if video else f'page {page}'} "
+            f"({charts.duration(avg)})"
+            for page, avg in reading.longest()
         ),
     }
 
@@ -177,12 +191,15 @@ def _detail_context(request: HttpRequest, document: Document) -> dict[str, Any]:
         "tab": "documents",
         "document": document,
         # A workbook is downloaded, not read page by page: it has no reading chart.
-        "reading": None if latest and latest.is_workbook else _reading(document),
+        "reading": None
+        if latest and latest.is_workbook
+        else _reading(document, video=bool(latest and latest.is_video)),
         "links": document.links.all(),
         "versions": versions,
         "latest": latest,
         "preview": preview,
         "limit_mb": _limit_mb(),
+        "video_mb": settings.MAX_VIDEO_BYTES // (1024 * 1024),
         "notice": notices.take(request),
     }
 
@@ -261,6 +278,22 @@ def description(request: HttpRequest, token: str) -> HttpResponse:
 
 @login_required
 @require_safe
+def video_preview(request: HttpRequest, token: str, number: int) -> HttpResponseBase:
+    """A version's video, for admins only, in the ranges the player asks for."""
+    version = get_object_or_404(
+        DocumentVersion,
+        document__token=token,
+        number=number,
+        status=DocumentVersion.Status.READY,
+        kind=DocumentVersion.Kind.MP4,
+    )
+    response = ranges.serve(request, storage.original_path(version), "video/mp4")
+    response["Cache-Control"] = "private, max-age=300"
+    return response
+
+
+@login_required
+@require_safe
 def page_preview(
     request: HttpRequest, token: str, number: int, page: int
 ) -> HttpResponse | FileResponse:
@@ -270,6 +303,7 @@ def page_preview(
         document__token=token,
         number=number,
         status=DocumentVersion.Status.READY,
+        kind=DocumentVersion.Kind.PDF,
     )
     try:
         path = pages.page_image(version, page, width=PREVIEW_WIDTH)

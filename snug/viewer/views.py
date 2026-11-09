@@ -16,7 +16,8 @@ from functools import wraps
 from typing import Any
 
 from django.db import connections
-from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http.response import HttpResponseBase
 from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -27,10 +28,11 @@ from django.views.decorators.http import require_http_methods, require_POST, req
 
 from snug.analytics import notify, reading
 from snug.audit.models import AuditEvent, record
-from snug.core import geoip, mail, ratelimit
+from snug.core import geoip, mail, ranges, ratelimit
 from snug.core.client import client_ip, user_agent
 from snug.core.models import SiteSettings, company_name
-from snug.documents.models import DocumentVersion
+from snug.documents import storage
+from snug.documents.models import PART_SECONDS, DocumentVersion
 from snug.documents.storage import RENDER_WIDTHS
 from snug.links.models import Link
 from snug.nda import terms
@@ -100,12 +102,12 @@ def viewer_gate(view: GateView) -> Callable[..., HttpResponse]:
 
 def viewer_content(
     *, not_verified: GateView | None = None
-) -> Callable[[Callable[..., HttpResponse]], Callable[..., HttpResponse]]:
+) -> Callable[[Callable[..., HttpResponseBase]], Callable[..., HttpResponseBase]]:
     """For everything else: authorise() must allow the request."""
 
-    def decorate(view: Callable[..., HttpResponse]) -> Callable[..., HttpResponse]:
+    def decorate(view: Callable[..., HttpResponseBase]) -> Callable[..., HttpResponseBase]:
         @wraps(view)
-        def wrapper(request: HttpRequest, token: str, **kwargs: Any) -> HttpResponse:
+        def wrapper(request: HttpRequest, token: str, **kwargs: Any) -> HttpResponseBase:
             document_token = kwargs.pop("document_token", None)
             try:
                 access = authorise(request, token, document_token=document_token)
@@ -171,6 +173,8 @@ def _context(link: Link, token: str, **extra: Any) -> dict[str, Any]:
         "room": link.room,
         "pages": version.page_count if version else None,
         "workbook": bool(version and version.is_workbook),
+        "video": bool(version and version.is_video),
+        "length": version.length if version and version.is_video else "",
         "room_documents": link.room.entries.count() if link.room is not None else None,
         "company": company_name(),
         "email_enabled": mail.enabled(),
@@ -289,6 +293,9 @@ class _Urls:
     def download(self) -> str:
         return str(reverse(f"viewer:{self.prefix}download", kwargs=self.kwargs))
 
+    def video(self) -> str:
+        return str(reverse(f"viewer:{self.prefix}video", kwargs=self.kwargs))
+
 
 def _room_index(
     request: HttpRequest, access: Access, token: str, context: dict[str, Any]
@@ -348,6 +355,46 @@ def _workbook_card(
     return render(request, "viewer/workbook.html", context)
 
 
+def _video_player(
+    request: HttpRequest,
+    access: Access,
+    token: str,
+    version: DocumentVersion,
+    context: dict[str, Any],
+) -> HttpResponse:
+    """A video, played in the browser with the viewer's watermark drawn over it."""
+    assert access.document is not None  # noqa: S101 - only document pages reach the player
+    visit, new = reading.page_shown(access, access.document, version, 1)
+    if new:
+        notify.first_open(request, access, access.document)
+        _audit(
+            request,
+            "viewer.document_viewed",
+            access.link,
+            access.session.email,
+            version=version.number,
+            document=access.document.token,
+        )
+    urls = _Urls(access, token)
+    today = timezone.localdate()
+    shared = f"Shared with {access.session.email}"
+    width, height = version.page_sizes[0] if version.page_sizes else (16, 9)
+    context.update(
+        version=version,
+        stream_url=urls.video(),
+        download_url=urls.download() if access.link.allow_download else None,
+        room_url=reverse("viewer:entry", kwargs={"token": token}) if access.link.room else None,
+        mark=(f"{shared}, {today.day} {today:%b %Y}, link {access.link.label}"),
+        visit=visit.token,
+        beat_url=reverse("viewer:beat", kwargs={"token": token}),
+        beat_seconds=reading.BEAT_SECONDS,
+        part_seconds=PART_SECONDS,
+        width=width,
+        height=height,
+    )
+    return render(request, "viewer/video.html", context)
+
+
 def _page_number(raw: str, count: int) -> int:
     """The page asked for, or the first page for anything odd."""
     if raw.isdecimal() and 1 <= int(raw) <= count:
@@ -375,6 +422,8 @@ def entry(request: HttpRequest, access: Access, token: str) -> HttpResponse:
         return render(request, "viewer/reader.html", context)
     if version.is_workbook:
         return _workbook_card(request, access, token, version, context)
+    if version.is_video:
+        return _video_player(request, access, token, version, context)
     count = version.page_count
     number = _page_number(request.GET.get("page", ""), count)
     sizes = version.page_sizes
@@ -425,7 +474,9 @@ def page_image(
     if access.document is None:
         raise Http404
     version = access.document.latest_version()
-    if version is None or width not in RENDER_WIDTHS or not 1 <= page <= version.page_count:
+    if version is None or version.kind != DocumentVersion.Kind.PDF or width not in RENDER_WIDTHS:
+        raise Http404
+    if not 1 <= page <= version.page_count:
         raise Http404
     today = timezone.localdate()
     try:
@@ -441,6 +492,21 @@ def page_image(
         return HttpResponse("This page could not be shown.", status=503, content_type="text/plain")
     response = HttpResponse(data, content_type="image/webp")
     # Kept briefly, by this browser only. Revoking stops new pages at once.
+    response["Cache-Control"] = "private, max-age=300"
+    return response
+
+
+@require_safe
+@viewer_content()
+def video_stream(request: HttpRequest, access: Access, token: str) -> HttpResponseBase:
+    """The video, in the byte ranges the player asks for. Every request is authorised."""
+    if access.document is None:
+        raise Http404
+    version = access.document.latest_version()
+    if version is None or not version.is_video:
+        raise Http404
+    response = ranges.serve(request, storage.original_path(version), "video/mp4", ranges_only=True)
+    # Kept briefly, by this browser only. Revoking stops new requests at once.
     response["Cache-Control"] = "private, max-age=300"
     return response
 
@@ -526,7 +592,7 @@ def _filename(title: str, extension: str = ".pdf") -> str:
 @never_cache
 @require_safe
 @viewer_content()
-def download(request: HttpRequest, access: Access, token: str) -> HttpResponse:
+def download(request: HttpRequest, access: Access, token: str) -> HttpResponseBase:
     """The original PDF, stamped for this viewer, when the link allows downloads."""
     if access.document is None:
         raise Http404
@@ -535,6 +601,23 @@ def download(request: HttpRequest, access: Access, token: str) -> HttpResponse:
         raise Http404
     if not ratelimit.allow(limits.DOWNLOAD_PER_LINK, str(access.link.pk)):
         return HttpResponse(TOO_MANY, status=429, content_type="text/plain")
+    if version.is_video:
+        # The original file: a video cannot carry a visible mark without re-encoding.
+        _audit(
+            request,
+            "viewer.downloaded",
+            access.link,
+            access.session.email,
+            document=access.document.token,
+            version=version.number,
+            sha256=version.sha256,
+        )
+        return FileResponse(
+            storage.original_path(version).open("rb"),
+            as_attachment=True,
+            filename=_filename(access.document.title, ".mp4"),
+            content_type="video/mp4",
+        )
     today = timezone.localdate()
     stamp = {
         "email": access.session.email,

@@ -13,7 +13,7 @@ from django.conf import settings
 
 from snug.documents.models import DocumentVersion
 
-STORED_NAME = re.compile(r"^[0-9a-f]{32}\.(pdf|xlsx)$")
+STORED_NAME = re.compile(r"^[0-9a-f]{32}\.(pdf|xlsx|mp4)$")
 RENDER_WIDTHS = (800, 1600)
 
 

@@ -102,7 +102,7 @@ def test_a_workbook_becomes_a_spreadsheet_document(model: Document) -> None:
     [
         (make_xlsx(main=MACRO_MAIN), "This workbook contains macros."),
         (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 512, "an older Excel file (.xls)"),
-        (b"hello, this is a text file", "Snug takes PDFs and Excel workbooks (.xlsx)"),
+        (b"hello, this is a text file", "Snug takes PDFs, Excel workbooks (.xlsx) and MP4 videos"),
     ],
 )
 def test_what_is_not_a_plain_workbook_or_pdf_is_refused(data: bytes, said: str) -> None:
@@ -148,7 +148,7 @@ def test_the_admin_can_upload_a_workbook(client: Client) -> None:
 def test_the_upload_forms_offer_workbooks(client: Client, model: Document) -> None:
     for url in ("/admin/documents/new", f"/admin/documents/{model.token}"):
         page = client.get(url, secure=True).content.decode()
-        assert 'accept="application/pdf,.pdf,' + XLSX + ',.xlsx"' in page, url
+        assert 'accept="application/pdf,.pdf,' + XLSX + ',.xlsx,video/mp4,.mp4"' in page, url
 
 
 # ---------------------------------------------------------------- the admin's pages

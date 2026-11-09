@@ -133,6 +133,7 @@ STORAGES = {
 # on the same disk as the originals, so the finished file is moved, not copied.
 FILE_UPLOAD_TEMP_DIR = CONFIG.data_dir / "tmp"
 MAX_UPLOAD_BYTES = CONFIG.max_upload_mb * 1024 * 1024
+MAX_VIDEO_BYTES = CONFIG.max_video_mb * 1024 * 1024
 
 # ---------------------------------------------------------------- email
 #
@@ -182,6 +183,8 @@ SECURE_CSP = {
     "script-src": [CSP.SELF],
     "style-src": [CSP.SELF],
     "img-src": [CSP.SELF, "data:"],
+    # Videos stream from Snug itself, through the same authorisation as pages.
+    "media-src": [CSP.SELF],
     "font-src": [CSP.SELF],
     "connect-src": [CSP.SELF],
     "manifest-src": [CSP.SELF],

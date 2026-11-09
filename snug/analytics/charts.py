@@ -9,6 +9,8 @@ the h0 to h4 classes in the stylesheet.
 from django.utils.html import escape
 from django.utils.safestring import SafeString, mark_safe
 
+from snug.documents.models import PART_SECONDS
+
 SLOT = 20
 MAX_LABELS = 12
 # Charts leave room for at least this many pages, as the mockup does, so the
@@ -28,6 +30,14 @@ def duration(seconds: float) -> str:
     return f"{minutes} min {rest} s" if rest else f"{minutes} min"
 
 
+def label(index: int, *, video: bool) -> str:
+    """The name of a column: "Page 3", or for a video the time its part starts, "0:20"."""
+    if not video:
+        return f"Page {index + 1}"
+    minutes, seconds = divmod(index * PART_SECONDS, 60)
+    return f"{minutes}:{seconds:02d}"
+
+
 def heat(seconds: float, *, seen: bool) -> int:
     """0 for never seen; otherwise 1 to 4 by time. Seen briefly is never 0."""
     if not seen and seconds <= 0:
@@ -37,15 +47,21 @@ def heat(seconds: float, *, seen: bool) -> int:
     return 2 if seconds <= 45 else 3 if seconds <= 90 else 4
 
 
-def strip(seconds: list[float], seen: list[bool], email: str) -> SafeString:
+def strip(seconds: list[float], seen: list[bool], email: str, *, video: bool = False) -> SafeString:
     width = _width(len(seconds))
     count = sum(seen)
+    what = (
+        f"watched {count} of {len(seconds)} parts"
+        if video
+        else f"saw {count} of {len(seconds)} pages"
+    )
     parts = [
         f'<svg class="strip" viewBox="0 0 {width} 16" preserveAspectRatio="none" role="img" '
-        f'aria-label="{escape(email)}: saw {count} of {len(seconds)} pages">'
+        f'aria-label="{escape(email)}: {what}">'
     ]
     for i, (secs, was_seen) in enumerate(zip(seconds, seen, strict=True)):
-        tip = f"Page {i + 1}: {duration(secs)}" if was_seen else f"Page {i + 1}: not seen"
+        name = label(i, video=video)
+        tip = f"{name}: {duration(secs)}" if was_seen else f"{name}: not seen"
         parts.append(
             f'<rect class="h{heat(secs, seen=was_seen)}" x="{i * SLOT + 1}" y="0" '
             f'width="{SLOT - 2}" height="16" rx="2"><title>{tip}</title></rect>'
@@ -54,25 +70,26 @@ def strip(seconds: list[float], seen: list[bool], email: str) -> SafeString:
     return mark_safe("".join(parts))  # noqa: S308 - built from numbers and escaped text
 
 
-def bars(averages: list[float]) -> SafeString:
+def bars(averages: list[float], *, video: bool = False) -> SafeString:
     width = _width(len(averages))
     top = max(averages) or 1
+    each = "part" if video else "page"
     parts = [
         f'<svg class="bars" viewBox="0 0 {width} 64" preserveAspectRatio="none" role="img" '
-        'aria-label="Average time on each page, among viewers who reached it">'
+        f'aria-label="Average time on each {each}, among viewers who reached it">'
     ]
     for i, average in enumerate(averages):
         height = max(2, round(62 * average / top, 1)) if average else 0
         parts.append(
             f'<rect class="h{heat(average, seen=average > 0)}" x="{i * SLOT + 3}" '
             f'y="{64 - height}" width="{SLOT - 6}" height="{height}" rx="1.5">'
-            f"<title>Page {i + 1}: {duration(average)} on average</title></rect>"
+            f"<title>{label(i, video=video)}: {duration(average)} on average</title></rect>"
         )
     parts.append("</svg>")
     return mark_safe("".join(parts))  # noqa: S308 - built from numbers only
 
 
-def axis(pages: int) -> SafeString:
+def axis(pages: int, *, video: bool = False) -> SafeString:
     """Page numbers above the columns: every page, or every few on a long document.
 
     HTML, not SVG: the charts stretch to fit, and stretched SVG text would be
@@ -83,7 +100,11 @@ def axis(pages: int) -> SafeString:
     if len(shown) > MAX_LABELS:
         shown.discard(max(shown - {pages}))
     columns = max(pages, MIN_SLOTS)
-    labels = "".join(f"<span>{p if p in shown else ''}</span>" for p in range(1, columns + 1))
+    names = (label(p - 1, video=True) if video else str(p) for p in range(1, columns + 1))
+    labels = "".join(
+        f"<span>{name if p in shown else ''}</span>"
+        for p, name in zip(range(1, columns + 1), names, strict=True)
+    )
     return mark_safe(f'<span class="axis" aria-hidden="true">{labels}</span>')  # noqa: S308 - numbers only
 
 

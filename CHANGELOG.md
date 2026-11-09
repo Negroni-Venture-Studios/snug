@@ -44,6 +44,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- MP4 videos can be shared as documents. Investors watch them in the browser with their email address, the date and the link drawn over the player, and Snug counts time watched in 10-second parts, shown on the document's page and on People. Uploads are checked in the confined worker, which accepts H.264 video with optional AAC sound and refuses QuickTime and other formats with a plain message. Videos have their own size limit, `SNUG_MAX_VIDEO_MB`, 1 GB by default.
 - A workbook can have a description, written on its page in the admin: plain text, kept across new versions, and shown to investors above its list of sheets.
 - Excel workbooks (.xlsx) can be shared as documents, for download only. Investors see the workbook's sheets and a button to download it, and each copy names its reader, the date and the link in its document properties, with every sheet left exactly as uploaded. Uploads are checked in the confined worker: workbooks with macros, ActiveX or embedded objects, old .xls files and workbooks with passwords are refused with a plain message.
 - Email through Amazon SES works from DigitalOcean: Settings accepts SES's ports 2587 (STARTTLS) and 2465 (TLS), beside 25, 465, 587 and 2525.

@@ -351,3 +351,48 @@ def test_every_row_list_keeps_its_columns(
         for index in (1, 2):
             starts = {row[index] for row in lefts if len(row) > index}
             assert len(starts) == 1, (path, index, lefts)
+
+
+def test_a_video_is_uploaded_and_shown_with_its_watermark(
+    live_server: Any, page: Page, browser: Any, data_folder: Any
+) -> None:
+    """Real clicks: upload, then the player with the mark over it and a range request.
+
+    Playwright's Chromium has no H.264 decoder, so playback itself is checked by hand.
+    """
+    from snug.documents.models import Document
+    from snug.links import service
+    from tests.videos import CLIP
+
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/documents/new")
+    page.get_by_label("Title").fill("Product demo")
+    page.get_by_label("File").set_input_files(
+        files=FilePayload(name="demo.mp4", mimeType="video/mp4", buffer=CLIP.read_bytes())
+    )
+    page.get_by_role("button", name="Upload").click()
+    expect(page.locator(".notice-ok")).to_contain_text("Uploaded, an MP4 video, 0:02 long")
+
+    issued = service.create(
+        document=Document.objects.get(title="Product demo"),
+        email="priya@northfield.example",
+        note="",
+        expires_at=None,
+        require_verification=False,
+        allow_download=True,
+        created_by=None,
+    )
+    investor = browser.new_page()
+    investor.goto(f"{live_server.url}/v/{issued.token}")
+    investor.get_by_role("button", name="Open Product demo").click()
+    video, mark = investor.locator(".video-frame video"), investor.locator(".video-mark span")
+    expect(mark).to_contain_text("Shared with priya@northfield.example")
+    expect(investor.locator(".video-fullscreen")).to_be_visible()  # the script ran
+    box, over = video.bounding_box(), mark.bounding_box()
+    assert box and over
+    assert box["x"] <= over["x"] and over["x"] + over["width"] <= box["x"] + box["width"] + 1
+    piece = investor.request.get(
+        f"{live_server.url}/v/{issued.token}/video", headers={"Range": "bytes=0-99"}
+    )
+    assert piece.status == 206 and len(piece.body()) == 100
+    investor.close()

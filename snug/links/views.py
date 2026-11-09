@@ -144,6 +144,8 @@ def _download_kind(document: Document | None, room: Room | None) -> str:
     if room is not None:
         return "room"
     latest = document.latest_version() if document is not None else None
+    if latest is not None and latest.is_video:
+        return "video"
     return "workbook" if latest is not None and latest.is_workbook else "pdf"
 
 

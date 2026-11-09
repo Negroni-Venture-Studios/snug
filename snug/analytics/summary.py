@@ -104,6 +104,8 @@ class PersonDocument:
     seconds: list[float] = field(default_factory=list)
     seen: list[bool] = field(default_factory=list)
     downloads: int = 0
+    # A video's columns are its parts, labelled by time.
+    video: bool = False
 
     @property
     def total_seconds(self) -> float:
@@ -141,10 +143,13 @@ def for_people() -> list[Person]:
     if not visits:
         return []
     page_counts: dict[int, int] = {}
+    videos: set[int] = set()
     for visit in visits:
         if visit.document_id not in page_counts:
             latest = visit.document.latest_version()
             page_counts[visit.document_id] = latest.page_count if latest else 0
+            if latest is not None and latest.is_video:
+                videos.add(visit.document_id)
     views = list(PageView.objects.values("visit_id", "page", "seconds"))
     document_of = {visit.pk: visit.document_id for visit in visits}
     for view in views:
@@ -167,6 +172,7 @@ def for_people() -> list[Person]:
                 pages,
                 seconds=[0.0] * pages,
                 seen=[False] * pages,
+                video=visit.document_id in videos,
             )
             person.documents.append(reads[key])
         read = reads[key]
