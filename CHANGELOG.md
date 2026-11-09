@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- Settings links each section that has a guide to it, under its heading: admin accounts, email (the Google Workspace or SMTP guide, following the choice of provider) and the NDA. The guides open in a new tab, so a half-filled form is not lost.
+
 ### Security
 
 - The PDF worker refuses to read a file unless it has confined itself: Landlock ABI 4 (Linux 6.7) or later, and a new seccomp filter that refuses to create any socket. It used to carry on unconfined if Landlock failed, and Landlock alone let it send UDP. Both were found by an external security audit. `SNUG_UNSAFE_UNCONFINED_RENDERING` allows unconfined reading for development only.
