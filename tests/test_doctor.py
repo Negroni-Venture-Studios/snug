@@ -182,7 +182,7 @@ def test_anything_less_is_a_problem(how: str, monkeypatch: pytest.MonkeyPatch) -
     found = doctor.confinement()
     assert found.status == "problem"
     assert found.message == (
-        f"The PDF worker cannot confine itself ({how}), so Snug will not read documents. "
+        f"The document worker cannot confine itself ({how}), so Snug will not read documents. "
         "It needs Linux 6.7 or later."
     )
 
@@ -394,7 +394,7 @@ def test_the_report_lists_every_check_and_fails_on_a_problem(
     report, status = run_doctor()
     labels = [line.split("  ")[0:2] for line in report.splitlines()]
     assert report.splitlines()[0] == "Snug doctor"
-    for name in ("Housekeeping", "Backups", "PDF worker", "DNS", "HTTPS", "Email"):
+    for name in ("Housekeeping", "Backups", "Document worker", "DNS", "HTTPS", "Email"):
         assert any(name in line for line in report.splitlines()), (name, labels)
     assert "problem   Email" in report  # not set up in this test
     assert report.rstrip().endswith("1 problem.")

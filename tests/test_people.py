@@ -1,4 +1,4 @@
-"""People: everyone who has read anything, with what they read, in the same strips."""
+"""People: everyone who has opened anything, with what they opened, in the same strips."""
 
 import time
 from datetime import datetime, timedelta
@@ -81,7 +81,7 @@ def test_the_people_page() -> None:
     assert "Financial model" in page and page.count('class="strip"') == 3
     assert "kim@westfield.example" not in page  # never opened anything
     assert "2 min 50 s" in page  # Priya's total across both documents
-    assert "Time on each page" in page and 'class="legend"' in page
+    assert "Time on each page or part" in page and 'class="legend"' in page
 
 
 def test_the_people_page_before_anyone_reads() -> None:

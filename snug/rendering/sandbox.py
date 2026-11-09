@@ -37,7 +37,7 @@ MESSAGES = {
     "no_such_page": "That page does not exist.",
     "usage": "Snug could not read this PDF.",
     "unconfined": (
-        "This server cannot open documents safely: Snug reads every PDF in a confined "
+        "This server cannot open documents safely: Snug reads every upload in a confined "
         "process, which needs Linux 6.7 or later with Landlock. Ask whoever runs the server."
     ),
 }
@@ -129,7 +129,7 @@ def run(
         code = _error_code(output)
         if code == "unconfined":
             log.error(
-                "The PDF worker could not confine itself (Landlock ABI %s or later and a "
+                "The document worker could not confine itself (Landlock ABI %s or later and a "
                 "seccomp filter are needed), so it refused to read the file.",
                 MIN_LANDLOCK_ABI,
             )

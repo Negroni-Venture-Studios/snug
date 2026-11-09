@@ -5,7 +5,7 @@
 <strong>What:</strong> {{ document }}{% if room %}, in {{ room }}{% endif %}<br>
 <strong>When:</strong> {{ when }}<br>
 <strong>Where:</strong> {% if where %}{{ where }}{% else %}Not known{% endif %}</p>
-<p>This is the first time anyone has opened link {{ ref }}. <a href="{{ person_url }}">See what they read</a>.</p>
+<p>This is the first time anyone has opened link {{ ref }}. <a href="{{ person_url }}">See what they opened</a>.</p>
 <p>Every admin of {{ company|default:"this Snug instance" }} gets an email like this the first time each link is opened. To stop them, untick the box under Your account in <a href="{{ settings_url }}">Settings</a>.</p>
 </body>
 </html>

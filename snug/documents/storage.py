@@ -1,6 +1,6 @@
 """Where files live. Every path is built from database records, never from a request.
 
-<data>/originals/<generated name>.pdf     uploaded PDFs and .xlsx workbooks (backed up)
+<data>/originals/<generated name>.<ext>   uploaded .pdf, .xlsx and .mp4 files (backed up)
 <data>/renders/<version id>/<page>-<width>.webp   rendered pages (a cache)
 <data>/tmp/                                uploads in progress
 """

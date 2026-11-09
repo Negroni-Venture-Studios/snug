@@ -12,8 +12,8 @@ def unconfined_rendering(app_configs: Any = None, **kwargs: Any) -> list[checks.
         return []
     return [
         checks.Warning(
-            "SNUG_UNSAFE_UNCONFINED_RENDERING is on: PDFs are read unconfined wherever "
-            "the worker cannot confine itself, so a hostile PDF could reach the database "
+            "SNUG_UNSAFE_UNCONFINED_RENDERING is on: uploads are read unconfined wherever "
+            "the worker cannot confine itself, so a hostile file could reach the database "
             "and every document.",
             hint="Use it only for development on a machine without Landlock, never on a server.",
             id="snug.W001",

@@ -94,7 +94,7 @@ def test_the_stat_strip_counts_what_is_there(client: Client) -> None:
     stats = page[page.index('<div class="stats">') :]
     assert '<div class="value">3</div><div class="label">Documents</div>' in stats
     assert '<div class="value">2</div><div class="label">Active links</div>' in stats
-    assert '<div class="value">2</div><div class="label">People who have read</div>' in stats
+    assert '<div class="value">2</div><div class="label">People who have visited</div>' in stats
     assert '<div class="value">2</div><div class="label">Visits in the last 7 days</div>' in stats
 
 
