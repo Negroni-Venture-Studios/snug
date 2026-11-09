@@ -37,8 +37,8 @@ MESSAGES = {
     "no_such_page": "That page does not exist.",
     "usage": "Snug could not read this PDF.",
     "unconfined": (
-        "This server cannot open documents safely: Snug reads every upload in a confined "
-        "process, which needs Linux 6.7 or later with Landlock. Ask whoever runs the server."
+        "This server cannot open documents safely. It needs Linux 6.7 or later, with Landlock. "
+        "Ask whoever runs the server."
     ),
 }
 

@@ -266,7 +266,7 @@ def test_the_stream_answers_only_ranges_and_in_pieces(
 
 def test_the_link_form_says_a_streamed_video_can_be_saved(client: Client, demo: Document) -> None:
     page = client.get(f"/admin/links/for/{demo.token}", secure=True).content.decode()
-    assert "a video playing in a browser can still be saved" in page
+    assert "Someone determined can save a video they are watching, even with downloads off." in page
 
 
 def test_a_revoked_link_stops_the_video_at_once(demo: Document) -> None:
@@ -383,7 +383,10 @@ def test_watching_shows_in_parts_on_the_admin_pages(client: Client, long_demo: D
 
 def test_the_link_form_says_what_a_video_download_is(client: Client, demo: Document) -> None:
     page = client.get(f"/admin/links/for/{demo.token}", secure=True).content.decode()
-    assert "The original video file. It cannot be stamped" in page
+    assert (
+        "The original video file, without a watermark; the audit log records who downloaded it."
+        in page
+    )
 
 
 def test_the_admin_uploads_a_video(client: Client) -> None:
