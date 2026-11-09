@@ -86,7 +86,7 @@ It asks for the new password twice. Like the link, it signs you out everywhere a
 
 ## Replacing your authenticator
 
-For a new phone: in **Settings**, under **Your account**, choose **Replace your authenticator**. Enter your password, and a code from your current authenticator app or one of your recovery codes. Snug then:
+For a new phone: in **Settings**, under **Your account**, find **Replace your authenticator**. Enter your password, and a code from your current authenticator app or one of your recovery codes, then choose **Replace authenticator**. Snug then:
 
 1. stops your old authenticator and recovery codes working at once, which also signs you out everywhere;
 2. takes you straight to a page that shows a new QR code, asks for a code from the new app, and shows ten new recovery codes;
@@ -95,7 +95,7 @@ For a new phone: in **Settings**, under **Your account**, choose **Replace your 
 
 ## Losing your phone
 
-- If you still have your recovery codes, sign in with one of them, then replace your authenticator as below.
+- If you still have your recovery codes, sign in with one of them, then replace your authenticator as above.
 - If you have lost the recovery codes too, another admin can reset your second factor from the admin interface.
 - If you are the only admin, run this on the server:
 

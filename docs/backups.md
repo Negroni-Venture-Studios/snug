@@ -6,7 +6,7 @@ The standard deployment backs Snug up continuously to a storage bucket of your o
 
 | What | How often | History kept |
 |---|---|---|
-| The database: admins, links, rooms, the audit log, NDA acceptances, reading data and settings | Litestream records every change within a second; the bucket gets a copy every 5 minutes | Any moment in the last 7 days can be restored |
+| The database: admins, links, rooms, the audit log, NDA acceptances, reading data and settings, including how email is sent | Litestream records every change within a second; the bucket gets a copy every 5 minutes | Any moment in the last 7 days can be restored |
 | Uploaded documents (`originals/`) | Every 5 minutes | A deleted or replaced file is kept for 30 days |
 | Your logo and tab icon (`branding/`) | Every 5 minutes | As documents |
 
@@ -23,7 +23,7 @@ The server holds the bucket's keys, so someone who takes control of it can delet
 Two containers beside Snug do the work, as [deployment.md](deployment.md) describes:
 
 - **Litestream** copies every change to the database into `backup/database` in Snug's data volume, within a second. Its settings are in `litestream.yml`.
-- **backup** runs rclone every 5 minutes. It copies `backup/database`, `originals/` and `branding/` to the bucket through an rclone crypt remote, which encrypts each file's name and contents (XSalsa20 and Poly1305) before it leaves the server. Its script is `backup.sh`.
+- **backup** runs rclone every 5 minutes. It copies `backup/database`, `originals/` and `branding/` to the bucket through an rclone crypt remote, which encrypts each file's name and contents (XSalsa20 and Poly1305) before it leaves the server. Its script is `backup.sh`. `SNUG_BACKUP_EVERY` in `snug.env` sets the interval in seconds, 300 unless set; `snug doctor` still reports a problem after 15 minutes without a copy.
 
 Only the backup container sees the bucket's keys and the encryption password, in `/opt/snug/backup/rclone.conf`. Snug itself never does, so a fault in Snug cannot reach the backups. The backup container can reach the internet, but not Snug.
 
@@ -78,7 +78,9 @@ sudo docker compose exec backup rclone lsf -R snug-backup:
 
 `snug restore` brings everything back from the bucket: the database, the uploaded documents and the branding images. It works on the same server, after a mistake, or on a new one, after losing the old.
 
-On a new server, create it with cloud-init as [deployment.md](deployment.md) describes. Before running `snug setup`, put the copy of `rclone.conf` from your password manager in `/opt/snug/backup/`. `snug setup` asks for the domain and email settings, finds the backups, and restores them. Then sign in to check, and run `sudo snug doctor`.
+On a new server, create it with cloud-init as [deployment.md](deployment.md) describes. Before running `snug setup`, put the copy of `rclone.conf` from your password manager in `/opt/snug/backup/`. `snug setup` asks for the domain and your company's name, finds the backups, and restores them. Then sign in to check, and run `sudo snug doctor`.
+
+The email settings come back with the database, including a Google Workspace connection, which goes on sending. If the new server has a different domain, add its redirect address to the Google client too, as [email-google.md](email-google.md) describes, so the mailbox can be connected again when it needs to be.
 
 On the same server:
 

@@ -75,6 +75,7 @@ Write the test that proves the change, and confirm it fails for the reason you e
 8. **File handling.** Store uploads under generated names. Resolve paths from database records, never from request parameters. Read and render PDFs only in the worker process: a timeout and a memory limit, confined by Landlock and a seccomp filter that refuses sockets, and refusing to read anything if it cannot confine itself.
 9. **Never log** tokens, one-time codes, session identifiers or passwords.
 10. **Dependencies.** Ask before adding one, and check that its licence is MIT-compatible (`scripts/check_licences.py`).
+11. **Calls out of Snug** go only to Google (the Gmail API, for email) and DB-IP (the country data), through `snug.core.outbound.urlopen`. It takes proxy settings from the environment only: urllib's default opener asks macOS for them, which kills a forked gunicorn worker. No test may reach the internet; a fixture in `tests/conftest.py` blocks both.
 
 ### Front end
 
@@ -82,11 +83,11 @@ Write the test that proves the change, and confirm it fails for the reason you e
   - Geist and Geist Mono;
   - the Negroni-derived tokens in `docs/design/snug.css`;
   - dark by default;
-  - Phosphor icons;
+  - Phosphor icons, vendored from v2.0.8 into `snug/static/snug/icons/`;
   - server-rendered SVG charts.
 - Every text colour pairing must pass WCAG AA (4.5:1) in both themes.
 - Interface copy is British English, in sentence case, with no em or en dashes and no middle dots used as separators.
-- Every admin save returns to its own section with a green notice saying what changed (`snug.core.notices`); errors show in red beside the field.
+- Every admin save returns to its own section with a green notice saying what changed (`snug.core.notices`, or the `saved` query in Settings); errors show in red beside the field. Where a save leads to a next step, as in the Email steps, it lands on that step, with the notice there.
 - Verify a UI change with a real click in a browser, not only a screenshot. The CSP silently kills inline handlers, and a screenshot cannot show a dead click.
 
 ### Versions
