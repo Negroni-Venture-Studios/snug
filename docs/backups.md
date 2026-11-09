@@ -27,6 +27,11 @@ Two containers beside Snug do the work, as [deployment.md](deployment.md) descri
 - **Litestream** copies every change to the database into `backup/database` in Snug's data volume, within a second. Its settings are in `litestream.yml`.
 - **backup** runs rclone every 5 minutes. It copies `backup/database`, `originals/` and `branding/` to the bucket through an rclone crypt remote, which encrypts each file's name and contents (XSalsa20 and Poly1305) before it leaves the server. Its script is `backup.sh`. `SNUG_BACKUP_EVERY` in `snug.env` sets the interval in seconds, 300 unless set; `snug doctor` still reports a problem after 15 minutes without a copy.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/backups-dark.svg">
+  <img alt="Litestream copies every database change to a replica on the same volume, and every 5 minutes rclone encrypts the replica, the uploads and the branding into your bucket, keeping anything it would overwrite or delete for 30 days. sudo snug restore sets the current data aside, copies everything back and rebuilds the database at any moment in the last 7 days." src="images/diagrams/backups-light.svg">
+</picture>
+
 Only the backup container sees the bucket's keys and the encryption password, in `/opt/snug/backup/rclone.conf`. Snug itself never does, so a fault in Snug cannot reach the backups. The backup container can reach the internet, but not Snug.
 
 ## Setting up

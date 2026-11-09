@@ -17,6 +17,7 @@ from typing import Any
 
 import pyotp
 import pytest
+from django.conf import settings
 from django.utils import timezone
 from PIL import Image
 from playwright.sync_api import Browser, BrowserContext, Page
@@ -87,7 +88,7 @@ def _open(page: Page, url: str) -> None:
 
 
 def test_take_the_documentation_screenshots(
-    live_server: Any, browser: Browser, data_folder: Any
+    live_server: Any, browser: Browser, data_folder: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     admin = Admin(
         email=EMAIL, is_active=True, totp_secret=totp.new_secret(), totp_confirmed_at=timezone.now()
@@ -100,6 +101,10 @@ def test_take_the_documentation_screenshots(
     priya = built.links["priya@northfield.example"]
     Link.objects.filter(pk=priya.link.pk).update(require_verification=False)
     signed_in = _sign_in(browser, url)
+    # Addresses Snug writes into its pages, such as Google's redirect, use the
+    # demo's domain, to match the address bar the frame draws.
+    origin = property(lambda config: f"https://{demo.DOMAIN}")
+    monkeypatch.setattr(type(settings.CONFIG), "origin", origin)
 
     admin_pages = {
         "overview": "/admin/",
@@ -110,7 +115,6 @@ def test_take_the_documentation_screenshots(
         "people": "/admin/people/",
         "links": "/admin/links/",
         "link-new": f"/admin/links/for/{built.deck.token}",
-        "rooms": "/admin/rooms/",
         "room": f"/admin/rooms/{built.room.token}",
         "audit": "/admin/audit/",
         "settings": "/admin/settings/",
@@ -124,6 +128,11 @@ def test_take_the_documentation_screenshots(
         page = context.new_page()
         for name, path in admin_pages.items():
             shots[theme][name] = _shot(page, f"{url}{path}")
+        # The same steps with Google Workspace chosen, for docs/email-google.md.
+        page.get_by_label("Google Workspace").check()
+        page.locator("#email").scroll_into_view_if_needed()
+        page.evaluate("document.getElementById('email').scrollIntoView(); window.scrollBy(0, -40)")
+        shots[theme]["settings-google"] = Image.open(io.BytesIO(page.screenshot()))
         context.close()
     for theme in THEMES:
         context = _context(browser, theme)

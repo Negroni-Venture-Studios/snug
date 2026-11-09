@@ -12,6 +12,13 @@ Snug can ask a viewer to accept a non-disclosure agreement before they see anyth
 2. To ask for it on a room, open the room and tick **Ask for the NDA before anything is shown**. Every link to that room then asks for it, including links already sent.
 3. To ask for it on a link to a single document, tick **Ask for the NDA first** when you create the link.
 
+An investor asked for it sees the agreement before anything else, and accepts it with their name:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/nda-dark.png">
+  <img alt="The NDA page an investor sees: Before you open Seed deck, the agreement, a box for their full name, a box to tick to accept, and what Snug records." src="images/screenshots/nda-light.png">
+</picture>
+
 There is one agreement for the whole instance. Most companies have one NDA; if yours differs between rooms, say so in an issue.
 
 ## Changing it

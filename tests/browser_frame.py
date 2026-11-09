@@ -147,6 +147,9 @@ def _shadow(size: tuple[int, int], radius: int, strength: int, blur: float) -> I
 
 
 BLUR_ROOM = 3
+# Shadow fainter than this is cleared before the colours are reduced, or it would
+# become one flat shade and show the edge of the blur as a pale box.
+FAINTEST = 12
 
 
 def _place(canvas: Image.Image, shadow: Image.Image, at: tuple[int, int], blur: float) -> None:
@@ -214,6 +217,6 @@ def save(image: Image.Image, path: Path) -> None:
     palette = reduced.getpalette(rawmode="RGBA") or []
     palette = [*(palette + [0, 0, 0, 0] * 256)[: 255 * 4], 0, 0, 0, 0]
     reduced.putpalette(palette, rawmode="RGBA")
-    clear = rgba.getchannel("A").point(lambda a: 255 if a == 0 else 0)
+    clear = rgba.getchannel("A").point(lambda a: 255 if a < FAINTEST else 0)
     reduced.paste(255, mask=clear)
     reduced.save(path, optimize=True)

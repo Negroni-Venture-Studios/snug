@@ -23,6 +23,11 @@ Snug then:
 
 Go to **Settings**, enter the person's email address under **Invite an admin**, and enter a fresh code from your own authenticator app. Snug asks for the code so that nobody at an unlocked computer can add themselves.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-dark.png">
+  <img alt="Settings: the list of admins, and the form to invite one, with a box for a code from your authenticator app." src="images/screenshots/settings-light.png">
+</picture>
+
 Snug then:
 
 1. emails them a setup link. It works once, for 72 hours. Sending another invite to the same address replaces the link;
@@ -48,6 +53,11 @@ To replace your own authenticator, sign in with a recovery code, or ask another 
 
 Go to `/admin/` on your Snug domain. Enter your email address and password, then the six-digit code from your app. The code must follow within five minutes of the password.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/sign-in-dark.png">
+  <img alt="The sign-in page, asking for an email address and password, with a link for a forgotten password." src="images/screenshots/sign-in-light.png">
+</picture>
+
 - **Each code works once.** If you sign out and straight back in, wait for the app to show a new code.
 - **Sessions end** after an hour without activity, and after twelve hours whatever happens.
 - **Too many attempts pause signing in for 15 minutes.** The limits are:
@@ -64,6 +74,11 @@ Go to `/admin/` on your Snug domain. Enter your email address and password, then
 ## Changing your password
 
 In **Settings**, under **Your account**, enter your current password, the new one twice and a fresh code from your authenticator app, then choose **Change password**. You stay signed in on that browser; everywhere else is signed out. Snug emails you to say it changed, and writes the change to the audit log. The attempts share the 10-in-15-minutes limit on confirming admin changes.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-account-dark.png">
+  <img alt="Your account in Settings: the current password, the new one, and a code from your authenticator app." src="images/screenshots/settings-account-light.png">
+</picture>
 
 ## Forgetting your password
 

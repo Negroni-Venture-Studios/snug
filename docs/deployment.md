@@ -54,6 +54,13 @@ Compose treats `$` in `snug.env` as the start of a variable. Wrap any value cont
 
 ## How the containers are set up
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/overview-dark.svg">
+  <img alt="Founders and investors reach Snug through Caddy. Inside the Snug container, the web workers serve requests and start a confined document worker for each file. Litestream and the backup container share the data volume and copy it, encrypted, to your bucket." src="images/diagrams/overview-light.svg">
+</picture>
+
+[How Snug works](architecture.md) explains each part.
+
 | | Snug | Caddy |
 |---|---|---|
 | Image | `ghcr.io/negroni-venture-studios/snug:edge`, a test build of the latest code; set `SNUG_IMAGE` in `.env` to use another | `caddy`, pinned by digest |
@@ -94,7 +101,14 @@ sudo snug doctor --email you@example.com
 | Email | Email is set up, through Google Workspace or SMTP; with `--email`, a code sent to that address is typed back |
 | GeoIP | When anything is UK-only: DB-IP's country data is this month's or last month's |
 
-The admin Overview shows the same problems, so a founder sees them without running a command. It checks housekeeping, the backups, the email settings and the GeoIP data on each visit; housekeeping runs the document worker, DNS and HTTPS checks every hour, and a failed email is recorded when it fails.
+The admin Overview shows the same problems, so a founder sees them without running a command. When there are none, it says so:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/overview-dark.png">
+  <img alt="The admin Overview, saying everything is working, above its numbers and the latest visits." src="images/screenshots/overview-light.png">
+</picture>
+
+It checks housekeeping, the backups, the email settings and the GeoIP data on each visit; housekeeping runs the document worker, DNS and HTTPS checks every hour, and a failed email is recorded when it fails.
 
 Snug cannot read your inbox, so the email check sends a six-digit code and asks you to type it in. Without `--email`, `snug doctor` asks for an address, or skips the email test when it is not run in a terminal. It exits with status 1 if anything is a problem.
 
