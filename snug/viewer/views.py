@@ -540,6 +540,8 @@ def viewer_nda(view: Callable[..., HttpResponse]) -> Callable[..., HttpResponse]
             access = authorise(request, token, check_nda=False)
         except NotVerified:
             return _see_other(token)
+        except OutsideUK as refused:
+            return _outside(request, refused)
         except Unavailable:
             return _unavailable(request)
         return view(request, access, token)
