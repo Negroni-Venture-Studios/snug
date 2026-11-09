@@ -33,7 +33,7 @@ Inside the Snug container there are three kinds of process:
 | `snug/settings.py`, `urls.py`, `wsgi.py`, `gunicorn_conf.py` | Django's settings, the URL map, and gunicorn's hooks |
 | `snug/accounts/` | Admins: sign-in, the authenticator, recovery codes, invitations and resets, and the Settings pages |
 | `snug/documents/` | Documents and their versions: uploads, the checks on them, and where files are stored |
-| `snug/rendering/` | The document worker and the code that starts it. A plain package, not a Django app |
+| `snug/rendering/` | The document worker and the code that starts it |
 | `snug/links/` | Links: creating, emailing, revoking and reissuing them |
 | `snug/rooms/` | Rooms, their folders and the documents in them |
 | `snug/viewer/` | Everything an investor sees, under `/v/`, and the one authorisation path |
@@ -49,7 +49,7 @@ Inside the Snug container there are three kinds of process:
 
 `snug` is a console script, `snug.__main__:main`. Before anything else it marks its process as non-dumpable, so no other process running as the same user can read its memory or environment through `/proc`. It then reads the optional `--env-file`, loads the settings and creates the data folders.
 
-`snug.config.load_config` reads the `SNUG_*` environment variables. It checks all of them before it stops, so a broken `snug.env` reports every problem at once, and the command exits with status 2. The values sit in `settings.CONFIG`, which the rest of the code reads instead of the environment. [docs/configuration.md](configuration.md) lists them.
+`snug.config.load_config` reads the `SNUG_*` environment variables. It checks all of them before it stops, so Snug reports every problem in a broken `snug.env` at once, and the command exits with status 2. The values sit in `settings.CONFIG`, which the rest of the code reads instead of the environment. [docs/configuration.md](configuration.md) lists them.
 
 `snug serve` runs the database migrations, then replaces itself with gunicorn: two workers, four threads each, no access log. The database is SQLite in WAL mode, with a 5-second busy timeout and every transaction started as `IMMEDIATE`, so two threads writing at once wait their turn without deadlocking.
 
@@ -64,7 +64,7 @@ Caddy passes each request to `snug:8000` and adds the visitor's address in `X-Fo
 
 The middleware runs in this order:
 
-1. Django's `SecurityMiddleware`, then its content security policy, then `X-Frame-Options`. The policy refuses everything that is not listed, and lists only Snug's own address: no inline scripts or styles.
+1. Django's `SecurityMiddleware`, then its content security policy, then `X-Frame-Options`. The policy allows only what it lists, and it lists only Snug's own address, so no inline script or style can run.
 2. `extra_security_headers`: `Permissions-Policy` and `Cross-Origin-Resource-Policy`.
 3. `health_check` answers `/healthz` for Docker's health check, before the host check.
 4. WhiteNoise serves `/static/`.
@@ -73,7 +73,7 @@ The middleware runs in this order:
 7. CSRF, then authentication.
 8. `session_limits` signs an admin out after an hour without activity, or 12 hours after signing in.
 
-Rate limits are not middleware. Each view that needs one calls `snug.core.ratelimit.allow` with a `Limit` (a scope, a count and a window). The counts are kept in the database, in fixed windows, keyed by a hash of the scope and the address or account.
+Each view that needs a rate limit calls `snug.core.ratelimit.allow` with a `Limit` (a scope, a count and a window). The counts are kept in the database, in fixed windows, keyed by a hash of the scope and the address or account.
 
 The URL map sends a request to one of three places:
 
@@ -123,7 +123,7 @@ A room link's documents are checked on every request against the room's current 
 - A link always shows its document's newest version. `Visit.version_number` records which version was read, as a number, so deleting an old version would not delete the reading data.
 - `AuditEvent` rows can be added but never changed or deleted. The model refuses it, and so do SQLite triggers created by the audit app's first migration.
 - An `NdaAcceptance` holds the name, email, address, browser and a SHA-256 hash of the exact text accepted. Its foreign keys are protected, so a link someone has accepted the NDA on cannot be deleted.
-- `SiteSettings` and `EmailSettings` each hold one row. They keep what admins change in Settings, so a change needs no restart. `EmailSettings` holds the SMTP password, the Google client secret and the refresh token as they are: Snug needs them to send email.
+- `SiteSettings` and `EmailSettings` each hold one row. They keep what admins change in Settings, so a change needs no restart. `EmailSettings` holds the SMTP password, the Google client secret and the refresh token as they are, since Snug needs them to send email.
 
 Files live in the data folder, `SNUG_DATA_DIR`:
 
@@ -139,7 +139,7 @@ Files live in the data folder, `SNUG_DATA_DIR`:
 └── backup/               Litestream's replica, and the backup's status files
 ```
 
-`snug.documents.storage` builds every path from a database record and checks that it stays inside its folder. No path comes from a request.
+`snug.documents.storage` builds every path from a database record, never from a request, and checks that it stays inside its folder.
 
 ## Uploading a document
 
@@ -184,7 +184,7 @@ The worker then:
 
 Snug reads the pipe in 64 KiB pieces up to 64 MB (more for a stamped download, which can be as large as the file), against a deadline: 60 seconds to check an upload or stamp a download, 30 seconds to draw a page. Past either limit it kills the worker's whole process group. An error comes back as a short code, such as `password` or `macros`, which `sandbox` turns into the message shown to the admin.
 
-The worker's modes are `inspect`, `render` and `stamp` for PDFs, `stamp-pdf` for a PDF download, `inspect-xlsx` and `stamp-xlsx` for workbooks, `inspect-mp4` for videos, `logo` and `icon` for the branding images, and `confinement`, which confines itself and reports how, for `snug doctor`. Workbooks and videos are read with the standard library alone (`snug.rendering.workbook` and `video`). A video is never decoded: the worker reads its boxes' headers and its index, and the investor's browser plays it.
+The worker's modes are `inspect`, `render` and `stamp` for PDFs, `stamp-pdf` for a PDF download, `inspect-xlsx` and `stamp-xlsx` for workbooks, `inspect-mp4` for videos, `logo` and `icon` for the branding images, and `confinement`, which confines itself and reports how, for `snug doctor`. Workbooks and videos are read with the standard library alone (`snug.rendering.workbook` and `video`). The worker never decodes a video. It reads the headers of the video's boxes and its index, and the investor's browser plays it.
 
 On a Mac, which has no Landlock, `SNUG_UNSAFE_UNCONFINED_RENDERING=true` lets the worker run unconfined for development. `snug check` warns whenever it is on.
 
@@ -231,11 +231,11 @@ The Audit log page filters by kind or email address. Its CSV export records itse
 
 `snug.core.mail.outgoing` picks the route for each message, and `snug.core.email_backend.EmailBackend` sends it. For SMTP it resolves the server's name, refuses it unless every address is public, then connects to the address it checked while TLS still checks the certificate against the name, so a DNS change between the check and the connection cannot redirect it. For Google it calls the Gmail API (`snug.core.gmail`) with an access token from the stored refresh token, kept in memory for its hour.
 
-Connecting Google is an OAuth flow with PKCE, started from Settings. The founder's own Google Cloud project owns the OAuth client, and the mailbox approves it to send email and nothing else. The approval waits in the session until the admin confirms it with a fresh authenticator code.
+Connecting Google is an OAuth flow with PKCE, started from Settings. The founder's own Google Cloud project owns the OAuth client, and the mailbox approves it to send email and nothing else. Snug keeps the approval in the session until the admin confirms it with a fresh authenticator code.
 
 Investors' codes, password links and first-open notices are sent from a background thread, so a slow mail server does not slow the page. Each send records whether it worked, which the Overview and `snug doctor` show.
 
-Snug makes HTTP calls to Google and to DB-IP alone, all through `snug.core.outbound.urlopen`. It takes proxy settings from the environment only, since urllib's default, on macOS, asks the system for them in a way that kills a process gunicorn has forked.
+Snug makes HTTP calls to Google and to DB-IP alone, all through `snug.core.outbound.urlopen`. It takes proxy settings from the environment only. On macOS, urllib's default looks them up through system frameworks that kill a process gunicorn has forked.
 
 ## Background work
 
@@ -247,7 +247,7 @@ Snug makes HTTP calls to Google and to DB-IP alone, all through `snug.core.outbo
 4. runs the slower `snug doctor` checks (the document worker's confinement, DNS and HTTPS) and stores their results for the Overview;
 5. fetches DB-IP's country data when a new month's is out, into `geoip/countries.sqlite3`, replacing the old file only once the new one is complete.
 
-`snug doctor` checks housekeeping, the backups, the document worker, DNS, HTTPS and the certificate, email and the country data, and can send a test email. The Overview shows any problem from the same checks: the quick ones run on each visit, and the slower ones come from what housekeeping stored.
+`snug doctor` checks housekeeping, the backups, the document worker, DNS, HTTPS and the certificate, email and the country data, and can send a test email. The Overview shows any problem from the same checks. The quick ones run on each visit; the slower ones come from what housekeeping stored.
 
 ## Backups and restore
 
@@ -279,7 +279,7 @@ The content security policy allows no inline script or style, so the few scripts
 | `viewer.js` | The reader's keyboard and page picker, and heartbeats |
 | `video.js` | The video player's heartbeats, parts and full screen |
 
-The company's accent colour reaches investors' pages as a small stylesheet, `/brand/brand.css`, generated from Settings.
+Investors' pages get the company's accent colour from a small stylesheet, `/brand/brand.css`, generated from Settings.
 
 ## Tests
 

@@ -31,9 +31,9 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 - **Rooms.** Collections of documents, with one level of folders. A document can be in any number of rooms.
 - **Links.** One per person, to a document or a room, with an optional message from you. Email verification (on by default), optional expiry, downloads (on by default), and immediate revocation.
 - **UK-only mode.** A link, or a whole room, can open only for visitors in the UK, Jersey, Guernsey and the Isle of Man, judged by their internet address against a country database kept on your server.
-- **An NDA.** One click-through agreement for your instance, versioned, which a room or a single-document link can ask for first. Snug records who accepted which text, and when.
+- **An NDA.** One click-through agreement for your instance, versioned, which you can require before a room or a single-document link opens. Snug records who accepted which text, and when.
 - **The reader.** Pages are rendered on your server and shown one at a time, watermarked with the reader's email address, the date and the link. A download is the original PDF, stamped with the same details, so its text stays searchable. A video plays in the browser with the same details drawn over it; a workbook's card lists its sheets, and the founder can add a description.
-- **Analytics.** Who opened each document, how long they spent on each page (or on each 10 seconds of a video), and how often they downloaded it, on an Overview, each document's page and a People page. Every admin is emailed the first time each link is opened, unless they turn it off. Reading data is deleted 12 months after a link ends, or after a period you set. Nothing about your visitors leaves your instance, and Snug does not phone home.
+- **Analytics.** Who opened each document, how long they spent on each page (or on each 10 seconds of a video), and how often they downloaded it, on an Overview, each document's page and a People page. Every admin is emailed the first time each link is opened, unless they turn it off. Reading data is deleted 12 months after a link ends, or after a period you set. Everything about your visitors stays on your instance, and Snug does not phone home.
 - **An audit log** of every admin action and every viewer access, with the viewer's country, filterable and exportable as CSV.
 - **Email** through Google Workspace, as a mailbox on your domain over the Gmail API, or any provider over SMTP. It is set up in Settings in numbered steps, ending with a test email, and can be cleared there with one button. Each part of Settings links to its guide.
 - **Admin accounts** with a password and an authenticator app, recovery codes, invitations by email, and an email to every admin whenever the admins change.
@@ -54,7 +54,7 @@ An investor enters a code sent to their inbox, then reads, or downloads a workbo
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/code-dark.png">
-  <img alt="The page an investor sees first: Fernlea Robotics has shared Seed deck with you, with a box for their email address and a panel saying what the company will see." src="docs/images/screenshots/code-light.png" width="49%">
+  <img alt="The page an investor sees first: Fernlea Robotics has shared Seed deck with you, with a box for their email address and a panel listing what the company will see." src="docs/images/screenshots/code-light.png" width="49%">
 </picture>
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/workbook-dark.png">
@@ -65,8 +65,8 @@ An investor enters a code sent to their inbox, then reads, or downloads a workbo
 
 ## What Snug does not do
 
-- **It shows PDFs and videos, and shares Excel workbooks.** Export anything else, such as Word or PowerPoint files, to PDF first, and video to MP4 with H.264. A workbook is not previewed in the browser: investors download it, and Snug writes their email address, the date and the link into each copy's document properties. A video's watermark is drawn over the player, so a downloaded copy has no mark, and someone determined can save a video they are watching even with downloads turned off.
-- **Watermarks deter casual leaks; they cannot stop one.** Nothing stops someone photographing a screen.
+- **It shows PDFs and videos, and shares Excel workbooks.** Export anything else, such as Word or PowerPoint files, to PDF first, and video to MP4 with H.264. A workbook is not previewed in the browser. Investors download it, and Snug writes their email address, the date and the link into each copy's document properties. A video's watermark is drawn over the player, so a downloaded copy has no mark, and someone determined can save a video they are watching even with downloads turned off.
+- **Watermarks deter casual leaks; they cannot stop one.** Anyone can photograph a screen.
 - **NDA acceptance is a record, not a signature.** Snug records who accepted which text, and when.
 - **UK-only mode is not export control.** It goes by the visitor's internet address, so a VPN gets round it.
 - It is not a hosted service, and one instance serves one company.
@@ -109,7 +109,7 @@ Create the first admin, which asks for a password and shows a QR code for your a
 docker exec --interactive --tty snug snug createadmin --email you@example.com
 ```
 
-and sign in at <http://localhost:8000/admin/>. The Overview will say nothing has been backed up: backups need the server setup below. Without email settings, Snug writes each email, such as a viewer's code, to a file in the container instead of sending it. To read them:
+and sign in at <http://localhost:8000/admin/>. The Overview will show that nothing has been backed up, since backups need the server setup below. Without email settings, Snug writes each email, such as a viewer's code, to a file in the container instead of sending it. To read them:
 
 ```bash
 docker exec snug sh -c 'cat /var/lib/snug/outbox/*'
@@ -153,7 +153,7 @@ UK-only mode uses [IP geolocation by DB-IP](https://db-ip.com), licensed CC BY 4
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) explains how to set up, test and propose changes.
 - Please report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md).
-- [AGENTS.md](AGENTS.md) holds the working rules for AI coding agents, and is worth reading for people too.
+- [AGENTS.md](AGENTS.md) holds the working rules for AI coding agents, and people will find it useful too.
 
 ## Licence
 

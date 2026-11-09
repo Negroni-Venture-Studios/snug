@@ -9,7 +9,7 @@ Google needs to know about Snug first, so there is a one-time setup in the Googl
 ## What you need
 
 - **A Google Workspace account that is an administrator**, or one allowed to create Google Cloud projects (most are).
-- **The mailbox Snug will send from.** It must be a real user with a Gmail licence, not a group. A dedicated user, such as `rooms@`, is best: investor emails then stay out of your own *Sent* folder, and sending does not stop if you leave or change your password. Your own mailbox works too, and is the quickest way to try it.
+- **The mailbox Snug will send from.** It must be a real user with a Gmail licence, not a group. A dedicated user, such as `rooms@`, is best. Investor emails then stay out of your own *Sent* folder, and sending does not stop if you leave or change your password. Your own mailbox works too, and is the quickest way to try it.
 - **Snug running, and you signed in.** You will copy its redirect address from Settings, and paste the client into it at the end.
 - **Your domain's email records in place.** Mail from a domain without SPF, DKIM and DMARC goes to spam. If you are not sure yours has them, see [Your domain's email records](#your-domains-email-records) first.
 
@@ -46,7 +46,7 @@ This is the page Google shows when the mailbox approves Snug.
 
 1. In the left-hand sidebar, choose **OAuth consent screen**. Google opens *Google Auth Platform*, saying it is not configured yet. Choose **Get started**.
 2. **App information.** Enter **Snug** as the app name, choose your own address as the user support email, and choose **Next**.
-3. **Audience.** Choose **Internal**, then **Next**. Only accounts in your Workspace organisation can then approve Snug, and Google does not need to review it, so this choice matters.
+3. **Audience.** Choose **Internal**, then **Next**. Only accounts in your Workspace organisation can then approve Snug, and Google does not need to review it.
 4. **Contact information.** Enter your own address, and choose **Next**.
 5. **Finish.** Tick the box agreeing to the *Google API Services: User Data Policy*, choose **Continue**, then **Create**.
 
@@ -59,7 +59,7 @@ The client is how Snug identifies itself to Google. It has an ID, which is not s
 1. On *OAuth overview*, choose **Create OAuth client**. Later, you can find it under **Clients** in the sidebar.
 2. **Application type:** choose **Web application**.
 3. **Name:** **Snug**, which only you see.
-4. **Authorised JavaScript origins:** leave empty. Snug talks to Google from the server, not the browser.
+4. **Authorised JavaScript origins:** leave empty. Snug talks to Google only from the server.
 5. **Authorised redirect URIs:** choose **Add URI**, and paste the address Snug shows in Settings, under Email, in step 1 after you choose Google Workspace. On a server it looks like this:
 
         https://room.example.com/admin/settings/email/google/callback
@@ -79,16 +79,16 @@ In Snug, open **Settings**, and under **Email** choose **Google Workspace**. Snu
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-google-dark.png">
-  <img alt="The Email section of Settings with Google Workspace chosen, and step 1, Your Google client, asking for the client ID and secret, with the redirect URI to give Google." src="images/screenshots/settings-google-light.png">
+  <img alt="The Email section of Settings with Google Workspace chosen, and step 1, Your Google client, with boxes for the client ID and secret, and the redirect URI to give Google." src="images/screenshots/settings-google-light.png">
 </picture>
 
-1. **Your Google client.** Paste the client ID and the client secret. Leave **From address** empty for now. Enter a code from your authenticator app, and choose **Save**. Afterwards the secret shows as dots: it is saved, and never shown again.
+1. **Your Google client.** Paste the client ID and the client secret. Leave **From address** empty for now. Enter a code from your authenticator app, and choose **Save**. Afterwards the secret shows as dots. It is saved, and never shown again.
 2. **The sending mailbox.** Choose **Connect Google**. Google asks which account to use; choose the mailbox Snug will send from. Google then lists what Snug asks for, which should be only *Send email on your behalf*. Snug cannot read the mailbox. Choose **Continue**.
 
    Back in Snug, a green notice shows the mailbox Google approved. Enter a fresh code from your authenticator app to finish. Connecting changes where Snug's email goes, so it needs its own code, even after the one in step 1. Every admin is emailed about the change.
 3. **Send a test.** Snug emails you, through the mailbox. Check that it arrived, and not in spam.
 
-Google may approve a different address from the one you expected. If your Workspace has more than one domain, Google gives the mailbox's **primary** address, as the next section explains.
+Google may approve a different address from the one you expected. If your Workspace has more than one domain, Google gives the mailbox's **primary** address.
 
 ## Sending from another address
 
@@ -152,8 +152,6 @@ Each should print the value you added. A new record usually appears within minut
 Then send a test from Snug, open it in Gmail, and choose **Show original** from the message's menu. The top of the page should say **PASS** for SPF, DKIM and DMARC.
 
 ### When your DNS host is awkward
-
-DNS hosts differ, and a few things catch people out.
 
 - **Long values.** A 2048 bit DKIM key is longer than a single DNS text string can hold, so it has to be split into pieces. Most hosts do this for you. Some refuse the value, or fail with an unhelpful error. If yours does, generate a **1024** bit key instead, which fits in one piece and is accepted everywhere.
 - **Quotation marks.** Some hosts want the value in quotation marks, and some add their own, which doubles them. Paste the value as Google shows it, then check what is published with `dig`.

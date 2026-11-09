@@ -55,7 +55,7 @@ Go to `/admin/` on your Snug domain. Enter your email address and password, then
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/sign-in-dark.png">
-  <img alt="The sign-in page, asking for an email address and password, with a link for a forgotten password." src="images/screenshots/sign-in-light.png">
+  <img alt="The sign-in page, with boxes for an email address and password, and a link for a forgotten password." src="images/screenshots/sign-in-light.png">
 </picture>
 
 - **Each code works once.** If you sign out and straight back in, wait for the app to show a new code.
@@ -122,7 +122,7 @@ It asks you to confirm, shows a new QR code, and issues new recovery codes. The 
 
 ## Emails when a link is first opened
 
-The first time each link shows anyone a document, every admin is emailed who opened it, what, when and from which country, with a link to that person on the People page. To stop them for yourself, untick *Email me when someone first opens a link* under Your account in Settings. The other admins still get theirs.
+The first time anyone opens a document through each link, every admin is emailed who opened it, what, when and from which country, with a link to that person on the People page. To stop them for yourself, untick *Email me when someone first opens a link* under Your account in Settings. The other admins still get theirs.
 
 ## What is recorded
 

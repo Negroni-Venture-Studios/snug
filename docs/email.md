@@ -4,7 +4,7 @@ Snug sends two kinds of email to investors: links to the people you share docume
 
 Most failed Snug setups fail here.
 
-**Google Workspace.** If your company uses Workspace, Snug can send as a mailbox on your domain through the Gmail API: [email-google.md](email-google.md) walks through it. The rest of this guide is for any other provider, over SMTP.
+**Google Workspace.** If your company uses Workspace, Snug can send as a mailbox on your domain through the Gmail API, and [email-google.md](email-google.md) walks through it. The rest of this guide is for any other provider, over SMTP.
 
 Snug sends each email by the first of these routes that is set up, so settings saved in Settings win over the ones in `snug.env`:
 
@@ -20,7 +20,7 @@ Email sent from a new server, from a domain with no authentication records, goes
 - **A domain you control**, the one your company already uses, such as `example.com`. You will add a few DNS records to it.
 - **An account with a transactional email provider** that lets you send through SMTP with a username and password. Mailgun, SendGrid, Postmark, Resend and Amazon SES all do; so do many others. Snug does not depend on any one of them.
 
-Do not send through a personal Gmail or Outlook account. Their limits are low, and messages sent through them carry their domain's reputation, not yours.
+Do not send through a personal Gmail or Outlook account. Their limits are low, and messages sent through them are judged by their domain's reputation.
 
 ## Step 1: choose the sending address
 
@@ -34,7 +34,7 @@ Add your domain in the provider's dashboard. The provider then gives you DNS rec
 
 ### DKIM
 
-DKIM signs each message with a key that only your provider holds, and publishes the matching public key in your DNS. It is the record that matters most: it is what proves to Gmail and Outlook that the message really came from your domain.
+DKIM signs each message with a key that only your provider holds, and publishes the matching public key in your DNS. It is the record that matters most, since it proves to Gmail and Outlook that the message really came from your domain.
 
 The provider gives you one or more records, usually `CNAME` or `TXT`, with names like `pm._domainkey.example.com` or `s1._domainkey.example.com`; copy them exactly. Some DNS hosts add your domain to the end of every name automatically, so `pm._domainkey` may be all you should type.
 
@@ -96,7 +96,7 @@ Sign in, open **Settings**, and under **Email** choose **Another provider (SMTP)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-email-dark.png">
-  <img alt="The Email section of Settings with Another provider (SMTP) chosen, and step 1, Your SMTP server, asking for the From address, server, port and username." src="images/screenshots/settings-email-light.png">
+  <img alt="The Email section of Settings with Another provider (SMTP) chosen, and step 1, Your SMTP server, with boxes for the From address, server, port and username." src="images/screenshots/settings-email-light.png">
 </picture>
 
 - the address emails come from, on the domain you verified;
@@ -104,17 +104,17 @@ Sign in, open **Settings**, and under **Email** choose **Another provider (SMTP)
 - the encryption: STARTTLS for ports 587, 2525 and 2587, or TLS for ports 465 and 2465;
 - a code from your authenticator app.
 
-Investors' codes and admins' reset links are sent by email, so changing how it is sent needs a fresh code, and every admin is emailed about it, through the settings in force before the change. Snug sends only through public mail servers, on port 25, 465, 587, 2465, 2525 or 2587: it refuses a server whose name leads to a private or internal address.
+Investors' codes and admins' reset links are sent by email, so changing how it is sent needs a fresh code, and every admin is emailed about it, through the settings in force before the change. Snug sends only through public mail servers, on port 25, 465, 587, 2465, 2525 or 2587. It refuses a server whose name leads to a private or internal address.
 
-Choose **Save**, and Snug uses the new settings at once, with no restart. The page moves on to step 2, **Send a test**. The password is never shown again: to change it, type a new one, or leave the box empty to keep it.
+Choose **Save**, and Snug uses the new settings at once, with no restart. The page moves on to step 2, **Send a test**. The password is never shown again. To change it, type a new one, or leave the box empty to keep it.
 
-Emails name your company, as set in Settings under Branding, such as "Fernlea Robotics has shared Seed deck with you".
+Emails use your company's name, as set in Settings under Branding, such as "Fernlea Robotics has shared Seed deck with you".
 
 Email can also be set in `snug.env`, with the `SNUG_SMTP_` settings [configuration.md](configuration.md) lists. Snug uses those until something is saved in Settings, which then wins. To go back to them, or to stop email altogether, use **Clear email settings**, under the choice of provider at the top of Email, and enter a code. It appears once anything is saved.
 
 ## Step 5: send yourself a test
 
-In step 2, choose **Send a test**: Snug emails you, and says at once if the email could not be sent. On the server, `sudo snug doctor --email you@example.com` sends a six-digit code to that address and asks you to type it back.
+In step 2, choose **Send a test**. Snug emails you, and says at once if the email could not be sent. On the server, `sudo snug doctor --email you@example.com` sends a six-digit code to that address and asks you to type it back.
 
 Then try a real link. Open a document in the admin interface, choose **New link**, enter an address of your own and choose **Create and email**. If the email cannot be sent, Snug says so on the next page and shows you the link to copy instead.
 
@@ -126,7 +126,7 @@ When the email arrives, check that it passed authentication. In Gmail, open the 
 
 In Outlook, view the message source and look for `dkim=pass` and `dmarc=pass` in the `Authentication-Results` header. If DKIM or DMARC did not pass, go back to step 2.
 
-Try an address at a different provider from your own too: a domain's own mail servers are often more forgiving of its mail than Gmail or Outlook are.
+Try an address at a different provider from your own too, since a domain's own mail servers are often more forgiving of its mail than Gmail or Outlook are.
 
 ## When it goes wrong
 
