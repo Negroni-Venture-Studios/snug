@@ -216,11 +216,14 @@ def test_every_settings_form_is_the_same_width(client: Client) -> None:
 
     page = client.get("/admin/settings/", secure=True).content.decode()
     forms = re.findall(r'<form class="(panel [^"]*)"', page)
-    # Password, authenticator, emails, email settings, colour, logo, icon, NDA,
-    # privacy link and retention; the invite form and the test email need
-    # email, which this test leaves off.
-    assert len(forms) == 10
+    # Password, authenticator, emails, colour, logo, icon, NDA, privacy link
+    # and retention; the invite form and the test email need email, which this
+    # test leaves off.
+    assert len(forms) == 9
     assert all("settings-form" in classes.split() for classes in forms), forms
+    # Email's choice of provider is one too, and its steps are panels of the same width.
+    assert '<div class="panel form settings-form email-choice">' in page
+    assert '<ol class="steps">' in page
 
 
 def test_the_period_reads_as_one_sentence(client: Client) -> None:

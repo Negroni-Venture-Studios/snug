@@ -34,6 +34,7 @@ from snug.core import gmail, mail
 from snug.core.email_backend import EmailBackend
 from snug.core.models import EmailSettings
 from snug.core.redaction import redact
+from tests.test_email_settings import step
 
 pytestmark = pytest.mark.django_db
 
@@ -174,7 +175,11 @@ def test_the_panel_offers_both_ways_to_send(client: Client) -> None:
 
 def test_saving_the_client(client: Client, admin: Admin) -> None:
     response = save_client(client, admin)
-    assert response["Location"] == "/admin/settings/?saved=email#email"
+    # Saving lands on step 2, where the button to connect is, with the notice beside it.
+    assert response["Location"] == "/admin/settings/?saved=email#google-mailbox"
+    mailbox = step(panel(client, "?saved=email"), "google-mailbox")
+    assert "Saved your Google client. Now connect the mailbox Snug sends from." in mailbox
+    assert 'href="/admin/settings/email/google/connect"' in mailbox
     row = EmailSettings.load()
     assert (row.provider, row.google_client_id) == ("google", CLIENT_ID)
     assert row.google_client_secret == "GOCSPX-s"
@@ -182,8 +187,6 @@ def test_saving_the_client(client: Client, admin: Admin) -> None:
     assert event.details == {"provider": "google", "client": CLIENT_ID}
     text = panel(client, "?saved=email")
     assert "GOCSPX" not in text
-    assert "Saved. Now connect the mailbox Snug sends from." in text
-    assert 'href="/admin/settings/email/google/connect"' in text
     assert not mail.enabled()  # not until a mailbox is connected
 
 
@@ -241,8 +244,18 @@ def test_connect_sends_the_admin_to_google(client: Client, admin: Admin) -> None
 
 def test_connect_without_a_client_says_so(client: Client) -> None:
     response = client.get("/admin/settings/email/google/connect", secure=True)
-    assert response["Location"] == "/admin/settings/?saved=google-no-client#email"
-    assert "Save the client ID and secret first." in panel(client, "?saved=google-no-client")
+    assert response["Location"] == "/admin/settings/?saved=google-no-client#google-mailbox"
+    mailbox = step(panel(client, "?saved=google-no-client"), "google-mailbox")
+    assert "Save the client ID and secret first." in mailbox
+
+
+def test_the_google_steps_are_there_from_the_start(client: Client) -> None:
+    """Steps 2 and 3 are on the page before the client is saved, waiting their turn."""
+    text = panel(client)
+    mailbox = step(text, "google-mailbox")
+    assert "Save your Google client first." in mailbox
+    assert "/admin/settings/email/google/connect" not in mailbox
+    assert "Connect a mailbox first." in step(text, "email-test")
 
 
 def test_coming_back_from_google_asks_for_a_code(
@@ -251,7 +264,7 @@ def test_coming_back_from_google_asks_for_a_code(
     save_client(client, admin)
     query = to_google(client)
     response = back_from_google(client, query["state"])
-    assert response["Location"] == "/admin/settings/?saved=google-pending#email"
+    assert response["Location"] == "/admin/settings/?saved=google-pending#google-mailbox"
     (exchange,) = google.calls
     assert exchange["form"]["code"] == "4/abc"
     assert exchange["form"]["redirect_uri"] == CALLBACK
@@ -261,10 +274,10 @@ def test_coming_back_from_google_asks_for_a_code(
     assert base64.urlsafe_b64encode(digest).decode().rstrip("=") == query["code_challenge"]
     # Nothing is saved until a fresh code confirms it.
     assert EmailSettings.load().google_refresh_token == ""
-    text = panel(client, "?saved=google-pending")
+    text = step(panel(client, "?saved=google-pending"), "google-mailbox")
     assert "Enter a code from your authenticator app to finish connecting" in text
     assert "rooms@fernlea.example" in text
-    assert 'action="/admin/settings/email/google/confirm#email"' in text
+    assert 'action="/admin/settings/email/google/confirm#google-mailbox"' in text
 
 
 def test_finishing_with_a_code_connects_the_mailbox(
@@ -275,7 +288,8 @@ def test_finishing_with_a_code_connects_the_mailbox(
     back_from_google(client, to_google(client)["state"])
     django_mail.outbox.clear()
     response = finish(client, admin)
-    assert response["Location"] == "/admin/settings/?saved=email-google#email"
+    # Connected, it lands on the last step: sending a test.
+    assert response["Location"] == "/admin/settings/?saved=email-google#email-test"
     row = EmailSettings.load()
     assert row.google_refresh_token == "refresh-xyz"
     assert row.google_account == "rooms@fernlea.example"
@@ -284,7 +298,7 @@ def test_finishing_with_a_code_connects_the_mailbox(
     event = AuditEvent.objects.get(action="settings.email_google_connected")
     assert event.details == {"account": "rooms@fernlea.example"}
     assert "Connected. Snug sends email as rooms@fernlea.example, through Google Workspace." in (
-        panel(client, "?saved=email-google")
+        step(panel(client, "?saved=email-google"), "email-test")
     )
     alerts = [m for m in django_mail.outbox if "Email settings changed" in m.subject]
     assert sorted(m.to[0] for m in alerts) == ["omar@fernlea.example", "ruth@fernlea.example"]
@@ -303,7 +317,7 @@ def test_finishing_without_coming_from_google_does_nothing(
 ) -> None:
     save_client(client, admin)
     response = finish(client, admin)
-    assert response["Location"] == "/admin/settings/?saved=google-expired#email"
+    assert response["Location"] == "/admin/settings/?saved=google-expired#google-mailbox"
     assert EmailSettings.load().google_refresh_token == ""
 
 
@@ -311,15 +325,19 @@ def test_a_wrong_state_is_refused(client: Client, admin: Admin, google: Google) 
     save_client(client, admin)
     to_google(client)
     response = back_from_google(client, "forged")
-    assert response.status_code == 400
+    # Back to step 2, with Google's one-time code gone from the address bar.
+    assert response["Location"] == "/admin/settings/#google-mailbox"
     assert not google.calls
+    said = "That did not come from this Snug, or took too long. Try again."
+    assert said in step(panel(client), "google-mailbox")
+    assert said not in panel(client)  # shown once
 
 
 def test_a_state_works_once(client: Client, admin: Admin, google: Google) -> None:
     save_client(client, admin)
     state = to_google(client)["state"]
     back_from_google(client, state)
-    assert back_from_google(client, state).status_code == 400
+    assert back_from_google(client, state)["Location"] == "/admin/settings/#google-mailbox"
     assert len(google.calls) == 1
 
 
@@ -327,8 +345,9 @@ def test_declining_at_google_is_said_plainly(client: Client, admin: Admin, googl
     save_client(client, admin)
     state = to_google(client)["state"]
     response = back_from_google(client, state, error="access_denied")
-    assert response.status_code == 400
-    assert "Google did not give Snug permission (access_denied)." in response.content.decode()
+    assert response["Location"] == "/admin/settings/#google-mailbox"
+    mailbox = step(panel(client), "google-mailbox")
+    assert "Google did not give Snug permission (access_denied)." in mailbox
     assert not google.calls
 
 
@@ -338,8 +357,8 @@ def test_google_must_give_a_lasting_permission(
     google.refresh_tokens = False
     save_client(client, admin)
     response = back_from_google(client, to_google(client)["state"])
-    assert response.status_code == 400
-    assert "Google did not give Snug a lasting permission" in response.content.decode()
+    assert response["Location"] == "/admin/settings/#google-mailbox"
+    assert "Google did not give Snug a lasting permission" in step(panel(client), "google-mailbox")
 
 
 def test_the_callback_needs_a_signed_in_admin(google: Google) -> None:
@@ -447,7 +466,7 @@ def test_disconnecting(
     # Emails go through Snug's own transport here, so the alert really uses Google.
     monkeypatch.setattr(mail, "EmailMultiAlternatives", _ThroughTransport)
     response = disconnect(client, admin)
-    assert response["Location"] == "/admin/settings/?saved=email-google-off#email"
+    assert response["Location"] == "/admin/settings/?saved=email-google-off#google-mailbox"
     urls = [c["url"] for c in google.calls]
     # The alert went to both admins through Google, then Snug gave up its permission:
     # the fake refuses a revoked token, so the other order would send nothing.

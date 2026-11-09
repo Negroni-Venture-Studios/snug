@@ -1,0 +1,5 @@
+<form class="form" method="post" action="{% url 'accounts:email_test' %}#email-test">
+  {% csrf_token %}
+  <p class="hint">Sends a short email to {{ request.user.email }} with the settings in force.</p>
+  <button class="btn btn-primary" type="submit">Send a test</button>
+</form>
