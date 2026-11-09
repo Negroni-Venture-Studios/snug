@@ -64,7 +64,7 @@ Compose treats `$` in `snug.env` as the start of a variable. Wrap any value cont
 
 Neither can gain privileges once started (`no-new-privileges`). Litestream and the backup container are confined the same way, and run as Snug's user, which owns the data volume. Litestream has no network at all; the backup container is on a network of its own, from which it can reach the bucket but not Snug. Docker keeps at most 30 MB of each container's output.
 
-Caddy writes no access log, because investors' links carry their token in the URL.
+Caddy writes no access log, because the token is in the URL of every investor's link.
 
 Once a month, housekeeping downloads [DB-IP](https://db-ip.com)'s free country database, about 5 MB, for UK-only links. It is the only download Snug makes by itself, and it sends DB-IP nothing about your visitors: Snug looks addresses up in its own copy.
 

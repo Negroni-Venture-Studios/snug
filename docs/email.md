@@ -92,7 +92,7 @@ Sign in, open **Settings**, and under **Email** choose **Another provider (SMTP)
 - the encryption: STARTTLS for ports 587, 2525 and 2587, or TLS for ports 465 and 2465;
 - a code from your authenticator app.
 
-Email carries investors' codes and admins' reset links, so changing how it is sent needs a fresh code, and every admin is emailed about it, through the settings in force before the change. Snug sends only through public mail servers, on port 25, 465, 587, 2465, 2525 or 2587: it refuses a server whose name leads to a private or internal address.
+Investors' codes and admins' reset links are sent by email, so changing how it is sent needs a fresh code, and every admin is emailed about it, through the settings in force before the change. Snug sends only through public mail servers, on port 25, 465, 587, 2465, 2525 or 2587: it refuses a server whose name leads to a private or internal address.
 
 Choose **Save**, and Snug uses the new settings at once, with no restart. The page moves on to step 2, **Send a test**. The password is never shown again: to change it, type a new one, or leave the box empty to keep it.
 
@@ -118,7 +118,7 @@ Try an address at a different provider from your own too: a domain's own mail se
 
 ## When it goes wrong
 
-Snug logs only the kind of error, never the recipient, subject or contents, because those carry links and codes. The admin Overview shows a problem when an email could not be sent. Look for a line such as `Email could not be sent: SMTPAuthenticationError` in Snug's log, with `sudo docker compose logs snug` in `/opt/snug`.
+Snug logs only the kind of error, never the recipient, subject or contents, because those contain links and codes. The admin Overview shows a problem when an email could not be sent. Look for a line such as `Email could not be sent: SMTPAuthenticationError` in Snug's log, with `sudo docker compose logs snug` in `/opt/snug`.
 
 | What you see | Likely cause |
 |---|---|

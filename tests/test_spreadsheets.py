@@ -189,6 +189,7 @@ def test_a_workbook_link_shows_a_card_with_its_sheets(model: Document) -> None:
     assert "Financial model" in page and "Excel workbook" in page
     assert "Summary" in page and "P&amp;L" in page and "Workings" not in page
     assert f'href="/v/{issued.token}/download"' in page
+    assert "the date and this link are written into your copy's document properties" in page
     assert "/page/" not in page  # no page images
     # The panel beside it describes a workbook, not pages and watermarks.
     assert "Financial model, an Excel workbook" in page
@@ -197,6 +198,7 @@ def test_a_workbook_link_shows_a_card_with_its_sheets(model: Document) -> None:
         "see when you open this workbook, how long its page is open, and when you download it"
         in page
     )
+    assert "Your email address is written into your copy's document properties." in page
     assert "watermark" not in page
 
 
