@@ -20,7 +20,7 @@
     <span class="muted num">{{ event.at|date:"j M Y, H:i:s" }}</span>
     <div class="who"><span class="email mono">{{ event.action }}</span><span class="note">{{ event.actor|default:"Snug" }}{% if event.target %} on {{ event.target }}{% endif %}</span></div>
     <span class="muted details">{% for key, value in event.details.items %}{{ key }}: {{ value }}{% if not forloop.last %}; {% endif %}{% endfor %}</span>
-    <span class="r muted num">{{ event.ip_address|default:"" }}</span>
+    <span class="r muted num">{{ event.ip_address|default:"" }}{% if event.country %}, {{ event.country }}{% endif %}</span>
   </div>
   {% endfor %}
 </div>

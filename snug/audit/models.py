@@ -65,6 +65,7 @@ def record(
     target: str = "",
     ip_address: str | None = None,
     user_agent: str = "",
+    country: str = "",
     details: dict[str, Any] | None = None,
 ) -> AuditEvent:
     """Add one event to the audit log. Never pass secrets in details."""
@@ -75,5 +76,6 @@ def record(
         target=target,
         ip_address=ip_address,
         user_agent=user_agent[:512],
+        country=country[:2],
         details=details or {},
     )

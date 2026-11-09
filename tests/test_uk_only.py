@@ -163,6 +163,39 @@ def test_a_session_started_in_the_uk_does_not_work_abroad(place: dict[str, str |
     assert visitor.get(f"/v/{issued.token}", secure=True).status_code == 403
 
 
+# ---------------------------------------------------------------- the country of every view
+
+
+def test_every_viewer_event_records_its_country_without_uk_only(
+    place: dict[str, str | None],
+) -> None:
+    """The brief: record the country of every view, whether or not the restriction is on."""
+    issued = deck_link(uk_only=False, require_verification=False)
+    place["country"] = "FR"
+    visitor = Client()
+    visitor.post(f"/v/{issued.token}/open", secure=True)
+    visitor.get(f"/v/{issued.token}", secure=True)
+    events = AuditEvent.objects.filter(actor_type=AuditEvent.ActorType.VIEWER)
+    assert "viewer.opened" in {e.action for e in events}
+    assert {e.country for e in events} == {"FR"}
+
+
+def test_a_view_from_nowhere_known_leaves_the_country_empty(
+    place: dict[str, str | None],
+) -> None:
+    issued = deck_link(uk_only=False, require_verification=False)
+    place["country"] = None
+    Client().post(f"/v/{issued.token}/open", secure=True)
+    assert AuditEvent.objects.get(action="viewer.opened").country == ""
+
+
+def test_a_refusal_records_its_country_too(place: dict[str, str | None]) -> None:
+    issued = deck_link(uk_only=True)
+    place["country"] = "US"
+    Client().get(f"/v/{issued.token}", secure=True)
+    assert AuditEvent.objects.get(action="viewer.outside_uk").country == "US"
+
+
 # ---------------------------------------------------------------- the admin interface
 
 
