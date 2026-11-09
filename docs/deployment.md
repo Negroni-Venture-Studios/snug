@@ -10,7 +10,7 @@ Snug runs on one Linux server as four containers under Docker Compose:
 
 - A server running Ubuntu 24.04 LTS. A DigitalOcean droplet with 1 GB of memory is enough for one company.
 - A domain name, such as `room.example.com`, whose DNS `A` record points at the server, and its `AAAA` record too if the server has IPv6.
-- An email provider's SMTP details, so Snug can send links and codes. See [email.md](email.md).
+- An email provider's SMTP details, so Snug can send links and codes, entered in Settings once Snug is running. See [email.md](email.md).
 - A storage bucket for the backups, such as DigitalOcean Spaces, and a key for it. See [backups.md](backups.md).
 
 ## Setting it up
@@ -25,7 +25,7 @@ Snug runs on one Linux server as four containers under Docker Compose:
 
 cloud-init installs Docker from Docker's own repository, Ubuntu's automatic security updates, a firewall that lets in only SSH, HTTP and HTTPS, a 1 GB swap file, and Snug's files in `/opt/snug`, with the `snug` command in `/usr/local/bin`. It does not start Snug.
 
-`snug setup` asks for the domain, the company's name, the email settings and the backup bucket, typed on the server so that no secret is ever stored with DigitalOcean. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. You can run it again to change an answer.
+`snug setup` asks for the domain, the company's name and the backup bucket, typed on the server so that no secret is ever stored with DigitalOcean. Email is set up afterwards, in Settings, as [email.md](email.md) describes. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. You can run it again to change an answer.
 
 If `/opt/snug/backup/rclone.conf` is already there, copied from your password manager, and its bucket holds backups, `snug setup` restores them instead of starting afresh. [backups.md](backups.md) explains when you would do this.
 

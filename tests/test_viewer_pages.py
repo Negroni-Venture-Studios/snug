@@ -262,9 +262,13 @@ def test_in_neutral_mode_the_code_is_sent_in_the_background(
 
 @pytest.mark.usefixtures("email_on")
 def test_background_sending_really_sends(issued: service.Issued) -> None:
+    from snug.core import mail
     from snug.viewer import views
 
-    thread = views._in_background(lambda: views._send(issued.link, "123456", "Fernlea Robotics"))
+    via = mail.outgoing()  # read on the request thread, as the view does
+    thread = views._in_background(
+        lambda: views._send(issued.link, "123456", "Fernlea Robotics", via)
+    )
     thread.join(timeout=5)
     assert [message.to for message in django_mail.outbox] == [[INVESTOR]]
 

@@ -2,7 +2,11 @@
 
 Snug sends two kinds of email to investors: links to the people you share documents with, and the six-digit codes they use to prove they own the address a link was sent to. It also emails admins: invites, notices of changes to the admins, and forgotten-password links. Without working email you can still create links and send them yourself, but nobody can verify, so links that require verification cannot be opened.
 
-Most failed Snug setups fail here. Email sent from a new server, from a domain with no authentication records, goes to spam or is refused outright. This guide sets it up properly, once.
+Most failed Snug setups fail here.
+
+**Google Workspace.** Snug cannot use Google's own mail servers from DigitalOcean: Google accepts mail only on ports 25, 465 and 587, which DigitalOcean blocks. Sending through Google Workspace directly, over HTTPS, is being added. Until then, use a provider such as Mailgun or Postmark for Snug, alongside Workspace for everyday mail.
+
+ Email sent from a new server, from a domain with no authentication records, goes to spam or is refused outright. This guide sets it up properly, once.
 
 ## What you need
 
@@ -81,33 +85,21 @@ nc -zv -w 5 smtp.mailgun.org 2525
 
 ## Step 4: configure Snug
 
-`sudo snug setup` asks for these when it sets up the server ([deployment.md](deployment.md)). To change them later, edit `/opt/snug/snug.env`:
+Sign in, open **Settings**, and fill in **Email**:
 
-```bash
-SNUG_EMAIL_FROM=rooms@example.com
-SNUG_SMTP_HOST=smtp.mailgun.org
-SNUG_SMTP_PORT=2525
-SNUG_SMTP_USERNAME=postmaster@example.com
-SNUG_SMTP_PASSWORD=paste-the-smtp-password-here
-SNUG_SMTP_SECURITY=starttls
-```
+- the address emails come from, on the domain you verified;
+- the SMTP server, port, username, and password or API key from step 3;
+- the encryption: STARTTLS for ports 587 and 2525, or TLS for port 465.
+
+Choose **Save**, and Snug uses the new settings at once, with no restart. The password is never shown again: to change it, type a new one, or leave the box empty to keep it.
 
 Emails name your company, as set in Settings under Branding, such as "Fernlea Robotics has shared Seed deck with you".
 
-| Variable | Required | Default | What it does |
-|---|---|---|---|
-| `SNUG_EMAIL_FROM` | When `SNUG_SMTP_HOST` is set | | The address emails come from, on a domain verified with your provider. |
-| `SNUG_SMTP_HOST` | No | | Your provider's SMTP server. Leave it unset to turn email off. |
-| `SNUG_SMTP_PORT` | No | `587`, or `465` with `tls` | The port to connect to. On DigitalOcean, use your provider's alternative port. |
-| `SNUG_SMTP_USERNAME` | No | | The SMTP username, if your provider needs one. |
-| `SNUG_SMTP_PASSWORD` | No | | The SMTP password or API key. Snug never shows it or writes it to a log. |
-| `SNUG_SMTP_SECURITY` | No | `starttls` | `starttls` connects in plain text and then switches to encryption, which is what most ports, including 587 and 2525, expect. `tls` encrypts from the start, which port 465 expects. `none` is allowed only when `SNUG_DOMAIN` is `localhost`: links and codes must never cross the internet unencrypted. |
-
-Then restart Snug with `sudo docker compose up --detach` in `/opt/snug`. If a setting is wrong, Snug lists the problem and refuses to start.
+Email can also be set in `snug.env`, with the `SNUG_SMTP_` settings [configuration.md](configuration.md) lists. Snug uses those until something is saved in Settings, which then wins.
 
 ## Step 5: send yourself a test
 
-`sudo snug doctor --email you@example.com` sends a six-digit code to that address and asks you to type it back, which proves the whole path works.
+In Settings, under Email, choose **Send a test**: Snug emails you, and says at once if the email could not be sent. On the server, `sudo snug doctor --email you@example.com` sends a six-digit code to that address and asks you to type it back.
 
 Then try a real link. Open a document in the admin interface, choose **New link**, enter an address of your own and choose **Create and email**. If the email cannot be sent, Snug says so on the next page and shows you the link to copy instead.
 

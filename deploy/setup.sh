@@ -2,10 +2,11 @@
 # snug setup: the questions that turn a fresh server into a running Snug.
 #
 # Run as `sudo snug setup` after cloud-init (cloud-init.yaml) has installed
-# Docker and these files in /opt/snug. It asks for the domain, the email
-# settings and the backup bucket, writes snug.env and backup/rclone.conf,
-# and starts Snug. Secrets are typed here, on the server, so none of them
-# is ever stored with the hosting provider. docs/deployment.md explains it.
+# Docker and these files in /opt/snug. It asks for the domain and the
+# backup bucket, writes snug.env and backup/rclone.conf, and starts Snug.
+# Secrets are typed here, on the server, so none of them is ever stored with
+# the hosting provider. Email is set up afterwards, in Settings.
+# docs/deployment.md explains it.
 #
 # If backup/rclone.conf is already here, copied from a password manager, and
 # its bucket holds backups, setup restores them instead of starting afresh.
@@ -85,24 +86,6 @@ fi
 
 ask "Your company's name, as investors know it (you can change it later in Settings)" ""
 [ -z "$reply" ] || set_env SNUG_COMPANY_NAME "$reply"
-
-# ---------------------------------------------------------------- email
-say
-say "Email sends investors their links and codes. docs/email.md explains how to get"
-say "these details from a provider such as Mailgun or Postmark. Leave the server"
-say "empty to set email up later."
-ask "SMTP server" ""
-if [ -n "$reply" ]; then
-	set_env SNUG_SMTP_HOST "$reply"
-	ask "SMTP port (DigitalOcean blocks 25, 465 and 587)" "2525"
-	set_env SNUG_SMTP_PORT "$reply"
-	ask "SMTP username" ""
-	set_env SNUG_SMTP_USERNAME "$reply"
-	secret "SMTP password or API key"
-	set_env SNUG_SMTP_PASSWORD "$reply"
-	ask "The address emails come from" "rooms@${domain#*.}"
-	set_env SNUG_EMAIL_FROM "$reply"
-fi
 
 # ---------------------------------------------------------------- backups
 say
@@ -192,5 +175,6 @@ else
 	fi
 	say
 	say "Snug is running at https://$domain. Sign in at https://$domain/admin/"
+	say "Then set up email in Settings, under Email: docs/email.md explains how."
 fi
 say "Run sudo snug doctor at any time to check everything is working."

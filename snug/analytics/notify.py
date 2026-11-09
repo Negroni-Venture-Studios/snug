@@ -68,8 +68,10 @@ def first_open(request: HttpRequest, access: Access, document: Document) -> None
     text = render_to_string("analytics/email/first_open.txt", context)
     html = render_to_string("analytics/email/first_open.html", context)
 
+    via = mail.outgoing()  # read here: the thread below must not touch the database
+
     def send() -> None:
         for email in recipients:
-            mail.send(to=email, subject=subject, text=text, html=html)
+            mail.send(to=email, subject=subject, text=text, html=html, via=via)
 
     mail.in_background(send)

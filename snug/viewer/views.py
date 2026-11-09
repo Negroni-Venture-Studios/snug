@@ -233,8 +233,9 @@ def _in_background(task: Callable[[], object]) -> threading.Thread:
     return thread
 
 
-def _send(link: Link, code: str, company: str) -> bool:
-    """Email the code. `company` is read by the caller: this may run on another thread."""
+def _send(link: Link, code: str, company: str, via: mail.Outgoing | None = None) -> bool:
+    """Email the code. `company` and `via` are read by the caller: this may run on
+    another thread, which must not touch the database."""
     context = {
         "code": code,
         "title": link.target_title,
@@ -246,6 +247,7 @@ def _send(link: Link, code: str, company: str) -> bool:
         subject=f"Your code for {company or link.target_title}: {code}",
         text=render_to_string("viewer/email/code.txt", context),
         html=render_to_string("viewer/email/code.html", context),
+        via=via,
     )
 
 
@@ -561,7 +563,8 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
         # address's would. A failure is logged by mail.send, not shown.
         code = codes.issue(link)
         company = company_name()
-        _in_background(lambda: _send(link, code, company))
+        via = mail.outgoing()
+        _in_background(lambda: _send(link, code, company, via))
         _audit(request, "viewer.code_sent", link, link.email, background=True)
         return _code_page(request, link, token, neutral=True)
     if not _send(link, codes.issue(link), company_name()):

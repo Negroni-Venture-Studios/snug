@@ -20,6 +20,8 @@ Snug checks every setting when it starts. If any are missing or wrong, it lists 
 
 ### Email
 
+Email is usually set up in Settings, under Email, which wins over these. They are used until something is saved there.
+
 | Variable | Required | Default | What it does |
 |---|---|---|---|
 | `SNUG_COMPANY_NAME` | No | | Your company's name, used until one is saved in Settings under Branding, where it is usually set. At most 100 characters. |

@@ -136,35 +136,15 @@ MAX_UPLOAD_BYTES = CONFIG.max_upload_mb * 1024 * 1024
 
 # ---------------------------------------------------------------- email
 #
-# With SMTP configured, mail goes through it. On localhost without it, mail
-# is written to <data>/outbox for development, never to the log: messages
-# carry links and codes. Otherwise email is off and the admin pages say so.
+# Mail goes through the settings saved in Settings, or SMTP in snug.env. On
+# localhost without either, it is written to <data>/outbox for development,
+# never to the log: messages carry links and codes. Otherwise email is off
+# and the admin pages say so.
 
 DEFAULT_FROM_EMAIL = CONFIG.email_from or "snug@localhost"
-if CONFIG.smtp_host:
-    MAILERS = {
-        "default": {
-            "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
-            "OPTIONS": {
-                "host": CONFIG.smtp_host,
-                "port": CONFIG.smtp_port,
-                "username": CONFIG.smtp_username,
-                "password": CONFIG.smtp_password,
-                "use_tls": CONFIG.smtp_security == "starttls",
-                "use_ssl": CONFIG.smtp_security == "tls",
-                "timeout": 15,
-            },
-        }
-    }
-elif CONFIG.email_outbox:
-    MAILERS = {
-        "default": {
-            "BACKEND": "django.core.mail.backends.filebased.EmailBackend",
-            "OPTIONS": {"file_path": str(CONFIG.data_dir / "outbox")},
-        }
-    }
-else:
-    MAILERS = {"default": {"BACKEND": "django.core.mail.backends.dummy.EmailBackend"}}
+# The transport reads the settings in force when each message is sent: those
+# saved in Settings, else SMTP from snug.env, else the outbox on localhost.
+MAILERS = {"default": {"BACKEND": "snug.core.email_backend.EmailBackend"}}
 
 # ---------------------------------------------------------------- security
 #

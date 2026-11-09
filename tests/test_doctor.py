@@ -310,7 +310,7 @@ def test_email_that_is_not_set_up_is_a_problem() -> None:
     assert found.status == "problem"
     assert found.message == (
         "Email is not set up, so investors cannot be sent codes and admins cannot be "
-        "invited. See docs/email.md."
+        "invited. Set it up in Settings, under Email; docs/email.md explains how."
     )
 
 
@@ -318,7 +318,7 @@ def test_email_that_is_not_set_up_is_a_problem() -> None:
 def test_email_that_is_set_up() -> None:
     found = doctor.email_setup()
     assert found.status == "ok"
-    assert found.message == "Sending through smtp.example.com."
+    assert found.message == "Sending through smtp.example.com as rooms@fernlea.example."
 
 
 # ---------------------------------------------------------------- the command

@@ -21,7 +21,7 @@ from snug.analytics import retention
 from snug.audit.models import AuditEvent, record
 from snug.core import brand, logo, mail, ratelimit
 from snug.core.client import client_ip, user_agent
-from snug.core.models import SiteSettings, company_name
+from snug.core.models import EmailSettings, SiteSettings, company_name
 from snug.nda import terms as nda_terms
 from snug.nda.models import NdaVersion
 from snug.rendering import sandbox
@@ -71,6 +71,7 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
         "nda": nda_terms.current(),
         "nda_history": NdaVersion.objects.select_related("created_by")[:10],
         "values": {"email": ""},
+        "email": _email_context(extra.pop("email_form", None)),
         **extra,
     }
     return render(request, "accounts/settings.html", context, status=status)
@@ -371,6 +372,127 @@ def privacy_view(request: HttpRequest) -> HttpResponse:
         row.save(update_fields=["privacy_url"])
         _audit(request, "settings.privacy_link_changed", _admin(request).email, "", url=url)
     return redirect("/admin/settings/?saved=privacy#privacy")
+
+
+# ---------------------------------------------------------------- email
+
+
+def _email_status(now: mail.Outgoing) -> str:
+    if now.source == "settings":
+        return f"Snug sends email through {now.host} as {now.from_address}."
+    if now.source == "snug.env":
+        return (
+            f"Using the SMTP settings in snug.env: {now.host}, as {now.from_address}. "
+            "Saving here replaces them."
+        )
+    if now.kind == "outbox":
+        return "On this computer, emails are written to the outbox folder in the data folder."
+    return "Email is off, so investors cannot be sent codes and admins cannot be invited."
+
+
+def _email_context(form: dict[str, Any] | None) -> dict[str, Any]:
+    """The Email panel: what is in force, and the saved values (or those just typed)."""
+    row = EmailSettings.load()
+    now = mail.outgoing()
+    values = {
+        "from_address": row.from_address,
+        "smtp_host": row.smtp_host,
+        "smtp_port": row.smtp_port or "",
+        "smtp_username": row.smtp_username,
+        "smtp_security": row.smtp_security or "starttls",
+    }
+    errors: dict[str, str] = {}
+    if form is not None:
+        values, errors = form["values"], form["errors"]
+    return {
+        "status": _email_status(now),
+        "host": now.host,
+        "from_address": now.from_address,
+        "values": values,
+        "errors": errors,
+        "password_saved": bool(row.smtp_password),
+    }
+
+
+@never_cache
+@login_required
+@require_POST
+def email_view(request: HttpRequest) -> HttpResponse:
+    """Save how Snug sends email. The password is kept unless a new one is typed."""
+    post = request.POST
+    values = {
+        "from_address": post.get("from_address", "").strip()[:254],
+        "smtp_host": post.get("smtp_host", "").strip()[:253],
+        "smtp_port": post.get("smtp_port", "").strip()[:10],
+        "smtp_username": post.get("smtp_username", "").strip()[:254],
+        "smtp_security": post.get("smtp_security", "starttls"),
+    }
+    errors: dict[str, str] = {}
+    try:
+        validate_email(values["from_address"])
+    except ValidationError:
+        errors["from_address"] = "Enter the address emails come from, like rooms@example.com."
+    if not values["smtp_host"]:
+        errors["smtp_host"] = "Enter your provider's SMTP server, like smtp.postmarkapp.com."
+    port = values["smtp_port"]
+    if not (port.isdecimal() and 1 <= int(port) <= 65535):
+        errors["smtp_port"] = "Enter a port number from 1 to 65535."
+    if values["smtp_security"] not in ("starttls", "tls"):
+        errors["smtp_security"] = (
+            "Choose STARTTLS or TLS. Email must never cross the internet unencrypted."
+        )
+    if errors:
+        form = {"values": values, "errors": errors}
+        return _settings_page(request, status=400, email_form=form)
+
+    row = EmailSettings.load()
+    row.provider = "smtp"
+    row.from_address = values["from_address"]
+    row.smtp_host = values["smtp_host"]
+    row.smtp_port = int(port)
+    row.smtp_username = values["smtp_username"]
+    row.smtp_security = values["smtp_security"]
+    password = post.get("smtp_password", "")
+    if password:
+        row.smtp_password = password[:500]
+    row.save()
+    _audit(
+        request,
+        "settings.email_changed",
+        _admin(request).email,
+        "",
+        provider="smtp",
+        host=row.smtp_host,
+        **{"from": row.from_address},
+    )
+    return redirect("/admin/settings/?saved=email#email")
+
+
+@never_cache
+@login_required
+@require_POST
+def email_test_view(request: HttpRequest) -> HttpResponse:
+    """Send a short email to the admin who asked, with the settings in force."""
+    admin = _admin(request)
+    if not mail.enabled():
+        return _settings_page(
+            request, status=400, email_test_error="Save the email settings first."
+        )
+    sent = mail.send(
+        to=admin.email,
+        subject="Snug: a test email",
+        text=(
+            f"This is a test from Snug at {settings.CONFIG.origin}, sent because you asked "
+            "for one in Settings. If it arrived, Snug can send email.\n"
+        ),
+    )
+    if not sent:
+        error = (
+            "The test email could not be sent. Check the settings, and Snug's log for the "
+            "kind of error: docker compose logs snug."
+        )
+        return _settings_page(request, status=502, email_test_error=error)
+    return redirect("/admin/settings/?saved=email-test#email")
 
 
 @never_cache
