@@ -158,3 +158,20 @@ def test_admin_pages_fit_a_phone(live_server: Any, page: Page) -> None:
         page.goto(f"{live_server.url}/admin/{path}")
         wide = page.evaluate("document.documentElement.scrollWidth")
         assert wide <= page.viewport_size["width"], (path, wide)  # type: ignore[index]
+
+
+def test_the_admin_rows_share_their_columns(live_server: Any, page: Page) -> None:
+    """Your own row has no buttons, but its status and date line up with the rows that do."""
+    from django.utils import timezone
+
+    from snug.accounts.models import Admin
+
+    sign_in(live_server, page)
+    Admin.objects.create(email="b@x.example", is_active=True, totp_confirmed_at=timezone.now())
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.goto(f"{live_server.url}/admin/settings/")
+    rows = page.locator(".admin-rows .item")
+    expect(rows).to_have_count(2)
+    for part in (".status", ".num"):
+        lefts = {round(rows.nth(i).locator(part).bounding_box()["x"]) for i in range(2)}  # type: ignore[index]
+        assert len(lefts) == 1, (part, lefts)
