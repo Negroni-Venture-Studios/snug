@@ -21,7 +21,7 @@ You will get a response within 72 hours. We will work with you on a fix and agre
 
 In scope:
 
-- Snug's own code: authorisation, sessions, links, verification codes, file handling, rendering, analytics and the admin interface.
+- Snug's own code: authorisation, sessions, links, verification codes, file handling, rendering, analytics, the admin interface, and email, including the Google Workspace connection.
 - The deployment files we ship: the container image, the Compose file, the Caddy and Litestream configuration, the backup, restore and setup scripts, and cloud-init.
 
 Out of scope:

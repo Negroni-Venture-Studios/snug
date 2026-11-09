@@ -10,7 +10,7 @@ Snug runs on one Linux server as four containers under Docker Compose:
 
 - A server running Ubuntu 24.04 LTS. A DigitalOcean droplet with 1 GB of memory is enough for one company.
 - A domain name, such as `room.example.com`, whose DNS `A` record points at the server, and its `AAAA` record too if the server has IPv6.
-- An email provider's SMTP details, so Snug can send links and codes, entered in Settings once Snug is running. See [email.md](email.md).
+- A way for Snug to send links and codes, set up in Settings once Snug is running: a Google Workspace mailbox, through the Gmail API ([email-google.md](email-google.md)), or an email provider's SMTP details ([email.md](email.md)).
 - A storage bucket for the backups, such as DigitalOcean Spaces, and a key for it. See [backups.md](backups.md).
 
 ## Setting it up
@@ -25,7 +25,7 @@ Snug runs on one Linux server as four containers under Docker Compose:
 
 cloud-init installs Docker from Docker's own repository, Ubuntu's automatic security updates, a firewall that lets in only SSH, HTTP and HTTPS, a 1 GB swap file, and Snug's files in `/opt/snug`, with the `snug` command in `/usr/local/bin`. It does not start Snug.
 
-`snug setup` asks for the domain, the company's name and the backup bucket, typed on the server so that no secret is ever stored with DigitalOcean. Email is set up afterwards, in Settings, as [email.md](email.md) describes. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. You can run it again to change an answer.
+`snug setup` asks for the domain, the company's name and the backup bucket, typed on the server so that no secret is ever stored with DigitalOcean. Email is set up afterwards, in Settings, under Email: [email-google.md](email-google.md) for Google Workspace, [email.md](email.md) for any other provider. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. You can run it again to change an answer.
 
 If `/opt/snug/backup/rclone.conf` is already there, copied from your password manager, and its bucket holds backups, `snug setup` restores them instead of starting afresh. [backups.md](backups.md) explains when you would do this.
 
@@ -68,6 +68,8 @@ Caddy writes no access log, because investors' links carry their token in the UR
 
 Once a month, housekeeping downloads [DB-IP](https://db-ip.com)'s free country database, about 5 MB, for UK-only links. It is the only download Snug makes by itself, and it sends DB-IP nothing about your visitors: Snug looks addresses up in its own copy.
 
+Otherwise Snug connects out only to send email: to Google, when it sends through Google Workspace, or to your SMTP provider. If the server reaches the internet through a proxy, set `HTTPS_PROXY` in `snug.env`. Snug's calls to Google and DB-IP use it; SMTP connects directly.
+
 ### Client addresses
 
 Rate limits and the audit log depend on knowing each visitor's real address. Caddy has fixed addresses on the Compose network, `172.30.83.2` and `fd53:6e75:6700::2`, and Snug believes `X-Forwarded-For` only from those: the Compose file sets `SNUG_TRUSTED_PROXIES` itself, whatever `snug.env` says. Caddy ignores any `X-Forwarded-For` a visitor sends, and passes on the address the connection really came from.
@@ -89,10 +91,10 @@ sudo snug doctor --email you@example.com
 | PDF worker | A fresh worker confines itself with Landlock ABI 4 or later and the socket filter, so it is allowed to read documents |
 | DNS | The domain resolves; the report lists the addresses it points to |
 | HTTPS | The domain answers Snug's health check over HTTPS, with a valid certificate that has more than 14 days left |
-| Email | Email is set up; with `--email`, a code sent to that address is typed back |
+| Email | Email is set up, through Google Workspace or SMTP; with `--email`, a code sent to that address is typed back |
 | GeoIP | When anything is UK-only: DB-IP's country data is this month's or last month's |
 
-The admin Overview shows the same problems, so a founder sees them without running a command. It checks housekeeping, the backups and the email settings on each visit; housekeeping runs the PDF worker, DNS and HTTPS checks every hour, and a failed email is recorded when it fails.
+The admin Overview shows the same problems, so a founder sees them without running a command. It checks housekeeping, the backups, the email settings and the GeoIP data on each visit; housekeeping runs the PDF worker, DNS and HTTPS checks every hour, and a failed email is recorded when it fails.
 
 Snug cannot read your inbox, so the email check sends a six-digit code and asks you to type it in. Without `--email`, `snug doctor` asks for an address, or skips the email test when it is not run in a terminal. It exits with status 1 if anything is a problem.
 

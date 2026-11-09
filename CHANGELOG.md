@@ -4,11 +4,6 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
-### Added
-
-- *Clear email settings*, under the choice of provider in Settings and shown whenever anything is saved, forgets the Google client and mailbox or the SMTP details, and withdraws Snug's permission at Google. It needs a fresh code, and every admin is told first. Email then falls back to `snug.env`, or is off.
-- Settings links each section that has a guide to it, under its heading: admin accounts, email (the Google Workspace or SMTP guide, following the choice of provider) and the NDA. The guides open in a new tab, so a half-filled form is not lost.
-
 ### Security
 
 - The PDF worker refuses to read a file unless it has confined itself: Landlock ABI 4 (Linux 6.7) or later, and a new seccomp filter that refuses to create any socket. It used to carry on unconfined if Landlock failed, and Landlock alone let it send UDP. Both were found by an external security audit. `SNUG_UNSAFE_UNCONFINED_RENDERING` allows unconfined reading for development only.
@@ -45,6 +40,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- *Clear email settings*, under the choice of provider in Settings and shown whenever anything is saved, forgets the Google client and mailbox or the SMTP details, and withdraws Snug's permission at Google. It needs a fresh code, and every admin is told first. Email then falls back to `snug.env`, or is off.
+- Settings links each section that has a guide to it, under its heading: admin accounts, email (the Google Workspace or SMTP guide, following the choice of provider) and the NDA. The guides open in a new tab, so a half-filled form is not lost.
 - Google Workspace sending can use another of the mailbox's addresses as the From address, such as one on an alias domain.
 - Snug can send email through Google Workspace, as a mailbox on your domain, over the Gmail API: Settings, under Email, then [docs/email-google.md](docs/email-google.md) for the one-time Google Cloud setup. It works from DigitalOcean, which blocks Google's mail ports. Snug can only send from the mailbox, never read it, and connecting needs a fresh authenticator code.
 - Email is set up in Settings, under Email, and takes effect at once, with a *Send a test* button. Passwords are never shown again. SMTP settings in `snug.env` still work until something is saved there, and `snug setup` no longer asks about email.
@@ -64,7 +61,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 - A cover message on a link: an optional note of up to 1,000 characters, shown to the investor in the About this link panel and in the email with the link.
 - Replace your own authenticator in Settings, under Your account, for a new phone: your password and a code from the old app, or a recovery code. You go straight to setting up the new one, with new recovery codes, and the link is emailed in case you close the tab.
 - Change your own password in Settings, under Your account, with your current password and a code from your authenticator app. You stay signed in on that browser, everywhere else is signed out, and you are emailed.
-- With no NDA yet, ticking "Ask for the NDA" on a new link, or in a room's NDA panel, shows a box to write it there. Saving publishes it as version 1, as Settings would, instead of sending you away to Settings and losing what you typed.
+- With no NDA yet, ticking "Ask for the NDA first" on a new link, or "Ask for the NDA before anything is shown" in a room's NDA section, shows a box to write it there. Saving publishes it as version 1, as Settings would, instead of sending you away to Settings and losing what you typed.
 - The People page shows how many times each person downloaded each document, and their total.
 - An eye at the right of every password box shows or hides what is typed, for phones and fiddly keyboards. Password boxes also turn off autocorrect and capitalisation.
 - "Forgotten your password?" on the sign-in page. It emails a link that works once, for one hour; setting the new password also needs a code from the authenticator app or a recovery code. The reply never says whether an address belongs to an admin. Without email, `snug reset-password EMAIL` does the same on the server, and is written to the audit log; Django's unaudited `changepassword` is disabled.

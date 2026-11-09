@@ -20,21 +20,25 @@ Snug checks every setting when it starts. If any are missing or wrong, it lists 
 
 ### Email
 
-Email is usually set up in Settings, under Email, which wins over these. They are used until something is saved there.
+Email is usually set up in Settings, under Email, through Google Workspace or an SMTP provider, and what is saved there wins over these. They are used until something is saved, and again after *Clear email settings* in Settings forgets it.
 
 | Variable | Required | Default | What it does |
 |---|---|---|---|
 | `SNUG_COMPANY_NAME` | No | | Your company's name, used until one is saved in Settings under Branding, where it is usually set. At most 100 characters. |
 | `SNUG_EMAIL_FROM` | When `SNUG_SMTP_HOST` is set | | The address emails come from. |
-| `SNUG_SMTP_HOST` | No | | Your email provider's SMTP server. Unset, email is off. |
+| `SNUG_SMTP_HOST` | No | | Your email provider's SMTP server. Unset, with nothing saved in Settings, email is off; on `localhost`, emails go to the outbox folder instead. On a server, Snug connects only to an SMTP server with public addresses. |
 | `SNUG_SMTP_PORT` | No | `587`, or `465` with `tls` | The SMTP port. DigitalOcean blocks 25, 465 and 587. |
 | `SNUG_SMTP_USERNAME` | No | | The SMTP username. |
 | `SNUG_SMTP_PASSWORD` | No | | The SMTP password or API key. Never shown or logged. |
 | `SNUG_SMTP_SECURITY` | No | `starttls` | `starttls`, `tls` or, on `localhost` only, `none`. |
 
-[email.md](email.md) explains how to set these up, including the DNS records that keep Snug's emails out of spam.
+[email.md](email.md) explains how to set these up, including the DNS records that keep Snug's emails out of spam. [email-google.md](email-google.md) covers Google Workspace, which is set up in Settings only.
 
 True and false can be written as `true`/`false`, `yes`/`no`, `on`/`off` or `1`/`0`.
+
+### Connections out
+
+If the server reaches the internet only through a proxy, set `HTTPS_PROXY` in the same file. Snug's own calls out, to Google for Google Workspace email and to DB-IP for the monthly country data, use it. Snug never asks the operating system for proxy settings, and SMTP connects directly.
 
 ## Generating the secret key
 
@@ -70,6 +74,8 @@ uv run snug --env-file ~/snug-dev.env serve --bind 127.0.0.1:8000
 Without SMTP settings, Snug on `localhost` writes each email to the `outbox` folder inside the data folder instead of sending it, so you can read the links it would have sent.
 
 To create an admin, run `uv run snug --env-file ~/snug-dev.env createadmin --email you@example.com`; [the admin accounts guide](admin-accounts.md) explains the rest.
+
+To try Google Workspace sending on your own computer, add `http://localhost:8000/admin/settings/email/google/callback` to the OAuth client's redirect addresses, as [email-google.md](email-google.md) describes.
 
 ## What Snug never logs
 

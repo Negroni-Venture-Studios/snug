@@ -73,7 +73,7 @@ From the provider's dashboard, note:
 
 **DigitalOcean blocks outgoing connections on ports 25, 465 and 587 from every droplet.** These are the usual SMTP ports, so Snug cannot reach your provider on them, and every email fails with a time-out.
 
-Most providers also listen on another port for this reason. Mailgun and SendGrid accept port 2525; Amazon SES accepts 2587. Check your provider's documentation for its alternative port, and use it with `SNUG_SMTP_SECURITY=starttls`.
+Many providers also listen on port 2525 for this reason, among them Mailgun, SendGrid and Postmark. Use 2525 with STARTTLS as the encryption (`SNUG_SMTP_SECURITY=starttls` in `snug.env`). Snug accepts only ports 25, 465, 587 and 2525, so a provider whose only other port is something else, such as Amazon SES with 2587, cannot be used from DigitalOcean.
 
 You can check from the droplet whether a port is open:
 
@@ -124,8 +124,8 @@ Snug logs only the kind of error, never the recipient, subject or contents, beca
 |---|---|
 | `TimeoutError` or a long pause, then failure | The port is blocked. On DigitalOcean, see [Use another port](#on-digitalocean-use-another-port). |
 | `SMTPAuthenticationError` | The username or password is wrong, or the API key has been revoked or lacks permission to send. |
-| `SMTPSenderRefused` | `SNUG_EMAIL_FROM` is not on a domain your provider has verified. |
-| `SSLError` | `SNUG_SMTP_SECURITY` does not match the port: try `starttls` for 587 or 2525, and `tls` for 465. |
+| `SMTPSenderRefused` | The From address (`SNUG_EMAIL_FROM` in `snug.env`) is not on a domain your provider has verified. |
+| `SSLError` | The encryption (`SNUG_SMTP_SECURITY` in `snug.env`) does not match the port: try STARTTLS for 587 or 2525, and TLS for 465. |
 | Emails arrive, but in spam | DKIM or DMARC is not passing. Check the message's authentication results, as in step 5. A new domain or provider account may also need a few days of low volume to build a reputation. |
 | Emails arrive for some people but not others | Check your provider's dashboard for bounces and blocks. Some company mail filters hold messages containing links until the recipient releases them. |
 

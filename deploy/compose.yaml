@@ -1,7 +1,7 @@
 # Snug behind Caddy, run with Docker Compose from the folder holding this file
 # (/opt/snug on a server set up by cloud-init). Snug's settings are in
 # snug.env beside it; .env is a link to snug.env, so Compose can give Caddy
-# the domain without giving it the secret key. See docs/deploy.md.
+# the domain without giving it the secret key. See docs/deployment.md.
 
 name: snug
 

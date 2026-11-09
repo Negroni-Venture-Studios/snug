@@ -46,5 +46,16 @@ The FreeType Project licence asks that documentation mention its use: portions o
 | Asset | Licence | Where |
 |---|---|---|
 | Geist and Geist Mono, by Vercel | SIL Open Font Licence 1.1 | `snug/static/snug/fonts/`, with `OFL.txt` |
-| Phosphor icons | MIT | `snug/static/snug/icons/`, with `LICENSE.txt` |
+| Phosphor icons, from `@phosphor-icons/core` v2.0.8 | MIT | `snug/static/snug/icons/`, with `LICENSE.txt` |
 | The GitHub mark, linking to the source in the footer | GitHub's logo guidelines, which allow it for linking to a project on GitHub (https://github.com/logos) | `snug/static/snug/icons/github-mark.svg` |
+
+## Data and software run beside Snug
+
+These are not part of Snug's container image. Snug's server downloads or runs them.
+
+| What | Licence | How Snug uses it |
+|---|---|---|
+| DB-IP's IP to Country Lite data | CC BY 4.0 | Downloaded once a month for UK-only mode, and credited as "IP geolocation by DB-IP" wherever Snug offers it |
+| Caddy | Apache-2.0 | HTTPS, in its own container from Compose |
+| Litestream | Apache-2.0 | Continuous database backups, in its own container |
+| rclone | MIT | Encrypted document backups, in its own container |

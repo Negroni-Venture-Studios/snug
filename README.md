@@ -30,7 +30,7 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 - **The reader.** Pages are rendered on your server and shown one at a time, watermarked with the reader's email address, the date and the link. A download is the original PDF, stamped with the same details, so its text stays searchable.
 - **Analytics.** Who opened each document, how long they spent on each page, and how often they downloaded it, on an Overview, each document's page and a People page. Every admin is emailed the first time each link is opened, unless they turn it off. Reading data is deleted 12 months after a link ends, or after a period you set. Nothing about your visitors leaves your instance, and Snug does not phone home.
 - **An audit log** of every admin action and every viewer access, filterable and exportable as CSV.
-- **Email** through Google Workspace, as a mailbox on your domain, or any provider over SMTP, set up in Settings.
+- **Email** through Google Workspace, as a mailbox on your domain over the Gmail API, or any provider over SMTP. It is set up in Settings in numbered steps, ending with a test email, and can be cleared there with one button. Each part of Settings links to its guide.
 - **Admin accounts** with a password and an authenticator app, recovery codes, invitations by email, and an email to every admin whenever the admins change.
 - **Running it.** Docker Compose with Caddy for HTTPS; continuous backups to a storage bucket of your own, encrypted on your server with a key only you hold; `snug doctor`, which checks the server and says what to fix, and a status line on the Overview showing the same; and `snug restore`.
 
@@ -112,7 +112,7 @@ To remove it all: `docker rm --force snug && docker volume rm snug-data`, then d
 
 ## Running it on a server
 
-[The deployment guide](docs/deployment.md) sets up a fresh Ubuntu server, such as a DigitalOcean droplet, with cloud-init and `sudo snug setup`, which asks for your domain and backup bucket on the server itself; email is set up afterwards in Settings. [The backups guide](docs/backups.md) explains what is backed up, how to check it and how to restore, and [the email guide](docs/email.md) how to get your provider's details. These are untested on a real server until the full deployment above.
+[The deployment guide](docs/deployment.md) sets up a fresh Ubuntu server, such as a DigitalOcean droplet, with cloud-init and `sudo snug setup`, which asks for your domain and backup bucket on the server itself; email is set up afterwards in Settings. [The backups guide](docs/backups.md) explains what is backed up, how to check it and how to restore. The email guides explain how to send through [Google Workspace](docs/email-google.md), starting from your first visit to Google Cloud, or through [another provider](docs/email.md). These are untested on a real server until the full deployment above.
 
 ## How it is built
 

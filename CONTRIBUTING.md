@@ -60,6 +60,7 @@ Merge with a squash or a merge commit. Branches are deleted after merging.
 - **Security requirements are requirements.** [AGENTS.md](AGENTS.md) lists them: one authorisation path for viewer content, no database keys in viewer URLs, no CORS, a strict content security policy, CSRF protection, rate limits, safe file handling, and no secrets in logs. Each has tests; keep them passing and extend them.
 - **Type hints throughout**, checked by mypy in strict mode.
 - **No inline scripts, inline styles or `on*=` handlers** in templates. The content security policy forbids them.
+- **Calls out of Snug** go through `snug/core/outbound.py`, and only to Google and DB-IP. The tests never reach the internet.
 - **British English** in documentation and interface text. In interface text: sentence case, no em or en dashes, and no middle dots used as separators.
 - **Commit messages** use the imperative mood ("Add link revocation", not "Added …"), with a first line under 72 characters.
 - **Changelog.** Add a line under `[Unreleased]` in CHANGELOG.md for anything a user or operator would notice.
