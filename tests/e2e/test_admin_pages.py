@@ -211,3 +211,35 @@ def test_email_is_set_up_in_steps_with_the_next_one_in_view(live_server: Any, pa
     page.get_by_label("Google Workspace").check()
     expect(test.get_by_text("Connect a mailbox first.")).to_be_visible()
     expect(test.get_by_role("button", name="Send a test")).to_be_hidden()
+
+
+def test_email_settings_can_be_cleared_from_beside_the_status(live_server: Any, page: Page) -> None:
+    """The answer to 'how do I stop it sending like this?' is under the sentence that says so."""
+    import pyotp
+
+    from snug.accounts.models import Admin
+    from snug.core.models import EmailSettings
+
+    sign_in(live_server, page)
+    row = EmailSettings.load()
+    row.provider, row.from_address, row.smtp_host, row.smtp_port = (
+        "smtp",
+        "rooms@fernlea.example",
+        "smtp.postmark.example",
+        2525,
+    )
+    row.save()
+    page.goto(f"{live_server.url}/admin/settings/#email")
+    clear = page.get_by_role("button", name="Clear email settings")
+    expect(clear).to_be_hidden()  # folded away until asked for
+    page.locator(".email-clear summary").click()
+    expect(clear).to_be_visible()
+
+    admin = Admin.objects.get(email=EMAIL)
+    Admin.objects.filter(pk=admin.pk).update(totp_last_step=0)
+    page.locator("#email-clear-code").fill(pyotp.TOTP(admin.totp_secret).now())
+    clear.click()
+    expect(page).to_have_url(re.compile(r"saved=email-cleared#email$"))
+    expect(page.locator("#email .notice-ok").first).to_contain_text("Cleared.")
+    expect(page.locator(".email-clear")).to_have_count(0)
+    assert EmailSettings.load().smtp_host == ""

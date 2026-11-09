@@ -634,3 +634,48 @@ def test_a_from_address_must_be_an_address(client: Client, admin: Admin) -> None
     page = response.content.decode()
     assert 'id="google-from-error"' in page
     assert "Enter an address, like rooms@example.com, or leave it empty." in page
+
+
+# ---------------------------------------------------------------- clearing it all
+
+
+def clear(client: Client, admin: Admin, code: str | None = None) -> Any:
+    form = {"code": fresh_code(admin) if code is None else code}
+    return client.post("/admin/settings/email/clear", form, secure=True)
+
+
+def test_clearing_forgets_google_and_tells_every_admin_first(
+    client: Client, admin: Admin, google: Google, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The way out of 'Snug sends email as …': one button, beside that sentence."""
+    Admin.objects.create(email="omar@fernlea.example", is_active=True)
+    connected(client, admin)
+    text = panel(client)
+    assert 'action="/admin/settings/email/clear#email"' in text
+    assert "Clear email settings" in text
+    google.calls.clear()
+    gmail.forget_tokens()
+    monkeypatch.setattr(mail, "EmailMultiAlternatives", _ThroughTransport)
+    response = clear(client, admin)
+    assert response["Location"] == "/admin/settings/?saved=email-cleared#email"
+    # Both admins were told through Google, and only then was the permission withdrawn.
+    urls = [c["url"] for c in google.calls]
+    assert urls == [gmail.TOKEN_URL, gmail.SEND_URL, gmail.SEND_URL, gmail.REVOKE_URL]
+    row = EmailSettings.load()
+    assert (row.provider, row.google_client_id, row.google_client_secret) == ("", "", "")
+    assert (row.google_refresh_token, row.google_account, row.google_from_address) == ("", "", "")
+    assert mail.outgoing().kind == "off"
+    assert AuditEvent.objects.filter(action="settings.email_cleared").count() == 1
+    text = panel(client, "?saved=email-cleared")
+    assert "Cleared. Email is off" in text
+    assert "Clear email settings" not in text  # nothing left to clear
+
+
+def test_clearing_needs_a_fresh_code(client: Client, admin: Admin, google: Google) -> None:
+    connected(client, admin)
+    response = clear(client, admin, code="000000")
+    assert response.status_code == 400
+    text = response.content.decode()
+    assert 'id="email-clear-code-error"' in text
+    assert EmailSettings.load().google_refresh_token == "refresh-xyz"
+    assert gmail.REVOKE_URL not in [c["url"] for c in google.calls]

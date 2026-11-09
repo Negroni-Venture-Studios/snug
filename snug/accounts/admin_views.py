@@ -463,6 +463,16 @@ def _email_status(now: mail.Outgoing) -> str:
     return "Email is off, so investors cannot be sent codes and admins cannot be invited."
 
 
+def _email_fallback() -> str:
+    """What sends email once the settings saved here are cleared."""
+    config = settings.CONFIG
+    if config.smtp_host:
+        return f"Email then uses the SMTP settings in snug.env, through {config.smtp_host}."
+    if config.email_outbox:
+        return "Emails are then written to the outbox folder, as on any computer without email."
+    return "Email is then off, so investors cannot be sent codes, until it is set up again."
+
+
 def _email_context(request: HttpRequest, form: dict[str, Any] | None) -> dict[str, Any]:
     """The Email panel: what is in force, and the saved values (or those just typed)."""
     row = EmailSettings.load()
@@ -494,6 +504,11 @@ def _email_context(request: HttpRequest, form: dict[str, Any] | None) -> dict[st
         "google_connected_at": row.google_connected_at,
         "google_pending": pending["account"] if isinstance(pending, dict) else "",
         "kind": now.kind,
+        # Anything saved here, which Clear email settings would forget.
+        "saved_here": bool(
+            row.provider or row.smtp_host or row.smtp_password or row.google_client_id
+        ),
+        "fallback": _email_fallback(),
         "source": now.source,
         "callback_url": gmail.callback_url(),
     }
@@ -752,6 +767,38 @@ def google_confirm_view(request: HttpRequest) -> HttpResponse:
     if replaced != row.google_refresh_token:
         _revoke(replaced)
     return _google_redirect("email-google", TEST_STEP)
+
+
+@never_cache
+@login_required
+@require_POST
+def email_clear_view(request: HttpRequest) -> HttpResponse:
+    """Forget every email setting saved here, and withdraw Snug's permission at Google.
+
+    Email then falls back to snug.env, the outbox on localhost, or off. Turning
+    it off stops investors' codes, so it needs a fresh code, and every admin is
+    told through the route in force before, while it still works.
+    """
+    refused = _confirmed(request, "email")
+    if refused:
+        status = 429 if refused == TOO_MANY else 400
+        values = _email_context(request, None)["values"]
+        form = {"values": values, "errors": {"clear_code": refused}}
+        return _settings_page(request, status=status, email_form=form)
+    before = mail.outgoing()
+    row = EmailSettings.load()
+    dropped = _let_go_of_google(row)
+    row.provider = ""
+    row.from_address = row.smtp_host = row.smtp_username = row.smtp_password = ""
+    row.smtp_security = ""
+    row.smtp_port = None
+    row.google_client_id = row.google_client_secret = row.google_from_address = ""
+    row.save()
+    request.session.pop(GOOGLE_PENDING, None)
+    _audit(request, "settings.email_cleared", _admin(request).email, "")
+    _alert_if_changed(request, before)
+    _revoke(dropped)
+    return redirect("/admin/settings/?saved=email-cleared#email")
 
 
 @never_cache

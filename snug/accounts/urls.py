@@ -30,6 +30,7 @@ urlpatterns = [
         admin_views.google_disconnect_view,
         name="google_disconnect",
     ),
+    path("settings/email/clear", admin_views.email_clear_view, name="email_clear"),
     path("settings/branding", admin_views.branding_view, name="branding"),
     path("settings/logo", admin_views.logo_view, name="logo"),
     path("settings/icon", admin_views.icon_view, name="icon"),
