@@ -328,3 +328,18 @@ def test_a_pdf_has_no_description(client: Client) -> None:
     assert describe(client, deck, "Hello").status_code == 404
     page = client.get(f"/admin/documents/{deck.token}", secure=True).content.decode()
     assert 'id="description"' not in page
+
+
+def test_every_admin_page_works_once_a_workbook_has_been_opened(
+    client: Client, model: Document
+) -> None:
+    """Found on the dev instance: the workbook's page drew a reading chart with no pages."""
+    issued = issue(model)
+    browser = opened(issued)
+    browser.get(f"/v/{issued.token}", secure=True)
+    browser.get(f"/v/{issued.token}/download", secure=True)
+    for path in ("", "documents/", f"documents/{model.token}", "people/", "links/", "audit/"):
+        response = client.get(f"/admin/{path}", secure=True)
+        assert response.status_code == 200, path
+    page = client.get(f"/admin/documents/{model.token}", secure=True).content.decode()
+    assert "How it was read" not in page  # no reading chart for a workbook

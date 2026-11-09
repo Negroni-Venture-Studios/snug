@@ -176,7 +176,8 @@ def _detail_context(request: HttpRequest, document: Document) -> dict[str, Any]:
     return {
         "tab": "documents",
         "document": document,
-        "reading": _reading(document),
+        # A workbook is downloaded, not read page by page: it has no reading chart.
+        "reading": None if latest and latest.is_workbook else _reading(document),
         "links": document.links.all(),
         "versions": versions,
         "latest": latest,
