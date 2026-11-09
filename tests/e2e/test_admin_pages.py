@@ -231,9 +231,7 @@ def test_email_settings_can_be_cleared_from_beside_the_status(live_server: Any, 
     row.save()
     page.goto(f"{live_server.url}/admin/settings/#email")
     clear = page.get_by_role("button", name="Clear email settings")
-    expect(clear).to_be_hidden()  # folded away until asked for
-    page.locator(".email-clear summary").click()
-    expect(clear).to_be_visible()
+    expect(clear).to_be_visible()  # its own panel, not folded away
 
     admin = Admin.objects.get(email=EMAIL)
     Admin.objects.filter(pk=admin.pk).update(totp_last_step=0)
@@ -241,5 +239,5 @@ def test_email_settings_can_be_cleared_from_beside_the_status(live_server: Any, 
     clear.click()
     expect(page).to_have_url(re.compile(r"saved=email-cleared#email$"))
     expect(page.locator("#email .notice-ok").first).to_contain_text("Cleared.")
-    expect(page.locator(".email-clear")).to_have_count(0)
+    expect(page.locator("#email-clear")).to_have_count(0)
     assert EmailSettings.load().smtp_host == ""

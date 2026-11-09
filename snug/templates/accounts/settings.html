@@ -70,19 +70,20 @@
 <div class="panel form settings-form email-choice">
   {% if saved == "email-cleared" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Cleared. {{ email.status }}</span></div>
   {% else %}<p class="email-status">{{ email.status }}</p>{% endif %}
-  {% if email.saved_here %}<details class="email-clear"{% if email.errors.clear_code %} open{% endif %}><summary>Clear email settings</summary>
-  <form class="form" method="post" action="{% url 'accounts:email_clear' %}#email" novalidate>
-    {% csrf_token %}
-    <p class="hint">Forgets everything saved here, and withdraws any permission Snug has at Google. {{ email.fallback }} Every admin is told.</p>
-    <div class="field"><label for="email-clear-code">Code from your authenticator app</label><input id="email-clear-code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7"{% if email.errors.clear_code %} aria-invalid="true" aria-describedby="email-clear-code-error"{% endif %}>
-      {% if email.errors.clear_code %}<div class="error" id="email-clear-code-error" role="alert">{% icon "warning-circle" %}{{ email.errors.clear_code }}</div>{% endif %}</div>
-    <button class="btn btn-danger" type="submit">Clear email settings</button>
-  </form>
-  </details>{% endif %}
   <fieldset class="field provider-choice"><legend class="label">How Snug sends email</legend>
     <label class="check"><input type="radio" name="provider" value="google" id="provider-google" form="email-setup-form"{% if email.values.provider == "google" %} checked{% endif %}><span>Google Workspace<span class="hint">As a mailbox on your Workspace domain, through the Gmail API. Its guide explains the one-time setup in Google Cloud.</span></span></label>
     <label class="check"><input type="radio" name="provider" value="smtp" id="provider-smtp" form="email-setup-form"{% if email.values.provider != "google" %} checked{% endif %}><span>Another provider (SMTP)<span class="hint">Mailgun, Postmark or any provider whose SMTP server takes port 2525.</span></span></label>
   </fieldset>
+  {% if email.saved_here %}<div class="email-clear" id="email-clear">
+    <h3 class="panel-title">Clear email settings</h3>
+    <form class="form" method="post" action="{% url 'accounts:email_clear' %}#email-clear" novalidate>
+      {% csrf_token %}
+      <p class="hint">Forgets everything saved here, and withdraws any permission Snug has at Google. {{ email.fallback }} Every admin is told.</p>
+      <div class="field"><label for="email-clear-code">Code from your authenticator app</label><input id="email-clear-code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7"{% if email.errors.clear_code %} aria-invalid="true" aria-describedby="email-clear-code-error"{% endif %}>
+        {% if email.errors.clear_code %}<div class="error" id="email-clear-code-error" role="alert">{% icon "warning-circle" %}{{ email.errors.clear_code }}</div>{% endif %}</div>
+      <button class="btn btn-danger" type="submit">Clear email settings</button>
+    </form>
+  </div>{% endif %}
 </div>
 <ol class="steps">
 <li id="email-setup" class="step panel">

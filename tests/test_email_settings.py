@@ -521,4 +521,12 @@ def test_clearing_forgets_the_smtp_settings(client: Client) -> None:
 
 
 def test_there_is_nothing_to_clear_until_something_is_saved(client: Client) -> None:
-    assert "/admin/settings/email/clear" not in panel(client)
+    assert 'id="email-clear"' not in panel(client)
+
+
+def test_any_saved_setting_can_be_cleared_even_half_a_setup(client: Client) -> None:
+    """A Google client saved without a mailbox is configuration too, though it sends nothing."""
+    row = EmailSettings.load()
+    row.google_client_id = "123456789-abcdef.apps.googleusercontent.com"
+    row.save()
+    assert 'id="email-clear"' in panel(client)

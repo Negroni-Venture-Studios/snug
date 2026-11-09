@@ -651,8 +651,13 @@ def test_clearing_forgets_google_and_tells_every_admin_first(
     Admin.objects.create(email="omar@fernlea.example", is_active=True)
     connected(client, admin)
     text = panel(client)
-    assert 'action="/admin/settings/email/clear#email"' in text
-    assert "Clear email settings" in text
+    # In view, in the same panel as the choice of provider, under the two choices; never folded.
+    choice = text.index('class="panel form settings-form email-choice"')
+    clear_at = text.index('id="email-clear"')
+    assert text.index("</fieldset>", choice) < clear_at < text.index('<ol class="steps">')
+    assert '<div class="panel' not in text[choice + 10 : clear_at]  # not a panel of its own
+    assert "<details" not in text
+    assert 'action="/admin/settings/email/clear#email-clear"' in text
     google.calls.clear()
     gmail.forget_tokens()
     monkeypatch.setattr(mail, "EmailMultiAlternatives", _ThroughTransport)
@@ -677,5 +682,6 @@ def test_clearing_needs_a_fresh_code(client: Client, admin: Admin, google: Googl
     assert response.status_code == 400
     text = response.content.decode()
     assert 'id="email-clear-code-error"' in text
+    assert 'action="/admin/settings/email/clear#email-clear"' in text  # lands back on it
     assert EmailSettings.load().google_refresh_token == "refresh-xyz"
     assert gmail.REVOKE_URL not in [c["url"] for c in google.calls]
