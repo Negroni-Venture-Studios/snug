@@ -23,6 +23,8 @@ from pathlib import Path
 
 from django.conf import settings
 
+from snug.core import outbound
+
 SOURCE = "https://download.db-ip.com/free/dbip-country-lite-{month}.csv.gz"
 ATTRIBUTION = "IP geolocation by DB-IP"
 ATTRIBUTION_URL = "https://db-ip.com"
@@ -104,7 +106,7 @@ def _fetch(url: str) -> bytes:
     # Only ever SOURCE, an https URL.
     request = urllib.request.Request(url, headers={"User-Agent": "Snug (self-hosted)"})  # noqa: S310
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310 - fixed https URL
+        with outbound.urlopen(request, timeout=60) as response:  # only SOURCE, a fixed https URL
             data: bytes = response.read(MAX_DOWNLOAD + 1)
     except urllib.error.HTTPError as error:
         if error.code == 404:

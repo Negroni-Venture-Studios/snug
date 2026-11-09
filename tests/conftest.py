@@ -36,13 +36,16 @@ def email_on(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture(autouse=True)
 def no_network_downloads(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Housekeeping fetches DB-IP's data; no test may reach the internet for it."""
+    """Housekeeping fetches DB-IP's data; no test may reach the internet for it, or Google."""
     import urllib.request
+
+    from snug.core import outbound
 
     def refuse(*args: object, **kwargs: object) -> None:
         raise OSError("tests do not download")
 
     monkeypatch.setattr(urllib.request, "urlopen", refuse)
+    monkeypatch.setattr(outbound, "urlopen", refuse)
 
 
 @pytest.fixture(autouse=True)
