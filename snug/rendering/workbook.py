@@ -13,6 +13,7 @@ and CPU limits stand behind both.
 """
 
 import io
+import posixpath
 import shutil
 import zipfile
 from xml.etree import ElementTree
@@ -31,12 +32,9 @@ CORE_PART = "docProps/core.xml"
 CUSTOM_PART = "docProps/custom.xml"
 
 MAIN = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"
-MACRO_TYPES = {
-    "application/vnd.ms-excel.sheet.macroEnabled.main+xml",
-    "application/vnd.ms-excel.template.macroEnabled.main+xml",
-    "application/vnd.ms-excel.addin.macroEnabled.main+xml",
-    "application/vnd.ms-office.vbaProject",
-}
+# A content type or relationship naming any of these is code Excel could run.
+CODE_WORDS = ("macroenabled", "vbaproject", "activex", "vbadata")
+REL_DOC = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
 CORE_TYPE = "application/vnd.openxmlformats-package.core-properties+xml"
 CUSTOM_TYPE = "application/vnd.openxmlformats-officedocument.custom-properties+xml"
 REL_CORE = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties"
@@ -124,20 +122,56 @@ def _parse(raw: bytes) -> ElementTree.Element:
 
 
 def _workbook_part(package: zipfile.ZipFile) -> str:
-    """The workbook part's name, from the content types; refusing a workbook with macros."""
-    types = _xml(package, CONTENT_TYPES)
-    main = ""
-    for override in types.iter(f"{{{NS_TYPES}}}Override"):
-        kind = override.get("ContentType", "")
-        if kind in MACRO_TYPES:
-            raise Refused("macros")
-        if kind == MAIN:
-            main = override.get("PartName", "").lstrip("/")
-    if any(name.lower().endswith("vbaproject.bin") for name in package.namelist()):
-        raise Refused("macros")
-    if not main:
+    """The workbook part Excel would open, refusing anything with macros or ActiveX.
+
+    An allowlist, read the way Office reads a package: the root relationship
+    names the workbook part, and that part's content type (from its override,
+    or the default for its extension, compared without regard to case, as
+    content types are) must be a plain workbook's. Any part typed as macro or
+    ActiveX code, or a workbook relationship to such code, is refused, as is a
+    package with two parts whose names differ only in case, since two readers
+    could each pick a different one.
+    """
+    names = package.namelist()
+    folded = [name.casefold() for name in names]
+    if len(set(folded)) != len(folded):
         raise Refused("not_xlsx")
-    return main
+    overrides: dict[str, str] = {}
+    defaults: dict[str, str] = {}
+    for entry in _xml(package, CONTENT_TYPES):
+        kind = entry.get("ContentType", "").casefold()
+        if entry.tag == f"{{{NS_TYPES}}}Override":
+            overrides[entry.get("PartName", "").lstrip("/").casefold()] = kind
+        elif entry.tag == f"{{{NS_TYPES}}}Default":
+            defaults[entry.get("Extension", "").casefold()] = kind
+    for kind in (*overrides.values(), *defaults.values()):
+        if any(word in kind for word in CODE_WORDS):
+            raise Refused("macros")
+    if any(name.endswith("vbaproject.bin") for name in folded):
+        raise Refused("macros")
+
+    targets = [
+        relation.get("Target", "")
+        for relation in _xml(package, ROOT_RELS).iter(f"{{{NS_RELS}}}Relationship")
+        if relation.get("Type") == REL_DOC
+    ]
+    if len(targets) != 1:
+        raise Refused("not_xlsx")
+    main = posixpath.normpath(targets[0].lstrip("/")).casefold()
+    extension = main.rpartition(".")[2]
+    if overrides.get(main, defaults.get(extension)) != MAIN.casefold() or main not in folded:
+        raise Refused("not_xlsx")
+    part = names[folded.index(main)]
+
+    folder, _, base = part.rpartition("/")
+    rels = f"{folder}/_rels/{base}.rels" if folder else f"_rels/{base}.rels"
+    if rels.casefold() in folded:
+        for relation in _xml(package, names[folded.index(rels.casefold())]).iter(
+            f"{{{NS_RELS}}}Relationship"
+        ):
+            if any(word in relation.get("Type", "").casefold() for word in CODE_WORDS):
+                raise Refused("macros")
+    return part
 
 
 def inspect(data: bytes) -> dict[str, list[str]]:

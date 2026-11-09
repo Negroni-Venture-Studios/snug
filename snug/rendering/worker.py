@@ -134,7 +134,11 @@ def _warm_up_workbook() -> None:
             f'<Types xmlns="{workbook.NS_TYPES}"><Override PartName="/xl/workbook.xml" '
             f'ContentType="{workbook.MAIN}"/></Types>',
         )
-        parts.writestr(workbook.ROOT_RELS, f'<Relationships xmlns="{workbook.NS_RELS}"/>')
+        parts.writestr(
+            workbook.ROOT_RELS,
+            f'<Relationships xmlns="{workbook.NS_RELS}"><Relationship Id="rId1" '
+            f'Type="{workbook.REL_DOC}" Target="xl/workbook.xml"/></Relationships>',
+        )
         parts.writestr(
             "xl/workbook.xml",
             f'<workbook xmlns="{workbook.NS_MAIN}"><sheets><sheet name="A"/></sheets></workbook>',

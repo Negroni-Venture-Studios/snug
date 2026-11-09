@@ -13,7 +13,7 @@ import pytest
 
 from snug.rendering import sandbox, workbook, worker
 from tests.test_render_worker import _confined, linux_only
-from tests.workbooks import MACRO_MAIN, make_xlsx, parts_of
+from tests.workbooks import MACRO_MAIN, MAIN, make_xlsx, parts_of
 
 DC = "{http://purl.org/dc/elements/1.1/}"
 PROPS = "{http://schemas.openxmlformats.org/officeDocument/2006/custom-properties}"
@@ -66,6 +66,111 @@ def test_a_doctype_is_refused_in_any_encoding() -> None:
     hostile = '<?xml version="1.0" encoding="UTF-16"?><!DOCTYPE x [<!ENTITY a "aa">]><x>&a;</x>'
     with pytest.raises(workbook.Refused) as refused:
         workbook._parse(hostile.encode("utf-16"))
+    assert refused.value.code == "not_xlsx"
+
+
+def rebuilt(
+    data: bytes, changes: dict[str, bytes], *, also: tuple[tuple[str, bytes], ...] = ()
+) -> bytes:
+    """The same package with some parts replaced, and more appended (duplicates allowed)."""
+    out = io.BytesIO()
+    with zipfile.ZipFile(io.BytesIO(data)) as source, zipfile.ZipFile(out, "w") as target:
+        for name in source.namelist():
+            target.writestr(name, changes.get(name, source.read(name)))
+        with (
+            pytest.warns(UserWarning)
+            if any(n in source.namelist() for n, _ in also)
+            else _nothing()
+        ):
+            for name, part in also:
+                target.writestr(name, part)
+    return out.getvalue()
+
+
+class _nothing:
+    def __enter__(self) -> None:
+        return None
+
+    def __exit__(self, *args: object) -> None:
+        return None
+
+
+def _types(data: bytes) -> str:
+    return parts_of(data)["[Content_Types].xml"].decode()
+
+
+def test_a_macro_workbook_is_refused_whatever_the_case_of_its_type() -> None:
+    """Content types are case-insensitive, so the check is too."""
+    plain = make_xlsx()
+    shouted = _types(plain).replace(MAIN, "application/vnd.MS-Excel.Sheet.MacroEnabled.Main+XML")
+    with pytest.raises(workbook.Refused) as refused:
+        workbook.inspect(rebuilt(plain, {"[Content_Types].xml": shouted.encode()}))
+    assert refused.value.code == "macros"
+
+
+def test_a_decoy_workbook_part_does_not_hide_the_real_one() -> None:
+    """The package's own relationship names the workbook Excel opens; Snug checks that one."""
+    plain = make_xlsx()
+    types = _types(plain).replace(
+        f'<Override PartName="/xl/workbook.xml" ContentType="{MAIN}"/>',
+        '<Override PartName="/xl/workbook.xml" '
+        'ContentType="application/vnd.ms-excel.sheet.macroenabled.main+xml"/>'
+        f'<Override PartName="/xl/decoy.xml" ContentType="{MAIN}"/>',
+    )
+    hostile = rebuilt(
+        plain,
+        {"[Content_Types].xml": types.encode()},
+        also=(("xl/decoy.xml", parts_of(plain)["xl/workbook.xml"]),),
+    )
+    with pytest.raises(workbook.Refused) as refused:
+        workbook.inspect(hostile)
+    assert refused.value.code == "macros"
+
+
+@pytest.mark.parametrize(
+    "addition",
+    [
+        '<Default Extension="bin" ContentType="application/vnd.ms-office.vbaProject"/>',
+        '<Default Extension="dat" ContentType="APPLICATION/VND.MS-OFFICE.VBAPROJECT"/>',
+        '<Override PartName="/xl/activeX/activeX1.xml" '
+        'ContentType="application/vnd.ms-office.activeX+xml"/>',
+    ],
+)
+def test_macro_code_is_refused_however_it_is_typed(addition: str) -> None:
+    plain = make_xlsx()
+    types = _types(plain).replace("</Types>", addition + "</Types>")
+    with pytest.raises(workbook.Refused) as refused:
+        workbook.inspect(rebuilt(plain, {"[Content_Types].xml": types.encode()}))
+    assert refused.value.code == "macros"
+
+
+def test_a_workbook_that_links_to_macro_code_is_refused() -> None:
+    plain = make_xlsx()
+    rels = (
+        parts_of(plain)["xl/_rels/workbook.xml.rels"]
+        .decode()
+        .replace(
+            "</Relationships>",
+            '<Relationship Id="rId9" Type="http://schemas.microsoft.com/office/2006/relationships/'
+            'vbaProject" Target="code.dat"/></Relationships>',
+        )
+    )
+    with pytest.raises(workbook.Refused) as refused:
+        workbook.inspect(rebuilt(plain, {"xl/_rels/workbook.xml.rels": rels.encode()}))
+    assert refused.value.code == "macros"
+
+
+@pytest.mark.parametrize(
+    "also",
+    [
+        (("xl/workbook.xml", b"<workbook/>"),),  # the same name twice
+        (("XL/Workbook.xml", b"<workbook/>"),),  # names that differ only in case
+    ],
+)
+def test_parts_with_clashing_names_are_refused(also: tuple[tuple[str, bytes], ...]) -> None:
+    """Two readers could pick different copies of one part, so neither is trusted."""
+    with pytest.raises(workbook.Refused) as refused:
+        workbook.inspect(rebuilt(make_xlsx(), {}, also=also))
     assert refused.value.code == "not_xlsx"
 
 
@@ -180,7 +285,7 @@ def test_a_refused_workbook_says_why_in_plain_words(tmp_path: Path) -> None:
 
 
 def test_a_minimal_workbook_is_stamped_too() -> None:
-    """Self-closing parts and no properties at all, as some tools write them."""
+    """No properties at all, as some tools write a workbook: the worker warms up on one."""
     worker._warm_up_workbook()  # raises if the minimal workbook cannot be read or stamped
 
 
