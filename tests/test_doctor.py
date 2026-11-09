@@ -399,3 +399,19 @@ def test_the_report_lists_every_check_and_fails_on_a_problem(
     assert "problem   Email" in report  # not set up in this test
     assert report.rstrip().endswith("1 problem.")
     assert status == 1
+
+
+@pytest.mark.usefixtures("healthy")
+def test_every_message_starts_in_one_column_clear_of_the_longest_label(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+    report, _status = run_doctor()
+    lines = [
+        line for line in report.splitlines() if line[:10].strip() in {"ok", "problem", "skipped"}
+    ]
+    assert any(line[10:].startswith("Document worker  ") for line in lines), report
+    labels = {line[10:].split("  ")[0] for line in lines}
+    starts = {len(line) - len(line[10:].split("  ", 1)[1].lstrip()) for line in lines}
+    assert len(starts) == 1, report
+    assert starts.pop() == 10 + max(len(label) for label in labels) + 2, report

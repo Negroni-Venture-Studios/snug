@@ -43,7 +43,7 @@ write_files:
         echo
       fi
 
-# Room for the PDF worker, which may use up to 1 GiB, on a small server.
+# Room for the document worker, which may use up to 1 GiB, on a small server.
 swap:
   filename: /swapfile
   size: 1073741824
