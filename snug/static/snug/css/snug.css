@@ -526,7 +526,9 @@ form.inline { display: inline; }
 .pager { display: flex; gap: 1rem; align-items: center; justify-content: center; margin-top: 1.5rem; }
 .activity-rows .item { grid-template-columns: minmax(14rem, 1.3fr) minmax(12rem, 1.5fr) 6.5rem 7rem; }
 .what .note { display: block; font-size: 0.82rem; color: var(--text-3); }
-.room-rows .item { grid-template-columns: minmax(14rem, 1.6fr) minmax(12rem, 1fr) auto; }
+/* One grid for the list, shared by every row (subgrid), so rows line up whatever they hold. */
+.room-rows { display: grid; grid-template-columns: minmax(14rem, 1.6fr) minmax(12rem, 1fr) auto; column-gap: 1.5rem; }
+.room-rows .item { grid-column: 1 / -1; grid-template-columns: subgrid; }
 @media (max-width: 860px) {
     /* After the desktop columns above, which would otherwise win: who, then what. */
     .activity-rows .item { grid-template-columns: minmax(0, 1fr); gap: 0.2rem; }
@@ -541,7 +543,8 @@ form.inline { display: inline; }
 .form.retention { margin-top: 1rem; }
 .folder { margin-top: 1.5rem; }
 .folder h3 { font-size: 0.95rem; font-weight: 500; }
-.version-rows .item { grid-template-columns: minmax(10rem, 1fr) minmax(8rem, auto) 10rem; }
+.version-rows { display: grid; grid-template-columns: minmax(10rem, 1fr) minmax(8rem, auto) 10rem; column-gap: 1.5rem; }
+.version-rows .item { grid-column: 1 / -1; grid-template-columns: subgrid; }
 .doc-rows a.email { color: var(--text); text-decoration: none; font-weight: 500; }
 .doc-rows a.email:hover { text-decoration: underline; }
 .empty .empty-action { margin-top: 1.25rem; }
@@ -567,6 +570,7 @@ input[type="file"]::file-selector-button {
 .preview-frame img { display: block; width: 100%; height: auto; }
 @media (max-width: 860px) {
     .doc-split, .room-tools { grid-template-columns: 1fr; }
+    .version-rows { display: block; }
     .doc-rows .item, .version-rows .item { grid-template-columns: 1fr auto; }
     .admin-rows { display: block; }
     .admin-rows .item { grid-template-columns: 1fr auto; }
@@ -577,11 +581,14 @@ input[type="file"]::file-selector-button {
 }
 
 /* ---------- Links ---------- */
-.link-rows .item { grid-template-columns: minmax(12rem, 1.4fr) 5.5rem minmax(9rem, 1fr) 7rem auto; }
+/* Shared columns: a revoked link, with no buttons, lines up with the rest. */
+.link-rows { display: grid; grid-template-columns: minmax(12rem, 1.4fr) 5.5rem minmax(9rem, 1fr) 7rem auto; column-gap: 1.5rem; }
+.link-rows .item { grid-column: 1 / -1; grid-template-columns: subgrid; }
 .link-actions { display: flex; gap: 0.25rem; justify-content: flex-end; }
 .empty-line { color: var(--text-2); font-size: 0.9rem; padding: 0.9rem 0; border-bottom: 1px solid var(--border); }
 .form-foot.left { justify-content: flex-start; border-top: none; padding-top: 0; }
 @media (max-width: 860px) {
+    .link-rows { display: block; }
     .link-rows .item { grid-template-columns: 1fr auto; }
     .link-rows .item > .muted { display: none; }
     .link-actions { grid-column: 1 / -1; justify-content: flex-start; }
