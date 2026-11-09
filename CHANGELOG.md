@@ -10,6 +10,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- While an upload is checked, the form says *Checking the file* rather than *Checking the PDF*, since a document can now be a workbook or a video.
 - On the Links page, a revoked link's status and details line up with the active links above and below it. A document's versions and a room's documents share their columns the same way.
 - Interface text is plainer. Hints and notices say what happens or what to do, without explaining Snug's reasoning or ending on a neat contrast; the People page says *Spreadsheet* for a workbook, and the first-open email says *Not known* for an unplaced country.
 - A workbook's page in the admin no longer fails with a server error once an investor has opened it. It tried to draw a page-by-page reading chart for a document with no pages.
