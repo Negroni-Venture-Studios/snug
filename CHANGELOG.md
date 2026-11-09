@@ -10,6 +10,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- In Settings, the admins' statuses and dates line up in columns. Your own row has no buttons, and it used to sit out of line with the others.
 - On a phone, the Overview's recent activity no longer pushes the page sideways: each visit shows who, then what. A browser test now checks every admin page at phone width.
 - Settings, the new-link form and the room page kept the shared admin script out when adding their own, so their tabs did not scroll to the current one on a narrow screen.
 - The README and guides describe Snug as it is: downloads are on by default, UK-only mode is still to come, and local emails can be read with one command. The design record lists the specified features not yet built. The container image now includes `THIRD_PARTY_LICENCES.md`, and pypdf is listed in it.

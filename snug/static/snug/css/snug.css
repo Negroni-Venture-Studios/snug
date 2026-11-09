@@ -472,7 +472,10 @@ form.inline { display: inline; }
 
 /* ---------- Documents ---------- */
 .doc-rows .item, .version-rows .item { grid-template-columns: minmax(14rem, 1.6fr) 7rem 7rem 8rem; }
-.admin-rows .item { grid-template-columns: minmax(14rem, 1.6fr) 6rem 11rem minmax(12rem, auto); }
+/* One grid for the whole list, shared by every row through subgrid: a row
+   without buttons (your own) keeps its status and date under the others. */
+.admin-rows { display: grid; grid-template-columns: minmax(14rem, 1.6fr) 6rem 11rem minmax(12rem, auto); column-gap: 1.5rem; }
+.admin-rows .item { grid-column: 1 / -1; grid-template-columns: subgrid; }
 /* Inviting an admin: a row at the foot of the admins list, not a panel. The
    hint and any error sit on their own line, so the fields stay level. */
 .admin-invite { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; gap: 0.75rem 1rem; align-items: end; padding: 1.25rem 0; border-bottom: 1px solid var(--border); }
@@ -530,6 +533,7 @@ input[type="file"]::file-selector-button {
 @media (max-width: 860px) {
     .doc-split, .room-tools { grid-template-columns: 1fr; }
     .doc-rows .item, .version-rows .item { grid-template-columns: 1fr auto; }
+    .admin-rows { display: block; }
     .admin-rows .item { grid-template-columns: 1fr auto; }
     .admin-invite { grid-template-columns: 1fr; align-items: stretch; }
     .admin-invite .btn { justify-self: start; }
