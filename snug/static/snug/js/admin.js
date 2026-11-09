@@ -65,7 +65,7 @@
       });
       request.upload.addEventListener('load', function () {
         bar.removeAttribute('value');  // indeterminate while the server reads it
-        words.textContent = 'Checking the PDF';
+        words.textContent = 'Checking the file';
       });
       request.addEventListener('load', function () {
         // Saved: the server says where to go, so the page shows its notice.
