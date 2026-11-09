@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 840" width="940" height="840" role="img" aria-labelledby="t d">
+<title id="t">How reading time is counted</title>
+<desc id="d">When the investor's browser asks for a page, Snug finds or starts a visit and a page view, and starts the clock. Every 15 seconds while the tab is visible, the browser sends a beat, and Snug credits the time since the clock last ran, at most 20 seconds, to the page shown. Hiding the tab sends end, which is credited; showing it again sends resume, which restarts the clock without credit. Turning the page credits the page being left. The People page shades a cell for each page by its time.</desc>
+<defs>
+  <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
+  <marker id="tip-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-accent"/></marker>
+</defs>
+<rect class="bg" width="940" height="840"/>
+
+<!-- Lanes -->
+<path class="line-dashed" d="M130,68 V672"/>
+<path class="line-dashed" d="M470,68 V672"/>
+<path class="line-dashed" d="M800,68 V672"/>
+<rect class="box" x="40" y="24" width="180" height="44" rx="8"/>
+<text class="title" x="130" y="51" text-anchor="middle">Investor's browser</text>
+<rect class="key" x="390" y="24" width="160" height="44" rx="8"/>
+<text class="title" x="470" y="51" text-anchor="middle">Snug</text>
+<rect class="box" x="720" y="24" width="160" height="44" rx="8"/>
+<text class="title" x="800" y="51" text-anchor="middle">Database</text>
+
+<!-- Opening the page -->
+<text class="label" x="300" y="94" text-anchor="middle">page 1 is asked for</text>
+<path class="line-accent" d="M130,102 H466" marker-end="url(#tip-accent)"/>
+<text class="label" x="635" y="124" text-anchor="middle">find the visit, or start one</text>
+<path class="line" d="M470,132 H796" marker-end="url(#tip)"/>
+<text class="label" x="635" y="154" text-anchor="middle">a page view for page 1; the clock starts</text>
+<path class="line" d="M470,162 H796" marker-end="url(#tip)"/>
+<rect class="box" x="488" y="178" width="432" height="74" rx="8"/>
+<text class="small" x="502" y="200">A visit is the same link, session and document, seen in</text>
+<text class="small" x="502" y="218">the last 30 minutes. A new visit is audited, and a link's</text>
+<text class="small" x="502" y="236">first open emails the admins.</text>
+<text class="label" x="300" y="270" text-anchor="middle">the page, and the visit's token</text>
+<path class="line" d="M470,278 H134" marker-end="url(#tip)"/>
+
+<!-- Beats -->
+<rect class="bg" x="14" y="290" width="330" height="20"/>
+<text class="heading" x="20" y="304">EVERY 15 SECONDS WHILE THE TAB IS VISIBLE</text>
+<text class="mono" x="300" y="330" text-anchor="middle">beat</text>
+<path class="line-accent" d="M130,338 H466" marker-end="url(#tip-accent)"/>
+<text class="label" x="635" y="356" text-anchor="middle">credit up to 20 s to the page shown</text>
+<path class="line" d="M470,364 H796" marker-end="url(#tip)"/>
+
+<rect class="bg" x="14" y="390" width="170" height="20"/>
+<text class="heading" x="20" y="404">TAB HIDDEN OR CLOSED</text>
+<text class="mono" x="300" y="430" text-anchor="middle">end</text>
+<path class="line-accent" d="M130,438 H466" marker-end="url(#tip-accent)"/>
+<text class="label" x="635" y="456" text-anchor="middle">credit up to 20 s, as for a beat</text>
+<path class="line" d="M470,464 H796" marker-end="url(#tip)"/>
+
+<rect class="bg" x="14" y="490" width="134" height="20"/>
+<text class="heading" x="20" y="504">TAB SHOWN AGAIN</text>
+<text class="mono" x="300" y="530" text-anchor="middle">resume</text>
+<path class="line-accent" d="M130,538 H466" marker-end="url(#tip-accent)"/>
+<text class="label" x="635" y="556" text-anchor="middle">restart the clock; credit nothing</text>
+<path class="line" d="M470,564 H796" marker-end="url(#tip)"/>
+
+<text class="heading" x="20" y="604">NEXT PAGE</text>
+<text class="label" x="300" y="624" text-anchor="middle">page 2 is asked for</text>
+<path class="line-accent" d="M130,632 H466" marker-end="url(#tip-accent)"/>
+<text class="label" x="635" y="650" text-anchor="middle">credit page 1; a page view for page 2</text>
+<path class="line" d="M470,658 H796" marker-end="url(#tip)"/>
+
+<!-- The result -->
+<text class="heading" x="20" y="704">THE RESULT, ON PEOPLE AND THE DOCUMENT'S PAGE</text>
+<rect class="heat-4" x="20" y="720" width="26" height="26" rx="4"/>
+<rect class="heat-2" x="50" y="720" width="26" height="26" rx="4"/>
+<rect class="heat-3" x="80" y="720" width="26" height="26" rx="4"/>
+<rect class="heat-1" x="110" y="720" width="26" height="26" rx="4"/>
+<rect class="heat-3" x="140" y="720" width="26" height="26" rx="4"/>
+<rect class="heat-4" x="170" y="720" width="26" height="26" rx="4"/>
+<rect class="heat-2" x="200" y="720" width="26" height="26" rx="4"/>
+<rect class="heat-1" x="230" y="720" width="26" height="26" rx="4"/>
+<rect class="box" x="260" y="720" width="26" height="26" rx="4"/>
+<rect class="box" x="290" y="720" width="26" height="26" rx="4"/>
+<text class="small" x="20" y="768">one cell for each page, shaded by its seconds</text>
+
+<rect class="box" x="490" y="720" width="16" height="16" rx="3"/>
+<text class="small" x="512" y="733">unseen</text>
+<rect class="heat-1" x="570" y="720" width="16" height="16" rx="3"/>
+<text class="small" x="592" y="733">up to 20 s</text>
+<rect class="heat-2" x="670" y="720" width="16" height="16" rx="3"/>
+<text class="small" x="692" y="733">45 s</text>
+<rect class="heat-3" x="738" y="720" width="16" height="16" rx="3"/>
+<text class="small" x="760" y="733">90 s</text>
+<rect class="heat-4" x="806" y="720" width="16" height="16" rx="3"/>
+<text class="small" x="828" y="733">longer</text>
+
+<text class="small" x="20" y="804">A video sends</text>
+<text class="mono" x="104" y="804">part</text>
+<text class="small" x="140" y="804">as it plays into each 10-second part, and each part counts as a page.</text>
+<text class="small" x="20" y="824">A workbook's card counts as its one page.</text>
+</svg>

@@ -116,7 +116,7 @@ To remove it all: `docker rm --force snug && docker volume rm snug-data`, then d
 
 ## How it is built
 
-Python and Django, with SQLite in WAL mode, server-rendered pages and very little JavaScript. PDFs are read and rendered with pypdfium2 in a separate process, limited in memory and time and confined by Linux Landlock and a filter that blocks network access, so a hostile PDF cannot reach your data. The same process checks Excel workbooks and MP4 videos, with the standard library alone; it never decodes a video, which the viewer's browser plays. Snug is one container image, run beside Caddy, Litestream and rclone. The full design is in [DESIGN.md](DESIGN.md).
+Python and Django, with SQLite in WAL mode, server-rendered pages and very little JavaScript. PDFs are read and rendered with pypdfium2 in a separate process, limited in memory and time and confined by Linux Landlock and a filter that blocks network access, so a hostile PDF cannot reach your data. The same process checks Excel workbooks and MP4 videos, with the standard library alone; it never decodes a video, which the viewer's browser plays. Snug is one container image, run beside Caddy, Litestream and rclone. [How Snug works](docs/architecture.md) explains the code, with diagrams, and [DESIGN.md](DESIGN.md) the decisions behind it.
 
 UK-only mode uses [IP geolocation by DB-IP](https://db-ip.com), licensed CC BY 4.0, which your server downloads once a month.
 

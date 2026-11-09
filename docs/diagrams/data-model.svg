@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 784" width="960" height="784" role="img" aria-labelledby="t d">
+<title id="t">Snug's tables</title>
+<desc id="d">Snug's database tables in groups. Admins have recovery codes and setup links. A document has versions. A room has folders, and holds documents through room entries. A link points at one document or one room, and has viewer sessions, a verification code and NDA acceptances, each of a published NDA version. A visit belongs to a link, a document and a viewer session, and has a page view for each page or part. The audit log, site settings, email settings, stored checks and rate-limit windows stand alone.</desc>
+<rect class="bg" width="960" height="784"/>
+
+<!-- ADMINS -->
+<rect class="zone" x="20" y="40" width="220" height="300" rx="10"/>
+<text class="heading" x="36" y="64">ADMINS</text>
+<rect class="box" x="34" y="76" width="176" height="72" rx="8"/>
+<text class="title" x="50" y="100">Admin</text>
+<text class="mono" x="50" y="120">email, password</text>
+<text class="mono" x="50" y="138">totp_secret</text>
+<rect class="box" x="34" y="180" width="176" height="56" rx="8"/>
+<text class="title" x="50" y="204">RecoveryCode</text>
+<text class="mono" x="50" y="224">code_hash, used_at</text>
+<rect class="box" x="34" y="268" width="176" height="56" rx="8"/>
+<text class="title" x="50" y="292">AdminSetup</text>
+<text class="mono" x="50" y="312">purpose, token_hash</text>
+
+<!-- ROOMS -->
+<rect class="zone" x="260" y="40" width="428" height="300" rx="10"/>
+<text class="heading" x="276" y="64">ROOMS</text>
+<rect class="box" x="276" y="76" width="200" height="84" rx="8"/>
+<text class="title" x="292" y="100">RoomDocument</text>
+<text class="mono" x="292" y="120">room, document</text>
+<text class="mono" x="292" y="138">folder (optional)</text>
+<rect class="box" x="520" y="76" width="152" height="64" rx="8"/>
+<text class="title" x="536" y="100">Folder</text>
+<text class="mono" x="536" y="120">room, name</text>
+<rect class="box" x="276" y="236" width="200" height="84" rx="8"/>
+<text class="title" x="292" y="260">Room</text>
+<text class="mono" x="292" y="280">name, token</text>
+<text class="mono" x="292" y="298">require_nda, uk_only</text>
+
+<!-- DOCUMENTS -->
+<rect class="zone" x="704" y="40" width="236" height="300" rx="10"/>
+<text class="heading" x="718" y="64">DOCUMENTS</text>
+<rect class="box" x="718" y="76" width="208" height="120" rx="8"/>
+<text class="title" x="734" y="100">DocumentVersion</text>
+<text class="mono" x="734" y="120">number</text>
+<text class="mono" x="734" y="138">kind: pdf, xlsx, mp4</text>
+<text class="mono" x="734" y="156">stored_name, sha256</text>
+<text class="mono" x="734" y="174">page_count, seconds</text>
+<rect class="box" x="718" y="236" width="208" height="84" rx="8"/>
+<text class="title" x="734" y="260">Document</text>
+<text class="mono" x="734" y="280">token, title</text>
+<text class="mono" x="734" y="298">description</text>
+
+<!-- SHARING -->
+<rect class="zone" x="20" y="360" width="668" height="276" rx="10"/>
+<text class="heading" x="36" y="384">SHARING</text>
+<rect class="box" x="34" y="400" width="180" height="84" rx="8"/>
+<text class="title" x="50" y="424">NdaAcceptance</text>
+<text class="mono" x="50" y="444">name, email</text>
+<text class="mono" x="50" y="462">ip, text_sha256</text>
+<rect class="box" x="34" y="520" width="180" height="64" rx="8"/>
+<text class="title" x="50" y="544">NdaVersion</text>
+<text class="mono" x="50" y="564">number, text</text>
+<rect class="key" x="286" y="400" width="180" height="176" rx="8"/>
+<text class="title" x="302" y="424">Link</text>
+<text class="mono" x="302" y="444">token_hash, ref</text>
+<text class="mono" x="302" y="462">email, note</text>
+<text class="mono" x="302" y="480">expires_at</text>
+<text class="mono" x="302" y="498">revoked_at</text>
+<text class="small" x="302" y="524">and whether it asks for a</text>
+<text class="small" x="302" y="540">code or the NDA, allows</text>
+<text class="small" x="302" y="556">downloads, or is UK-only</text>
+<rect class="box" x="500" y="400" width="176" height="100" rx="8"/>
+<text class="title" x="516" y="424">ViewerSession</text>
+<text class="mono" x="516" y="444">token_hash</text>
+<text class="mono" x="516" y="462">email, verified</text>
+<text class="mono" x="516" y="480">expires_at</text>
+<rect class="box" x="500" y="528" width="176" height="64" rx="8"/>
+<text class="title" x="516" y="552">VerificationCode</text>
+<text class="mono" x="516" y="572">code_hash</text>
+
+<!-- READING -->
+<rect class="zone" x="704" y="360" width="236" height="276" rx="10"/>
+<text class="heading" x="718" y="384">READING</text>
+<rect class="box" x="718" y="400" width="208" height="124" rx="8"/>
+<text class="title" x="734" y="424">Visit</text>
+<text class="mono" x="734" y="444">token, email</text>
+<text class="mono" x="734" y="462">started_at</text>
+<text class="mono" x="734" y="480">current_page</text>
+<rect class="box" x="718" y="556" width="208" height="64" rx="8"/>
+<text class="title" x="734" y="580">PageView</text>
+<text class="mono" x="734" y="600">page, seconds</text>
+
+<!-- STANDALONE -->
+<rect class="zone" x="20" y="652" width="920" height="96" rx="10"/>
+<text class="heading" x="36" y="676">STANDING ALONE</text>
+<rect class="box" x="34" y="688" width="170" height="50" rx="8"/>
+<text class="title" x="48" y="708">AuditEvent</text>
+<text class="small" x="48" y="728">append-only</text>
+<rect class="box" x="216" y="688" width="170" height="50" rx="8"/>
+<text class="title" x="230" y="708">SiteSettings</text>
+<text class="small" x="230" y="728">branding, retention</text>
+<rect class="box" x="398" y="688" width="170" height="50" rx="8"/>
+<text class="title" x="412" y="708">EmailSettings</text>
+<text class="small" x="412" y="728">how email is sent</text>
+<rect class="box" x="580" y="688" width="170" height="50" rx="8"/>
+<text class="title" x="594" y="708">SystemCheck</text>
+<text class="small" x="594" y="728">doctor's stored checks</text>
+<rect class="box" x="762" y="688" width="170" height="50" rx="8"/>
+<text class="title" x="776" y="708">RateLimitWindow</text>
+<text class="small" x="776" y="728">counts in each window</text>
+
+<!-- Relations: "n" at the many end, "1" at the one end -->
+<path class="line" d="M122,148 V180"/>
+<text class="small" x="128" y="161">1</text><text class="small" x="128" y="177">n</text>
+<path class="line" d="M210,296 H230 V112 H210"/>
+<text class="small" x="215" y="290">n</text><text class="small" x="215" y="107">1</text>
+
+<path class="line" d="M376,160 V236"/>
+<text class="small" x="382" y="176">n</text><text class="small" x="382" y="230">1</text>
+<path class="line" d="M476,108 H520"/>
+<text class="small" x="481" y="102">n</text><text class="small" x="508" y="102">1</text>
+<path class="line" d="M596,140 V278 H476"/>
+<text class="small" x="602" y="156">n</text><text class="small" x="482" y="272">1</text>
+<path class="line" d="M376,76 V58 H696 V278 H718"/>
+<text class="small" x="382" y="72">n</text><text class="small" x="706" y="272">1</text>
+
+<path class="line" d="M822,196 V236"/>
+<text class="small" x="828" y="212">n</text><text class="small" x="828" y="230">1</text>
+
+<path class="line-dashed" d="M376,400 V320"/>
+<path class="line-dashed" d="M446,400 V350 H790 V320"/>
+<text class="small" x="388" y="394">one of</text>
+<text class="small" x="382" y="334">1</text><text class="small" x="796" y="334">1</text>
+
+<path class="line" d="M214,430 H286"/>
+<text class="small" x="220" y="424">n</text><text class="small" x="276" y="424">1</text>
+<path class="line" d="M124,484 V520"/>
+<text class="small" x="130" y="498">n</text><text class="small" x="130" y="514">1</text>
+<path class="line" d="M500,430 H466"/>
+<text class="small" x="489" y="424">n</text><text class="small" x="470" y="424">1</text>
+<path class="line" d="M500,556 H466"/>
+<text class="small" x="489" y="550">n</text><text class="small" x="470" y="550">1</text>
+
+<path class="line" d="M718,430 H676"/>
+<text class="small" x="708" y="424">n</text><text class="small" x="680" y="424">1</text>
+<path class="line" d="M718,514 H466"/>
+<text class="small" x="708" y="508">n</text><text class="small" x="470" y="508">1</text>
+<path class="line" d="M880,400 V320"/>
+<text class="small" x="886" y="394">n</text><text class="small" x="886" y="334">1</text>
+<path class="line" d="M822,524 V556"/>
+<text class="small" x="828" y="538">1</text><text class="small" x="828" y="552">n</text>
+
+<text class="small" x="20" y="772">Most tables also record the admin who made a row (created_by); those lines are left out.</text>
+</svg>
