@@ -45,7 +45,7 @@ def _email_test(address: str) -> Finding:
 
 
 class Command(BaseCommand):
-    help = "Check housekeeping, backups, the PDF worker, DNS, HTTPS and email."
+    help = "Check housekeeping, backups, the document worker, DNS, HTTPS and email."
 
     def add_arguments(self, parser: ArgumentParser) -> None:
         parser.add_argument(
@@ -73,8 +73,9 @@ class Command(BaseCommand):
                 )
 
         self.stdout.write("Snug doctor\n")
+        width = max(len(f.label) for f in findings) + 2
         for found in findings:
-            self.stdout.write(f"{found.status:<10}{found.label:<14}{found.message}")
+            self.stdout.write(f"{found.status:<10}{found.label:<{width}}{found.message}")
         problems = sum(f.problem for f in findings)
         if problems:
             self.stdout.write(f"\n{problems} problem{'s' if problems != 1 else ''}.")

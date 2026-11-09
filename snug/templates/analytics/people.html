@@ -1,14 +1,14 @@
 {% extends "snug/admin_base.html" %}
 {% block title %}People in Snug{% endblock %}
 {% block content %}
-<div class="title-row"><div><h1 class="page-title">People</h1><div class="page-meta">Everyone who has opened a document, most recent first. Each document's strip has one cell per page, shaded by the time spent on it; hover over a cell for its page and time.</div></div>{% if people %}<div class="actions">{{ legend }}</div>{% endif %}</div>
+<div class="title-row"><div><h1 class="page-title">People</h1><div class="page-meta">Everyone who has opened a document, most recent first. Each strip has one cell per page, or per 10 seconds of a video, shaded by the time spent on it; hover over a cell to see which and for how long.</div></div>{% if people %}<div class="actions">{{ legend }}</div>{% endif %}</div>
 {% for person in people %}
 <section class="section person" id="{{ person.anchor }}">
   <div class="section-head"><h2>{{ person.email }}</h2><p>{% if person.note %}{{ person.note }}. {% endif %}{{ person.total }} in all, {% if person.downloads %}{{ person.downloads }} download{{ person.downloads|pluralize }}, {% endif %}last seen {{ person.last_seen|date:"j M, H:i" }}</p></div>
   <div class="matrix with-downloads">
     <div class="row head">
       <div class="cell">Document</div>
-      <div class="cell">Time on each page</div>
+      <div class="cell">Time on each page or part</div>
       <div class="cell r">Visits</div><div class="cell r">Downloads</div><div class="cell r">Time</div><div class="cell r last">Last seen</div>
     </div>
     {% for read in person.documents %}
@@ -26,7 +26,7 @@
 {% empty %}
 <div class="empty">
   <h2>Nobody has opened anything yet</h2>
-  <p>Once someone opens a link, what they read appears here.</p>
+  <p>Once someone opens a link, what they opened appears here.</p>
 </div>
 {% endfor %}
 {% endblock %}

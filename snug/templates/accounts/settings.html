@@ -217,7 +217,7 @@
   {% if saved == "retention" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved. Reading data is kept for {{ retention_months }} months after a link ends.</span></div>{% endif %}
   <div class="field">
     <div class="inline-form sentence"><label for="months">Keep reading data for</label><input id="months" name="months" type="number" min="1" max="120" value="{{ retention_months }}"{% if retention_error %} aria-invalid="true" aria-describedby="retention-error"{% endif %}><span>months after a link ends</span></div>
-    {% if retention_error %}<div class="error" id="retention-error" role="alert">{% icon "warning-circle" %}{{ retention_error }}</div>{% else %}<div class="hint">Which pages each person read, and for how long, is deleted this long after their link is revoked or expires. While a link works, its reading data is kept. The audit log is kept regardless. Some sectors need longer: seven years is 84 months.</div>{% endif %}</div>
+    {% if retention_error %}<div class="error" id="retention-error" role="alert">{% icon "warning-circle" %}{{ retention_error }}</div>{% else %}<div class="hint">What each person read or watched, and for how long, is deleted this long after their link is revoked or expires. While a link works, its reading data is kept. The audit log is kept regardless. Some sectors need longer: seven years is 84 months.</div>{% endif %}</div>
   <button class="btn btn-primary" type="submit">Save</button>
 </form>
 </div>

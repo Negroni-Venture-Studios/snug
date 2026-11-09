@@ -27,8 +27,8 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 - **Links.** One per person, to a document or a room, with an optional message from you. Email verification (on by default), optional expiry, downloads (on by default), and immediate revocation.
 - **UK-only mode.** A link, or a whole room, can open only for visitors in the UK, Jersey, Guernsey and the Isle of Man, judged by their internet address against a country database kept on your server.
 - **An NDA.** One click-through agreement for your instance, versioned, which a room or a single-document link can ask for first. Snug records who accepted which text, and when.
-- **The reader.** Pages are rendered on your server and shown one at a time, watermarked with the reader's email address, the date and the link. A download is the original PDF, stamped with the same details, so its text stays searchable.
-- **Analytics.** Who opened each document, how long they spent on each page, and how often they downloaded it, on an Overview, each document's page and a People page. Every admin is emailed the first time each link is opened, unless they turn it off. Reading data is deleted 12 months after a link ends, or after a period you set. Nothing about your visitors leaves your instance, and Snug does not phone home.
+- **The reader.** Pages are rendered on your server and shown one at a time, watermarked with the reader's email address, the date and the link. A download is the original PDF, stamped with the same details, so its text stays searchable. A video plays in the browser with the same details drawn over it; a workbook's card lists its sheets, and the founder can add a description.
+- **Analytics.** Who opened each document, how long they spent on each page (or on each 10 seconds of a video), and how often they downloaded it, on an Overview, each document's page and a People page. Every admin is emailed the first time each link is opened, unless they turn it off. Reading data is deleted 12 months after a link ends, or after a period you set. Nothing about your visitors leaves your instance, and Snug does not phone home.
 - **An audit log** of every admin action and every viewer access, with the viewer's country, filterable and exportable as CSV.
 - **Email** through Google Workspace, as a mailbox on your domain over the Gmail API, or any provider over SMTP. It is set up in Settings in numbered steps, ending with a test email, and can be cleared there with one button. Each part of Settings links to its guide.
 - **Admin accounts** with a password and an authenticator app, recovery codes, invitations by email, and an email to every admin whenever the admins change.
@@ -36,7 +36,7 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 
 ## What Snug does not do
 
-- **It shows PDFs and videos, and shares Excel workbooks.** Export anything else, such as Word or PowerPoint files, to PDF first, and video to MP4 with H.264. A workbook is not previewed in the browser: investors download it, and each copy names its reader in its document properties. A video's watermark is drawn over the player, so a downloaded copy carries no mark.
+- **It shows PDFs and videos, and shares Excel workbooks.** Export anything else, such as Word or PowerPoint files, to PDF first, and video to MP4 with H.264. A workbook is not previewed in the browser: investors download it, and each copy names its reader in its document properties. A video's watermark is drawn over the player, so a downloaded copy has no mark, and someone determined can save a video they are watching even with downloads turned off.
 - **Watermarks deter casual leaks; they cannot stop one.** Nothing stops someone photographing a screen.
 - **NDA acceptance is a record, not a signature.** Snug records who accepted which text, and when.
 - **UK-only mode is not export control.** It goes by the visitor's internet address, so a VPN gets round it.
@@ -116,7 +116,7 @@ To remove it all: `docker rm --force snug && docker volume rm snug-data`, then d
 
 ## How it is built
 
-Python and Django, with SQLite in WAL mode, server-rendered pages and very little JavaScript. PDFs are read and rendered with pypdfium2 in a separate process, limited in memory and time and confined by Linux Landlock and a filter that blocks network access, so a hostile PDF cannot reach your data. Snug is one container image, run beside Caddy, Litestream and rclone. The full design is in [DESIGN.md](DESIGN.md).
+Python and Django, with SQLite in WAL mode, server-rendered pages and very little JavaScript. PDFs are read and rendered with pypdfium2 in a separate process, limited in memory and time and confined by Linux Landlock and a filter that blocks network access, so a hostile PDF cannot reach your data. The same process checks Excel workbooks and MP4 videos, with the standard library alone; it never decodes a video, which the viewer's browser plays. Snug is one container image, run beside Caddy, Litestream and rclone. The full design is in [DESIGN.md](DESIGN.md).
 
 UK-only mode uses [IP geolocation by DB-IP](https://db-ip.com), licensed CC BY 4.0, which your server downloads once a month.
 

@@ -48,7 +48,7 @@ uv run pre-commit run --all-files  # everything CI runs, locally
   - `sbom`
   - the CodeQL `analyze` jobs
   - `e2e (real browser)`, the investor's journey and the admin controls in Chromium through Playwright
-  - `image smoke test`, which builds the container image and checks that its PDF worker renders a page confined
+  - `image smoke test`, which builds the container image and checks that its document worker renders a PDF page confined
 - Force pushes and deletion of `main` are blocked.
 - CI is the gate; no approving review count is required. Stale reviews are dismissed when new commits arrive.
 
@@ -60,7 +60,7 @@ Merge with a squash or a merge commit. Branches are deleted after merging.
 - **Security requirements are requirements.** [AGENTS.md](AGENTS.md) lists them: one authorisation path for viewer content, no database keys in viewer URLs, no CORS, a strict content security policy, CSRF protection, rate limits, safe file handling, and no secrets in logs. Each has tests; keep them passing and extend them.
 - **Type hints throughout**, checked by mypy in strict mode.
 - **No inline scripts, inline styles or `on*=` handlers** in templates. The content security policy forbids them.
-- **Calls out of Snug** go through `snug/core/outbound.py`, and only to Google and DB-IP. The tests never reach the internet.
+- **Calls out of Snug** over HTTP go through `snug/core/outbound.py`, and only to Google and DB-IP. The tests never reach the internet.
 - **British English** in documentation and interface text. In interface text: sentence case, no em or en dashes, and no middle dots used as separators.
 - **Commit messages** use the imperative mood ("Add link revocation", not "Added …"), with a first line under 72 characters.
 - **Changelog.** Add a line under `[Unreleased]` in CHANGELOG.md for anything a user or operator would notice.

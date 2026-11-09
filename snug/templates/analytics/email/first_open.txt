@@ -3,7 +3,7 @@ What: {{ document }}{% if room %}, in {{ room }}{% endif %}
 When: {{ when }}
 Where: {% if where %}{{ where }}{% else %}Not known{% endif %}
 
-This is the first time anyone has opened link {{ ref }}. See what they read:
+This is the first time anyone has opened link {{ ref }}. See what they opened:
 {{ person_url }}
 
 Every admin of {{ company|default:"this Snug instance" }} gets an email like this the first time each link is opened. To stop them, untick the box under Your account in Settings:

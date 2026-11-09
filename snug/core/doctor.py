@@ -107,7 +107,7 @@ def backups(now: datetime) -> Finding:
 
 
 def confinement() -> Finding:
-    label = "PDF worker"
+    label = "Document worker"
     if settings.CONFIG.unsafe_unconfined_rendering:
         return _problem(
             label,
@@ -119,7 +119,7 @@ def confinement() -> Finding:
         return _ok(label, f"Documents are read in a confined worker ({how}).")
     return _problem(
         label,
-        f"The PDF worker cannot confine itself ({how}), so Snug will not read documents. "
+        f"The document worker cannot confine itself ({how}), so Snug will not read documents. "
         f"It needs Linux {_LINUX_FOR_ABI[MIN_LANDLOCK_ABI]} or later.",
     )
 
@@ -261,7 +261,7 @@ def everything(now: datetime) -> list[Finding]:
 # The slower checks, run by housekeeping every hour and stored for the
 # Overview, with the label each is shown under. "email" is recorded by
 # snug.core.mail whenever an email fails, or succeeds.
-_STORED = {"confinement": "PDF worker", "dns": "DNS", "https": "HTTPS", "email": "Email"}
+_STORED = {"confinement": "Document worker", "dns": "DNS", "https": "HTTPS", "email": "Email"}
 
 
 def record(name: str, found: Finding, now: datetime) -> None:

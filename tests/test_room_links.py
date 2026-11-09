@@ -189,6 +189,14 @@ def test_the_landing_page_names_the_room(room: Room) -> None:
     assert "Open Seed round" in page
 
 
+def test_a_rooms_privacy_line_does_not_assume_every_document_has_pages(room: Room) -> None:
+    """A room can hold workbooks and videos beside PDFs."""
+    issued = share(room=room)
+    page = Client().get(f"/v/{issued.token}", secure=True).content.decode()
+    assert "when you open each document and how long you spend on it." in page
+    assert "Every page and video shows your email address as a watermark." in page
+
+
 def test_an_empty_room_says_so() -> None:
     issued = share(room=Room.objects.create(name="Empty"))
     page = opened(issued).get(f"/v/{issued.token}", secure=True).content.decode()

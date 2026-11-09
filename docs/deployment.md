@@ -8,7 +8,7 @@ Snug runs on one Linux server as four containers under Docker Compose:
 
 ## What you need
 
-- A server running Ubuntu 24.04 LTS. A DigitalOcean droplet with 1 GB of memory is enough for one company.
+- A server running Ubuntu 24.04 LTS. A DigitalOcean droplet with 1 GB of memory is enough for one company. Its disk holds every upload: PDFs and workbooks need little room, but a video can be hundreds of megabytes, up to the limit `SNUG_MAX_VIDEO_MB` sets (1 GB unless set; see [configuration.md](configuration.md)). Choose a disk with room for the videos you mean to share.
 - A domain name, such as `room.example.com`, whose DNS `A` record points at the server, and its `AAAA` record too if the server has IPv6.
 - A way for Snug to send links and codes, set up in Settings once Snug is running: a Google Workspace mailbox, through the Gmail API ([email-google.md](email-google.md)), or an email provider's SMTP details ([email.md](email.md)).
 - A storage bucket for the backups, such as DigitalOcean Spaces, and a key for it. See [backups.md](backups.md).
@@ -88,13 +88,13 @@ sudo snug doctor --email you@example.com
 |---|---|
 | Housekeeping | `snug housekeeping`, which Snug runs every hour to clear expired codes, sessions and old reading data, has completed in the last 3 hours |
 | Backups | The backup container has copied everything to the bucket in the last 15 minutes ([backups.md](backups.md)) |
-| PDF worker | A fresh worker confines itself with Landlock ABI 4 or later and the socket filter, so it is allowed to read documents |
+| Document worker | A fresh worker confines itself with Landlock ABI 4 or later and the socket filter, so it is allowed to read documents |
 | DNS | The domain resolves; the report lists the addresses it points to |
 | HTTPS | The domain answers Snug's health check over HTTPS, with a valid certificate that has more than 14 days left |
 | Email | Email is set up, through Google Workspace or SMTP; with `--email`, a code sent to that address is typed back |
 | GeoIP | When anything is UK-only: DB-IP's country data is this month's or last month's |
 
-The admin Overview shows the same problems, so a founder sees them without running a command. It checks housekeeping, the backups, the email settings and the GeoIP data on each visit; housekeeping runs the PDF worker, DNS and HTTPS checks every hour, and a failed email is recorded when it fails.
+The admin Overview shows the same problems, so a founder sees them without running a command. It checks housekeeping, the backups, the email settings and the GeoIP data on each visit; housekeeping runs the document worker, DNS and HTTPS checks every hour, and a failed email is recorded when it fails.
 
 Snug cannot read your inbox, so the email check sends a six-digit code and asks you to type it in. Without `--email`, `snug doctor` asks for an address, or skips the email test when it is not run in a terminal. It exits with status 1 if anything is a problem.
 

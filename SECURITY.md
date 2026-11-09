@@ -21,7 +21,7 @@ You will get a response within 72 hours. We will work with you on a fix and agre
 
 In scope:
 
-- Snug's own code: authorisation, sessions, links, verification codes, file handling, rendering, analytics, the admin interface, and email, including the Google Workspace connection.
+- Snug's own code: authorisation, sessions, links, verification codes, file handling, the confined worker that reads PDFs, Excel workbooks and MP4 videos, video streaming, analytics, the admin interface, and email, including the Google Workspace connection.
 - The deployment files we ship: the container image, the Compose file, the Caddy and Litestream configuration, the backup, restore and setup scripts, and cloud-init.
 
 Out of scope:
@@ -40,7 +40,7 @@ Every change to `main` goes through a pull request that must pass CI. Administra
 
 - ruff's security rules;
 - strict type checking;
-- the test suite, with the PDF worker's confinement tested on Linux;
+- the test suite, with the document worker's confinement tested on Linux;
 - the investor's journey and the admin controls in a real browser;
 - a smoke test of the container image, including a confined render;
 - gitleaks over the full git history;
