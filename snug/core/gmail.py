@@ -25,6 +25,8 @@ from typing import TYPE_CHECKING, Any
 from django.conf import settings
 from django.core.mail import EmailMessage
 
+from snug.core import outbound
+
 if TYPE_CHECKING:
     from snug.core.mail import Outgoing
 
@@ -62,7 +64,7 @@ def _request(url: str, *, form: Any = None, body: Any = None, token: str = "") -
         headers["Authorization"] = f"Bearer {token}"
     request = urllib.request.Request(url, data=data, headers=headers, method="POST")  # noqa: S310
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:  # noqa: S310 - Google's fixed https URLs
+        with outbound.urlopen(request, timeout=TIMEOUT) as response:  # Google's fixed https URLs
             raw = response.read(1024 * 1024)
     except urllib.error.HTTPError as error:
         reason = f"HTTP {error.code}"

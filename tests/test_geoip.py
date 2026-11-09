@@ -183,7 +183,7 @@ def test_the_download_is_https_from_db_ip_and_capped(monkeypatch: pytest.MonkeyP
         opened["timeout"] = timeout
         return Response()
 
-    monkeypatch.setattr("urllib.request.urlopen", urlopen)
+    monkeypatch.setattr("snug.core.outbound.urlopen", urlopen)
     with pytest.raises(geoip.BadDataError):
         geoip._fetch(geoip.SOURCE.format(month="2026-11"))
     assert opened["url"] == "https://download.db-ip.com/free/dbip-country-lite-2026-11.csv.gz"
