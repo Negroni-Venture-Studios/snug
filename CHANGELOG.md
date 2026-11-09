@@ -10,6 +10,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- Interface text is plainer. Hints and notices say what happens or what to do, without explaining Snug's reasoning or ending on a neat contrast; the People page says *Spreadsheet* for a workbook, and the first-open email says *Not known* for an unplaced country.
 - A workbook's page in the admin no longer fails with a server error once an investor has opened it. It tried to draw a page-by-page reading chart for a document with no pages.
 - Every viewer event in the audit log records the visitor's country, whether or not the link is UK-only, and the audit log shows it beside the address. The country column had been left empty, though the brief asked for it.
 - The Google Workspace guide takes someone who has never used Google Cloud through every screen, and covers SPF, DKIM and DMARC for each sending domain, user alias domains, and the things DNS hosts and multiple Google accounts get wrong.

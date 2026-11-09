@@ -262,7 +262,7 @@ def test_saving_smtp_settings(client: Client) -> None:
         'name="smtp_password" type="password" autocomplete="new-password" value="" '
         f'placeholder="{DOTS}"'
     ) in text
-    assert "Saved, and never shown. Type a new one to replace it." in text
+    assert "Saved. Type a new one to replace it." in text
 
 
 def test_an_empty_password_field_has_no_dots(client: Client) -> None:
@@ -291,7 +291,7 @@ def test_an_empty_password_keeps_the_saved_one(client: Client) -> None:
         (
             "smtp_security",
             "none",
-            "Choose STARTTLS or TLS. Email must never cross the internet unencrypted.",
+            "Choose STARTTLS or TLS.",
         ),
     ],
 )
@@ -542,6 +542,6 @@ def test_amazon_ses_ports_work_from_digitalocean(client: Client, port: str, secu
 
 def test_the_port_hints_name_every_port(client: Client) -> None:
     text = panel(client)
-    assert "25, 465, 587, 2465, 2525 or 2587. DigitalOcean blocks the first three" in text
+    assert "25, 465, 587, 2465, 2525 or 2587. On DigitalOcean, use 2525" in text
     assert "STARTTLS, for ports 587, 2525 and 2587" in text
     assert "TLS, for ports 465 and 2465" in text

@@ -469,8 +469,8 @@ def _email_fallback() -> str:
     if config.smtp_host:
         return f"Email then uses the SMTP settings in snug.env, through {config.smtp_host}."
     if config.email_outbox:
-        return "Emails are then written to the outbox folder, as on any computer without email."
-    return "Email is then off, so investors cannot be sent codes, until it is set up again."
+        return "Emails then go to the outbox folder."
+    return "Email then stops, and investors cannot be sent codes."
 
 
 def _email_context(request: HttpRequest, form: dict[str, Any] | None) -> dict[str, Any]:
@@ -553,9 +553,7 @@ def email_view(request: HttpRequest) -> HttpResponse:
     if not values["smtp_host"]:
         errors["smtp_host"] = "Enter your provider's SMTP server, like smtp.postmarkapp.com."
     if values["smtp_security"] not in ("starttls", "tls"):
-        errors["smtp_security"] = (
-            "Choose STARTTLS or TLS. Email must never cross the internet unencrypted."
-        )
+        errors["smtp_security"] = "Choose STARTTLS or TLS."
     if not errors:
         # Email carries codes and reset links: changing where it goes is
         # confirmed like any change to the admins. Checked before the server's

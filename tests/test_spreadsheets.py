@@ -174,7 +174,7 @@ def test_a_workbooks_page_lists_its_sheets_and_has_no_page_preview(
 
 def test_the_link_form_says_a_spreadsheet_needs_downloads(client: Client, model: Document) -> None:
     page = client.get(f"/admin/links/for/{model.token}", secure=True).content.decode()
-    assert "A spreadsheet can only be downloaded" in page
+    assert "Without downloads, the link shows only the sheet names." in page
 
 
 # ---------------------------------------------------------------- the investor's card

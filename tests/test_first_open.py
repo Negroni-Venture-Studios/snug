@@ -141,7 +141,7 @@ def test_what_the_email_says() -> None:
 def test_an_unknown_country_is_said_plainly(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(geoip, "country", lambda address: None)
     read(open_link(document=deck()))
-    assert "Where: Snug cannot tell" in first_opens()[0].body
+    assert "Where: Not known" in first_opens()[0].body
 
 
 def test_an_admin_who_turned_it_off_hears_nothing(admins: list[Admin]) -> None:

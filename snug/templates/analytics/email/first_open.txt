@@ -1,7 +1,7 @@
 {% autoescape off %}Who: {{ who }}{% if note %} ({{ note }}){% endif %}
 What: {{ document }}{% if room %}, in {{ room }}{% endif %}
 When: {{ when }}
-Where: {% if where %}{{ where }}{% else %}Snug cannot tell, from their internet address{% endif %}
+Where: {% if where %}{{ where }}{% else %}Not known{% endif %}
 
 This is the first time anyone has opened link {{ ref }}. See what they read:
 {{ person_url }}
