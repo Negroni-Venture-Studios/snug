@@ -61,6 +61,8 @@ An investor enters a code sent to their inbox, then reads, or downloads a workbo
   <img alt="A workbook shared with an investor: its description, its sheets, and a button to download it, with their details written into the copy." src="docs/images/screenshots/workbook-light.png" width="49%">
 </picture>
 
+[Using Snug](docs/using-snug.md) goes through every page, for you and for the investors you share with.
+
 ## What Snug does not do
 
 - **It shows PDFs and videos, and shares Excel workbooks.** Export anything else, such as Word or PowerPoint files, to PDF first, and video to MP4 with H.264. A workbook is not previewed in the browser: investors download it, and Snug writes their email address, the date and the link into each copy's document properties. A video's watermark is drawn over the player, so a downloaded copy has no mark, and someone determined can save a video they are watching even with downloads turned off.
@@ -77,7 +79,7 @@ An investor enters a code sent to their inbox, then reads, or downloads a workbo
 Still to come before the first release:
 
 - a full deployment to a DigitalOcean droplet, following the guide alone, and a restore onto a second one;
-- a step-by-step guide for a DigitalOcean droplet in London, a guide to using Snug, and a guide to what Snug does and does not protect against.
+- a step-by-step guide for a DigitalOcean droplet in London, and a guide to what Snug does and does not protect against.
 
 The order of work in [DESIGN.md](DESIGN.md) has the details.
 

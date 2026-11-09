@@ -51,6 +51,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- [Using Snug](docs/using-snug.md), a guide to every page of the admin and what investors see, with screenshots. The deployment, backups, email, admin accounts and NDA guides have diagrams and screenshots too.
 - Screenshots in the README, in light and dark, taken from a demo company's data room in a real browser by `tests/e2e/test_screenshots.py`, so they can be retaken whenever a page changes.
 - [How Snug works](docs/architecture.md): the processes on the server, a request's path, the one authorisation path, the data, the document worker, reading time, email, background work and backups, with diagrams in light and dark.
 - Snug counts how long an investor has a workbook's page open, as it does for a page of a PDF. On People, a workbook shows one cell shaded by that time, where it used to say *Spreadsheet*. Investors are told this on the workbook's page.

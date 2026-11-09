@@ -6,7 +6,14 @@ Most failed Snug setups fail here.
 
 **Google Workspace.** If your company uses Workspace, Snug can send as a mailbox on your domain through the Gmail API: [email-google.md](email-google.md) walks through it. The rest of this guide is for any other provider, over SMTP.
 
- Email sent from a new server, from a domain with no authentication records, goes to spam or is refused outright. This guide sets it up properly, once.
+Snug sends each email by the first of these routes that is set up, so settings saved in Settings win over the ones in `snug.env`:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/email-dark.svg">
+  <img alt="Snug tries five routes in order and uses the first that applies: Google Workspace saved in Settings, SMTP saved in Settings, SMTP in snug.env, the outbox folder on localhost, or no email. Every SMTP send checks the server resolves only to public addresses and connects to the address it checked." src="images/diagrams/email-light.svg">
+</picture>
+
+Email sent from a new server, from a domain with no authentication records, goes to spam or is refused outright. This guide sets it up properly, once.
 
 ## What you need
 
@@ -86,6 +93,11 @@ nc -zv -w 5 smtp.mailgun.org 2525
 ## Step 4: configure Snug
 
 Sign in, open **Settings**, and under **Email** choose **Another provider (SMTP)**. Snug lays the setup out in two numbered steps. Fill in step 1, **Your SMTP server**:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-email-dark.png">
+  <img alt="The Email section of Settings with Another provider (SMTP) chosen, and step 1, Your SMTP server, asking for the From address, server, port and username." src="images/screenshots/settings-email-light.png">
+</picture>
 
 - the address emails come from, on the domain you verified;
 - the SMTP server, port, username, and password or API key from step 3;

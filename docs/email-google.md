@@ -77,6 +77,11 @@ Google says changes can take a few minutes to take effect. If Google later says 
 
 In Snug, open **Settings**, and under **Email** choose **Google Workspace**. Snug lays the rest out in three numbered steps, and each moves you on to the next.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-google-dark.png">
+  <img alt="The Email section of Settings with Google Workspace chosen, and step 1, Your Google client, asking for the client ID and secret, with the redirect URI to give Google." src="images/screenshots/settings-google-light.png">
+</picture>
+
 1. **Your Google client.** Paste the client ID and the client secret. Leave **From address** empty for now. Enter a code from your authenticator app, and choose **Save**. Afterwards the secret shows as dots: it is saved, and never shown again.
 2. **The sending mailbox.** Choose **Connect Google**. Google asks which account to use; choose the mailbox Snug will send from. Google then lists what Snug asks for, which should be only *Send email on your behalf*. Snug cannot read the mailbox. Choose **Continue**.
 
