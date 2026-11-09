@@ -12,7 +12,7 @@ Snug is a self-hosted data room for early-stage founders. You run it on your own
 - You can see who opened what, page by page, and revoke a link at any time.
 - Every page shows the reader's email address as a watermark, and every download is stamped with it.
 
-Snug is open source, published by [Negroni Venture Studios](https://negroniventurestudios.com/). Negroni does not host it. You own your instance and your data, and Negroni never sees either.
+Snug is open source, published by [Negroni Venture Studios](https://negroniventurestudios.com/). Your documents, and the record of who read them, stay on your server and in your own encrypted backups.
 
 > **Status: test builds only.** You can run Snug on your own computer today, and the server setup is written, but it has not yet been tested end to end on a real server. Please do not put real documents in it yet. See [Status](#status).
 
