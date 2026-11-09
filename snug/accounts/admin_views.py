@@ -1,7 +1,6 @@
 """Settings: the admins, inviting them, and the setup page invitees use."""
 
 import contextlib
-import hashlib
 import hmac
 import secrets
 import time
@@ -392,28 +391,18 @@ def _describe(now: mail.Outgoing) -> str:
     return "Email is now off."
 
 
-def _delivery(now: mail.Outgoing) -> tuple[str, ...]:
-    """Everything that decides where email goes and whose account sends it.
+def _same_delivery(before: mail.Outgoing, after: mail.Outgoing) -> bool:
+    """Whether email still goes the same way, through the same account.
 
     Another password or token at the same server would reroute mail just as
-    surely as another server, so the secrets count too, by their hashes.
+    surely as another server, so the secrets count too. They are compared in
+    memory, in constant time, and never stored or logged.
     """
-
-    def digest(secret: str) -> str:
-        return hashlib.sha256(secret.encode()).hexdigest()
-
-    return (
-        now.kind,
-        now.source,
-        now.host,
-        str(now.port),
-        now.username,
-        digest(now.password),
-        now.security,
-        now.from_address,
-        now.client_id,
-        digest(now.client_secret),
-        digest(now.refresh_token),
+    plain = ("kind", "source", "host", "port", "username", "security", "from_address", "client_id")
+    secret = ("password", "client_secret", "refresh_token")
+    return all(getattr(before, name) == getattr(after, name) for name in plain) and all(
+        hmac.compare_digest(getattr(before, name).encode(), getattr(after, name).encode())
+        for name in secret
     )
 
 
@@ -424,7 +413,7 @@ def _alert_if_changed(request: HttpRequest, before: mail.Outgoing) -> None:
     swallow the alert (unless email was off, when there is no other way).
     """
     after = mail.outgoing()
-    if _delivery(before) == _delivery(after):
+    if _same_delivery(before, after):
         return
     setup.alert_admins(
         subject="Email settings changed",
