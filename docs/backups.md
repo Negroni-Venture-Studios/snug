@@ -1,6 +1,6 @@
 # Backups
 
-The standard deployment backs Snug up continuously to a storage bucket of your own, such as DigitalOcean Spaces. Everything is encrypted on your server before it is uploaded, with a key only you hold: neither Negroni nor the bucket's provider can read it.
+The standard deployment backs Snug up continuously to a storage bucket of your own, such as DigitalOcean Spaces. Everything is encrypted on your server before it is uploaded, with a key only you hold, so only you can read it.
 
 ## What is backed up
 
@@ -10,13 +10,13 @@ The standard deployment backs Snug up continuously to a storage bucket of your o
 | Uploaded documents (`originals/`): PDFs, Excel workbooks and videos | Every 5 minutes | A deleted or replaced file is kept for 30 days |
 | Your logo and tab icon (`branding/`) | Every 5 minutes | As documents |
 
-The page images Snug renders, the files it keeps while uploading, and DB-IP's country data are not backed up: Snug rebuilds or fetches them again as needed.
+The page images Snug renders, the files it keeps while uploading, and DB-IP's country data are not backed up, since Snug rebuilds or fetches them again as needed.
 
-Videos are usually the largest files, often hundreds of megabytes each, so they decide how fast the bucket grows. A replaced or deleted video stays in the bucket for 30 days too.
+Videos are usually the largest files, often hundreds of megabytes each, so they account for most of the bucket's growth. A replaced or deleted video stays in the bucket for 30 days too.
 
 If the server is lost, you lose at most the last 5 minutes of changes.
 
-The bucket mirrors the server, but nothing is deleted from it straight away: whatever a copy would delete or overwrite, including the database replica's own files, is moved to `deleted/<date>/` in the bucket and kept for 30 days. So if the server's data is wiped by mistake, the backups survive it for a month.
+The bucket mirrors the server, but nothing is deleted from it straight away. Whatever a copy would delete or overwrite, including the database replica's own files, is moved to `deleted/<date>/` in the bucket and kept for 30 days. So if the server's data is wiped by mistake, the backups survive it for a month.
 
 The server holds the bucket's keys, so someone who takes control of it can delete the backups. Turning on versioning for the bucket, where your provider offers it, keeps deleted files out of their reach for as long as you choose.
 
@@ -41,7 +41,7 @@ Only the backup container sees the bucket's keys and the encryption password, in
 1. In the control panel, create a Spaces bucket in the region nearest your server. Keep it private, with no CDN.
 2. Under *Spaces Object Storage*, *Access Keys*, create a key limited to that bucket, with read and write access. Note the access key and its secret.
 
-**Copy the settings `snug setup` shows you into your password manager.** They are in `/opt/snug/backup/rclone.conf`, and hold the bucket's key and the two encryption passwords. The passwords are the only way to read the backups: if the server is lost and you do not have them, the backups are useless.
+**Copy the settings `snug setup` shows you into your password manager.** They are in `/opt/snug/backup/rclone.conf`, and hold the bucket's key and the two encryption passwords. The passwords are the only way to read the backups. If the server is lost and you do not have them, the backups are useless.
 
 ### By hand
 
@@ -68,7 +68,7 @@ Within 5 minutes of starting, the backup container records its first complete co
 sudo docker compose exec snug cat /var/lib/snug/backup/last-success
 ```
 
-This prints the time of the last complete copy, in UTC. If the last attempt failed, `backup/problem` says why, and the backup container's log has the details:
+This prints the time of the last complete copy, in UTC. If the last attempt failed, `backup/problem` has the reason, and the backup container's log has the details:
 
 ```bash
 sudo docker compose exec snug cat /var/lib/snug/backup/problem
@@ -103,9 +103,9 @@ To go back to an earlier moment within the last 7 days, give the time in UTC:
 sudo snug restore --at 2026-11-05T14:00:00Z
 ```
 
-If the server already has a database, `snug restore` asks you to type `replace` first. Nothing is deleted: the data it replaces is moved to a folder named `previous-` and the time, in the data volume.
+If the server already has a database, `snug restore` asks you to type `replace` first. The data it replaces is kept, in a folder in the data volume named `previous-` and the time.
 
-Each Snug has a random identity, kept in the data volume and, from the first backup, in the bucket. The backup container never copies into a bucket that holds another Snug's backups. If a new server is started before it is restored, its backups stop with that problem, rather than replacing the real backups with an empty database, until `snug restore` brings the bucket's data, and its identity, to the server.
+Each Snug has a random identity, kept in the data volume and, from the first backup, in the bucket. The backup container never copies into a bucket that holds another Snug's backups. If a new server is started before it is restored, its backups stop with that problem until `snug restore` brings the bucket's data, and its identity, to the server, so the real backups are never replaced with an empty database.
 
 Documents deleted in the last 30 days are not restored with the rest. They are in the bucket under `deleted/` and the date they were deleted, and can be copied back by hand:
 

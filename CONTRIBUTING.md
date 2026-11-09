@@ -1,6 +1,6 @@
 # Contributing to Snug
 
-Thank you for helping. Snug guards founders' most sensitive documents, so correct authorisation matters more than features, and every change is held to that.
+Thank you for helping. Snug holds founders' most sensitive documents, so correct authorisation matters more than features, and every change is held to that.
 
 ## Before you start
 
@@ -19,7 +19,7 @@ uv sync
 uv run pre-commit install
 ```
 
-To run Snug itself while you work, follow [Running Snug on your own computer](docs/configuration.md#running-snug-on-your-own-computer). On macOS, add `SNUG_UNSAFE_UNCONFINED_RENDERING=true` to your development settings: Snug reads PDFs only inside a Linux Landlock confinement, which macOS lacks, and refuses otherwise. Never set it on a server. The tests set it for themselves on macOS, and CI runs them confined on Linux.
+To run Snug itself while you work, follow [Running Snug on your own computer](docs/configuration.md#running-snug-on-your-own-computer). On macOS, add `SNUG_UNSAFE_UNCONFINED_RENDERING=true` to your development settings. Snug reads PDFs only inside a Linux Landlock confinement, which macOS lacks, and refuses otherwise. Never set it on a server. The tests set it for themselves on macOS, and CI runs them confined on Linux.
 
 ## Everyday commands
 
