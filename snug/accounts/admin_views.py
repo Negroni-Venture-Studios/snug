@@ -1,6 +1,7 @@
 """Settings: the admins, inviting them, and the setup page invitees use."""
 
 import contextlib
+import hashlib
 import hmac
 import secrets
 import time
@@ -391,6 +392,31 @@ def _describe(now: mail.Outgoing) -> str:
     return "Email is now off."
 
 
+def _delivery(now: mail.Outgoing) -> tuple[str, ...]:
+    """Everything that decides where email goes and whose account sends it.
+
+    Another password or token at the same server would reroute mail just as
+    surely as another server, so the secrets count too, by their hashes.
+    """
+
+    def digest(secret: str) -> str:
+        return hashlib.sha256(secret.encode()).hexdigest()
+
+    return (
+        now.kind,
+        now.source,
+        now.host,
+        str(now.port),
+        now.username,
+        digest(now.password),
+        now.security,
+        now.from_address,
+        now.client_id,
+        digest(now.client_secret),
+        digest(now.refresh_token),
+    )
+
+
 def _alert_if_changed(request: HttpRequest, before: mail.Outgoing) -> None:
     """Tell every admin when how Snug sends email has changed.
 
@@ -398,11 +424,7 @@ def _alert_if_changed(request: HttpRequest, before: mail.Outgoing) -> None:
     swallow the alert (unless email was off, when there is no other way).
     """
     after = mail.outgoing()
-    if (before.kind, before.host, before.from_address) == (
-        after.kind,
-        after.host,
-        after.from_address,
-    ):
+    if _delivery(before) == _delivery(after):
         return
     setup.alert_admins(
         subject="Email settings changed",
@@ -411,14 +433,21 @@ def _alert_if_changed(request: HttpRequest, before: mail.Outgoing) -> None:
     )
 
 
-def _let_go_of_google(row: EmailSettings) -> None:
-    """Withdraw Snug's permission at Google, and forget it."""
-    if row.google_refresh_token:
-        with contextlib.suppress(gmail.GoogleError):
-            gmail.revoke(row.google_refresh_token)
+def _let_go_of_google(row: EmailSettings) -> str:
+    """Forget Snug's permission at Google. Returns the token, for _revoke after
+    the alert: the alert may need to go through that very permission."""
+    token = row.google_refresh_token
     row.google_refresh_token = ""
     row.google_account = ""
     row.google_connected_at = None
+    return token
+
+
+def _revoke(token: str) -> None:
+    """Withdraw a forgotten permission at Google. Best effort: it is gone from Snug."""
+    if token:
+        with contextlib.suppress(gmail.GoogleError):
+            gmail.revoke(token)
     gmail.forget_tokens()
 
 
@@ -532,7 +561,7 @@ def email_view(request: HttpRequest) -> HttpResponse:
     password = post.get("smtp_password", "")
     if password:
         row.smtp_password = password[:500]
-    _let_go_of_google(row)
+    dropped = _let_go_of_google(row)
     row.save()
     _audit(
         request,
@@ -544,6 +573,7 @@ def email_view(request: HttpRequest) -> HttpResponse:
         **{"from": row.from_address},
     )
     _alert_if_changed(request, before)
+    _revoke(dropped)
     return redirect("/admin/settings/?saved=email#email")
 
 
@@ -581,9 +611,10 @@ def _save_google_client(request: HttpRequest) -> HttpResponse:
         form = {"values": values, "errors": errors}
         return _settings_page(request, status=status, email_form=form)
     before = mail.outgoing()
+    dropped = ""
     if row.google_client_id != client_id:
         # Another client: the mailbox must approve it afresh.
-        _let_go_of_google(row)
+        dropped = _let_go_of_google(row)
     row.provider = "google"
     row.google_client_id = client_id
     if secret:
@@ -598,6 +629,7 @@ def _save_google_client(request: HttpRequest) -> HttpResponse:
         client=client_id,
     )
     _alert_if_changed(request, before)
+    _revoke(dropped)
     return _google_redirect("email")
 
 
@@ -691,6 +723,8 @@ def google_confirm_view(request: HttpRequest) -> HttpResponse:
     before = mail.outgoing()
     row = EmailSettings.load()
     row.provider = "google"
+    # Reconnecting replaces the old permission: withdrawn once the alert is out.
+    replaced = row.google_refresh_token
     row.google_refresh_token = str(pending["refresh_token"])
     row.google_account = str(pending["account"])
     row.google_connected_at = timezone.now()
@@ -699,6 +733,8 @@ def google_confirm_view(request: HttpRequest) -> HttpResponse:
     admin = _admin(request)
     _audit(request, "settings.email_google_connected", admin.email, "", account=row.google_account)
     _alert_if_changed(request, before)
+    if replaced != row.google_refresh_token:
+        _revoke(replaced)
     return _google_redirect("email-google")
 
 
@@ -720,7 +756,7 @@ def google_disconnect_view(request: HttpRequest) -> HttpResponse:
     before = mail.outgoing()
     row = EmailSettings.load()
     account = row.google_account
-    _let_go_of_google(row)
+    dropped = _let_go_of_google(row)
     row.save()
     _audit(
         request,
@@ -730,6 +766,7 @@ def google_disconnect_view(request: HttpRequest) -> HttpResponse:
         account=account,
     )
     _alert_if_changed(request, before)
+    _revoke(dropped)
     return _google_redirect("email-google-off")
 
 

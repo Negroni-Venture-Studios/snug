@@ -60,6 +60,7 @@ class Google:
         self.fail_send = False
         self.fail_refresh = ""
         self.refresh_tokens = True
+        self.revoked: set[str] = set()
 
     def request(self, url: str, *, form: Any = None, body: Any = None, token: str = "") -> Any:
         self.calls.append({"url": url, "form": form, "body": body, "token": token})
@@ -77,8 +78,11 @@ class Google:
         if url == gmail.TOKEN_URL:
             if self.fail_refresh:
                 raise gmail.GoogleError(self.fail_refresh)
+            if form["refresh_token"] in self.revoked:
+                raise gmail.GoogleError("invalid_grant")
             return {"access_token": f"access-{len(self.calls)}", "expires_in": 3599}
         if url == gmail.REVOKE_URL:
+            self.revoked.add(form["token"])
             return {}
         if url == gmail.SEND_URL:
             if self.fail_send:
@@ -433,24 +437,29 @@ def disconnect(client: Client, admin: Admin, code: str | None = None) -> Any:
     return client.post("/admin/settings/email/google/disconnect", form, secure=True)
 
 
-def test_disconnecting(client: Client, admin: Admin, google: Google) -> None:
+def test_disconnecting(
+    client: Client, admin: Admin, google: Google, monkeypatch: pytest.MonkeyPatch
+) -> None:
     Admin.objects.create(email="omar@fernlea.example", is_active=True)
     connected(client, admin)
     google.calls.clear()
-    django_mail.outbox.clear()
+    gmail.forget_tokens()
+    # Emails go through Snug's own transport here, so the alert really uses Google.
+    monkeypatch.setattr(mail, "EmailMultiAlternatives", _ThroughTransport)
     response = disconnect(client, admin)
     assert response["Location"] == "/admin/settings/?saved=email-google-off#email"
-    revoke = next(c for c in google.calls if c["url"] == gmail.REVOKE_URL)
-    assert revoke["form"] == {"token": "refresh-xyz"}
+    urls = [c["url"] for c in google.calls]
+    # The alert went to both admins through Google, then Snug gave up its permission:
+    # the fake refuses a revoked token, so the other order would send nothing.
+    assert urls == [gmail.TOKEN_URL, gmail.SEND_URL, gmail.SEND_URL, gmail.REVOKE_URL]
+    sent = [raw_of(c) for c in google.calls if c["url"] == gmail.SEND_URL]
+    assert sorted(m["To"] for m in sent) == ["omar@fernlea.example", "ruth@fernlea.example"]
+    assert all("Email settings changed" in m["Subject"] for m in sent)
+    assert google.calls[-1]["form"] == {"token": "refresh-xyz"}
     row = EmailSettings.load()
     assert row.google_refresh_token == "" and row.google_account == ""
     assert mail.outgoing().kind == "off"
     assert AuditEvent.objects.filter(action="settings.email_google_disconnected").exists()
-    # Told through Google, which was in force until a moment ago.
-    alerts = [m for m in django_mail.outbox if "Email settings changed" in m.subject]
-    assert sorted(m.to[0] for m in alerts) == ["omar@fernlea.example", "ruth@fernlea.example"]
-    assert all(getattr(m, "snug_outgoing").kind == "google" for m in alerts)  # noqa: B009
-    assert "Email is now off." in alerts[0].body
 
 
 def test_disconnecting_needs_a_fresh_code(client: Client, admin: Admin, google: Google) -> None:
@@ -524,3 +533,35 @@ def test_googles_code_and_state_are_redacted_from_logs() -> None:
     assert redact(line) == (
         "GET /admin/settings/email/google/callback?state=[redacted]&code=[redacted]&scope=x"
     )
+
+
+def test_new_credentials_at_the_same_provider_are_a_change(
+    client: Client, admin: Admin, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Another account's password at the same server and address still reroutes mail."""
+    monkeypatch.setattr(mail, "_addresses", lambda host, port: ["93.184.216.34"])
+    form = {
+        "provider": "smtp",
+        "from_address": "rooms@fernlea.example",
+        "smtp_host": "smtp.postmark.example",
+        "smtp_port": "2525",
+        "smtp_username": "u",
+        "smtp_password": "first",
+        "smtp_security": "starttls",
+    }
+    client.post("/admin/settings/email", {**form, "code": fresh_code(admin)}, secure=True)
+    django_mail.outbox.clear()
+    client.post(
+        "/admin/settings/email",
+        {**form, "smtp_password": "someone-elses", "code": fresh_code(admin)},
+        secure=True,
+    )
+    assert [m for m in django_mail.outbox if "Email settings changed" in m.subject]
+    django_mail.outbox.clear()
+    # Saving exactly the same again is not a change.
+    client.post(
+        "/admin/settings/email",
+        {**form, "smtp_password": "", "code": fresh_code(admin)},
+        secure=True,
+    )
+    assert not [m for m in django_mail.outbox if "Email settings changed" in m.subject]
