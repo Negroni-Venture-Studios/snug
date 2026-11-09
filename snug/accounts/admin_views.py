@@ -76,6 +76,8 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
         "nda_history": NdaVersion.objects.select_related("created_by")[:10],
         "values": {"email": ""},
         "email": _email_context(request, extra.pop("email_form", None)),
+        # Google's refusal, held over its redirect back to step 2, shown once.
+        "google_error": request.session.pop(GOOGLE_ERROR, ""),
         **extra,
     }
     return render(request, "accounts/settings.html", context, status=status)
@@ -485,6 +487,8 @@ def _email_context(request: HttpRequest, form: dict[str, Any] | None) -> dict[st
         "google_account": row.google_account if row.google_refresh_token else "",
         "google_connected_at": row.google_connected_at,
         "google_pending": pending["account"] if isinstance(pending, dict) else "",
+        "kind": now.kind,
+        "source": now.source,
         "callback_url": gmail.callback_url(),
     }
 
@@ -564,19 +568,25 @@ def email_view(request: HttpRequest) -> HttpResponse:
     )
     _alert_if_changed(request, before)
     _revoke(dropped)
-    return redirect("/admin/settings/?saved=email#email")
+    return redirect("/admin/settings/?saved=email#email-test")
 
 
 # ---------------------------------------------------------------- Google Workspace
 
 GOOGLE_STATE = "snug.google.state"
 GOOGLE_PENDING = "snug.google.pending"
+GOOGLE_ERROR = "snug.google.error"
 # How long the round trip to Google, and then entering a code, may take.
 GOOGLE_MINUTES = 10
 
 
-def _google_redirect(saved: str) -> HttpResponse:
-    return redirect(f"/admin/settings/?saved={saved}#email")
+# The Email section's steps. Each save lands on the step to do next.
+MAILBOX_STEP = "google-mailbox"
+TEST_STEP = "email-test"
+
+
+def _google_redirect(saved: str, step: str = MAILBOX_STEP) -> HttpResponse:
+    return redirect(f"/admin/settings/?saved={saved}#{step}")
 
 
 def _save_google_client(request: HttpRequest) -> HttpResponse:
@@ -650,8 +660,10 @@ def google_connect_view(request: HttpRequest) -> HttpResponse:
     return HttpResponseRedirect(gmail.auth_url(row.google_client_id, state, challenge))
 
 
-def _google_error(request: HttpRequest, message: str, status: int = 400) -> HttpResponse:
-    return _settings_page(request, status=status, email_test_error=message)
+def _google_error(request: HttpRequest, message: str) -> HttpResponse:
+    """Back to step 2 with the message, so Google's one-time code leaves the address bar."""
+    request.session[GOOGLE_ERROR] = message
+    return redirect(f"/admin/settings/#{MAILBOX_STEP}")
 
 
 @never_cache
@@ -682,7 +694,7 @@ def google_callback_view(request: HttpRequest) -> HttpResponse:
             row.google_client_secret,
         )
     except gmail.GoogleError as error:
-        return _google_error(request, f"Google refused the connection ({error}).", status=502)
+        return _google_error(request, f"Google refused the connection ({error}).")
     if not refresh_token or not account:
         return _google_error(
             request,
@@ -733,7 +745,7 @@ def google_confirm_view(request: HttpRequest) -> HttpResponse:
     _alert_if_changed(request, before)
     if replaced != row.google_refresh_token:
         _revoke(replaced)
-    return _google_redirect("email-google")
+    return _google_redirect("email-google", TEST_STEP)
 
 
 @never_cache
@@ -794,7 +806,7 @@ def email_test_view(request: HttpRequest) -> HttpResponse:
             "kind of error: docker compose logs snug."
         )
         return _settings_page(request, status=502, email_test_error=error)
-    return redirect("/admin/settings/?saved=email-test#email")
+    return redirect(f"/admin/settings/?saved=email-test#{TEST_STEP}")
 
 
 @never_cache

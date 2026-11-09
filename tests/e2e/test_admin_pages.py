@@ -175,3 +175,39 @@ def test_the_admin_rows_share_their_columns(live_server: Any, page: Page) -> Non
     for part in (".status", ".num"):
         lefts = {round(rows.nth(i).locator(part).bounding_box()["x"]) for i in range(2)}  # type: ignore[index]
         assert len(lefts) == 1, (part, lefts)
+
+
+def test_email_is_set_up_in_steps_with_the_next_one_in_view(live_server: Any, page: Page) -> None:
+    """Saving the Google client lands on step 2, with Connect Google on screen."""
+    import pyotp
+
+    from snug.accounts.models import Admin
+
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/settings/#email")
+    mailbox = page.locator("#google-mailbox")
+    expect(mailbox).to_be_hidden()  # SMTP is chosen until Google is
+    page.get_by_label("Google Workspace").check()
+    expect(mailbox).to_be_visible()
+    expect(mailbox).to_contain_text("Save your Google client first.")
+    expect(page.get_by_text("Your SMTP server")).to_be_hidden()
+
+    page.get_by_label("Client ID").fill("123456789-abcdef.apps.googleusercontent.com")
+    page.get_by_label("Client secret").fill("GOCSPX-e2e")
+    admin = Admin.objects.get(email=EMAIL)
+    Admin.objects.filter(pk=admin.pk).update(totp_last_step=0)
+    page.locator("#email-code").fill(pyotp.TOTP(admin.totp_secret).now())
+    page.locator("#email-setup").get_by_role("button", name="Save").click()
+
+    expect(page).to_have_url(re.compile(r"#google-mailbox$"))
+    expect(mailbox).to_contain_text("Saved your Google client. Now connect the mailbox")
+    expect(page.get_by_role("link", name="Connect Google")).to_be_in_viewport()
+
+    page.get_by_label("Another provider (SMTP)").check()
+    expect(mailbox).to_be_hidden()
+    # Email is on here (the outbox), so the test is ready for SMTP but waits for a Google mailbox.
+    test = page.locator("#email-test")
+    expect(test.get_by_role("button", name="Send a test")).to_be_visible()
+    page.get_by_label("Google Workspace").check()
+    expect(test.get_by_text("Connect a mailbox first.")).to_be_visible()
+    expect(test.get_by_role("button", name="Send a test")).to_be_hidden()

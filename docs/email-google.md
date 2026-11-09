@@ -40,11 +40,11 @@ This is the page Google shows when the mailbox approves Snug.
 
 ## Step 5: connect Snug
 
-1. In Snug, open **Settings**, and under **Email** choose **Google Workspace**.
-2. Paste the client ID and the client secret, enter a code from your authenticator app, and choose **Save**.
-3. Choose **Connect Google**, sign in to Google as the mailbox Snug will send from, and approve. Snug asks only to send email, and cannot read the mailbox.
-4. Back in Snug, enter a fresh code from your authenticator app to finish. Every admin is emailed about the change.
-5. Choose **Send a test**, and check that the email arrived.
+In Snug, open **Settings**, and under **Email** choose **Google Workspace**. Snug lays the rest out in three numbered steps, and each one moves you on to the next.
+
+1. **Your Google client.** Paste the client ID and the client secret, enter a code from your authenticator app, and choose **Save**.
+2. **The sending mailbox.** Choose **Connect Google**, sign in to Google as the mailbox Snug will send from, and approve. Snug asks only to send email, and cannot read the mailbox. Back in Snug, enter a fresh code from your authenticator app to finish. Every admin is emailed about the change.
+3. **Send a test.** Choose **Send a test**, and check that the email arrived.
 
 ## Sending from another address
 
@@ -54,7 +54,7 @@ That address must be one the mailbox can send as. An address on a **user alias d
 
 ## Changing or stopping it
 
-- To send from another mailbox, choose **Disconnect**, then **Connect Google** again and sign in as the other mailbox.
+- To send from another mailbox, choose **Disconnect** in step 2, then **Connect Google** again and sign in as the other mailbox.
 - **Disconnect** also withdraws Snug's permission at Google. A Workspace admin can withdraw it too, from the mailbox's security settings in the Admin console.
 - If Google stops accepting Snug's permission, the Overview says an email could not be sent: connect again.
 

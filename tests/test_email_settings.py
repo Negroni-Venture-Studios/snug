@@ -200,6 +200,13 @@ def panel(client: Client, query: str = "") -> str:
     return page[start : page.index("</section>", start)]
 
 
+def step(text: str, name: str) -> str:
+    """One numbered step of the Email section, from its id to the next step."""
+    start = text.index(f'id="{name}"')
+    end = text.find("<li ", start)
+    return text[start : end if end != -1 else len(text)]
+
+
 def save(client: Client, **fields: str) -> Any:
     form = {
         "code": fresh_code(Admin.objects.get(email="ruth@fernlea.example")),
@@ -217,13 +224,23 @@ def save(client: Client, **fields: str) -> Any:
 
 def test_the_panel_says_email_is_off(client: Client) -> None:
     text = panel(client)
-    assert 'action="/admin/settings/email#email"' in text
+    assert 'action="/admin/settings/email#email-setup"' in text
     assert "Email is off" in text
+
+
+def test_the_test_step_waits_for_the_settings(client: Client) -> None:
+    """The steps are all there from the start, the later ones waiting for the earlier."""
+    test = step(panel(client), "email-test")
+    assert "Save the SMTP settings first." in test
+    assert "step-waiting" in test
 
 
 def test_saving_smtp_settings(client: Client) -> None:
     response = save(client)
-    assert response["Location"] == "/admin/settings/?saved=email#email"
+    # Saving lands on the next thing to do: sending a test, which says what was saved.
+    assert response["Location"] == "/admin/settings/?saved=email#email-test"
+    test = step(panel(client, "?saved=email"), "email-test")
+    assert "Saved. Snug sends email through smtp.postmark.example as rooms@fernlea.example." in test
     row = EmailSettings.load()
     assert (row.provider, row.smtp_host, row.smtp_port) == ("smtp", "smtp.postmark.example", 2525)
     assert row.smtp_password == "s3cret-pa$$word"
@@ -290,12 +307,12 @@ def test_snug_env_settings_are_named_until_replaced(client: Client) -> None:
 def test_sending_a_test_to_yourself(client: Client) -> None:
     save(client)
     response = client.post("/admin/settings/email/test", secure=True)
-    assert response["Location"] == "/admin/settings/?saved=email-test#email"
+    assert response["Location"] == "/admin/settings/?saved=email-test#email-test"
     (message,) = [m for m in django_mail.outbox if m.subject == "Snug: a test email"]
     assert message.to == ["ruth@fernlea.example"]
     assert message.subject == "Snug: a test email"
-    assert "Sent a test email to ruth@fernlea.example. Check that it arrived" in panel(
-        client, "?saved=email-test"
+    assert "Sent a test email to ruth@fernlea.example. Check that it arrived" in step(
+        panel(client, "?saved=email-test"), "email-test"
     )
 
 
@@ -304,7 +321,9 @@ def test_a_test_that_fails_says_so(client: Client, monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(mail, "send", lambda **kwargs: False)
     response = client.post("/admin/settings/email/test", secure=True)
     assert response.status_code == 502
-    assert "The test email could not be sent." in response.content.decode()
+    text = response.content.decode()
+    assert "The test email could not be sent." in step(text, "email-test")
+    assert 'action="/admin/settings/email/test#email-test"' in text
 
 
 # ---------------------------------------------------------------- snug doctor

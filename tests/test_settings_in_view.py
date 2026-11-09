@@ -24,8 +24,9 @@ RETURNS_TO = {
     "/admin/settings/password": "account",
     "/admin/settings/authenticator": "authenticator",
     "/admin/settings/notifications": "notifications",
-    "/admin/settings/email": "email",
-    "/admin/settings/email/test": "email",
+    # Email is set up in numbered steps, and each form opens at its own step.
+    "/admin/settings/email": "email-setup",
+    "/admin/settings/email/test": "email-test",
     "/admin/settings/admins/invite": "invite",
     "/admin/settings/branding": "branding",
     "/admin/settings/logo": "branding-logo",

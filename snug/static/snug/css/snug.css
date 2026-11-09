@@ -297,9 +297,28 @@ label.check { display: grid; grid-template-columns: 1.1rem 1fr; gap: 0.65rem; fo
 /* Settings, Email: the fields for the chosen way of sending, by CSS alone. */
 .provider-choice { border: 0; padding: 0; margin: 0; display: grid; gap: 0.6rem; }
 .provider-fields { display: grid; gap: 1.25rem; }
-.email-form:has(#provider-smtp:checked) .provider-google,
-.email-form:has(#provider-google:checked) .provider-smtp { display: none; }
-.email-form code, #google-mailbox code { font-family: var(--mono); font-size: 0.85em; overflow-wrap: anywhere; }
+/* The radios switch the fields, steps and titles for each provider, CSS alone. */
+#email:has(#provider-smtp:checked) .provider-google,
+#email:has(#provider-google:checked) .provider-smtp { display: none; }
+/* Email set up as numbered steps, all on the page from the start, so the next
+   thing to do is always in view. A hidden step is not counted, so SMTP's test
+   is step 2 and Google's is step 3. */
+.steps { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: 1rem; max-width: 40rem; counter-reset: step; }
+.step { counter-increment: step; display: grid; gap: 1.25rem; scroll-margin-top: 1.5rem; }
+.step-head { display: flex; align-items: center; gap: 0.75rem; }
+.step-head .panel-title::before {
+    content: counter(step); display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; margin-right: 0.6rem;
+    border-radius: 50%; background: var(--action); color: var(--on-action); font-size: 0.85rem; font-weight: 600;
+}
+/* A step waiting for the one before: its number and title step back. */
+.step-waiting .panel-title,
+#email:has(#provider-google:checked) .step-waiting-google .panel-title,
+#email:has(#provider-smtp:checked) .step-waiting-smtp .panel-title { color: var(--text-2); }
+.step-waiting .panel-title::before,
+#email:has(#provider-google:checked) .step-waiting-google .panel-title::before,
+#email:has(#provider-smtp:checked) .step-waiting-smtp .panel-title::before { background: var(--tint); color: var(--text-2); }
+.step-action { justify-self: start; }
+#email code { font-family: var(--mono); font-size: 0.85em; overflow-wrap: anywhere; }
 #google-mailbox form { margin: 0; }
 /* The Overview's status line: problems from the snug doctor checks, or a quiet all-clear. */
 .system-status { margin-bottom: 1.5rem; }

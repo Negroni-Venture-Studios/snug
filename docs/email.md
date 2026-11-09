@@ -85,7 +85,7 @@ nc -zv -w 5 smtp.mailgun.org 2525
 
 ## Step 4: configure Snug
 
-Sign in, open **Settings**, and fill in **Email**:
+Sign in, open **Settings**, and under **Email** choose **Another provider (SMTP)**. Snug lays the setup out in two numbered steps. Fill in step 1, **Your SMTP server**:
 
 - the address emails come from, on the domain you verified;
 - the SMTP server, port, username, and password or API key from step 3;
@@ -94,7 +94,7 @@ Sign in, open **Settings**, and fill in **Email**:
 
 Email carries investors' codes and admins' reset links, so changing how it is sent needs a fresh code, and every admin is emailed about it, through the settings in force before the change. Snug sends only through public mail servers, on port 25, 465, 587 or 2525: it refuses a server whose name leads to a private or internal address.
 
-Choose **Save**, and Snug uses the new settings at once, with no restart. The password is never shown again: to change it, type a new one, or leave the box empty to keep it.
+Choose **Save**, and Snug uses the new settings at once, with no restart. The page moves on to step 2, **Send a test**. The password is never shown again: to change it, type a new one, or leave the box empty to keep it.
 
 Emails name your company, as set in Settings under Branding, such as "Fernlea Robotics has shared Seed deck with you".
 
@@ -102,7 +102,7 @@ Email can also be set in `snug.env`, with the `SNUG_SMTP_` settings [configurati
 
 ## Step 5: send yourself a test
 
-In Settings, under Email, choose **Send a test**: Snug emails you, and says at once if the email could not be sent. On the server, `sudo snug doctor --email you@example.com` sends a six-digit code to that address and asks you to type it back.
+In step 2, choose **Send a test**: Snug emails you, and says at once if the email could not be sent. On the server, `sudo snug doctor --email you@example.com` sends a six-digit code to that address and asks you to type it back.
 
 Then try a real link. Open a document in the admin interface, choose **New link**, enter an address of your own and choose **Create and email**. If the email cannot be sent, Snug says so on the next page and shows you the link to copy instead.
 
