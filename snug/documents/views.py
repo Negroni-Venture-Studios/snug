@@ -71,7 +71,12 @@ def _store(
         document.title,
         document=document.token,
         version=version.number,
-        pages=version.page_count,
+        kind=version.kind,
+        **(
+            {"sheets": len(version.sheets)}
+            if version.is_workbook
+            else {"pages": version.page_count}
+        ),
         sha256=version.sha256[:16],
     )
     return version
@@ -101,7 +106,7 @@ def document_new(request: HttpRequest) -> HttpResponse:
     if not title:
         context["error"] = "Give the document a title."
     elif upload is None:
-        context["error"] = "Choose a PDF to upload."
+        context["error"] = "Choose a PDF or an Excel workbook to upload."
     if "error" in context or upload is None:
         return render(request, "documents/new.html", context, status=400)
 
@@ -115,12 +120,17 @@ def document_new(request: HttpRequest) -> HttpResponse:
         context["error"] = str(error)
         return render(request, "documents/new.html", context, status=400)
     version = document.latest_version()
-    pages = version.page_count if version else 0
+    if version is not None and version.is_workbook:
+        count = len(version.sheets)
+        what = f"an Excel workbook with {count} sheet{pluralize(count)}"
+    else:
+        pages = version.page_count if version else 0
+        what = f"{pages} page{pluralize(pages)}"
     return notices.saved(
         request,
         reverse("documents:detail", kwargs={"token": document.token}),
         "links",
-        f"Uploaded, {pages} page{pluralize(pages)}. Create a link to share it.",
+        f"Uploaded, {what}. Create a link to share it.",
     )
 
 
@@ -192,7 +202,7 @@ def version_upload(request: HttpRequest, token: str) -> HttpResponse:
     upload = _uploaded(request)
     error = None
     if upload is None:
-        error = "Choose a PDF to upload."
+        error = "Choose a PDF or an Excel workbook to upload."
     else:
         try:
             _store(request, document, upload)

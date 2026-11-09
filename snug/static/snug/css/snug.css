@@ -365,6 +365,11 @@ footer.admin-foot .source-link:hover .github-mark { opacity: 0.9; }
 .gate h1 { text-wrap: balance; font-size: 1.65rem; font-weight: 400; letter-spacing: -0.02em; line-height: 1.25; margin-bottom: 0.6rem; }
 .gate h1 strong { font-weight: 600; }
 .gate .lede { color: var(--text-2); margin-bottom: 1.75rem; }
+/* A spreadsheet's card, and its admin page: the sheets, then the download. */
+.sheets-title { font-size: 0.85rem; font-weight: 500; color: var(--text-2); margin-bottom: 0.5rem; }
+.sheet-list { list-style: none; padding: 0; margin: 0 0 1.75rem; display: grid; gap: 0.35rem; max-width: 27rem; }
+.sheet-list li { padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--r-sm); overflow-wrap: anywhere; }
+.gate.workbook .hint { font-size: 0.82rem; color: var(--text-3); margin-top: 0.75rem; }
 .gate .small { font-size: 0.85rem; color: var(--text-3); margin-top: 1.1rem; }
 .gate .small a { color: var(--brand-text); }
 .gate + .gate { margin-top: 3rem; padding-top: 2.5rem; border-top: 1px solid var(--border); }

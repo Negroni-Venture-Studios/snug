@@ -1,14 +1,14 @@
 {% extends "snug/admin_base.html" %}
 {% load snug %}
-{% block title %}Upload a PDF to Snug{% endblock %}
+{% block title %}Upload a document to Snug{% endblock %}
 {% block content %}
 <div class="crumbs"><a href="{% url 'documents:list' %}">Documents</a> / Upload</div>
-<div class="title-row"><div><h1 class="page-title">Upload a PDF</h1><div class="page-meta">PDF only, up to {{ limit_mb }} MB. Later uploads become new versions of the same document.</div></div></div>
+<div class="title-row"><div><h1 class="page-title">Upload a document</h1><div class="page-meta">A PDF or an Excel workbook (.xlsx), up to {{ limit_mb }} MB. Later uploads become new versions of the same document.</div></div></div>
 <form class="panel form narrow-form" method="post" action="{% url 'documents:new' %}" enctype="multipart/form-data" novalidate data-upload>
   {% csrf_token %}
   {% include "snug/partials/form_error.html" %}
   <div class="field"><label for="title">Title</label><input id="title" name="title" type="text" maxlength="200" required value="{{ title }}" autofocus><div class="hint">What investors will see, for example "Seed deck".</div></div>
-  <div class="field"><label for="pdf">PDF</label><input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf" required><div class="hint">Export decks, spreadsheets and drawings to PDF first. Password-protected PDFs cannot be read.</div></div>
+  <div class="field"><label for="pdf">File</label><input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" required><div class="hint">Investors read a PDF page by page, and download a workbook to open in Excel. Export anything else to PDF first. Files with passwords or macros cannot be used.</div></div>
   <div class="upload-status" data-upload-status hidden><progress max="100" value="0"></progress><span role="status" aria-live="polite">Uploading</span></div>
   <div class="form-foot"><a class="btn" href="{% url 'documents:list' %}">Cancel</a><button class="btn btn-primary" type="submit">{% icon "upload-simple" %}Upload</button></div>
 </form>

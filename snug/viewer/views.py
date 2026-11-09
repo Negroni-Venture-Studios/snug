@@ -30,6 +30,7 @@ from snug.audit.models import AuditEvent, record
 from snug.core import geoip, mail, ratelimit
 from snug.core.client import client_ip, user_agent
 from snug.core.models import SiteSettings, company_name
+from snug.documents.models import DocumentVersion
 from snug.documents.storage import RENDER_WIDTHS
 from snug.links.models import Link
 from snug.nda import terms
@@ -50,6 +51,7 @@ from snug.viewer.models import VerificationCode
 
 CHECK_ATTRIBUTE = "snug_viewer_check"
 TOO_MANY = "Too many attempts. Wait 15 minutes, then try again."
+XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 GateView = Callable[[HttpRequest, Link, str], HttpResponse]
 
@@ -168,6 +170,7 @@ def _context(link: Link, token: str, **extra: Any) -> dict[str, Any]:
         "document": link.document,
         "room": link.room,
         "pages": version.page_count if version else None,
+        "workbook": bool(version and version.is_workbook),
         "room_documents": link.room.entries.count() if link.room is not None else None,
         "company": company_name(),
         "email_enabled": mail.enabled(),
@@ -303,7 +306,7 @@ def _room_index(
                 "viewer:room_document",
                 kwargs={"token": token, "document_token": entry.document.token},
             ),
-            "pages": version.page_count if version else None,
+            "describe": version.describe if version else None,
             "updated": version.uploaded_at if version else None,
         }
 
@@ -314,6 +317,35 @@ def _room_index(
         empty=not entries,
     )
     return render(request, "viewer/room.html", context)
+
+
+def _workbook_card(
+    request: HttpRequest,
+    access: Access,
+    token: str,
+    version: DocumentVersion,
+    context: dict[str, Any],
+) -> HttpResponse:
+    """A spreadsheet: its sheets and a download, since the working file is what matters."""
+    assert access.document is not None  # noqa: S101 - only document pages reach the card
+    _visit, new = reading.workbook_opened(access, access.document, version)
+    if new:
+        notify.first_open(request, access, access.document)
+        _audit(
+            request,
+            "viewer.document_viewed",
+            access.link,
+            access.session.email,
+            version=version.number,
+            document=access.document.token,
+        )
+    urls = _Urls(access, token)
+    context.update(
+        version=version,
+        download_url=urls.download() if access.link.allow_download else None,
+        room_url=reverse("viewer:entry", kwargs={"token": token}) if access.link.room else None,
+    )
+    return render(request, "viewer/workbook.html", context)
 
 
 def _page_number(raw: str, count: int) -> int:
@@ -341,6 +373,8 @@ def entry(request: HttpRequest, access: Access, token: str) -> HttpResponse:
     version = access.document.latest_version()
     if version is None:
         return render(request, "viewer/reader.html", context)
+    if version.is_workbook:
+        return _workbook_card(request, access, token, version, context)
     count = version.page_count
     number = _page_number(request.GET.get("page", ""), count)
     sizes = version.page_sizes
@@ -483,10 +517,10 @@ def nda(request: HttpRequest, access: Access, token: str) -> HttpResponse:
     return _see_other(token)
 
 
-def _filename(title: str) -> str:
+def _filename(title: str, extension: str = ".pdf") -> str:
     """The document's title as a plain file name: letters, digits and spaces."""
     kept = "".join(c if c.isalnum() or c in " -_" else " " for c in title)
-    return (" ".join(kept.split()) or "document")[:100] + ".pdf"
+    return (" ".join(kept.split()) or "document")[:100] + extension
 
 
 @never_cache
@@ -502,13 +536,16 @@ def download(request: HttpRequest, access: Access, token: str) -> HttpResponse:
     if not ratelimit.allow(limits.DOWNLOAD_PER_LINK, str(access.link.pk)):
         return HttpResponse(TOO_MANY, status=429, content_type="text/plain")
     today = timezone.localdate()
+    stamp = {
+        "email": access.session.email,
+        "date": f"{today.day} {today:%b %Y}",
+        "ref": access.link.ref,
+    }
     try:
-        data = rendering.stamped_pdf(
-            version,
-            email=access.session.email,
-            date=f"{today.day} {today:%b %Y}",
-            ref=access.link.ref,
-        )
+        if version.is_workbook:
+            data = rendering.stamped_xlsx(version, **stamp)
+        else:
+            data = rendering.stamped_pdf(version, **stamp)
     except WorkerError:
         message = "This document could not be prepared for download. Try again in a few minutes."
         return HttpResponse(message, status=503, content_type="text/plain")
@@ -521,9 +558,10 @@ def download(request: HttpRequest, access: Access, token: str) -> HttpResponse:
         version=version.number,
         sha256=hashlib.sha256(data).hexdigest(),
     )
-    response = HttpResponse(data, content_type="application/pdf")
+    workbook = version.is_workbook
+    response = HttpResponse(data, content_type=XLSX_TYPE if workbook else "application/pdf")
     response["Content-Disposition"] = content_disposition_header(
-        True, _filename(access.document.title)
+        True, _filename(access.document.title, ".xlsx" if workbook else ".pdf")
     )
     return response
 

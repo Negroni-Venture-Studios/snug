@@ -74,6 +74,46 @@ def page_shown(
     return visit, new
 
 
+def workbook_opened(
+    access: Access, document: Document, version: DocumentVersion
+) -> tuple[Visit, bool]:
+    """A spreadsheet's card being shown: a visit with no pages. Returns it, and whether it is new.
+
+    A workbook is shared for download only, so there is no reading time to
+    count: the visit records who opened it and when, and the audit log its
+    downloads.
+    """
+    now = timezone.now()
+    with transaction.atomic():
+        visit = (
+            Visit.objects.select_for_update()
+            .filter(
+                link=access.link,
+                session=access.session,
+                document=document,
+                last_seen_at__gt=now - VISIT_GAP,
+            )
+            .first()
+        )
+        if visit is not None:
+            visit.last_seen_at = now
+            visit.save(update_fields=["last_seen_at"])
+            return visit, False
+        visit = Visit.objects.create(
+            token=secrets.token_urlsafe(16),
+            link=access.link,
+            session=access.session,
+            email=access.session.email,
+            document=document,
+            version_number=version.number,
+            started_at=now,
+            last_seen_at=now,
+            current_page=0,
+            clock_at=now,
+        )
+    return visit, True
+
+
 def heartbeat(access: Access, token: str, page: int, kind: str) -> bool:
     """Credit a heartbeat to its visit. False if it belongs to no visit of this session."""
     now = timezone.now()

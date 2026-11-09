@@ -3,9 +3,9 @@
   {% if link.message %}<p class="cover">{{ link.message|linebreaksbr }}</p>{% endif %}
   <dl>
     {% if company %}<dt>From</dt><dd>{{ company }}</dd>{% endif %}
-    {% if room %}<dt>Room</dt><dd>{{ room.name }}, {{ room_documents }} document{{ room_documents|pluralize }}</dd>{% else %}<dt>Document</dt><dd>{{ title }}{% if pages %}, {{ pages }} page{{ pages|pluralize }}{% endif %}</dd>{% endif %}
-    <dt>Access</dt><dd>{% if link.allow_download %}View in the browser, or download{% else %}View in the browser{% endif %}</dd>
+    {% if room %}<dt>Room</dt><dd>{{ room.name }}, {{ room_documents }} document{{ room_documents|pluralize }}</dd>{% else %}<dt>Document</dt><dd>{{ title }}{% if workbook %}, an Excel workbook{% elif pages %}, {{ pages }} page{{ pages|pluralize }}{% endif %}</dd>{% endif %}
+    <dt>Access</dt><dd>{% if workbook %}{% if link.allow_download %}Download{% else %}Downloads are turned off{% endif %}{% elif link.allow_download %}View in the browser, or download{% else %}View in the browser{% endif %}</dd>
     <dt>Expires</dt><dd>{% if link.last_day %}{{ link.last_day|date:"j M Y" }}{% else %}No expiry{% endif %}</dd>
   </dl>
-  <p class="privacy">{% if company %}{{ company }}{% else %}The sender{% endif %} will see when you open {% if room %}each document{% else %}this document{% endif %} and how long you spend on each page. Every page shows your email address as a watermark.{% if privacy_url %} <a href="{{ privacy_url }}" rel="noopener noreferrer">Read the privacy policy</a>.{% endif %}</p>
+  <p class="privacy">{% if company %}{{ company }}{% else %}The sender{% endif %} will see {% if workbook %}when you open this workbook and when you download it. Your copy names you in its document properties.{% else %}when you open {% if room %}each document{% else %}this document{% endif %} and how long you spend on each page. Every page shows your email address as a watermark.{% endif %}{% if privacy_url %} <a href="{{ privacy_url }}" rel="noopener noreferrer">Read the privacy policy</a>.{% endif %}</p>
 </aside>

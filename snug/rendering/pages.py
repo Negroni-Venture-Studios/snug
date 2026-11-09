@@ -49,6 +49,15 @@ def stamped_page(
     return sandbox.stamp(plain, WATERMARK_FONT, email=email, date=date, ref=ref)
 
 
+def stamped_xlsx(version: DocumentVersion, *, email: str, date: str, ref: str) -> bytes:
+    """The workbook with its properties naming the reader. Stamped on every download."""
+    # Every part is deflated again, which can grow a stored part a little; twice is ample.
+    limit = 2 * max(settings.MAX_UPLOAD_BYTES, version.size_bytes) + 1024 * 1024
+    return sandbox.stamp_xlsx(
+        storage.original_path(version), email=email, date=date, ref=ref, limit=limit
+    )
+
+
 def stamped_pdf(version: DocumentVersion, *, email: str, date: str, ref: str) -> bytes:
     """The original PDF with a line naming the viewer on every page. Stamped on every download."""
     # Stamping adds a little to each page; twice the largest upload is ample.
