@@ -322,6 +322,10 @@ label.check { display: grid; grid-template-columns: 1.1rem 1fr; gap: 0.65rem; fo
 #email:has(#provider-google:checked) .step-waiting-google .panel-title::before,
 #email:has(#provider-smtp:checked) .step-waiting-smtp .panel-title::before { background: var(--tint); color: var(--text-2); }
 .step-action { justify-self: start; }
+/* The way out of the email settings, folded under the status line until wanted. */
+.email-clear summary { width: fit-content; cursor: pointer; font-size: 0.875rem; color: var(--text-2); }
+.email-clear summary:hover { color: var(--text); }
+.email-clear[open] summary { margin-bottom: 1rem; }
 /* A saved secret shows as dots, never its value: legible enough to read as filled in. */
 input[type="password"]::placeholder { color: var(--text-2); opacity: 1; letter-spacing: 0.12em; }
 #email code { font-family: var(--mono); font-size: 0.85em; overflow-wrap: anywhere; }

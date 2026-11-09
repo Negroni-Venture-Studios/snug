@@ -160,6 +160,7 @@ DNS hosts differ, and a few things catch people out.
 - To send from another mailbox, choose **Disconnect** in step 2, then **Connect Google** again and approve as the other mailbox.
 - **Disconnect** also withdraws Snug's permission at Google. A Workspace admin can withdraw it too, from the mailbox's security settings in the Admin console.
 - If Google stops accepting Snug's permission, the Overview says an email could not be sent. Connect again.
+- To stop Snug sending through Google altogether, choose **Clear email settings**, under the sentence at the top of Email that says how Snug sends, and enter a code. Snug forgets the client and the mailbox, and withdraws its permission at Google, after telling every admin. Email then uses the SMTP settings in `snug.env`, if there are any, or is off until it is set up again.
 
 ## When it goes wrong
 

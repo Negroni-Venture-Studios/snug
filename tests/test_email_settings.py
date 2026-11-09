@@ -508,3 +508,17 @@ def test_the_connection_goes_to_the_address_that_was_checked(
         with pytest.raises(ConnectionRefusedError):
             backend.connection_class("smtp.postmark.example", 2525, timeout=5)
     assert reached == [("93.184.216.34", 2525), ("93.184.216.34", 2525)]
+
+
+def test_clearing_forgets_the_smtp_settings(client: Client) -> None:
+    save(client)
+    form = {"code": fresh_code(Admin.objects.get(email="ruth@fernlea.example"))}
+    response = client.post("/admin/settings/email/clear", form, secure=True)
+    assert response["Location"] == "/admin/settings/?saved=email-cleared#email"
+    row = EmailSettings.load()
+    assert (row.provider, row.smtp_host, row.smtp_password, row.from_address) == ("", "", "", "")
+    assert row.smtp_port is None
+
+
+def test_there_is_nothing_to_clear_until_something_is_saved(client: Client) -> None:
+    assert "/admin/settings/email/clear" not in panel(client)

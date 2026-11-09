@@ -98,7 +98,7 @@ Choose **Save**, and Snug uses the new settings at once, with no restart. The pa
 
 Emails name your company, as set in Settings under Branding, such as "Fernlea Robotics has shared Seed deck with you".
 
-Email can also be set in `snug.env`, with the `SNUG_SMTP_` settings [configuration.md](configuration.md) lists. Snug uses those until something is saved in Settings, which then wins.
+Email can also be set in `snug.env`, with the `SNUG_SMTP_` settings [configuration.md](configuration.md) lists. Snug uses those until something is saved in Settings, which then wins. To go back to them, or to stop email altogether, choose **Clear email settings** under the sentence at the top of Email, and enter a code.
 
 ## Step 5: send yourself a test
 
