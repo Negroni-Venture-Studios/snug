@@ -24,7 +24,7 @@ from snug.audit.models import AuditEvent, record
 from snug.core import notices
 from snug.core.client import client_ip, user_agent
 from snug.documents.ingest import UploadRejectedError, ingest
-from snug.documents.models import Document, DocumentVersion
+from snug.documents.models import MAX_DESCRIPTION, Document, DocumentVersion
 from snug.rendering import pages, sandbox
 
 MAX_TITLE = 200
@@ -219,6 +219,42 @@ def version_upload(request: HttpRequest, token: str) -> HttpResponse:
         reverse("documents:detail", kwargs={"token": document.token}),
         "versions",
         f"Version {number} uploaded. Every link to this document shows it now.",
+    )
+
+
+@never_cache
+@login_required
+@require_POST
+def description(request: HttpRequest, token: str) -> HttpResponse:
+    """A workbook's description, shown to investors above its sheets."""
+    document = get_object_or_404(Document, token=token)
+    latest = document.latest_version()
+    if latest is None or not latest.is_workbook:
+        raise Http404
+    text = request.POST.get("description", "").strip()
+    if len(text) > MAX_DESCRIPTION:
+        context = {
+            **_detail_context(request, document),
+            "description_error": "Keep the description to 1,000 characters or fewer.",
+            "description_value": text[: MAX_DESCRIPTION * 2],
+        }
+        return render(request, "documents/detail.html", context, status=400)
+    document.description = text
+    document.save(update_fields=["description"])
+    _audit(
+        request,
+        "document.description_changed",
+        document.title,
+        document=document.token,
+        characters=len(text),
+    )
+    said = (
+        "Description saved. Investors see it above the list of sheets."
+        if text
+        else "Description removed."
+    )
+    return notices.saved(
+        request, reverse("documents:detail", kwargs={"token": document.token}), "description", said
     )
 
 

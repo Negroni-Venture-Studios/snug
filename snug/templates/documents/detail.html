@@ -11,6 +11,16 @@
 </div>
 
 {% if latest and latest.is_workbook %}
+<section class="section" id="description">
+  <div class="section-head stacked"><h2>Description</h2><p>Optional. Investors see it above the list of sheets, on every link and in every room.</p></div>
+  {% include "snug/partials/saved.html" with here="description" %}
+  <form class="panel form settings-form" method="post" action="{% url 'documents:description' document.token %}#description" novalidate>
+    {% csrf_token %}
+    <div class="field"><label for="description-text">What investors should know</label><textarea id="description-text" name="description" rows="4" maxlength="1000"{% if description_error %} aria-invalid="true" aria-describedby="description-error"{% endif %}>{% if description_error %}{{ description_value }}{% else %}{{ document.description }}{% endif %}</textarea>
+      {% if description_error %}<div class="error" id="description-error" role="alert">{% icon "warning-circle" %}{{ description_error }}</div>{% else %}<div class="hint">Plain text, up to 1,000 characters, such as which sheet to start on. Leave it empty to remove it.</div>{% endif %}</div>
+    <button class="btn btn-primary" type="submit">Save description</button>
+  </form>
+</section>
 <section class="section">
   <div class="section-head"><h2>Sheets</h2><p>Shared for download only. Who opened and downloaded it is on the People page and in the audit log.</p></div>
   <ul class="sheet-list">{% for name in latest.sheets %}<li>{{ name }}</li>{% endfor %}</ul>

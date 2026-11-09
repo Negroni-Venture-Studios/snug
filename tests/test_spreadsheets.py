@@ -263,3 +263,68 @@ def test_the_people_page_shows_a_spreadsheet_opened(client: Client, model: Docum
     page = client.get("/admin/people/", secure=True).content.decode()
     assert INVESTOR in page and "Financial model" in page
     assert "Spreadsheet" in page
+
+
+# ---------------------------------------------------------------- the founder's description
+
+
+def describe(client: Client, document: Document, text: str) -> Any:
+    url = f"/admin/documents/{document.token}/description"
+    return client.post(url, {"description": text}, secure=True)
+
+
+def test_a_founder_can_describe_a_workbook(client: Client, model: Document) -> None:
+    response = describe(client, model, "  Base case on Summary.  ")
+    assert response["Location"] == f"/admin/documents/{model.token}#description"
+    model.refresh_from_db()
+    assert model.description == "Base case on Summary."
+    page = client.get(response["Location"], secure=True).content.decode()
+    assert "Description saved. Investors see it above the list of sheets." in page
+    assert ">Base case on Summary.</textarea>" in page
+    event = AuditEvent.objects.get(action="document.description_changed")
+    assert event.details == {"document": model.token, "characters": 21}
+
+
+def test_the_card_shows_the_description_above_the_sheets(model: Document) -> None:
+    model.description = "Base case on Summary.\nScenarios use the <b>toggle</b> in B2."
+    model.save()
+    issued = issue(model)
+    page = opened(issued).get(f"/v/{issued.token}", secure=True).content.decode()
+    said = "Base case on Summary.<br>Scenarios use the &lt;b&gt;toggle&lt;/b&gt; in B2."
+    assert said in page
+    assert page.index(said) < page.index("Sheets")
+
+
+def test_without_a_description_the_card_has_none(model: Document) -> None:
+    issued = issue(model)
+    page = opened(issued).get(f"/v/{issued.token}", secure=True).content.decode()
+    assert 'class="description"' not in page
+
+
+def test_a_description_over_the_limit_is_refused_beside_the_field(
+    client: Client, model: Document
+) -> None:
+    response = describe(client, model, "x" * 1001)
+    assert response.status_code == 400
+    text = response.content.decode()
+    assert 'id="description-error"' in text
+    assert "Keep the description to 1,000 characters or fewer." in text
+    model.refresh_from_db()
+    assert model.description == ""
+
+
+def test_an_empty_description_removes_it(client: Client, model: Document) -> None:
+    describe(client, model, "Base case on Summary.")
+    response = describe(client, model, "   ")
+    model.refresh_from_db()
+    assert model.description == ""
+    page = client.get(response["Location"], secure=True).content.decode()
+    assert "Description removed." in page
+
+
+def test_a_pdf_has_no_description(client: Client) -> None:
+    deck = Document.objects.create(title="Seed deck")
+    ingest(deck, chunks(make_pdf((960, 540))), filename="deck.pdf", uploaded_by=None)
+    assert describe(client, deck, "Hello").status_code == 404
+    page = client.get(f"/admin/documents/{deck.token}", secure=True).content.decode()
+    assert 'id="description"' not in page

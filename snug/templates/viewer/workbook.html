@@ -7,6 +7,7 @@
   <div class="gate workbook">
     <h1>{{ title }}</h1>
     <p class="lede">An Excel workbook, {{ version.size_bytes|filesizeformat }}, updated {{ version.uploaded_at|date:"j M Y" }}.</p>
+    {% if document.description %}<p class="description">{{ document.description|linebreaksbr }}</p>{% endif %}
     <h2 class="sheets-title">Sheets</h2>
     <ul class="sheet-list">{% for name in version.sheets %}<li>{{ name }}</li>{% endfor %}</ul>
     {% if download_url %}
