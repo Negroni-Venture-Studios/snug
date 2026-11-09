@@ -17,6 +17,10 @@ from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 
 CHUNK = 256 * 1024
+# The most one answer carries. A player asks again for the rest, as it does when
+# seeking, so this costs playback nothing; it only makes a stream no easier to
+# save whole than the file would be.
+MAX_PIECE = 8 * 1024 * 1024
 _SINGLE = re.compile(r"^bytes=(\d*)-(\d*)$")
 
 
@@ -58,15 +62,30 @@ def _chunks(path: Path, start: int, length: int) -> Iterator[bytes]:
             yield chunk
 
 
-def serve(request: HttpRequest, path: Path, content_type: str) -> HttpResponseBase:
-    """The file, or the one range of it the request asks for."""
+def _refused(size: int) -> HttpResponse:
+    refused = HttpResponse(status=416)
+    refused["Content-Range"] = f"bytes */{size}"
+    return refused
+
+
+def serve(
+    request: HttpRequest, path: Path, content_type: str, *, ranges_only: bool = False
+) -> HttpResponseBase:
+    """The file, or the one range of it the request asks for, at most MAX_PIECE at a time.
+
+    With ranges_only, a request without a usable range is refused: a video
+    element always asks for one, and a stream should not hand over the whole
+    file in one answer.
+    """
     size = path.stat().st_size
     try:
         wanted = parse(request.headers.get("Range", ""), size)
     except Unsatisfiable:
-        refused = HttpResponse(status=416)
-        refused["Content-Range"] = f"bytes */{size}"
-        return refused
+        return _refused(size)
+    if wanted is None and ranges_only:
+        return _refused(size)
+    if wanted is not None:
+        wanted = (wanted[0], min(wanted[1], wanted[0] + MAX_PIECE - 1))
     start, end = wanted if wanted is not None else (0, size - 1)
     length = end - start + 1
     response = StreamingHttpResponse(_chunks(path, start, length), content_type=content_type)

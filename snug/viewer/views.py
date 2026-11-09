@@ -505,7 +505,7 @@ def video_stream(request: HttpRequest, access: Access, token: str) -> HttpRespon
     version = access.document.latest_version()
     if version is None or not version.is_video:
         raise Http404
-    response = ranges.serve(request, storage.original_path(version), "video/mp4")
+    response = ranges.serve(request, storage.original_path(version), "video/mp4", ranges_only=True)
     # Kept briefly, by this browser only. Revoking stops new requests at once.
     response["Cache-Control"] = "private, max-age=300"
     return response

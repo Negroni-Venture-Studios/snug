@@ -7,6 +7,7 @@ size is over the limit, without reading it. Refusing changes nothing, so
 answering before the CSRF check is safe. Ingest counts the actual bytes too.
 """
 
+import re
 from collections.abc import Callable
 
 from django.conf import settings
@@ -15,6 +16,8 @@ from django.shortcuts import render
 
 # Room for the form's other fields and the multipart boundaries.
 FORM_OVERHEAD = 64 * 1024
+# The two forms that upload a document, the only ones a video may arrive through.
+UPLOAD_FORMS = re.compile(r"^/admin/documents/(new|[A-Za-z0-9_-]+/versions)$")
 
 
 def too_large(request: HttpRequest) -> bool:
@@ -24,8 +27,11 @@ def too_large(request: HttpRequest) -> bool:
         declared = int(request.META.get("CONTENT_LENGTH") or 0)
     except ValueError:
         return True
-    # The larger of the two limits: ingest holds each kind to its own once it knows it.
-    limit: int = max(settings.MAX_UPLOAD_BYTES, settings.MAX_VIDEO_BYTES)
+    # On the upload forms, the larger of the two limits: ingest holds each kind to
+    # its own once it knows it. Everywhere else, the documents' limit.
+    limit: int = settings.MAX_UPLOAD_BYTES
+    if UPLOAD_FORMS.match(request.path):
+        limit = max(limit, settings.MAX_VIDEO_BYTES)
     return declared > limit + FORM_OVERHEAD
 
 

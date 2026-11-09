@@ -145,11 +145,23 @@ def test_videos_have_their_own_size_limit() -> None:
         assert "the most this instance accepts for a video" in str(refused.value)
 
 
-def test_the_request_limit_allows_a_video_sized_upload() -> None:
-    request = RequestFactory().post("/admin/documents/new", CONTENT_LENGTH=str(50 * 1024 * 1024))
+@pytest.mark.parametrize("path", ["/admin/documents/new", "/admin/documents/AbCdEf123_-x/versions"])
+def test_the_request_limit_allows_a_video_sized_upload(path: str) -> None:
+    request = RequestFactory().post(path, CONTENT_LENGTH=str(50 * 1024 * 1024))
     with override_settings(MAX_UPLOAD_BYTES=10 * 1024 * 1024, MAX_VIDEO_BYTES=100 * 1024 * 1024):
         assert not too_large(request)
     with override_settings(MAX_UPLOAD_BYTES=10 * 1024 * 1024, MAX_VIDEO_BYTES=20 * 1024 * 1024):
+        assert too_large(request)
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["/v/sometoken/code/send", "/admin/login", "/admin/settings/logo", "/admin/documents/new/x"],
+)
+def test_only_the_upload_forms_get_the_video_limit(path: str) -> None:
+    """Found in review: every POST, an investor's included, could send a video-sized body."""
+    request = RequestFactory().post(path, CONTENT_LENGTH=str(50 * 1024 * 1024))
+    with override_settings(MAX_UPLOAD_BYTES=10 * 1024 * 1024, MAX_VIDEO_BYTES=100 * 1024 * 1024):
         assert too_large(request)
 
 
@@ -206,11 +218,11 @@ def test_the_video_streams_in_ranges(demo: Document) -> None:
     issued = issue(demo)
     browser = opened(issued)
     url = f"/v/{issued.token}/video"
-    whole = browser.get(url, secure=True)
-    assert whole.status_code == 200
-    assert whole["Content-Type"] == "video/mp4"
-    assert whole["Accept-Ranges"] == "bytes"
-    assert streamed(whole) == CLIP_BYTES
+    start = browser.get(url, secure=True, HTTP_RANGE="bytes=0-")  # what a player asks first
+    assert start.status_code == 206
+    assert start["Content-Type"] == "video/mp4"
+    assert start["Accept-Ranges"] == "bytes"
+    assert streamed(start) == CLIP_BYTES
     part = browser.get(url, secure=True, HTTP_RANGE="bytes=100-199")
     assert part.status_code == 206
     assert part["Content-Range"] == f"bytes 100-199/{len(CLIP_BYTES)}"
@@ -223,6 +235,29 @@ def test_the_video_streams_in_ranges(demo: Document) -> None:
     past = browser.get(url, secure=True, HTTP_RANGE="bytes=99999999-")
     assert past.status_code == 416
     assert past["Content-Range"] == f"bytes */{len(CLIP_BYTES)}"
+
+
+def test_the_stream_answers_only_ranges_and_in_pieces(
+    demo: Document, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Found in review: a plain request got the whole file. A player always asks for ranges,
+    and each answer is capped, so the stream is no easier to save than a download."""
+    from snug.core import ranges
+
+    issued = issue(demo, allow_download=False)
+    browser = opened(issued)
+    url = f"/v/{issued.token}/video"
+    assert browser.get(url, secure=True).status_code == 416  # no Range header
+    monkeypatch.setattr(ranges, "MAX_PIECE", 1000)
+    piece = browser.get(url, secure=True, HTTP_RANGE="bytes=0-")
+    assert piece.status_code == 206
+    assert piece["Content-Range"] == f"bytes 0-999/{len(CLIP_BYTES)}"
+    assert streamed(piece) == CLIP_BYTES[:1000]
+
+
+def test_the_link_form_says_a_streamed_video_can_be_saved(client: Client, demo: Document) -> None:
+    page = client.get(f"/admin/links/for/{demo.token}", secure=True).content.decode()
+    assert "a video playing in a browser can still be saved" in page
 
 
 def test_a_revoked_link_stops_the_video_at_once(demo: Document) -> None:
@@ -292,8 +327,10 @@ def test_a_room_lists_and_plays_a_video(demo: Document) -> None:
     assert "MP4 video, 0:02" in browser.get(f"/v/{issued.token}", secure=True).content.decode()
     player = browser.get(f"/v/{issued.token}/d/{demo.token}", secure=True).content.decode()
     assert f'src="/v/{issued.token}/d/{demo.token}/video"' in player
-    stream = browser.get(f"/v/{issued.token}/d/{demo.token}/video", secure=True)
-    assert stream.status_code == 200
+    stream = browser.get(
+        f"/v/{issued.token}/d/{demo.token}/video", secure=True, HTTP_RANGE="bytes=0-"
+    )
+    assert stream.status_code == 206
 
 
 def test_the_security_policy_allows_media_from_snug_alone(demo: Document) -> None:
