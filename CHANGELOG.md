@@ -14,6 +14,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 - The Audit log's filter has two more kinds, *Housekeeping* and *Exports*, for the reading data housekeeping deletes and for exports of the log itself.
 - Resetting an admin's authenticator from the command line is recorded as `admin.second_factor_reset`, the same as from Settings, where it was `admin.2fa_reset`.
 - With no file chosen, the upload form asks for a PDF, an Excel workbook or an MP4 video, where it left videos out.
+- On a UK-only link that asks for the NDA, someone abroad who opened the NDA page got a server error. They now see the same page as on every other page of the link, saying it opens only in the UK, and the refusal is recorded in the audit log.
 - While an upload is checked, the form says *Checking the file* rather than *Checking the PDF*, since a document can now be a workbook or a video.
 - Other wording that assumed every document is a PDF now covers workbooks and videos too. `snug doctor` and the Overview call the confinement check *Document worker*, People explains that a video's strip has a cell for each 10 seconds, and the Overview counts *People who have visited*.
 - On the Links page, a revoked link's status and details line up with the active links above and below it. A document's versions and a room's documents share their columns the same way.

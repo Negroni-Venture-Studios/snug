@@ -22,6 +22,7 @@ from snug.core import doctor, geoip
 from snug.documents.models import Document
 from snug.links import service
 from snug.links.models import Link
+from snug.nda import terms
 from snug.rooms.models import Room, RoomDocument
 from snug.viewer.access import OutsideUK, authorise
 from tests.test_viewer_access import verified_browser
@@ -161,6 +162,23 @@ def test_a_session_started_in_the_uk_does_not_work_abroad(place: dict[str, str |
     assert visitor.get(f"/v/{issued.token}", secure=True).status_code == 200
     place["country"] = "FR"
     assert visitor.get(f"/v/{issued.token}", secure=True).status_code == 403
+
+
+@pytest.mark.parametrize("method", ["get", "post"])
+def test_the_nda_page_refuses_abroad_like_every_other_page(
+    place: dict[str, str | None], method: str
+) -> None:
+    """Found in review, 9 November 2026: the NDA page let OutsideUK escape as a 500."""
+    terms.publish("Keep it to yourself.", by=None)
+    issued = deck_link(uk_only=True, require_verification=False, require_nda=True)
+    visitor = Client()
+    visitor.post(f"/v/{issued.token}/open", secure=True)
+    place["country"] = "FR"
+    response = getattr(visitor, method)(f"/v/{issued.token}/nda", secure=True)
+    assert response.status_code == 403
+    assert "viewer/outside.html" in [t.name for t in response.templates]
+    event = AuditEvent.objects.filter(action="viewer.outside_uk").latest("at")
+    assert event.country == "FR"
 
 
 # ---------------------------------------------------------------- the country of every view
