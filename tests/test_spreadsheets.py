@@ -10,16 +10,18 @@ import hashlib
 import io
 import time
 import zipfile
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
+from django.utils import timezone
 
 from snug.accounts import sessions
 from snug.accounts.models import Admin
-from snug.analytics.models import Visit
+from snug.analytics.models import PageView, Visit
 from snug.audit.models import AuditEvent
 from snug.documents import storage
 from snug.documents.ingest import UploadRejectedError, ingest
@@ -191,7 +193,10 @@ def test_a_workbook_link_shows_a_card_with_its_sheets(model: Document) -> None:
     # The panel beside it describes a workbook, not pages and watermarks.
     assert "Financial model, an Excel workbook" in page
     assert "<dt>Access</dt><dd>Download</dd>" in page
-    assert "see when you open this workbook and when you download it" in page
+    assert (
+        "see when you open this workbook, how long its page is open, and when you download it"
+        in page
+    )
     assert "watermark" not in page
 
 
@@ -257,14 +262,67 @@ def test_a_room_lists_a_workbook_by_its_sheets(model: Document) -> None:
     assert f'href="/v/{issued.token}/d/{model.token}/download"' in card
 
 
-def test_the_people_page_shows_a_spreadsheet_opened(client: Client, model: Document) -> None:
+def _visit_on(html: str) -> str:
+    start = html.index('data-visit="') + len('data-visit="')
+    return html[start : html.index('"', start)]
+
+
+def test_the_card_sends_heartbeats_for_its_one_page(model: Document) -> None:
+    """Decided 9 November 2026: time on the workbook's page is counted, as one page."""
+    issued = issue(model)
+    html = opened(issued).get(f"/v/{issued.token}", secure=True).content.decode()
+    assert 'data-page="1"' in html
+    assert f'data-beat-url="/v/{issued.token}/beat"' in html
+    assert 'name="csrfmiddlewaretoken"' in html
+    assert "snug/js/viewer.js" in html
+    assert _visit_on(html) == Visit.objects.get(document=model).token
+
+
+def test_time_on_the_card_is_counted(model: Document, monkeypatch: pytest.MonkeyPatch) -> None:
+    now = [timezone.now()]
+    monkeypatch.setattr("django.utils.timezone.now", lambda: now[0])
+    issued = issue(model)
+    browser = opened(issued)
+    visit = _visit_on(browser.get(f"/v/{issued.token}", secure=True).content.decode())
+    for kind in ("beat", "beat", "end"):
+        now[0] += timedelta(seconds=12)
+        form = {"visit": visit, "page": "1", "kind": kind}
+        assert browser.post(f"/v/{issued.token}/beat", form, secure=True).status_code == 204
+    assert PageView.objects.get(visit__document=model, page=1).seconds == pytest.approx(36)
+
+
+def test_the_people_page_shows_one_cell_for_a_workbook(client: Client, model: Document) -> None:
     issued = issue(model)
     browser = opened(issued)
     browser.get(f"/v/{issued.token}", secure=True)
+    PageView.objects.filter(visit__document=model).update(seconds=95)
     browser.get(f"/v/{issued.token}/download", secure=True)
     page = client.get("/admin/people/", secure=True).content.decode()
     assert INVESTOR in page and "Financial model" in page
-    assert "Spreadsheet" in page
+    assert "Spreadsheet" not in page
+    strip = page[page.index("Financial model") :]
+    strip = strip[strip.index("<svg") : strip.index("</svg>")]
+    assert strip.count("<rect") == 1
+    assert "<title>Page open for 1 min 35 s</title>" in strip
+    assert (
+        f'aria-label="{INVESTOR}, Financial model: had the workbook\'s page open for 1 min 35 s"'
+        in strip
+    )
+
+
+def test_a_workbook_opened_before_its_time_was_counted_still_shows(
+    client: Client, model: Document
+) -> None:
+    """Visits from before 9 November 2026 have no page: the cell shows it was opened."""
+    issued = issue(model)
+    opened(issued).get(f"/v/{issued.token}", secure=True)
+    PageView.objects.filter(visit__document=model).delete()
+    Visit.objects.filter(document=model).update(current_page=0)
+    page = client.get("/admin/people/", secure=True).content.decode()
+    strip = page[page.index("Financial model") :]
+    strip = strip[strip.index("<svg") : strip.index("</svg>")]
+    assert strip.count("<rect") == 1
+    assert "<title>Page open for 0 s</title>" in strip
 
 
 # ---------------------------------------------------------------- the founder's description

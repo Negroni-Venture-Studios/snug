@@ -13,7 +13,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 - While an upload is checked, the form says *Checking the file* rather than *Checking the PDF*, since a document can now be a workbook or a video.
 - Other wording that assumed every document is a PDF now covers workbooks and videos too. `snug doctor` and the Overview call the confinement check *Document worker*, People explains that a video's strip has a cell for each 10 seconds, and the Overview counts *People who have visited*.
 - On the Links page, a revoked link's status and details line up with the active links above and below it. A document's versions and a room's documents share their columns the same way.
-- Interface text is plainer. Hints and notices say what happens or what to do, without explaining Snug's reasoning or ending on a neat contrast; the People page says *Spreadsheet* for a workbook, and the first-open email says *Not known* for an unplaced country.
+- Interface text is plainer. Hints and notices say what happens or what to do, without explaining Snug's reasoning or ending on a neat contrast; the first-open email says *Not known* for an unplaced country.
 - A workbook's page in the admin no longer fails with a server error once an investor has opened it. It tried to draw a page-by-page reading chart for a document with no pages.
 - Every viewer event in the audit log records the visitor's country, whether or not the link is UK-only, and the audit log shows it beside the address. The country column had been left empty, though the brief asked for it.
 - The Google Workspace guide takes someone who has never used Google Cloud through every screen, and covers SPF, DKIM and DMARC for each sending domain, user alias domains, and the things DNS hosts and multiple Google accounts get wrong.
@@ -46,6 +46,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- Snug counts how long an investor has a workbook's page open, as it does for a page of a PDF. On People, a workbook shows one cell shaded by that time, where it used to say *Spreadsheet*. The workbook's page tells investors that this is measured.
 - MP4 videos can be shared as documents. Investors watch them in the browser with their email address, the date and the link drawn over the player, and Snug counts time watched in 10-second parts, shown on the document's page and on People. They can download it when the link allows downloads. Uploads are checked in the confined worker, which accepts H.264 video with optional AAC sound and refuses QuickTime and other formats with a plain message. Videos have their own size limit, `SNUG_MAX_VIDEO_MB`, 1 GB by default.
 - A workbook can have a description, written on its page in the admin: plain text, kept across new versions, and shown to investors above its list of sheets.
 - Excel workbooks (.xlsx) can be shared as documents, for download only. Investors see the workbook's sheets and a button to download it, and each copy names its reader, the date and the link in its document properties, with every sheet left exactly as uploaded. Uploads are checked in the confined worker: workbooks with macros, ActiveX or embedded objects, old .xls files and workbooks with passwords are refused with a plain message.

@@ -333,9 +333,12 @@ def _workbook_card(
     version: DocumentVersion,
     context: dict[str, Any],
 ) -> HttpResponse:
-    """A spreadsheet: its sheets and a download, since the working file is what matters."""
+    """A spreadsheet: its sheets and a download, since the working file is what matters.
+
+    The card counts as the workbook's one page, so time on it is measured like a PDF's.
+    """
     assert access.document is not None  # noqa: S101 - only document pages reach the card
-    _visit, new = reading.workbook_opened(access, access.document, version)
+    visit, new = reading.page_shown(access, access.document, version, 1)
     if new:
         notify.first_open(request, access, access.document)
         _audit(
@@ -351,6 +354,9 @@ def _workbook_card(
         version=version,
         download_url=urls.download() if access.link.allow_download else None,
         room_url=reverse("viewer:entry", kwargs={"token": token}) if access.link.room else None,
+        visit=visit.token,
+        beat_url=reverse("viewer:beat", kwargs={"token": token}),
+        beat_seconds=reading.BEAT_SECONDS,
     )
     return render(request, "viewer/workbook.html", context)
 

@@ -1,10 +1,12 @@
 {% extends "viewer/base.html" %}
-{% load snug %}
+{% load snug static %}
 {% block title %}{{ title }}{% endblock %}
+{% block scripts %}<script src="{% static 'snug/js/viewer.js' %}" defer></script>{% endblock %}
 {% block tools %}{% if room_url %}<a class="btn btn-quiet" href="{{ room_url }}">{% icon "caret-left" %}{{ link.room.name }}</a>{% endif %}<span class="doc">{{ title }}</span>{% endblock %}
 {% block main %}
 <div class="gate-grid">
-  <div class="gate workbook">
+  <div class="gate workbook" data-visit="{{ visit }}" data-page="1" data-beat-url="{{ beat_url }}" data-interval="{{ beat_seconds }}">
+    <form class="beacon" hidden>{% csrf_token %}</form>
     <h1>{{ title }}</h1>
     <p class="lede">An Excel workbook, {{ version.size_bytes|filesizeformat }}, updated {{ version.uploaded_at|date:"j M Y" }}.</p>
     {% if document.description %}<p class="description">{{ document.description|linebreaksbr }}</p>{% endif %}
