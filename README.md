@@ -12,6 +12,11 @@ Snug is a self-hosted data room for early-stage founders. You run it on your own
 - You can see who opened what, page by page, and revoke a link at any time.
 - Every page shows the reader's email address as a watermark, and every download is stamped with it.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/hero-dark.png">
+  <img alt="Behind, the founder's page for a seed deck: six viewers, a median reading time of 8 minutes, and a strip for each investor shaded by the time they spent on each page. In front, the investor's view of page 5, with their email address and the date written across it." src="docs/images/screenshots/hero-light.png">
+</picture>
+
 Snug is open source, published by [Negroni Venture Studios](https://negroniventurestudios.com/). Your documents, and the record of who read them, stay on your server and in your own encrypted backups.
 
 > **Status: test builds only.** You can run Snug on your own computer today, and the server setup is written, but it has not yet been tested end to end on a real server. Please do not put real documents in it yet. See [Status](#status).
@@ -33,6 +38,28 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 - **Email** through Google Workspace, as a mailbox on your domain over the Gmail API, or any provider over SMTP. It is set up in Settings in numbered steps, ending with a test email, and can be cleared there with one button. Each part of Settings links to its guide.
 - **Admin accounts** with a password and an authenticator app, recovery codes, invitations by email, and an email to every admin whenever the admins change.
 - **Running it.** Docker Compose with Caddy for HTTPS; continuous backups to a storage bucket of your own, encrypted on your server with a key only you hold; `snug doctor`, which checks the server and says what to fix, and a status line on the Overview showing the same; and `snug restore`.
+
+You see who opened what on the Overview, and each person's reading on People:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/overview-dark.png">
+  <img alt="The Overview: everything working, five documents, nine active links, six people who have visited, and the latest visits." src="docs/images/screenshots/overview-light.png" width="49%">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/people-dark.png">
+  <img alt="The People page: each investor's strip of pages, shaded by time, with their visits, downloads and total time." src="docs/images/screenshots/people-light.png" width="49%">
+</picture>
+
+An investor enters a code sent to their inbox, then reads, or downloads a workbook:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/code-dark.png">
+  <img alt="The page an investor sees first: Fernlea Robotics has shared Seed deck with you, with a box for their email address and a panel saying what the company will see." src="docs/images/screenshots/code-light.png" width="49%">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/workbook-dark.png">
+  <img alt="A workbook shared with an investor: its description, its sheets, and a button to download it, with their details written into the copy." src="docs/images/screenshots/workbook-light.png" width="49%">
+</picture>
 
 ## What Snug does not do
 

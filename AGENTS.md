@@ -23,6 +23,7 @@ uv run mypy                        # strict
 uv run python scripts/check_licences.py
 uv run pre-commit run --all-files  # all of the above, as CI runs it
 python3 docs/diagrams/build.py     # after changing a diagram in docs/diagrams/
+SNUG_E2E=1 SNUG_SCREENSHOTS=1 uv run pytest tests/e2e/test_screenshots.py --ds=tests.e2e_settings  # after changing a page
 ```
 
 Always use `uv run`. Never install into the system Python.
