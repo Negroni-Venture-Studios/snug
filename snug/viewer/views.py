@@ -27,7 +27,7 @@ from django.views.decorators.http import require_http_methods, require_POST, req
 
 from snug.analytics import notify, reading
 from snug.audit.models import AuditEvent, record
-from snug.core import mail, ratelimit
+from snug.core import geoip, mail, ratelimit
 from snug.core.client import client_ip, user_agent
 from snug.core.models import SiteSettings, company_name
 from snug.documents.storage import RENDER_WIDTHS
@@ -137,13 +137,16 @@ def _ip(request: HttpRequest) -> str:
 
 
 def _audit(request: HttpRequest, action: str, link: Link, actor: str, **details: Any) -> None:
+    """A viewer event, with the visitor's country whether or not the link is UK-only."""
+    address = client_ip(request)
     record(
         action,
         actor_type=AuditEvent.ActorType.VIEWER,
         actor=actor[:254],
         target=link.email,
-        ip_address=client_ip(request),
+        ip_address=address,
         user_agent=user_agent(request),
+        country=geoip.country(address or "") or "",
         details={"link": link.label, **link.target_details(), **details},
     )
 

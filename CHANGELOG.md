@@ -10,6 +10,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- Every viewer event in the audit log records the visitor's country, whether or not the link is UK-only, and the audit log shows it beside the address. The country column had been left empty, though the brief asked for it.
 - The Google Workspace guide takes someone who has never used Google Cloud through every screen, and covers SPF, DKIM and DMARC for each sending domain, user alias domains, and the things DNS hosts and multiple Google accounts get wrong.
 - A saved Google client secret or SMTP password shows as dots, so the field no longer looks empty. The value itself is still never sent to the browser.
 - Connecting Google says before you leave for Google that one more authenticator code is needed on your return, and the return shows a green notice naming the approved mailbox.

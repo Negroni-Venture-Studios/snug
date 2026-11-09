@@ -134,3 +134,21 @@ def test_exporting_is_itself_audited(client: Client) -> None:
 def test_the_audit_log_needs_a_signed_in_admin() -> None:
     assert Client().get("/admin/audit/", secure=True).status_code == 302
     assert Client().get("/admin/audit/export.csv", secure=True).status_code == 302
+
+
+def test_a_viewers_country_shows_beside_their_address_and_in_the_export(client: Client) -> None:
+    record(
+        "viewer.opened",
+        actor_type=AuditEvent.ActorType.VIEWER,
+        actor="priya@northfield.example",
+        ip_address="203.0.113.9",
+        country="JE",
+    )
+    page = client.get("/admin/audit/", secure=True).content.decode()
+    assert "203.0.113.9, JE" in page
+    rows = list(
+        csv.DictReader(
+            io.StringIO(streamed(client.get("/admin/audit/export.csv", secure=True)).decode())
+        )
+    )
+    assert [row["country"] for row in rows if row["action"] == "viewer.opened"] == ["JE"]

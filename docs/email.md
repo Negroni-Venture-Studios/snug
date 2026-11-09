@@ -11,7 +11,7 @@ Most failed Snug setups fail here.
 ## What you need
 
 - **A domain you control**, the one your company already uses, such as `example.com`. You will add a few DNS records to it.
-- **An account with a transactional email provider** that lets you send through SMTP with a username and password. Mailgun, SendGrid, Postmark and Amazon SES all do; so do many others. Snug does not depend on any one of them.
+- **An account with a transactional email provider** that lets you send through SMTP with a username and password. Mailgun, SendGrid, Postmark, Resend and Amazon SES all do; so do many others. Snug does not depend on any one of them.
 
 Do not send through a personal Gmail or Outlook account. Their limits are low, and messages sent through them carry their domain's reputation, not yours.
 
@@ -73,7 +73,7 @@ From the provider's dashboard, note:
 
 **DigitalOcean blocks outgoing connections on ports 25, 465 and 587 from every droplet.** These are the usual SMTP ports, so Snug cannot reach your provider on them, and every email fails with a time-out.
 
-Many providers also listen on another port for this reason. Mailgun, SendGrid and Postmark accept port 2525; use it with STARTTLS as the encryption (`SNUG_SMTP_SECURITY=starttls` in `snug.env`). Amazon SES accepts 2587 with STARTTLS, and 2465 with TLS. Snug accepts ports 25, 465, 587, 2465, 2525 and 2587, so a provider whose only other port is something else cannot be used from DigitalOcean.
+Many providers also listen on another port for this reason. Mailgun, SendGrid and Postmark accept port 2525; use it with STARTTLS as the encryption (`SNUG_SMTP_SECURITY=starttls` in `snug.env`). Amazon SES and Resend accept 2587 with STARTTLS, and 2465 with TLS. Snug accepts ports 25, 465, 587, 2465, 2525 and 2587, so a provider whose only other port is something else cannot be used from DigitalOcean.
 
 You can check from the droplet whether a port is open:
 
