@@ -4,7 +4,7 @@ Snug sends two kinds of email to investors: links to the people you share docume
 
 Most failed Snug setups fail here.
 
-**Google Workspace.** Snug cannot use Google's own mail servers from DigitalOcean: Google accepts mail only on ports 25, 465 and 587, which DigitalOcean blocks. Sending through Google Workspace directly, over HTTPS, is being added. Until then, use a provider such as Mailgun or Postmark for Snug, alongside Workspace for everyday mail.
+**Google Workspace.** If your company uses Workspace, Snug can send as a mailbox on your domain through the Gmail API: [email-google.md](email-google.md) walks through it. The rest of this guide is for any other provider, over SMTP.
 
  Email sent from a new server, from a domain with no authentication records, goes to spam or is refused outright. This guide sets it up properly, once.
 

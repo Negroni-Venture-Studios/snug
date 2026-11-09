@@ -211,6 +211,8 @@ def email_setup() -> Finding:
         )
     if now.kind == "outbox":
         return _ok(label, "Emails are written to the outbox folder, on localhost only.")
+    if now.kind == "google":
+        return _ok(label, f"Sending through Google Workspace as {now.from_address}.")
     return _ok(label, f"Sending through {now.host} as {now.from_address}.")
 
 

@@ -1,5 +1,9 @@
 """Settings: the admins, inviting them, and the setup page invitees use."""
 
+import contextlib
+import hmac
+import secrets
+import time
 from typing import Any
 
 import segno
@@ -9,7 +13,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator, validate_email
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
@@ -19,7 +23,7 @@ from snug.accounts import limits, passwords, recovery, setup, totp
 from snug.accounts.models import Admin, AdminSetup
 from snug.analytics import retention
 from snug.audit.models import AuditEvent, record
-from snug.core import brand, logo, mail, ratelimit
+from snug.core import brand, gmail, logo, mail, ratelimit
 from snug.core.client import client_ip, user_agent
 from snug.core.models import EmailSettings, SiteSettings, company_name
 from snug.nda import terms as nda_terms
@@ -71,7 +75,7 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
         "nda": nda_terms.current(),
         "nda_history": NdaVersion.objects.select_related("created_by")[:10],
         "values": {"email": ""},
-        "email": _email_context(extra.pop("email_form", None)),
+        "email": _email_context(request, extra.pop("email_form", None)),
         **extra,
     }
     return render(request, "accounts/settings.html", context, status=status)
@@ -378,6 +382,8 @@ def privacy_view(request: HttpRequest) -> HttpResponse:
 
 
 def _email_status(now: mail.Outgoing) -> str:
+    if now.kind == "google":
+        return f"Snug sends email as {now.from_address}, through Google Workspace."
     if now.source == "settings":
         return f"Snug sends email through {now.host} as {now.from_address}."
     if now.source == "snug.env":
@@ -390,11 +396,14 @@ def _email_status(now: mail.Outgoing) -> str:
     return "Email is off, so investors cannot be sent codes and admins cannot be invited."
 
 
-def _email_context(form: dict[str, Any] | None) -> dict[str, Any]:
+def _email_context(request: HttpRequest, form: dict[str, Any] | None) -> dict[str, Any]:
     """The Email panel: what is in force, and the saved values (or those just typed)."""
     row = EmailSettings.load()
     now = mail.outgoing()
+    pending = request.session.get(GOOGLE_PENDING)
     values = {
+        "provider": row.provider or "smtp",
+        "google_client_id": row.google_client_id,
         "from_address": row.from_address,
         "smtp_host": row.smtp_host,
         "smtp_port": row.smtp_port or "",
@@ -411,6 +420,12 @@ def _email_context(form: dict[str, Any] | None) -> dict[str, Any]:
         "values": values,
         "errors": errors,
         "password_saved": bool(row.smtp_password),
+        "google_secret_saved": bool(row.google_client_secret),
+        "google_ready": bool(row.google_client_id and row.google_client_secret),
+        "google_account": row.google_account if row.google_refresh_token else "",
+        "google_connected_at": row.google_connected_at,
+        "google_pending": pending["account"] if isinstance(pending, dict) else "",
+        "callback_url": gmail.callback_url(),
     }
 
 
@@ -418,9 +433,12 @@ def _email_context(form: dict[str, Any] | None) -> dict[str, Any]:
 @login_required
 @require_POST
 def email_view(request: HttpRequest) -> HttpResponse:
-    """Save how Snug sends email. The password is kept unless a new one is typed."""
+    """Save how Snug sends email. Passwords and secrets are kept unless new ones are typed."""
+    if request.POST.get("provider") == "google":
+        return _save_google_client(request)
     post = request.POST
     values = {
+        "provider": "smtp",
         "from_address": post.get("from_address", "").strip()[:254],
         "smtp_host": post.get("smtp_host", "").strip()[:253],
         "smtp_port": post.get("smtp_port", "").strip()[:10],
@@ -494,6 +512,194 @@ def email_view(request: HttpRequest) -> HttpResponse:
         via=before if before.kind != "off" else None,
     )
     return redirect("/admin/settings/?saved=email#email")
+
+
+# ---------------------------------------------------------------- Google Workspace
+
+GOOGLE_STATE = "snug.google.state"
+GOOGLE_PENDING = "snug.google.pending"
+# How long the round trip to Google, and then entering a code, may take.
+GOOGLE_MINUTES = 10
+
+
+def _google_redirect(saved: str) -> HttpResponse:
+    return redirect(f"/admin/settings/?saved={saved}#email")
+
+
+def _save_google_client(request: HttpRequest) -> HttpResponse:
+    """Save the founder's OAuth client: the ID, and the secret unless it is kept."""
+    row = EmailSettings.load()
+    client_id = request.POST.get("google_client_id", "").strip()[:200]
+    secret = request.POST.get("google_client_secret", "").strip()[:200]
+    values = {**_email_context(request, None)["values"], "provider": "google"}
+    values["google_client_id"] = client_id
+    errors: dict[str, str] = {}
+    shape = client_id.removesuffix(gmail.CLIENT_SUFFIX)
+    if not (client_id.endswith(gmail.CLIENT_SUFFIX) and shape and shape.replace("-", "").isalnum()):
+        errors["google_client_id"] = "Paste the client ID, which ends .apps.googleusercontent.com."
+    if not secret and not row.google_client_secret:
+        errors["google_client_secret"] = "Paste the client secret."  # noqa: S105 - a message
+    if not errors:
+        refused = _confirmed(request, "email")
+        if refused:
+            errors["code"] = refused
+    if errors:
+        status = 429 if errors.get("code") == TOO_MANY else 400
+        form = {"values": values, "errors": errors}
+        return _settings_page(request, status=status, email_form=form)
+    if row.google_client_id != client_id:
+        # Another client: the mailbox must approve it afresh.
+        row.google_refresh_token = ""
+        row.google_account = ""
+        row.google_connected_at = None
+        gmail.forget_tokens()
+    row.provider = "google"
+    row.google_client_id = client_id
+    if secret:
+        row.google_client_secret = secret
+    row.save()
+    _audit(
+        request,
+        "settings.email_changed",
+        _admin(request).email,
+        "",
+        provider="google",
+        client=client_id,
+    )
+    return _google_redirect("email")
+
+
+@never_cache
+@login_required
+@require_safe
+def google_connect_view(request: HttpRequest) -> HttpResponse:
+    """Send the admin to Google to approve the sending mailbox.
+
+    A link, not a form: the content security policy's form-action would stop
+    a form's redirect to Google. Saving needs a fresh code afterwards.
+    """
+    row = EmailSettings.load()
+    if not (row.google_client_id and row.google_client_secret):
+        return _google_redirect("google-no-client")
+    state = secrets.token_urlsafe(32)
+    verifier, challenge = gmail.new_verifier()
+    request.session[GOOGLE_STATE] = {"state": state, "verifier": verifier, "at": time.time()}
+    request.session.pop(GOOGLE_PENDING, None)
+    return HttpResponseRedirect(gmail.auth_url(row.google_client_id, state, challenge))
+
+
+def _google_error(request: HttpRequest, message: str, status: int = 400) -> HttpResponse:
+    return _settings_page(request, status=status, email_test_error=message)
+
+
+@never_cache
+@login_required
+@require_safe
+def google_callback_view(request: HttpRequest) -> HttpResponse:
+    """Google sends the admin back here. Holds the approval until a code confirms it."""
+    started = request.session.pop(GOOGLE_STATE, None)
+    state = request.GET.get("state", "")
+    if (
+        not isinstance(started, dict)
+        or time.time() - float(started.get("at", 0)) > GOOGLE_MINUTES * 60
+        or not hmac.compare_digest(str(started.get("state", "")).encode(), state.encode())
+    ):
+        return _google_error(
+            request, "That did not come from this Snug, or took too long. Try again."
+        )
+    denied = request.GET.get("error", "")
+    if denied:
+        name = denied if denied.replace("_", "").isalnum() else "refused"
+        return _google_error(request, f"Google did not give Snug permission ({name[:40]}).")
+    row = EmailSettings.load()
+    try:
+        refresh_token, account = gmail.exchange(
+            request.GET.get("code", ""),
+            str(started["verifier"]),
+            row.google_client_id,
+            row.google_client_secret,
+        )
+    except gmail.GoogleError as error:
+        return _google_error(request, f"Google refused the connection ({error}).", status=502)
+    if not refresh_token or not account:
+        return _google_error(
+            request,
+            "Google did not give Snug a lasting permission. Remove Snug under Third-party "
+            "apps at myaccount.google.com/connections, then connect again.",
+        )
+    request.session[GOOGLE_PENDING] = {
+        "refresh_token": refresh_token,
+        "account": account,
+        "at": time.time(),
+    }
+    return _google_redirect("google-pending")
+
+
+@never_cache
+@login_required
+@require_POST
+def google_confirm_view(request: HttpRequest) -> HttpResponse:
+    """A fresh code finishes connecting the mailbox, and every admin is told."""
+    pending = request.session.get(GOOGLE_PENDING)
+    if (
+        not isinstance(pending, dict)
+        or time.time() - float(pending.get("at", 0)) > GOOGLE_MINUTES * 60
+    ):
+        request.session.pop(GOOGLE_PENDING, None)
+        return _google_redirect("google-expired")
+    refused = _confirmed(request, "email")
+    if refused:
+        status = 429 if refused == TOO_MANY else 400
+        form = {
+            "values": _email_context(request, None)["values"],
+            "errors": {"google_code": refused},
+        }
+        return _settings_page(request, status=status, email_form=form)
+    request.session.pop(GOOGLE_PENDING, None)
+    before = mail.outgoing()
+    row = EmailSettings.load()
+    row.provider = "google"
+    row.google_refresh_token = str(pending["refresh_token"])
+    row.google_account = str(pending["account"])
+    row.google_connected_at = timezone.now()
+    row.save()
+    gmail.forget_tokens()
+    admin = _admin(request)
+    _audit(request, "settings.email_google_connected", admin.email, "", account=row.google_account)
+    setup.alert_admins(
+        subject="Email settings changed",
+        what=(
+            f"{admin.email} changed how Snug sends email. It now sends as "
+            f"{row.google_account}, through Google Workspace."
+        ),
+        via=before if before.kind != "off" else None,
+    )
+    return _google_redirect("email-google")
+
+
+@never_cache
+@login_required
+@require_POST
+def google_disconnect_view(request: HttpRequest) -> HttpResponse:
+    """Stop sending through Google, and withdraw Snug's permission there."""
+    row = EmailSettings.load()
+    if row.google_refresh_token:
+        with contextlib.suppress(gmail.GoogleError):
+            gmail.revoke(row.google_refresh_token)
+    account = row.google_account
+    row.google_refresh_token = ""
+    row.google_account = ""
+    row.google_connected_at = None
+    row.save()
+    gmail.forget_tokens()
+    _audit(
+        request,
+        "settings.email_google_disconnected",
+        _admin(request).email,
+        "",
+        account=account,
+    )
+    return _google_redirect("email-google-off")
 
 
 @never_cache

@@ -30,6 +30,7 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 - **The reader.** Pages are rendered on your server and shown one at a time, watermarked with the reader's email address, the date and the link. A download is the original PDF, stamped with the same details, so its text stays searchable.
 - **Analytics.** Who opened each document, how long they spent on each page, and how often they downloaded it, on an Overview, each document's page and a People page. Every admin is emailed the first time each link is opened, unless they turn it off. Reading data is deleted 12 months after a link ends, or after a period you set. Nothing about your visitors leaves your instance, and Snug does not phone home.
 - **An audit log** of every admin action and every viewer access, filterable and exportable as CSV.
+- **Email** through Google Workspace, as a mailbox on your domain, or any provider over SMTP, set up in Settings.
 - **Admin accounts** with a password and an authenticator app, recovery codes, invitations by email, and an email to every admin whenever the admins change.
 - **Running it.** Docker Compose with Caddy for HTTPS; continuous backups to a storage bucket of your own, encrypted on your server with a key only you hold; `snug doctor`, which checks the server and says what to fix, and a status line on the Overview showing the same; and `snug restore`.
 

@@ -67,13 +67,28 @@
 
 <section class="section" id="email">
 <div class="section-head stacked"><h2>Email</h2><p>How Snug sends investors their links and codes, and admins their invitations and alerts.</p></div>
-<form class="panel form settings-form" method="post" action="{% url 'accounts:email' %}#email" novalidate>
+<form class="panel form settings-form email-form" method="post" action="{% url 'accounts:email' %}#email" novalidate>
   {% csrf_token %}
-  {% if saved == "email" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved. Snug sends email through {{ email.host }} as {{ email.from_address }}.</span></div>
+  {% if saved == "email" and email.values.provider == "google" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved. Now connect the mailbox Snug sends from.</span></div>
+  {% elif saved == "email" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved. Snug sends email through {{ email.host }} as {{ email.from_address }}.</span></div>
+  {% elif saved == "email-google" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Connected. Snug sends email as {{ email.google_account }}, through Google Workspace.</span></div>
+  {% elif saved == "email-google-off" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Disconnected. Snug no longer sends through Google, and has given up its permission there.</span></div>
   {% elif saved == "email-test" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Sent a test email to {{ request.user.email }}. Check that it arrived, and not in spam.</span></div>
+  {% elif saved == "google-no-client" %}<div class="notice notice-error" role="alert">{% icon "warning-circle" %}<span>Save the client ID and secret first.</span></div>
+  {% elif saved == "google-expired" %}<div class="notice notice-error" role="alert">{% icon "warning-circle" %}<span>That took too long. Connect again.</span></div>
   {% elif email_test_error %}<div class="notice notice-error" role="alert">{% icon "warning-circle" %}<span>{{ email_test_error }}</span></div>
   {% else %}<p class="email-status">{{ email.status }}</p>{% endif %}
-  <input type="hidden" name="provider" value="smtp">
+  <fieldset class="field provider-choice"><legend class="label">How Snug sends email</legend>
+    <label class="check"><input type="radio" name="provider" value="google" id="provider-google"{% if email.values.provider == "google" %} checked{% endif %}><span>Google Workspace<span class="hint">As a mailbox on your Workspace domain, through the Gmail API. docs/email-google.md explains the one-time setup.</span></span></label>
+    <label class="check"><input type="radio" name="provider" value="smtp" id="provider-smtp"{% if email.values.provider != "google" %} checked{% endif %}><span>Another provider (SMTP)<span class="hint">Mailgun, Postmark or any provider whose SMTP server takes port 2525.</span></span></label>
+  </fieldset>
+  <div class="provider-fields provider-google">
+    <div class="field"><label for="google-client-id">Client ID</label><input id="google-client-id" name="google_client_id" type="text" autocomplete="off" spellcheck="false" value="{{ email.values.google_client_id }}"{% if email.errors.google_client_id %} aria-invalid="true" aria-describedby="google-client-id-error"{% endif %}>
+      {% if email.errors.google_client_id %}<div class="error" id="google-client-id-error" role="alert">{% icon "warning-circle" %}{{ email.errors.google_client_id }}</div>{% else %}<div class="hint">From your OAuth client in Google Cloud. Its authorised redirect URI must be <code>{{ email.callback_url }}</code></div>{% endif %}</div>
+    <div class="field"><label for="google-client-secret">Client secret</label><input id="google-client-secret" name="google_client_secret" type="password" autocomplete="new-password" value=""{% if email.errors.google_client_secret %} aria-invalid="true" aria-describedby="google-client-secret-error"{% endif %}>
+      {% if email.errors.google_client_secret %}<div class="error" id="google-client-secret-error" role="alert">{% icon "warning-circle" %}{{ email.errors.google_client_secret }}</div>{% else %}<div class="hint">{% if email.google_secret_saved %}A secret is saved. Leave this empty to keep it.{% else %}Never shown again once saved.{% endif %}</div>{% endif %}</div>
+  </div>
+  <div class="provider-fields provider-smtp">
   <div class="field"><label for="from-address">From address</label><input id="from-address" name="from_address" type="email" autocomplete="off" value="{{ email.values.from_address }}"{% if email.errors.from_address %} aria-invalid="true" aria-describedby="from-address-error"{% endif %}>
     {% if email.errors.from_address %}<div class="error" id="from-address-error" role="alert">{% icon "warning-circle" %}{{ email.errors.from_address }}</div>{% else %}<div class="hint">On a domain your provider has verified. See docs/email.md.</div>{% endif %}</div>
   <div class="field"><label for="smtp-host">SMTP server</label><input id="smtp-host" name="smtp_host" type="text" autocomplete="off" spellcheck="false" value="{{ email.values.smtp_host }}"{% if email.errors.smtp_host %} aria-invalid="true" aria-describedby="smtp-host-error"{% endif %}>
@@ -88,10 +103,26 @@
       <option value="tls"{% if email.values.smtp_security == "tls" %} selected{% endif %}>TLS, for port 465</option>
     </select>
     {% if email.errors.smtp_security %}<div class="error" id="smtp-security-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_security }}</div>{% endif %}</div>
+  </div>
   <div class="field"><label for="email-code">Code from your authenticator app</label><input id="email-code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7"{% if email.errors.code %} aria-invalid="true" aria-describedby="email-code-error"{% endif %}>
     {% if email.errors.code %}<div class="error" id="email-code-error" role="alert">{% icon "warning-circle" %}{{ email.errors.code }}</div>{% else %}<div class="hint">Email carries codes and links, so changing how it is sent needs a fresh code. Every admin is told.</div>{% endif %}</div>
   <button class="btn btn-primary" type="submit">Save</button>
 </form>
+{% if email.google_pending %}<form class="panel form settings-form" id="google-confirm" method="post" action="{% url 'accounts:google_confirm' %}#email" novalidate>
+  {% csrf_token %}
+  <h3 class="panel-title">Finish connecting Google</h3>
+  <p class="hint">Google approved Snug for {{ email.google_pending }}. Enter a code from your authenticator app to finish connecting it. Every admin is told.</p>
+  <div class="field"><label for="google-code">Code from your authenticator app</label><input id="google-code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7"{% if email.errors.google_code %} aria-invalid="true" aria-describedby="google-code-error"{% endif %}>
+    {% if email.errors.google_code %}<div class="error" id="google-code-error" role="alert">{% icon "warning-circle" %}{{ email.errors.google_code }}</div>{% endif %}</div>
+  <button class="btn btn-primary" type="submit">Connect {{ email.google_pending }}</button>
+</form>
+{% elif email.values.provider == "google" and email.google_ready %}<div class="panel form settings-form" id="google-mailbox">
+  <h3 class="panel-title">The sending mailbox</h3>
+  {% if email.google_account %}<p>Connected as {{ email.google_account }}, since {{ email.google_connected_at|date:"j F Y" }}.</p>
+  <form method="post" action="{% url 'accounts:google_disconnect' %}#email">{% csrf_token %}<button class="btn" type="submit">Disconnect</button></form>
+  {% else %}<p class="hint">Sign in to Google as the mailbox Snug should send from, such as rooms@ on your domain, and approve. Snug can send from it, and nothing else.</p>
+  <a class="btn btn-primary" href="{% url 'accounts:google_connect' %}">Connect Google</a>{% endif %}
+</div>{% endif %}
 {% if email_enabled %}<form class="panel form settings-form" id="email-test" method="post" action="{% url 'accounts:email_test' %}#email">
   {% csrf_token %}
   <h3 class="panel-title">Send a test</h3>

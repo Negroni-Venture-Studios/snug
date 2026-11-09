@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 class Outgoing:
     """How email leaves Snug right now. Never shown whole: it holds the password."""
 
-    kind: str  # "smtp", "outbox" (localhost only, for development) or "off"
+    kind: str  # "smtp", "google", "outbox" (localhost only, for development) or "off"
     source: str = ""  # "settings" or "snug.env", for "smtp"
     from_address: str = ""
     host: str = ""
@@ -30,12 +30,26 @@ class Outgoing:
     username: str = ""
     password: str = field(default="", repr=False)
     security: str = "starttls"
+    client_id: str = ""
+    client_secret: str = field(default="", repr=False)
+    refresh_token: str = field(default="", repr=False)
 
 
 def outgoing() -> Outgoing:
     """What is in force: the settings saved in Settings, else snug.env, else the
     outbox on localhost, else nothing."""
     row = EmailSettings.load()
+    # Google counts once a mailbox is connected; until then, what came before.
+    if row.provider == "google" and row.google_refresh_token:
+        return Outgoing(
+            kind="google",
+            source="settings",
+            from_address=row.google_account,
+            host="Google Workspace",
+            client_id=row.google_client_id,
+            client_secret=row.google_client_secret,
+            refresh_token=row.google_refresh_token,
+        )
     if row.provider == "smtp":
         return Outgoing(
             kind="smtp",
