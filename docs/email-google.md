@@ -80,10 +80,10 @@ In Snug, open **Settings**, and under **Email** choose **Google Workspace**. Snu
 1. **Your Google client.** Paste the client ID and the client secret. Leave **From address** empty for now. Enter a code from your authenticator app, and choose **Save**. Afterwards the secret shows as dots: it is saved, and never shown again.
 2. **The sending mailbox.** Choose **Connect Google**. Google asks which account to use; choose the mailbox Snug will send from. Google then lists what Snug asks for, which should be only *Send email on your behalf*. Snug cannot read the mailbox. Choose **Continue**.
 
-   Back in Snug, a green notice names the mailbox Google approved. Enter a fresh code from your authenticator app to finish. Connecting changes where Snug's email goes, so it needs its own code, even after the one in step 1. Every admin is emailed about the change.
+   Back in Snug, a green notice shows the mailbox Google approved. Enter a fresh code from your authenticator app to finish. Connecting changes where Snug's email goes, so it needs its own code, even after the one in step 1. Every admin is emailed about the change.
 3. **Send a test.** Snug emails you, through the mailbox. Check that it arrived, and not in spam.
 
-Google may name a different address from the one you expected. If your Workspace has more than one domain, it names the mailbox's **primary** address, as the next section explains.
+Google may approve a different address from the one you expected. If your Workspace has more than one domain, Google gives the mailbox's **primary** address, as the next section explains.
 
 ## Sending from another address
 
@@ -170,7 +170,7 @@ DNS hosts differ, and a few things catch people out.
 | Google says **redirect_uri_mismatch** | The redirect address in the client does not match the one Snug shows exactly, including `https://` and the domain. Copy it again, then wait five minutes. |
 | Google says **Access blocked** or **org_internal** | You signed in with an account outside your Workspace organisation. Sign in as a mailbox in it. |
 | Google says the app is **blocked by your admin** | Your Workspace admin restricts apps. In the Admin console, under **Security**, **Access and data control**, **API controls**, allow internal apps, or trust the Snug client. |
-| Google names a different address from the one you expected | It is the mailbox's primary address, on another of your domains. See [Sending from another address](#sending-from-another-address). |
+| Google approves a different address from the one you expected | It is the mailbox's primary address, on another of your domains. See [Sending from another address](#sending-from-another-address). |
 | Snug says Google did not give **a lasting permission** | Remove Snug from the mailbox's [third-party connections](https://myaccount.google.com/connections), then connect again. |
 | Snug says **invalid_client** | The client ID or secret is wrong, or the client was deleted. Paste them again. |
 | The test arrives, but in spam | SPF, DKIM or DMARC is missing or failing. See [Your domain's email records](#your-domains-email-records), and check **Show original**. |

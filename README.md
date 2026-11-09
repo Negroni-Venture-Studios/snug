@@ -36,7 +36,7 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 
 ## What Snug does not do
 
-- **It shows PDFs and videos, and shares Excel workbooks.** Export anything else, such as Word or PowerPoint files, to PDF first, and video to MP4 with H.264. A workbook is not previewed in the browser: investors download it, and each copy names its reader in its document properties. A video's watermark is drawn over the player, so a downloaded copy has no mark, and someone determined can save a video they are watching even with downloads turned off.
+- **It shows PDFs and videos, and shares Excel workbooks.** Export anything else, such as Word or PowerPoint files, to PDF first, and video to MP4 with H.264. A workbook is not previewed in the browser: investors download it, and Snug writes their email address, the date and the link into each copy's document properties. A video's watermark is drawn over the player, so a downloaded copy has no mark, and someone determined can save a video they are watching even with downloads turned off.
 - **Watermarks deter casual leaks; they cannot stop one.** Nothing stops someone photographing a screen.
 - **NDA acceptance is a record, not a signature.** Snug records who accepted which text, and when.
 - **UK-only mode is not export control.** It goes by the visitor's internet address, so a VPN gets round it.
