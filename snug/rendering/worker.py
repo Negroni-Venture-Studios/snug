@@ -4,6 +4,8 @@
     python -I -m snug.rendering.worker render FD PAGE WIDTH
     python -I -m snug.rendering.worker stamp FD FONT_FD EMAIL DATE REF
     python -I -m snug.rendering.worker stamp-pdf FD FONT_FD EMAIL DATE REF
+    python -I -m snug.rendering.worker inspect-xlsx FD
+    python -I -m snug.rendering.worker stamp-xlsx FD EMAIL DATE REF
 
 Snug opens the PDF and passes the open file as descriptor FD; the worker is
 never given a path. `inspect` prints one line of JSON. `render` writes the
@@ -11,7 +13,9 @@ WebP image to standard output. `stamp` reads a rendered page (as FD) and a
 font, and writes the page with the viewer's watermark: a page rendered from
 an untrusted PDF is never decoded outside a confined worker. `stamp-pdf`
 writes the original PDF with a line naming the viewer on every page, and the
-same details in its document properties. Errors print
+same details in its document properties. `inspect-xlsx` and `stamp-xlsx` do
+the same for an Excel workbook (see snug.rendering.workbook): the sheet
+names, and the workbook with its properties naming the reader. Errors print
 {"error": ...} and exit with 3.
 
 Before it touches the PDF, the worker
@@ -30,7 +34,10 @@ import os
 import re
 import struct
 import sys
+import zipfile
 from typing import Any
+
+from snug.rendering import workbook  # standard library only, like this module
 
 MEMORY_BYTES = 1024 * 1024 * 1024  # 1 GiB of address space
 CPU_SECONDS = 60
@@ -115,6 +122,25 @@ def preload() -> None:
     for name in PDF_CODECS:
         codecs.lookup(name)
     _warm_up_pypdf()
+    _warm_up_workbook()
+
+
+def _warm_up_workbook() -> None:
+    """Read and stamp a tiny workbook, so zipfile, zlib and expat are loaded before confine()."""
+    package = io.BytesIO()
+    with zipfile.ZipFile(package, "w", zipfile.ZIP_DEFLATED) as parts:
+        parts.writestr(
+            workbook.CONTENT_TYPES,
+            f'<Types xmlns="{workbook.NS_TYPES}"><Override PartName="/xl/workbook.xml" '
+            f'ContentType="{workbook.MAIN}"/></Types>',
+        )
+        parts.writestr(workbook.ROOT_RELS, f'<Relationships xmlns="{workbook.NS_RELS}"/>')
+        parts.writestr(
+            "xl/workbook.xml",
+            f'<workbook xmlns="{workbook.NS_MAIN}"><sheets><sheet name="A"/></sheets></workbook>',
+        )
+    workbook.inspect(package.getvalue())
+    workbook.stamp(package.getvalue(), email="warm@up.example", date="1 Jan 2026", ref="WARM")
 
 
 def _warm_up_pypdf() -> None:
@@ -583,8 +609,10 @@ def main(argv: list[str], *, confined: bool = True) -> int:
     try:
         page = width = 0
         font = b""
-        if len(argv) == 2 and argv[0] in ("inspect", "logo", "icon"):
+        if len(argv) == 2 and argv[0] in ("inspect", "logo", "icon", "inspect-xlsx"):
             mode = argv[0]
+        elif len(argv) == 5 and argv[0] == "stamp-xlsx":
+            mode = "stamp-xlsx"
         elif len(argv) == 4 and argv[0] == "render":
             mode, page, width = "render", int(argv[2]), int(argv[3])
         elif len(argv) == 6 and argv[0] == "stamp":
@@ -605,8 +633,12 @@ def main(argv: list[str], *, confined: bool = True) -> int:
             return _fail("unconfined")
         if mode == "inspect":
             sys.stdout.write(json.dumps(inspect(data)) + "\n")
+        elif mode == "inspect-xlsx":
+            sys.stdout.write(json.dumps(workbook.inspect(data)) + "\n")
         else:
-            if mode == "render":
+            if mode == "stamp-xlsx":
+                output = workbook.stamp(data, email=argv[2], date=argv[3], ref=argv[4])
+            elif mode == "render":
                 output = render(data, page, width)
             elif mode == "stamp":
                 output = stamp(data, font, argv[3], argv[4], argv[5])
@@ -618,7 +650,7 @@ def main(argv: list[str], *, confined: bool = True) -> int:
                 output = stamp_pdf(data, font, argv[3], argv[4], argv[5])
             sys.stdout.flush()
             sys.stdout.buffer.write(output)
-    except _Refused as refused:
+    except (_Refused, workbook.Refused) as refused:
         return _fail(refused.code)
     except MemoryError:
         return _fail("memory")

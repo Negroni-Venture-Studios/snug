@@ -43,10 +43,31 @@ MESSAGES = {
 }
 
 
+# And for an Excel workbook, where the PDF wording would mislead.
+WORKBOOK_MESSAGES = {
+    "not_xlsx": (
+        "This file could not be read as an Excel workbook. Save it as an Excel Workbook "
+        "(.xlsx), without a password, then upload it again."
+    ),
+    "macros": (
+        "This workbook contains macros. Save it as an Excel Workbook (.xlsx), then upload it again."
+    ),
+    "no_sheets": "This workbook has no visible sheets.",
+    "too_large": "This workbook unpacks to more than Snug allows.",
+    "unreadable": (
+        "This file could not be read as an Excel workbook. Save it as an Excel Workbook "
+        "(.xlsx), without a password, then upload it again."
+    ),
+    "timeout": "This workbook took too long to read.",
+    "memory": "This workbook needs more memory to read than Snug allows.",
+}
+
+
 class WorkerError(Exception):
-    def __init__(self, code: str) -> None:
+    def __init__(self, code: str, messages: dict[str, str] | None = None) -> None:
         self.code = code
-        super().__init__(MESSAGES.get(code, MESSAGES["unreadable"]))
+        found = (messages or {}).get(code) or MESSAGES.get(code, MESSAGES["unreadable"])
+        super().__init__(found)
 
 
 def worker_env() -> dict[str, str]:
@@ -257,6 +278,44 @@ def render(pdf: os.PathLike[str] | str, page: int, width: int) -> bytes:
     if len(image) > OUTPUT_BYTES or image[:4] != b"RIFF" or image[8:12] != b"WEBP":
         raise WorkerError("unreadable")
     return image
+
+
+def _for_workbook(error: WorkerError) -> WorkerError:
+    return WorkerError(error.code, WORKBOOK_MESSAGES)
+
+
+def inspect_xlsx(workbook: os.PathLike[str] | str) -> dict[str, Any]:
+    """The names of an Excel workbook's visible sheets, read in a confined worker."""
+    try:
+        output = run(workbook, "inspect-xlsx", timeout=INSPECT_TIMEOUT)
+        facts: dict[str, Any] = json.loads(output.decode("utf-8").strip())
+        sheets = facts.get("sheets")
+        if (
+            not isinstance(sheets, list)
+            or not sheets
+            or not all(isinstance(n, str) for n in sheets)
+        ):
+            raise ValueError("inconsistent")
+    except WorkerError as error:
+        raise _for_workbook(error) from error
+    except (UnicodeDecodeError, ValueError, AttributeError) as error:
+        raise WorkerError("unreadable", WORKBOOK_MESSAGES) from error
+    return facts
+
+
+def stamp_xlsx(
+    workbook: os.PathLike[str] | str, *, email: str, date: str, ref: str, limit: int
+) -> bytes:
+    """The workbook with its properties naming the reader, from a confined worker."""
+    try:
+        stamped = run(
+            workbook, "stamp-xlsx", email, date, ref, timeout=INSPECT_TIMEOUT, limit=limit
+        )
+    except WorkerError as error:
+        raise _for_workbook(error) from error
+    if len(stamped) > limit or not stamped.startswith(b"PK\x03\x04"):
+        raise WorkerError("unreadable", WORKBOOK_MESSAGES)
+    return stamped
 
 
 def confinement() -> str:
