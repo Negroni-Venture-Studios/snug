@@ -3,6 +3,9 @@
 A link points at a document and always shows its latest ready version;
 analytics record which version was read. Originals are stored under a
 generated name, never the name they were uploaded with.
+
+A document is a PDF, read page by page, or an Excel workbook (decided
+9 November 2026), shared for download only. Its versions are all one kind.
 """
 
 import secrets
@@ -17,8 +20,8 @@ def new_token() -> str:
     return secrets.token_urlsafe(16)
 
 
-def new_stored_name() -> str:
-    return f"{uuid.uuid4().hex}.pdf"
+def new_stored_name(extension: str = "pdf") -> str:
+    return f"{uuid.uuid4().hex}.{extension}"
 
 
 class Document(models.Model):
@@ -44,6 +47,10 @@ class DocumentVersion(models.Model):
         READY = "ready", "Ready"
         FAILED = "failed", "Failed"
 
+    class Kind(models.TextChoices):
+        PDF = "pdf", "PDF"
+        XLSX = "xlsx", "Excel workbook"
+
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="versions")
     number = models.PositiveIntegerField()
     # The file's name on disk: generated, never derived from the upload.
@@ -57,6 +64,9 @@ class DocumentVersion(models.Model):
     page_count = models.PositiveIntegerField()
     # [[width, height], ...] in PDF points, one pair per page.
     page_sizes = models.JSONField(default=list)
+    kind = models.CharField(max_length=4, choices=Kind.choices, default=Kind.PDF)
+    # A workbook's visible sheets, in order; hidden sheets are never listed.
+    sheets = models.JSONField(default=list)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.READY)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     uploaded_by = models.ForeignKey(
@@ -71,3 +81,15 @@ class DocumentVersion(models.Model):
 
     def __str__(self) -> str:
         return f"{self.document} v{self.number}"
+
+    @property
+    def is_workbook(self) -> bool:
+        return self.kind == self.Kind.XLSX
+
+    @property
+    def describe(self) -> str:
+        """For admins and investors: "12 pages", or "Excel workbook, 3 sheets"."""
+        if self.is_workbook:
+            count = len(self.sheets)
+            return f"Excel workbook, {count} sheet{'' if count == 1 else 's'}"
+        return f"{self.page_count} page{'' if self.page_count == 1 else 's'}"

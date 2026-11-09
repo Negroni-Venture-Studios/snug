@@ -1,7 +1,7 @@
 {% if documents %}
 <ul class="room-documents">
   {% for document in documents %}
-  <li><a href="{{ document.url }}">{{ document.title }}</a><span class="meta">{% if document.pages %}{{ document.pages }} page{{ document.pages|pluralize }}, updated {{ document.updated|date:"j M Y" }}{% else %}Not ready yet{% endif %}</span></li>
+  <li><a href="{{ document.url }}">{{ document.title }}</a><span class="meta">{% if document.describe %}{{ document.describe }}, updated {{ document.updated|date:"j M Y" }}{% else %}Not ready yet{% endif %}</span></li>
   {% endfor %}
 </ul>
 {% endif %}

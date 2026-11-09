@@ -140,6 +140,13 @@ def link_new_room(request: HttpRequest, room_token: str) -> HttpResponse:
     return _new_link(request, target, room=room, tab="rooms")
 
 
+def _download_kind(document: Document | None, room: Room | None) -> str:
+    if room is not None:
+        return "room"
+    latest = document.latest_version() if document is not None else None
+    return "workbook" if latest is not None and latest.is_workbook else "pdf"
+
+
 def _new_link(
     request: HttpRequest,
     target: dict[str, str],
@@ -155,6 +162,8 @@ def _new_link(
         "nda": nda_terms.current(),
         "email_enabled": mail.enabled(),
         "values": {"require_verification": True, "allow_download": True},
+        # What a download is, which depends on what is shared.
+        "download_kind": _download_kind(document, room),
     }
     if request.method == "GET":
         return render(request, "links/new.html", context)

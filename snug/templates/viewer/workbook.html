@@ -1,0 +1,21 @@
+{% extends "viewer/base.html" %}
+{% load snug %}
+{% block title %}{{ title }}{% endblock %}
+{% block tools %}{% if room_url %}<a class="btn btn-quiet" href="{{ room_url }}">{% icon "caret-left" %}{{ link.room.name }}</a>{% endif %}<span class="doc">{{ title }}</span>{% endblock %}
+{% block main %}
+<div class="gate-grid">
+  <div class="gate workbook">
+    <h1>{{ title }}</h1>
+    <p class="lede">An Excel workbook, {{ version.size_bytes|filesizeformat }}, updated {{ version.uploaded_at|date:"j M Y" }}.</p>
+    <h2 class="sheets-title">Sheets</h2>
+    <ul class="sheet-list">{% for name in version.sheets %}<li>{{ name }}</li>{% endfor %}</ul>
+    {% if download_url %}
+    <a class="btn btn-brand" href="{{ download_url }}">{% icon "download-simple" %}Download the workbook</a>
+    <p class="hint">Your copy names you, the date and this link in its document properties.</p>
+    {% else %}
+    <p class="lede">Downloads are turned off for this link, and a workbook can only be read by downloading it. Ask the person who sent the link for a copy.</p>
+    {% endif %}
+  </div>
+  {% include "viewer/_about.html" %}
+</div>
+{% endblock %}

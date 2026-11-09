@@ -25,7 +25,10 @@ def people(request: HttpRequest) -> HttpResponse:
                 {
                     "title": read.title,
                     "token": read.token,
-                    "strip": charts.strip(read.seconds, read.seen, f"{person.email}, {read.title}"),
+                    # A spreadsheet has no pages: it is downloaded, not read.
+                    "strip": charts.strip(read.seconds, read.seen, f"{person.email}, {read.title}")
+                    if read.pages
+                    else "Spreadsheet, downloaded rather than read",
                     "visits": read.visits,
                     "downloads": read.downloads,
                     "total": charts.duration(read.total_seconds),

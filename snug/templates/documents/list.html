@@ -4,7 +4,7 @@
 {% block content %}
 <div class="title-row">
   <div><h1 class="page-title">Documents</h1></div>
-  {% if rows %}<div class="actions"><a class="btn btn-primary" href="{% url 'documents:new' %}">{% icon "upload-simple" %}Upload a PDF</a></div>{% endif %}
+  {% if rows %}<div class="actions"><a class="btn btn-primary" href="{% url 'documents:new' %}">{% icon "upload-simple" %}Upload a document</a></div>{% endif %}
 </div>
 {% if rows %}
 <div class="rows doc-rows">
@@ -12,7 +12,7 @@
   <div class="item">
     <div class="who"><a class="email" href="{% url 'documents:detail' document.token %}">{{ document.title }}</a><span class="note">{{ latest.original_filename|default:"No readable version" }}</span></div>
     <span class="muted num">{% if latest %}Version {{ latest.number }}{% endif %}</span>
-    <span class="muted num">{% if latest %}{{ latest.page_count }} page{{ latest.page_count|pluralize }}{% endif %}</span>
+    <span class="muted num">{% if latest %}{{ latest.describe }}{% endif %}</span>
     <span class="r muted num">{% if latest %}{{ latest.uploaded_at|date:"j M Y" }}{% endif %}</span>
   </div>
   {% endfor %}
@@ -20,8 +20,8 @@
 {% else %}
 <div class="empty">
   <h2>No documents yet</h2>
-  <p>Upload a PDF to get started. Export decks, spreadsheets and drawings to PDF first.</p>
-  <p class="empty-action"><a class="btn btn-primary" href="{% url 'documents:new' %}">{% icon "upload-simple" %}Upload a PDF</a></p>
+  <p>Upload a PDF or an Excel workbook to get started. Export anything else to PDF first.</p>
+  <p class="empty-action"><a class="btn btn-primary" href="{% url 'documents:new' %}">{% icon "upload-simple" %}Upload a document</a></p>
 </div>
 {% endif %}
 {% endblock %}
