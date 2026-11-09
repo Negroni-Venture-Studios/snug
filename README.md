@@ -10,7 +10,7 @@ Snug is a self-hosted data room for early-stage founders. You run it on your own
 
 - Each investor gets their own link, and proves they can read the inbox it was sent to.
 - You can see who opened what, page by page, and revoke a link at any time.
-- Every page shows the reader's email address as a watermark, and every download is stamped with it.
+- Their email address is watermarked on each page they read and on any copy they download.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/hero-dark.png">
