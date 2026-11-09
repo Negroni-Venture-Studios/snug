@@ -202,8 +202,18 @@ def hero(
 
 
 def save(image: Image.Image, path: Path) -> None:
-    """A PNG, made smaller by reducing to 256 colours, which UI screenshots barely need."""
+    """A PNG, made smaller by reducing to 256 colours, which UI screenshots barely need.
+
+    The quantiser would merge the clear background with the faintest shadow and
+    leave a faint box around the window, so clear pixels get a palette entry of
+    their own.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    image.quantize(colors=256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE).save(
-        path, optimize=True
-    )
+    rgba = image.convert("RGBA")
+    reduced = rgba.quantize(colors=255, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
+    palette = reduced.getpalette(rawmode="RGBA") or []
+    palette = [*(palette + [0, 0, 0, 0] * 256)[: 255 * 4], 0, 0, 0, 0]
+    reduced.putpalette(palette, rawmode="RGBA")
+    clear = rgba.getchannel("A").point(lambda a: 255 if a == 0 else 0)
+    reduced.paste(255, mask=clear)
+    reduced.save(path, optimize=True)
