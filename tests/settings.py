@@ -20,7 +20,7 @@ os.environ.pop("SNUG_HTTPS", None)
 if _E2E:
     os.environ["SNUG_HTTPS"] = "false"
 os.environ.pop("SNUG_DEBUG", None)
-# The PDF worker refuses to run unconfined. Landlock is Linux only, so tests on
+# The document worker refuses to run unconfined. Landlock is Linux only, so tests on
 # a developer's Mac opt in; on Linux, as in CI, the real confinement is tested.
 os.environ.pop("SNUG_UNSAFE_UNCONFINED_RENDERING", None)
 if sys.platform != "linux":

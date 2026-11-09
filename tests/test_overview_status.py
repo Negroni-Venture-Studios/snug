@@ -1,7 +1,7 @@
 """The Overview's status line: any problem `snug doctor` would report, without a command.
 
 Housekeeping, the backups and whether email is set up are read live. The
-slower checks (the PDF worker, DNS and HTTPS) are run by housekeeping every
+slower checks (the document worker, DNS and HTTPS) are run by housekeeping every
 hour and stored, and a failed email is recorded when it fails.
 """
 

@@ -26,6 +26,9 @@ MAX_VIDEO_MB_CEILING = 8192
 DEFAULT_VIEWER_SESSION_DAYS = 7
 MAX_VIEWER_SESSION_DAYS = 90
 SMTP_SECURITY = ("starttls", "tls", "none")
+# The ports mail providers accept submissions on, for snug.env and Settings alike;
+# anything else could aim Snug's SMTP client at some other service. See snug.core.mail.
+SMTP_PORTS = (25, 465, 587, 2465, 2525, 2587)
 _EMAIL = re.compile(r"^[^@\s<>]+@[^@\s<>]+\.[^@\s<>]+$")
 
 IPNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
@@ -206,6 +209,11 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
             smtp_port = int(raw_port)
         else:
             problems.append(f"SNUG_SMTP_PORT must be a port number, not {raw_port!r}.")
+    if smtp_host and domain != "localhost" and smtp_port not in SMTP_PORTS:
+        problems.append(
+            f"SNUG_SMTP_PORT must be {', '.join(map(str, SMTP_PORTS[:-1]))} or "
+            f"{SMTP_PORTS[-1]}, not {smtp_port}."
+        )
     if smtp_security not in SMTP_SECURITY:
         problems.append(f"SNUG_SMTP_SECURITY must be starttls, tls or none, not {smtp_security!r}.")
     if smtp_host and not email_from:

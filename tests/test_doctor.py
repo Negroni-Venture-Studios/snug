@@ -1,6 +1,6 @@
 """`snug doctor`: checks an operator runs on the server, each saying what is wrong.
 
-It checks housekeeping, the backups, the PDF worker's confinement, the
+It checks housekeeping, the backups, the document worker's confinement, the
 domain's DNS and certificate, and email, by sending a code the operator types
 back. Each check is a function returning a Finding, so the Overview can show
 the same results.

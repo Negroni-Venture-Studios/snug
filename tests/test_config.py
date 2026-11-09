@@ -220,6 +220,27 @@ def test_bad_email_settings_are_refused(extra: dict[str, str], message: str) -> 
     assert any(message in p for p in found), found
 
 
+SMTP = {**GOOD, "SNUG_SMTP_HOST": "smtp.example.com", "SNUG_EMAIL_FROM": "a@b.example"}
+
+
+@pytest.mark.parametrize("port", ["25", "465", "587", "2465", "2525", "2587"])
+def test_the_smtp_ports_settings_allows_are_allowed_in_snug_env(port: str) -> None:
+    assert load_config({**SMTP, "SNUG_SMTP_PORT": port}).smtp_port == int(port)
+
+
+def test_snug_env_is_held_to_the_same_smtp_ports_as_settings() -> None:
+    """Found in review, 9 November 2026: only the Settings form checked the port."""
+    found = problems({**SMTP, "SNUG_SMTP_PORT": "8025"})
+    assert any(
+        "SNUG_SMTP_PORT must be 25, 465, 587, 2465, 2525 or 2587, not 8025" in p for p in found
+    ), found
+
+
+def test_a_local_copy_may_use_any_smtp_port() -> None:
+    local = {**SMTP, "SNUG_DOMAIN": "localhost", "SNUG_HTTPS": "false", "SNUG_SMTP_PORT": "1025"}
+    assert load_config(local).smtp_port == 1025
+
+
 def test_viewer_sessions_last_seven_days_by_default() -> None:
     assert load_config(GOOD).viewer_session_days == 7
     assert load_config({**GOOD, "SNUG_VIEWER_SESSION_DAYS": "30"}).viewer_session_days == 30

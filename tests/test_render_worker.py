@@ -1,4 +1,4 @@
-"""The PDF worker runs apart from Snug: limited, confined and given nothing secret."""
+"""The document worker runs apart from Snug: limited, confined and given nothing secret."""
 
 import io
 import json

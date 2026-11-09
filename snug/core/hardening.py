@@ -13,7 +13,7 @@ def make_undumpable() -> bool:
     """Mark this process non-dumpable (Linux).
 
     Its /proc entries, including its environment with the secret key, become
-    unreadable to other processes of the same user, such as a PDF worker that
+    unreadable to other processes of the same user, such as a document worker that
     a hostile file had taken over. It also turns off core dumps. Forked
     children inherit the flag; a new program started with exec does not.
     Returns True if the flag was set.
