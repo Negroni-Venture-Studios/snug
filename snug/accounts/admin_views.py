@@ -504,9 +504,20 @@ def _email_context(request: HttpRequest, form: dict[str, Any] | None) -> dict[st
         "google_connected_at": row.google_connected_at,
         "google_pending": pending["account"] if isinstance(pending, dict) else "",
         "kind": now.kind,
-        # Anything saved here, which Clear email settings would forget.
-        "saved_here": bool(
-            row.provider or row.smtp_host or row.smtp_password or row.google_client_id
+        # Anything saved here, working or not, which Clear email settings would forget.
+        "saved_here": any(
+            (
+                row.provider,
+                row.from_address,
+                row.smtp_host,
+                row.smtp_port,
+                row.smtp_username,
+                row.smtp_password,
+                row.google_client_id,
+                row.google_client_secret,
+                row.google_from_address,
+                row.google_refresh_token,
+            )
         ),
         "fallback": _email_fallback(),
         "source": now.source,

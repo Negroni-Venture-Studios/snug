@@ -6,7 +6,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
-- *Clear email settings*, under the sentence in Settings that says how Snug sends email, forgets the Google client and mailbox or the SMTP details, and withdraws Snug's permission at Google. It needs a fresh code, and every admin is told first. Email then falls back to `snug.env`, or is off.
+- *Clear email settings*, under the choice of provider in Settings and shown whenever anything is saved, forgets the Google client and mailbox or the SMTP details, and withdraws Snug's permission at Google. It needs a fresh code, and every admin is told first. Email then falls back to `snug.env`, or is off.
 - Settings links each section that has a guide to it, under its heading: admin accounts, email (the Google Workspace or SMTP guide, following the choice of provider) and the NDA. The guides open in a new tab, so a half-filled form is not lost.
 
 ### Security
