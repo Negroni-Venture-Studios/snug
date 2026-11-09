@@ -32,8 +32,10 @@ CORE_PART = "docProps/core.xml"
 CUSTOM_PART = "docProps/custom.xml"
 
 MAIN = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"
-# A content type or relationship naming any of these is code Excel could run.
-CODE_WORDS = ("macroenabled", "vbaproject", "activex", "vbadata")
+# A content type or relationship naming any of these is code Excel could run:
+# VBA projects, Excel 4.0 macro sheets (and their international form),
+# ActiveX controls, and embedded OLE objects. A real model needs none of them.
+CODE_WORDS = ("macroenabled", "vbaproject", "vbadata", "macrosheet", "activex", "oleobject")
 REL_DOC = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
 CORE_TYPE = "application/vnd.openxmlformats-package.core-properties+xml"
 CUSTOM_TYPE = "application/vnd.openxmlformats-officedocument.custom-properties+xml"
@@ -140,15 +142,26 @@ def _workbook_part(package: zipfile.ZipFile) -> str:
     defaults: dict[str, str] = {}
     for entry in _xml(package, CONTENT_TYPES):
         kind = entry.get("ContentType", "").casefold()
-        if entry.tag == f"{{{NS_TYPES}}}Override":
-            overrides[entry.get("PartName", "").lstrip("/").casefold()] = kind
-        elif entry.tag == f"{{{NS_TYPES}}}Default":
-            defaults[entry.get("Extension", "").casefold()] = kind
-    for kind in (*overrides.values(), *defaults.values()):
+        # Each type is checked as it is read, so no later entry can hide it.
         if any(word in kind for word in CODE_WORDS):
             raise Refused("macros")
+        if entry.tag == f"{{{NS_TYPES}}}Override":
+            table, key = overrides, entry.get("PartName", "").lstrip("/").casefold()
+        elif entry.tag == f"{{{NS_TYPES}}}Default":
+            table, key = defaults, entry.get("Extension", "").casefold()
+        else:
+            continue
+        if key in table:  # typed twice: two readers could believe different types
+            raise Refused("not_xlsx")
+        table[key] = kind
     if any(name.endswith("vbaproject.bin") for name in folded):
         raise Refused("macros")
+    # Every part's relationships, not only the workbook's: a sheet can link to code too.
+    for name in names:
+        if name.casefold().endswith(".rels"):
+            for relation in _xml(package, name).iter(f"{{{NS_RELS}}}Relationship"):
+                if any(word in relation.get("Type", "").casefold() for word in CODE_WORDS):
+                    raise Refused("macros")
 
     targets = [
         relation.get("Target", "")
@@ -163,14 +176,6 @@ def _workbook_part(package: zipfile.ZipFile) -> str:
         raise Refused("not_xlsx")
     part = names[folded.index(main)]
 
-    folder, _, base = part.rpartition("/")
-    rels = f"{folder}/_rels/{base}.rels" if folder else f"_rels/{base}.rels"
-    if rels.casefold() in folded:
-        for relation in _xml(package, names[folded.index(rels.casefold())]).iter(
-            f"{{{NS_RELS}}}Relationship"
-        ):
-            if any(word in relation.get("Type", "").casefold() for word in CODE_WORDS):
-                raise Refused("macros")
     return part
 
 

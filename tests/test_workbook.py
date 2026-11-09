@@ -144,6 +144,57 @@ def test_macro_code_is_refused_however_it_is_typed(addition: str) -> None:
     assert refused.value.code == "macros"
 
 
+@pytest.mark.parametrize(
+    "addition",
+    [
+        # A later, harmless entry for the same part must not paper over the first.
+        '<Override PartName="/xl/code.bin" ContentType="application/vnd.ms-office.vbaProject"/>'
+        '<Override PartName="/XL/code.bin" ContentType="application/octet-stream"/>',
+        '<Default Extension="bin" ContentType="application/vnd.ms-office.vbaProject"/>'
+        '<Default Extension="BIN" ContentType="application/octet-stream"/>',
+    ],
+)
+def test_a_part_or_extension_typed_twice_is_refused(addition: str) -> None:
+    plain = make_xlsx()
+    types = _types(plain).replace("</Types>", addition + "</Types>")
+    with pytest.raises(workbook.Refused):
+        workbook.inspect(rebuilt(plain, {"[Content_Types].xml": types.encode()}))
+
+
+@pytest.mark.parametrize(
+    "addition",
+    [
+        '<Override PartName="/xl/macrosheets/sheet1.xml" '
+        'ContentType="application/vnd.ms-excel.macrosheet+xml"/>',
+        '<Override PartName="/xl/macrosheets/intl1.xml" '
+        'ContentType="application/vnd.ms-excel.intlmacrosheet+xml"/>',
+        '<Default Extension="bin" '
+        'ContentType="application/vnd.openxmlformats-officedocument.oleObject"/>',
+    ],
+)
+def test_excel_4_macro_sheets_and_embedded_ole_objects_are_refused(addition: str) -> None:
+    plain = make_xlsx()
+    types = _types(plain).replace("</Types>", addition + "</Types>")
+    with pytest.raises(workbook.Refused) as refused:
+        workbook.inspect(rebuilt(plain, {"[Content_Types].xml": types.encode()}))
+    assert refused.value.code == "macros"
+
+
+def test_macro_code_linked_from_any_part_is_refused() -> None:
+    """Not only the workbook's own relationships: a sheet's, too."""
+    plain = make_xlsx()
+    rels = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/'
+        'relationships/oleObject" Target="../embeddings/thing.bin"/></Relationships>'
+    )
+    hostile = rebuilt(plain, {}, also=(("xl/worksheets/_rels/sheet1.xml.rels", rels.encode()),))
+    with pytest.raises(workbook.Refused) as refused:
+        workbook.inspect(hostile)
+    assert refused.value.code == "macros"
+
+
 def test_a_workbook_that_links_to_macro_code_is_refused() -> None:
     plain = make_xlsx()
     rels = (
