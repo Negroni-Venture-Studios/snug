@@ -137,10 +137,11 @@ def test_the_transport_sends_through_the_saved_smtp_server(monkeypatch: pytest.M
             made["sent"] = len(messages)
             return len(messages)
 
-    monkeypatch.setattr("snug.core.email_backend.SmtpBackend", FakeSmtp)
+    monkeypatch.setattr("snug.core.email_backend._PinnedSmtpBackend", FakeSmtp)
     message = EmailMessage("Hi", "Body", "rooms@fernlea.example", ["priya@northfield.example"])
     assert EmailBackend().send_messages([message]) == 1
     assert made["host"] == "smtp.postmark.example"
+    assert made["address"] == "93.184.216.34"  # the address that was checked
     assert made["port"] == 465
     assert made["username"] == "token-user"
     assert made["password"] == "s3cret-pa$$word"
@@ -364,7 +365,21 @@ def test_every_admin_is_told_through_the_old_settings(client: Client) -> None:
     assert "smtp.postmark.example" in alerts[0].body
 
 
-@pytest.mark.parametrize("address", ["10.0.0.5", "127.0.0.1", "169.254.169.254", "fd00::1", "::1"])
+@pytest.mark.parametrize(
+    "address",
+    [
+        "10.0.0.5",
+        "127.0.0.1",
+        "169.254.169.254",
+        "fd00::1",
+        "::1",
+        "::ffff:10.0.0.1",  # IPv4-mapped
+        "64:ff9b::a00:1",  # NAT64, which Python counts as global
+        "64:ff9b:1::a00:1",  # local-use NAT64
+        "2002:a00:1::",  # 6to4
+        "2001:0:4136:e378:8000:63bf:f5ff:fffe",  # Teredo
+    ],
+)
 def test_a_private_server_is_refused(
     client: Client, public_servers: dict[str, list[str]], address: str
 ) -> None:
@@ -415,3 +430,51 @@ def test_test_emails_are_limited(client: Client) -> None:
         client.post("/admin/settings/email/test", secure=True).status_code for _ in range(6)
     ]
     assert statuses == [302] * 5 + [429]
+
+
+def test_the_code_is_checked_before_any_dns_lookup(
+    client: Client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Otherwise a stolen session could learn which internal names exist, codeless."""
+
+    def lookup(host: str, port: int) -> list[str]:
+        raise AssertionError("looked up before the code was checked")
+
+    monkeypatch.setattr(mail, "_addresses", lookup)
+    response = save(client, code="000000")
+    assert response.status_code == 400
+    assert 'id="email-code-error"' in response.content.decode()
+
+
+def test_the_connection_goes_to_the_address_that_was_checked(
+    public_servers: dict[str, list[str]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Not to whatever the name resolves to a moment later (DNS rebinding)."""
+    import socket
+
+    from snug.core import email_backend
+
+    config(domain="room.fernlea.example", smtp_host="")
+    public_servers["smtp.postmark.example"] = ["93.184.216.34"]
+    reached: list[tuple[str, int]] = []
+
+    def connect(target: tuple[str, int], *args: Any, **kwargs: Any) -> Any:
+        reached.append(target)
+        raise ConnectionRefusedError
+
+    monkeypatch.setattr(socket, "create_connection", connect)
+    for security in ("starttls", "tls"):
+        backend = email_backend._PinnedSmtpBackend(
+            address="93.184.216.34",
+            host="smtp.postmark.example",
+            port=2525,
+            username="",
+            password="",
+            use_tls=security == "starttls",
+            use_ssl=security == "tls",
+            timeout=5,
+            alias="default",
+        )
+        with pytest.raises(ConnectionRefusedError):
+            backend.connection_class("smtp.postmark.example", 2525, timeout=5)
+    assert reached == [("93.184.216.34", 2525), ("93.184.216.34", 2525)]

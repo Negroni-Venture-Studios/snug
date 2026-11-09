@@ -4,7 +4,9 @@ Settings saved in the admin interface take effect at once, without a
 restart. snug.core.mail.outgoing says which settings are in force.
 """
 
+import smtplib
 from collections.abc import Sequence
+from typing import Any
 
 from django.conf import settings
 from django.core.mail import EmailMessage
@@ -13,6 +15,30 @@ from django.core.mail.backends.filebased import EmailBackend as FileBackend
 from django.core.mail.backends.smtp import EmailBackend as SmtpBackend
 
 from snug.core import mail
+
+
+class _PinnedSmtpBackend(SmtpBackend):
+    """Django's SMTP backend, connecting to one checked address.
+
+    smtplib opens its socket in _get_socket(host, ...), and keeps the server's
+    name apart, for TLS: STARTTLS and SMTP_SSL both check the certificate
+    against that name. Only the address the socket connects to changes.
+    """
+
+    def __init__(self, *, address: str, **options: Any) -> None:
+        super().__init__(**options)
+        self._address = address
+
+    @property
+    def connection_class(self) -> type[smtplib.SMTP]:
+        base = smtplib.SMTP_SSL if self.use_ssl else smtplib.SMTP
+        address = self._address
+
+        class Pinned(base):  # type: ignore[valid-type, misc]
+            def _get_socket(self, host: str, port: int, timeout: float) -> Any:
+                return super()._get_socket(address, port, timeout)
+
+        return Pinned
 
 
 class EmailBackend(BaseEmailBackend):
@@ -29,10 +55,11 @@ class EmailBackend(BaseEmailBackend):
         if now.kind == "smtp":
             # Checked again here, in case the server's DNS has changed since it
             # was saved, and for the settings in snug.env, which nothing checks.
-            refused = mail.public_server(now.host, now.port)
+            refused, address = mail.vetted(now.host, now.port)
             if refused:
                 raise mail.UnsafeServerError(f"The SMTP server is {refused}.")
-            backend: BaseEmailBackend = SmtpBackend(
+            backend: BaseEmailBackend = _PinnedSmtpBackend(
+                address=address,
                 host=now.host,
                 port=now.port,
                 username=now.username,

@@ -77,23 +77,51 @@ def _addresses(host: str, port: int) -> list[str]:
     return [str(info[4][0]) for info in socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)]
 
 
-def public_server(host: str, port: int = 587) -> str:
-    """ "" if Snug may connect to this SMTP server; otherwise "private" or "unknown".
+# IPv6 ranges that carry an IPv4 address inside, which Python's is_global can
+# pass while the IPv4 address within is private: NAT64 (global, and local-use),
+# 6to4 and Teredo. Refused outright.
+_TRANSLATED = tuple(
+    ipaddress.ip_network(network)
+    for network in ("64:ff9b::/96", "64:ff9b:1::/48", "2002::/16", "2001::/32")
+)
 
-    A stolen admin session could otherwise aim Snug at a service on the server's
-    own network, or at the cloud provider's metadata address. On localhost,
-    for development, anything goes.
+
+def _allowed(address: str) -> bool:
+    ip = ipaddress.ip_address(address.split("%", 1)[0])
+    if isinstance(ip, ipaddress.IPv6Address):
+        if ip.ipv4_mapped is not None:
+            return _allowed(str(ip.ipv4_mapped))
+        if any(ip in network for network in _TRANSLATED):
+            return False
+    return ip.is_global
+
+
+def vetted(host: str, port: int = 587) -> tuple[str, str]:
+    """Whether Snug may connect to this SMTP server, and the address to connect to.
+
+    Returns ("", address) if allowed, else ("private", "") or ("unknown", "").
+    A stolen admin session could otherwise aim Snug at a service on the
+    server's own network, or at the cloud provider's metadata address. The
+    transport connects to the address checked here, so a name that resolves
+    differently a moment later cannot slip past (DNS rebinding). On
+    localhost, for development, anything goes.
     """
     if settings.CONFIG.domain == "localhost":
-        return ""
+        return "", host
     try:
         found = _addresses(host, port)
-    except (OSError, UnicodeError):
-        return "unknown"
-    for address in found:
-        if not ipaddress.ip_address(address.split("%", 1)[0]).is_global:
-            return "private"
-    return "" if found else "unknown"
+    except (OSError, UnicodeError, ValueError):
+        return "unknown", ""
+    if not found:
+        return "unknown", ""
+    if not all(_allowed(address) for address in found):
+        return "private", ""
+    return "", found[0].split("%", 1)[0]
+
+
+def public_server(host: str, port: int = 587) -> str:
+    """ "" if Snug may connect to this SMTP server; otherwise "private" or "unknown"."""
+    return vetted(host, port)[0]
 
 
 def enabled() -> bool:

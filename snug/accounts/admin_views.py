@@ -437,26 +437,26 @@ def email_view(request: HttpRequest) -> HttpResponse:
         errors["smtp_port"] = "Use port 25, 465, 587 or 2525."
     if not values["smtp_host"]:
         errors["smtp_host"] = "Enter your provider's SMTP server, like smtp.postmarkapp.com."
-    else:
-        where = mail.public_server(
-            values["smtp_host"], int(port) if "smtp_port" not in errors else 587
-        )
-        if where == "private":
-            errors["smtp_host"] = (
-                "That server is on a private network. Snug sends only through public mail servers."
-            )
-        elif where:
-            errors["smtp_host"] = "That server cannot be found. Check its name."
     if values["smtp_security"] not in ("starttls", "tls"):
         errors["smtp_security"] = (
             "Choose STARTTLS or TLS. Email must never cross the internet unencrypted."
         )
     if not errors:
         # Email carries codes and reset links: changing where it goes is
-        # confirmed like any change to the admins.
+        # confirmed like any change to the admins. Checked before the server's
+        # name is looked up, so nobody without a code learns which names exist.
         refused = _confirmed(request, "email")
         if refused:
             errors["code"] = refused
+        else:
+            where = mail.public_server(values["smtp_host"], int(port))
+            if where == "private":
+                errors["smtp_host"] = (
+                    "That server is on a private network. "
+                    "Snug sends only through public mail servers."
+                )
+            elif where:
+                errors["smtp_host"] = "That server cannot be found. Check its name."
     if errors:
         form = {"values": values, "errors": errors}
         status = 429 if errors.get("code") == TOO_MANY else 400
