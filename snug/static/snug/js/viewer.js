@@ -17,8 +17,9 @@
 
   // Reading time: a heartbeat while the tab is visible, "end" when it is
   // hidden or closed, "resume" when it is shown again. Snug measures the time
-  // itself; these only say when the page was really in view.
-  var reader = document.querySelector('.reader[data-visit]');
+  // itself; these only say when the page was really in view. A workbook's card
+  // counts as its one page.
+  var reader = document.querySelector('[data-visit][data-page]');
   if (reader && navigator.sendBeacon) {
     var token = reader.querySelector('input[name="csrfmiddlewaretoken"]');
     var send = function (kind) {

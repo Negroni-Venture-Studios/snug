@@ -25,12 +25,13 @@ def people(request: HttpRequest) -> HttpResponse:
                 {
                     "title": read.title,
                     "token": read.token,
-                    # A spreadsheet has no pages to shade.
                     "strip": charts.strip(
-                        read.seconds, read.seen, f"{person.email}, {read.title}", video=read.video
-                    )
-                    if read.pages
-                    else "Spreadsheet",
+                        read.seconds,
+                        read.seen,
+                        f"{person.email}, {read.title}",
+                        video=read.video,
+                        workbook=read.workbook,
+                    ),
                     "visits": read.visits,
                     "downloads": read.downloads,
                     "total": charts.duration(read.total_seconds),

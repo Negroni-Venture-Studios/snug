@@ -47,21 +47,32 @@ def heat(seconds: float, *, seen: bool) -> int:
     return 2 if seconds <= 45 else 3 if seconds <= 90 else 4
 
 
-def strip(seconds: list[float], seen: list[bool], email: str, *, video: bool = False) -> SafeString:
+def strip(
+    seconds: list[float],
+    seen: list[bool],
+    email: str,
+    *,
+    video: bool = False,
+    workbook: bool = False,
+) -> SafeString:
     width = _width(len(seconds))
     count = sum(seen)
-    what = (
-        f"watched {count} of {len(seconds)} parts"
-        if video
-        else f"saw {count} of {len(seconds)} pages"
-    )
+    if workbook:
+        what = f"had the workbook's page open for {duration(sum(seconds))}"
+    elif video:
+        what = f"watched {count} of {len(seconds)} parts"
+    else:
+        what = f"saw {count} of {len(seconds)} pages"
     parts = [
         f'<svg class="strip" viewBox="0 0 {width} 16" preserveAspectRatio="none" role="img" '
         f'aria-label="{escape(email)}: {what}">'
     ]
     for i, (secs, was_seen) in enumerate(zip(seconds, seen, strict=True)):
         name = label(i, video=video)
-        tip = f"{name}: {duration(secs)}" if was_seen else f"{name}: not seen"
+        if workbook:
+            tip = f"Page open for {duration(secs)}"
+        else:
+            tip = f"{name}: {duration(secs)}" if was_seen else f"{name}: not seen"
         parts.append(
             f'<rect class="h{heat(secs, seen=was_seen)}" x="{i * SLOT + 1}" y="0" '
             f'width="{SLOT - 2}" height="16" rx="2"><title>{tip}</title></rect>'
