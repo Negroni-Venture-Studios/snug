@@ -300,3 +300,54 @@ def test_a_workbook_is_uploaded_shared_and_downloaded(
     names = {p.get("name"): "".join(p.itertext()) for p in properties}
     assert names["Shared with"] == "priya@northfield.example"
     investor.close()
+
+
+@pytest.mark.parametrize("width", [1440, 1100])
+def test_every_row_list_keeps_its_columns(
+    live_server: Any, page: Page, data_folder: Any, width: int
+) -> None:
+    """A row without buttons (a revoked link), or with longer text, keeps the others' columns."""
+    from snug.documents import ingest
+    from snug.documents.models import Document
+    from snug.links import service
+    from snug.rooms.models import Room, RoomDocument
+    from tests.pdfs import chunks, make_pdf
+
+    deck = Document.objects.create(title="Seed deck")
+    ingest.ingest(deck, chunks(make_pdf((960, 540))), filename="deck.pdf", uploaded_by=None)
+    many = make_pdf(*[(960, 540)] * 12)
+    ingest.ingest(deck, chunks(many), filename="deck v2.pdf", uploaded_by=None)
+    fields: dict[str, Any] = {
+        "note": "",
+        "expires_at": None,
+        "require_verification": True,
+        "allow_download": True,
+        "created_by": None,
+    }
+    service.create(document=deck, email="sam@eastgate.example", **fields)
+    gone = service.create(document=deck, email="flow-check@northfield.example", **fields)
+    service.revoke(gone.link, by=None)
+    room = Room.objects.create(name="Series A data room")
+    model = Document.objects.create(title="Financial model with a much longer title")
+    ingest.ingest(model, chunks(make_pdf((960, 540))), filename="model.pdf", uploaded_by=None)
+    RoomDocument.objects.create(room=room, document=deck)
+    RoomDocument.objects.create(room=room, document=model)
+
+    sign_in(live_server, page)
+    page.set_viewport_size({"width": width, "height": 900})
+    for path, rows in (
+        ("links/", ".link-rows .item"),
+        (f"rooms/{room.token}", ".room-rows .item"),
+        (f"documents/{deck.token}", ".version-rows .item"),
+    ):
+        page.goto(f"{live_server.url}/admin/{path}")
+        lefts = page.evaluate(
+            """(selector) => [...document.querySelectorAll(selector)].map(row =>
+                [...row.children].map(cell => Math.round(cell.getBoundingClientRect().x)))""",
+            rows,
+        )
+        assert len(lefts) >= 2, (path, lefts)
+        # The second and third cells (status, details or counts) start at the same x in every row.
+        for index in (1, 2):
+            starts = {row[index] for row in lefts if len(row) > index}
+            assert len(starts) == 1, (path, index, lefts)
