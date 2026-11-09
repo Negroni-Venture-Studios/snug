@@ -181,7 +181,7 @@ def test_code_requests_are_rate_limited_per_link(browser: Client, issued: servic
 def test_past_the_cap_on_wrong_addresses_the_answer_turns_neutral(
     issued: service.Issued, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr("snug.viewer.views._in_background", lambda task: task())
+    monkeypatch.setattr("snug.core.mail.in_background", lambda task: task())
 
     # Guesses from many addresses meet a ceiling on each link. Past it, every
     # request gets the same neutral reply, so guessing learns nothing; and the
@@ -252,7 +252,7 @@ def test_in_neutral_mode_the_code_is_sent_in_the_background(
     # The reply must not wait for the email, or its timing would tell a
     # guesser that the address was right.
     started: list[Any] = []
-    monkeypatch.setattr("snug.viewer.views._in_background", started.append)
+    monkeypatch.setattr("snug.core.mail.in_background", started.append)
     response = post(Client(), path(issued, "/code/send"), {"email": INVESTOR})
     assert response.status_code == 200 and django_mail.outbox == []
     assert len(started) == 1
@@ -266,9 +266,7 @@ def test_background_sending_really_sends(issued: service.Issued) -> None:
     from snug.viewer import views
 
     via = mail.outgoing()  # read on the request thread, as the view does
-    thread = views._in_background(
-        lambda: views._send(issued.link, "123456", "Fernlea Robotics", via)
-    )
+    thread = mail.in_background(lambda: views._send(issued.link, "123456", "Fernlea Robotics", via))
     thread.join(timeout=5)
     assert [message.to for message in django_mail.outbox] == [[INVESTOR]]
 

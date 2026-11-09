@@ -10,12 +10,10 @@ configuration to make sure of it:
 """
 
 import hashlib
-import threading
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from django.db import connections
 from django.http import FileResponse, Http404, HttpRequest, HttpResponse, HttpResponseRedirect
 from django.http.response import HttpResponseBase
 from django.shortcuts import render
@@ -223,24 +221,6 @@ def _code_page(
         neutral=neutral,
     )
     return render(request, "viewer/code.html", context, status=status)
-
-
-def _in_background(task: Callable[[], object]) -> threading.Thread:
-    """Run a task without making the reply wait for it.
-
-    Sending records whether email works, so the thread closes the database
-    connection it opens.
-    """
-
-    def run() -> None:
-        try:
-            task()
-        finally:
-            connections.close_all()
-
-    thread = threading.Thread(target=run, daemon=True)
-    thread.start()
-    return thread
 
 
 def _send(link: Link, code: str, company: str, via: mail.Outgoing | None = None) -> bool:
@@ -694,7 +674,7 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
         code = codes.issue(link)
         company = company_name()
         via = mail.outgoing()
-        _in_background(lambda: _send(link, code, company, via))
+        mail.in_background(lambda: _send(link, code, company, via))
         _audit(request, "viewer.code_sent", link, link.email, background=True)
         return _code_page(request, link, token, neutral=True)
     if not _send(link, codes.issue(link), company_name()):

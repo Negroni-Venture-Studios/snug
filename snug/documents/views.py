@@ -115,7 +115,7 @@ def document_new(request: HttpRequest) -> HttpResponse:
     if not title:
         context["error"] = "Give the document a title."
     elif upload is None:
-        context["error"] = "Choose a PDF or an Excel workbook to upload."
+        context["error"] = "Choose a PDF, an Excel workbook or an MP4 video to upload."
     if "error" in context or upload is None:
         return render(request, "documents/new.html", context, status=400)
 
@@ -220,7 +220,7 @@ def version_upload(request: HttpRequest, token: str) -> HttpResponse:
     upload = _uploaded(request)
     error = None
     if upload is None:
-        error = "Choose a PDF or an Excel workbook to upload."
+        error = "Choose a PDF, an Excel workbook or an MP4 video to upload."
     else:
         try:
             _store(request, document, upload)

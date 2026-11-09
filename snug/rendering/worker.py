@@ -1,4 +1,4 @@
-"""The PDF worker: reads and renders untrusted PDFs in a separate, confined process.
+"""The document worker: reads untrusted uploads in a separate, confined process.
 
     python -I -m snug.rendering.worker inspect FD
     python -I -m snug.rendering.worker render FD PAGE WIDTH
@@ -7,8 +7,11 @@
     python -I -m snug.rendering.worker inspect-xlsx FD
     python -I -m snug.rendering.worker stamp-xlsx FD EMAIL DATE REF
     python -I -m snug.rendering.worker inspect-mp4 FD
+    python -I -m snug.rendering.worker logo FD
+    python -I -m snug.rendering.worker icon FD
+    python -I -m snug.rendering.worker confinement
 
-Snug opens the PDF and passes the open file as descriptor FD; the worker is
+Snug opens the file and passes the open file as descriptor FD; the worker is
 never given a path. `inspect` prints one line of JSON. `render` writes the
 WebP image to standard output. `stamp` reads a rendered page (as FD) and a
 font, and writes the page with the viewer's watermark: a page rendered from
@@ -19,16 +22,19 @@ the same for an Excel workbook (see snug.rendering.workbook): the sheet
 names, and the workbook with its properties naming the reader. `inspect-mp4`
 checks an MP4 video's boxes, reading them in pieces from the descriptor
 rather than whole (see snug.rendering.video), and prints its length and
-size; the video itself is never decoded. Errors print
+size; the video itself is never decoded. `logo` and `icon` redraw a branding
+image as a PNG. `confinement` reads nothing: it confines itself and reports
+how, for snug doctor. Errors print
 {"error": ...} and exit with 3.
 
-Before it touches the PDF, the worker
-  - imports everything it will need,
-  - limits its own memory, CPU time, file size and open files, and
-  - on Linux, confines itself with Landlock: from then on it cannot open any
-    file except system fonts (read-only), or make network connections.
+Before it touches the file, the worker
+  - limits its own memory, CPU time, output, open files and processes,
+  - imports everything it will need, and
+  - confines itself with Landlock, so it cannot open any file except system
+    fonts (read-only) or make TCP connections, and a seccomp filter that
+    refuses to create any socket. Without both it refuses to read anything.
 It imports no Django and no Snug settings, and its environment is empty of
-secrets, so even a PDF that took over the renderer would find nothing to take.
+secrets, so even a file that took over the code reading it would find nothing to take.
 """
 
 import codecs

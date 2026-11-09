@@ -181,7 +181,7 @@ def test_reset_2fa_replaces_the_secret_and_codes(
     assert not recovery.use(admin, old_code)
     assert recovery.remaining(admin) == 10
     assert "New authenticator and recovery codes set" in output
-    assert AuditEvent.objects.filter(action="admin.2fa_reset", target=EMAIL).count() == 1
+    assert AuditEvent.objects.filter(action="admin.second_factor_reset", target=EMAIL).count() == 1
 
 
 def test_reset_2fa_needs_confirmation(terminal: Terminal) -> None:
@@ -190,7 +190,7 @@ def test_reset_2fa_needs_confirmation(terminal: Terminal) -> None:
     output = run("reset-2fa", EMAIL)
     assert "Nothing has been changed." in output
     assert Admin.objects.get().totp_secret == SECRET
-    assert not AuditEvent.objects.filter(action="admin.2fa_reset").exists()
+    assert not AuditEvent.objects.filter(action="admin.second_factor_reset").exists()
 
 
 def test_reset_2fa_without_a_working_code_changes_nothing(terminal: Terminal) -> None:

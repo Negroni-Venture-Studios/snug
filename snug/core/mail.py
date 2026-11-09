@@ -13,6 +13,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.db import connections
 from django.utils import timezone
 
+from snug import config
 from snug.core.models import EmailSettings, SystemCheck
 
 log = logging.getLogger(__name__)
@@ -78,11 +79,10 @@ def outgoing() -> Outgoing:
     return Outgoing(kind="off")
 
 
-# The ports mail providers accept submissions on. Anything else could aim Snug's
-# SMTP client at some other service. DigitalOcean blocks 25, 465 and 587, so
-# providers listen on others too: 2525 (Mailgun, SendGrid, Postmark), and
-# 2587 and 2465 (Amazon SES, with STARTTLS and TLS).
-SMTP_PORTS = (25, 465, 587, 2465, 2525, 2587)
+# The ports mail providers accept submissions on (snug.config). DigitalOcean blocks
+# 25, 465 and 587, so providers listen on others too: 2525 (Mailgun, SendGrid,
+# Postmark), and 2587 and 2465 (Amazon SES, with STARTTLS and TLS).
+SMTP_PORTS = config.SMTP_PORTS
 PORTS_IN_WORDS = ", ".join(map(str, SMTP_PORTS[:-1])) + f" or {SMTP_PORTS[-1]}"
 
 
@@ -208,10 +208,11 @@ def _record(*, ok: bool, message: str) -> None:
         log.warning("Could not record whether email works: %s", type(error).__name__)
 
 
-def in_background(task: Callable[[], object]) -> None:
+def in_background(task: Callable[[], object]) -> threading.Thread:
     """Send without making the reply wait, so it takes as long as one that sends nothing.
 
-    The task may use the database; the thread closes its own connection after.
+    Sending records whether email works, so the task uses the database; the
+    thread closes its own connection after.
     """
 
     def run() -> None:
@@ -220,4 +221,6 @@ def in_background(task: Callable[[], object]) -> None:
         finally:
             connections.close_all()
 
-    threading.Thread(target=run, daemon=True).start()
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    return thread

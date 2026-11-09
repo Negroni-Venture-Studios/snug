@@ -10,6 +10,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- `SNUG_SMTP_PORT` in `snug.env` is held to the same ports as the email settings in Settings (25, 465, 587, 2465, 2525 or 2587), except on `localhost`. Snug refuses to start with any other, and says which ports it takes.
+- The Audit log's filter has two more kinds, *Housekeeping* and *Exports*, for the reading data housekeeping deletes and for exports of the log itself.
+- Resetting an admin's authenticator from the command line is recorded as `admin.second_factor_reset`, the same as from Settings, where it was `admin.2fa_reset`.
+- With no file chosen, the upload form asks for a PDF, an Excel workbook or an MP4 video, where it left videos out.
 - While an upload is checked, the form says *Checking the file* rather than *Checking the PDF*, since a document can now be a workbook or a video.
 - Other wording that assumed every document is a PDF now covers workbooks and videos too. `snug doctor` and the Overview call the confinement check *Document worker*, People explains that a video's strip has a cell for each 10 seconds, and the Overview counts *People who have visited*.
 - On the Links page, a revoked link's status and details line up with the active links above and below it. A document's versions and a room's documents share their columns the same way.

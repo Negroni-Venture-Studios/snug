@@ -26,6 +26,8 @@ KINDS = {
     "document": ("Documents", "document."),
     "room": ("Rooms", "room."),
     "settings": ("Settings", "settings."),
+    "system": ("Housekeeping", "system."),
+    "audit": ("Exports", "audit."),
 }
 FIELDS = (
     "time",

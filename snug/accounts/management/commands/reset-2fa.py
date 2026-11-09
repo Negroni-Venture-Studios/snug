@@ -54,7 +54,7 @@ class Command(BaseCommand):
             admin.totp_confirmed_at = timezone.now()
             admin.save(update_fields=["totp_secret", "totp_last_step", "totp_confirmed_at"])
             codes = recovery.issue(admin)
-            record("admin.2fa_reset", actor_type=AuditEvent.ActorType.CLI, target=email)
+            record("admin.second_factor_reset", actor_type=AuditEvent.ActorType.CLI, target=email)
 
         self.say(recovery_codes_message(email, codes))
         self.say(self.style.SUCCESS(f"New authenticator and recovery codes set for {email}."))
