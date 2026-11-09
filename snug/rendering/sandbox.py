@@ -280,6 +280,45 @@ def render(pdf: os.PathLike[str] | str, page: int, width: int) -> bytes:
     return image
 
 
+# And for an MP4 video.
+EXPORT_MP4 = "Export it as MP4 with H.264 video, then upload it again."
+VIDEO_MESSAGES = {
+    "not_mp4": f"This file could not be read as an MP4 video. {EXPORT_MP4}",
+    "quicktime": f"This is a QuickTime movie. {EXPORT_MP4}",
+    "codec": (
+        "This video does not use H.264, which every browser plays. "
+        "Export it as MP4 with H.264 video and AAC sound, then upload it again."
+    ),
+    "encrypted": "This video is protected against copying, so browsers cannot play it from Snug.",
+    "no_video": "This file has sound but no picture.",
+    "too_long": "This video is longer than four hours.",
+    "too_large": "This video's index is larger than Snug allows.",
+    "unreadable": f"This file could not be read as an MP4 video. {EXPORT_MP4}",
+    "timeout": "This video took too long to read.",
+    "memory": "This video needs more memory to read than Snug allows.",
+}
+
+
+def inspect_mp4(path: os.PathLike[str] | str) -> dict[str, Any]:
+    """An MP4's length, picture size and sound, read in a confined worker."""
+    try:
+        output = run(path, "inspect-mp4", timeout=INSPECT_TIMEOUT)
+        facts: dict[str, Any] = json.loads(output.decode("utf-8").strip())
+        seconds = facts["seconds"]
+        sides = (facts["width"], facts["height"])
+        if not isinstance(seconds, (int, float)) or seconds <= 0:
+            raise ValueError("no length")
+        if not all(isinstance(s, int) and s > 0 for s in sides):
+            raise ValueError("no size")
+        if not isinstance(facts["audio"], bool):
+            raise ValueError("no sound flag")
+    except WorkerError as error:
+        raise WorkerError(error.code, VIDEO_MESSAGES) from error
+    except (UnicodeDecodeError, ValueError, AttributeError, KeyError, TypeError) as error:
+        raise WorkerError("unreadable", VIDEO_MESSAGES) from error
+    return facts
+
+
 def _for_workbook(error: WorkerError) -> WorkerError:
     return WorkerError(error.code, WORKBOOK_MESSAGES)
 
