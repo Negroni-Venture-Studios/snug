@@ -1,8 +1,9 @@
-"""Taking in an upload, a PDF or an Excel workbook: check, store and record it as a version.
+"""Taking in an upload, a PDF, an Excel workbook or an MP4 video: check, store and record it.
 
 The kind is decided by the file's first bytes, never its name: a PDF starts
-with %PDF- (within its first KiB), and a workbook is a zip. The confined
-worker then checks it properly: snug.rendering.worker and workbook.
+with %PDF- (within its first KiB), a workbook is a zip, and a video has an
+ftyp box at byte 4. The confined worker then checks it properly:
+snug.rendering.worker, workbook and video.
 """
 
 import hashlib

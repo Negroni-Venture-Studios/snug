@@ -77,6 +77,19 @@ def test_filtering_by_kind_and_by_person(client: Client) -> None:
     assert "link.created" in priya and "admin.login" not in priya
 
 
+def test_system_events_and_exports_can_be_filtered_too(client: Client) -> None:
+    """Found in review, 9 November 2026: system.* and audit.* had no kind to filter by."""
+    record("system.reading_data_deleted", actor_type=AuditEvent.ActorType.SYSTEM)
+    record("audit.exported", actor_type=AuditEvent.ActorType.ADMIN, actor="ruth@fernlea.example")
+    record("admin.login", actor_type=AuditEvent.ActorType.ADMIN, actor="ruth@fernlea.example")
+    page = client.get("/admin/audit/", secure=True).content.decode()
+    assert '<option value="system"' in page and '<option value="audit"' in page
+    system = client.get("/admin/audit/?kind=system", secure=True).content.decode()
+    assert "system.reading_data_deleted" in system and "admin.login" not in system
+    exports = client.get("/admin/audit/?kind=audit", secure=True).content.decode()
+    assert "audit.exported" in exports and "admin.login" not in exports
+
+
 def test_long_logs_are_paged(client: Client) -> None:
     for n in range(120):
         record("admin.login", actor_type=AuditEvent.ActorType.ADMIN, actor=f"a{n}@fernlea.example")

@@ -1,6 +1,6 @@
-"""Run the PDF worker in its own confined process, with a clean environment and a timeout.
+"""Run the document worker in its own confined process, with a clean environment and a timeout.
 
-The worker is handed the PDF as an already-open file descriptor and returns
+The worker is handed the file as an already-open file descriptor and returns
 its results through a pipe. It is never given a path, so with Landlock it has
 no filesystem access at all beyond reading system fonts.
 """
