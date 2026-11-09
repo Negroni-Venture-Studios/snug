@@ -286,8 +286,8 @@ def test_an_empty_password_keeps_the_saved_one(client: Client) -> None:
             "Enter the address emails come from, like rooms@example.com.",
         ),
         ("smtp_host", "", "Enter your provider's SMTP server, like smtp.postmarkapp.com."),
-        ("smtp_port", "70000", "Use port 25, 465, 587 or 2525."),
-        ("smtp_port", "8025", "Use port 25, 465, 587 or 2525."),
+        ("smtp_port", "70000", "Use port 25, 465, 587, 2465, 2525 or 2587."),
+        ("smtp_port", "8025", "Use port 25, 465, 587, 2465, 2525 or 2587."),
         (
             "smtp_security",
             "none",
@@ -530,3 +530,18 @@ def test_any_saved_setting_can_be_cleared_even_half_a_setup(client: Client) -> N
     row.google_client_id = "123456789-abcdef.apps.googleusercontent.com"
     row.save()
     assert 'id="email-clear"' in panel(client)
+
+
+@pytest.mark.parametrize(("port", "security"), [("2587", "starttls"), ("2465", "tls")])
+def test_amazon_ses_ports_work_from_digitalocean(client: Client, port: str, security: str) -> None:
+    """DigitalOcean blocks 25, 465 and 587; Amazon SES listens on 2587 and 2465 as well."""
+    response = save(client, smtp_port=port, smtp_security=security)
+    assert response["Location"] == "/admin/settings/?saved=email#email-test"
+    assert EmailSettings.load().smtp_port == int(port)
+
+
+def test_the_port_hints_name_every_port(client: Client) -> None:
+    text = panel(client)
+    assert "25, 465, 587, 2465, 2525 or 2587. DigitalOcean blocks the first three" in text
+    assert "STARTTLS, for ports 587, 2525 and 2587" in text
+    assert "TLS, for ports 465 and 2465" in text

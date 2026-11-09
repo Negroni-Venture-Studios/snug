@@ -79,8 +79,11 @@ def outgoing() -> Outgoing:
 
 
 # The ports mail providers accept submissions on. Anything else could aim Snug's
-# SMTP client at some other service.
-SMTP_PORTS = (25, 465, 587, 2525)
+# SMTP client at some other service. DigitalOcean blocks 25, 465 and 587, so
+# providers listen on others too: 2525 (Mailgun, SendGrid, Postmark), and
+# 2587 and 2465 (Amazon SES, with STARTTLS and TLS).
+SMTP_PORTS = (25, 465, 587, 2465, 2525, 2587)
+PORTS_IN_WORDS = ", ".join(map(str, SMTP_PORTS[:-1])) + f" or {SMTP_PORTS[-1]}"
 
 
 class UnsafeServerError(OSError):

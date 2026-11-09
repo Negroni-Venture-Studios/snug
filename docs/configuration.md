@@ -27,7 +27,7 @@ Email is usually set up in Settings, under Email, through Google Workspace or an
 | `SNUG_COMPANY_NAME` | No | | Your company's name, used until one is saved in Settings under Branding, where it is usually set. At most 100 characters. |
 | `SNUG_EMAIL_FROM` | When `SNUG_SMTP_HOST` is set | | The address emails come from. |
 | `SNUG_SMTP_HOST` | No | | Your email provider's SMTP server. Unset, with nothing saved in Settings, email is off; on `localhost`, emails go to the outbox folder instead. On a server, Snug connects only to an SMTP server with public addresses. |
-| `SNUG_SMTP_PORT` | No | `587`, or `465` with `tls` | The SMTP port. DigitalOcean blocks 25, 465 and 587. |
+| `SNUG_SMTP_PORT` | No | `587`, or `465` with `tls` | The SMTP port. DigitalOcean blocks 25, 465 and 587; most providers also take 2525, and Amazon SES 2587 or 2465. |
 | `SNUG_SMTP_USERNAME` | No | | The SMTP username. |
 | `SNUG_SMTP_PASSWORD` | No | | The SMTP password or API key. Never shown or logged. |
 | `SNUG_SMTP_SECURITY` | No | `starttls` | `starttls`, `tls` or, on `localhost` only, `none`. |

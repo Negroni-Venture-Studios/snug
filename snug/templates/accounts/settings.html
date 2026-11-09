@@ -105,13 +105,13 @@
   <div class="field"><label for="smtp-host">SMTP server</label><input id="smtp-host" name="smtp_host" type="text" autocomplete="off" spellcheck="false" value="{{ email.values.smtp_host }}"{% if email.errors.smtp_host %} aria-invalid="true" aria-describedby="smtp-host-error"{% endif %}>
     {% if email.errors.smtp_host %}<div class="error" id="smtp-host-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_host }}</div>{% endif %}</div>
   <div class="field"><label for="smtp-port">Port</label><input id="smtp-port" name="smtp_port" type="text" inputmode="numeric" autocomplete="off" value="{{ email.values.smtp_port }}"{% if email.errors.smtp_port %} aria-invalid="true" aria-describedby="smtp-port-error"{% endif %}>
-    {% if email.errors.smtp_port %}<div class="error" id="smtp-port-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_port }}</div>{% else %}<div class="hint">25, 465, 587 or 2525. DigitalOcean blocks the first three, so use 2525 there.</div>{% endif %}</div>
+    {% if email.errors.smtp_port %}<div class="error" id="smtp-port-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_port }}</div>{% else %}<div class="hint">{{ email.ports }}. DigitalOcean blocks the first three, so use 2525, or 2587 or 2465 for Amazon SES, there.</div>{% endif %}</div>
   <div class="field"><label for="smtp-username">Username</label><input id="smtp-username" name="smtp_username" type="text" autocomplete="off" spellcheck="false" value="{{ email.values.smtp_username }}"></div>
   <div class="field"><label for="smtp-password">Password or API key</label><input id="smtp-password" name="smtp_password" type="password" autocomplete="new-password" value=""{% if email.password_saved %} placeholder="••••••••••••"{% endif %}>
     <div class="hint">{% if email.password_saved %}Saved, and never shown. Type a new one to replace it.{% else %}Never shown again once saved.{% endif %}</div></div>
   <div class="field"><label for="smtp-security">Encryption</label><select id="smtp-security" name="smtp_security"{% if email.errors.smtp_security %} aria-invalid="true" aria-describedby="smtp-security-error"{% endif %}>
-      <option value="starttls"{% if email.values.smtp_security != "tls" %} selected{% endif %}>STARTTLS, for ports 587 and 2525</option>
-      <option value="tls"{% if email.values.smtp_security == "tls" %} selected{% endif %}>TLS, for port 465</option>
+      <option value="starttls"{% if email.values.smtp_security != "tls" %} selected{% endif %}>STARTTLS, for ports 587, 2525 and 2587</option>
+      <option value="tls"{% if email.values.smtp_security == "tls" %} selected{% endif %}>TLS, for ports 465 and 2465</option>
     </select>
     {% if email.errors.smtp_security %}<div class="error" id="smtp-security-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_security }}</div>{% endif %}</div>
   </div>

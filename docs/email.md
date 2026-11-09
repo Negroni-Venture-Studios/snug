@@ -73,7 +73,7 @@ From the provider's dashboard, note:
 
 **DigitalOcean blocks outgoing connections on ports 25, 465 and 587 from every droplet.** These are the usual SMTP ports, so Snug cannot reach your provider on them, and every email fails with a time-out.
 
-Many providers also listen on port 2525 for this reason, among them Mailgun, SendGrid and Postmark. Use 2525 with STARTTLS as the encryption (`SNUG_SMTP_SECURITY=starttls` in `snug.env`). Snug accepts only ports 25, 465, 587 and 2525, so a provider whose only other port is something else, such as Amazon SES with 2587, cannot be used from DigitalOcean.
+Many providers also listen on another port for this reason. Mailgun, SendGrid and Postmark accept port 2525; use it with STARTTLS as the encryption (`SNUG_SMTP_SECURITY=starttls` in `snug.env`). Amazon SES accepts 2587 with STARTTLS, and 2465 with TLS. Snug accepts ports 25, 465, 587, 2465, 2525 and 2587, so a provider whose only other port is something else cannot be used from DigitalOcean.
 
 You can check from the droplet whether a port is open:
 
@@ -89,10 +89,10 @@ Sign in, open **Settings**, and under **Email** choose **Another provider (SMTP)
 
 - the address emails come from, on the domain you verified;
 - the SMTP server, port, username, and password or API key from step 3;
-- the encryption: STARTTLS for ports 587 and 2525, or TLS for port 465;
+- the encryption: STARTTLS for ports 587, 2525 and 2587, or TLS for ports 465 and 2465;
 - a code from your authenticator app.
 
-Email carries investors' codes and admins' reset links, so changing how it is sent needs a fresh code, and every admin is emailed about it, through the settings in force before the change. Snug sends only through public mail servers, on port 25, 465, 587 or 2525: it refuses a server whose name leads to a private or internal address.
+Email carries investors' codes and admins' reset links, so changing how it is sent needs a fresh code, and every admin is emailed about it, through the settings in force before the change. Snug sends only through public mail servers, on port 25, 465, 587, 2465, 2525 or 2587: it refuses a server whose name leads to a private or internal address.
 
 Choose **Save**, and Snug uses the new settings at once, with no restart. The page moves on to step 2, **Send a test**. The password is never shown again: to change it, type a new one, or leave the box empty to keep it.
 
@@ -125,7 +125,7 @@ Snug logs only the kind of error, never the recipient, subject or contents, beca
 | `TimeoutError` or a long pause, then failure | The port is blocked. On DigitalOcean, see [Use another port](#on-digitalocean-use-another-port). |
 | `SMTPAuthenticationError` | The username or password is wrong, or the API key has been revoked or lacks permission to send. |
 | `SMTPSenderRefused` | The From address (`SNUG_EMAIL_FROM` in `snug.env`) is not on a domain your provider has verified. |
-| `SSLError` | The encryption (`SNUG_SMTP_SECURITY` in `snug.env`) does not match the port: try STARTTLS for 587 or 2525, and TLS for 465. |
+| `SSLError` | The encryption (`SNUG_SMTP_SECURITY` in `snug.env`) does not match the port: try STARTTLS for 587, 2525 or 2587, and TLS for 465 or 2465. |
 | Emails arrive, but in spam | DKIM or DMARC is not passing. Check the message's authentication results, as in step 5. A new domain or provider account may also need a few days of low volume to build a reputation. |
 | Emails arrive for some people but not others | Check your provider's dashboard for bounces and blocks. Some company mail filters hold messages containing links until the recipient releases them. |
 

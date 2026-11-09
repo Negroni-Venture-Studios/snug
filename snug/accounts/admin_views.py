@@ -504,6 +504,7 @@ def _email_context(request: HttpRequest, form: dict[str, Any] | None) -> dict[st
         "google_connected_at": row.google_connected_at,
         "google_pending": pending["account"] if isinstance(pending, dict) else "",
         "kind": now.kind,
+        "ports": mail.PORTS_IN_WORDS,
         # Anything saved here, working or not, which Clear email settings would forget.
         "saved_here": any(
             (
@@ -548,7 +549,7 @@ def email_view(request: HttpRequest) -> HttpResponse:
         errors["from_address"] = "Enter the address emails come from, like rooms@example.com."
     port = values["smtp_port"]
     if not (port.isdecimal() and int(port) in mail.SMTP_PORTS):
-        errors["smtp_port"] = "Use port 25, 465, 587 or 2525."
+        errors["smtp_port"] = f"Use port {mail.PORTS_IN_WORDS}."
     if not values["smtp_host"]:
         errors["smtp_host"] = "Enter your provider's SMTP server, like smtp.postmarkapp.com."
     if values["smtp_security"] not in ("starttls", "tls"):
