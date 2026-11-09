@@ -109,7 +109,7 @@ def test_saving_a_colour(client: Client) -> None:
 def test_an_adjusted_colour_says_so(client: Client) -> None:
     response = save(client, "#ffd400")
     page = client.get(response["Location"].split("#")[0], secure=True).content.decode()
-    assert "Text and links use a deeper shade" in page
+    assert "Text and links are darkened where needed to stay readable." in page
 
 
 def test_a_bad_colour_is_refused(client: Client) -> None:

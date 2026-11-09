@@ -78,7 +78,7 @@ def test_changing_it(admin: Admin) -> None:
     assert here.get("/admin/", secure=True).status_code == 200  # still signed in here
     assert elsewhere.get("/admin/", secure=True).status_code == 302  # signed out elsewhere
     page = here.get(response["Location"].split("#")[0], secure=True).content.decode()
-    assert "Password changed. You are still signed in here; everywhere else is signed out." in page
+    assert "Password changed. You are signed out everywhere else." in page
     [notice] = django_mail.outbox
     assert notice.to == [EMAIL] and notice.subject == "Your Snug password was changed"
     assert "from Settings" in notice.body

@@ -227,7 +227,7 @@ The company's logo at the top left with its name beside it, or either alone, and
 - Plain text plus a simple HTML version, with the company's name.
 - No remote images and no tracking pixels.
 - The code email's subject is "Your code for *Fernlea Robotics*: 482913", so the code can be read from the notification. The body names the document and says to ignore the email if it was not requested.
-- First-open emails to admins say who (with the link's note), what (and the room), when and where (the country's name, or that Snug cannot tell), with a link to that person on the People page, whose anchor is a hash of the address so no address is in a URL. They are sent the first time each link shows anyone a document, which a single conditional update on `Link.first_opened_at` claims, so two pages loading together send one email; opening a room's list is not an open. Every working admin gets them unless they untick the box under Your account in Settings. They are sent in the background, so the reader never waits.
+- First-open emails to admins say who (with the link's note), what (and the room), when and where (the country's name, or *Not known*), with a link to that person on the People page, whose anchor is a hash of the address so no address is in a URL. They are sent the first time each link shows anyone a document, which a single conditional update on `Link.first_opened_at` claims, so two pages loading together send one email; opening a room's list is not an open. Every working admin gets them unless they untick the box under Your account in Settings. They are sent in the background, so the reader never waits.
 
 ### 3.10 Front-end architecture
 

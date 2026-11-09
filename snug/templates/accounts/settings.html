@@ -25,7 +25,7 @@
   <div class="field"><label for="invite-email">Email address</label><input id="invite-email" name="email" type="email" autocomplete="off" required value="{{ values.email }}"{% if invite_error %} aria-invalid="true" aria-describedby="invite-email-error"{% endif %}></div>
   <div class="field"><label for="code">Code from your authenticator app</label><input id="code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required{% if code_error %} aria-invalid="true" aria-describedby="code-error"{% endif %}></div>
   <button class="btn btn-primary" type="submit">Send invite</button>
-  <div class="field invite-wide">{% if invite_error %}<div class="error" id="invite-email-error" role="alert">{% icon "warning-circle" %}{{ invite_error }}</div>{% endif %}{% if code_error %}<div class="error" id="code-error" role="alert">{% icon "warning-circle" %}{{ code_error }}</div>{% endif %}{% if not invite_error and not code_error %}<div class="hint">The code is asked for every change to the admins, so nobody at an unlocked computer can add themselves.</div>{% endif %}</div>
+  <div class="field invite-wide">{% if invite_error %}<div class="error" id="invite-email-error" role="alert">{% icon "warning-circle" %}{{ invite_error }}</div>{% endif %}{% if code_error %}<div class="error" id="code-error" role="alert">{% icon "warning-circle" %}{{ code_error }}</div>{% endif %}{% if not invite_error and not code_error %}<div class="hint">Every change to the admins needs a code from your authenticator app.</div>{% endif %}</div>
 </form>
 {% else %}
 <p class="admin-invite-off">Inviting needs email. See <code>docs/email.md</code>, or create admins on the server with <code>snug createadmin</code>.</p>
@@ -36,7 +36,7 @@
 <div class="section-head stacked"><h2>Your account</h2><p>Signed in as {{ request.user.email }}.</p>{% include "accounts/partials/doc_link.html" with page="admin-accounts.md" label="The admin accounts guide" %}</div>
 <form class="panel form settings-form" method="post" action="{% url 'accounts:change_password' %}#account" novalidate>
   {% csrf_token %}
-  {% if saved == "password" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Password changed. You are still signed in here; everywhere else is signed out.</span></div>{% endif %}
+  {% if saved == "password" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Password changed. You are signed out everywhere else.</span></div>{% endif %}
   <div class="field"><label for="account-current">Current password</label>{% include "snug/partials/password_field.html" with id="account-current" name="current" autocomplete="current-password" invalid=account_errors.current %}
     {% if account_errors.current %}<div class="error" id="account-current-error" role="alert">{% icon "warning-circle" %}{{ account_errors.current }}</div>{% endif %}</div>
   <div class="field"><label for="account-password">New password</label>{% include "snug/partials/password_field.html" with id="account-password" name="password" autocomplete="new-password" minlength="12" invalid=account_errors.password %}
@@ -60,7 +60,7 @@
   {% csrf_token %}
   <h3 class="panel-title">Emails</h3>
   {% if saved == "notifications" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if request.user.notify_first_open %}Saved. You will be emailed the first time each link is opened.{% else %}Saved. You will not be emailed when someone first opens a link.{% endif %}</span></div>{% endif %}
-  <label class="check"><input type="checkbox" name="first_open"{% if request.user.notify_first_open %} checked{% endif %}><span>Email me when someone first opens a link<span class="hint">Who, what, when and from which country, the first time each link shows anyone a document.</span></span></label>
+  <label class="check"><input type="checkbox" name="first_open"{% if request.user.notify_first_open %} checked{% endif %}><span>Email me when someone first opens a link<span class="hint">Who opened which document, when, and from which country.</span></span></label>
   <button class="btn btn-primary" type="submit">Save</button>
 </form>
 </div>
@@ -71,14 +71,14 @@
   {% if saved == "email-cleared" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Cleared. {{ email.status }}</span></div>
   {% else %}<p class="email-status">{{ email.status }}</p>{% endif %}
   <fieldset class="field provider-choice"><legend class="label">How Snug sends email</legend>
-    <label class="check"><input type="radio" name="provider" value="google" id="provider-google" form="email-setup-form"{% if email.values.provider == "google" %} checked{% endif %}><span>Google Workspace<span class="hint">As a mailbox on your Workspace domain, through the Gmail API. Its guide explains the one-time setup in Google Cloud.</span></span></label>
-    <label class="check"><input type="radio" name="provider" value="smtp" id="provider-smtp" form="email-setup-form"{% if email.values.provider != "google" %} checked{% endif %}><span>Another provider (SMTP)<span class="hint">Mailgun, Postmark or any provider whose SMTP server takes port 2525.</span></span></label>
+    <label class="check"><input type="radio" name="provider" value="google" id="provider-google" form="email-setup-form"{% if email.values.provider == "google" %} checked{% endif %}><span>Google Workspace<span class="hint">Sends as a mailbox on your Workspace domain, after a one-time setup in Google Cloud.</span></span></label>
+    <label class="check"><input type="radio" name="provider" value="smtp" id="provider-smtp" form="email-setup-form"{% if email.values.provider != "google" %} checked{% endif %}><span>Another provider (SMTP)<span class="hint">Mailgun, Postmark, Amazon SES or another provider's SMTP server.</span></span></label>
   </fieldset>
   {% if email.saved_here %}<div class="email-clear" id="email-clear">
     <h3 class="panel-title">Clear email settings</h3>
     <form class="form" method="post" action="{% url 'accounts:email_clear' %}#email-clear" novalidate>
       {% csrf_token %}
-      <p class="hint">Forgets everything saved here, and withdraws any permission Snug has at Google. {{ email.fallback }} Every admin is told.</p>
+      <p class="hint">Deletes the settings saved here and disconnects Google. {{ email.fallback }} Every admin is emailed.</p>
       <div class="field"><label for="email-clear-code">Code from your authenticator app</label><input id="email-clear-code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7"{% if email.errors.clear_code %} aria-invalid="true" aria-describedby="email-clear-code-error"{% endif %}>
         {% if email.errors.clear_code %}<div class="error" id="email-clear-code-error" role="alert">{% icon "warning-circle" %}{{ email.errors.clear_code }}</div>{% endif %}</div>
       <button class="btn btn-danger" type="submit">Clear email settings</button>
@@ -95,20 +95,20 @@
     <div class="field"><label for="google-client-id">Client ID</label><input id="google-client-id" name="google_client_id" type="text" autocomplete="off" spellcheck="false" value="{{ email.values.google_client_id }}"{% if email.errors.google_client_id %} aria-invalid="true" aria-describedby="google-client-id-error"{% endif %}>
       {% if email.errors.google_client_id %}<div class="error" id="google-client-id-error" role="alert">{% icon "warning-circle" %}{{ email.errors.google_client_id }}</div>{% else %}<div class="hint">Its authorised redirect URI must be <code>{{ email.callback_url }}</code></div>{% endif %}</div>
     <div class="field"><label for="google-client-secret">Client secret</label><input id="google-client-secret" name="google_client_secret" type="password" autocomplete="new-password" value=""{% if email.google_secret_saved %} placeholder="••••••••••••"{% endif %}{% if email.errors.google_client_secret %} aria-invalid="true" aria-describedby="google-client-secret-error"{% endif %}>
-      {% if email.errors.google_client_secret %}<div class="error" id="google-client-secret-error" role="alert">{% icon "warning-circle" %}{{ email.errors.google_client_secret }}</div>{% else %}<div class="hint">{% if email.google_secret_saved %}Saved, and never shown. Type a new one to replace it.{% else %}Never shown again once saved.{% endif %}</div>{% endif %}</div>
+      {% if email.errors.google_client_secret %}<div class="error" id="google-client-secret-error" role="alert">{% icon "warning-circle" %}{{ email.errors.google_client_secret }}</div>{% else %}<div class="hint">{% if email.google_secret_saved %}Saved. Type a new one to replace it.{% else %}Never shown again once saved.{% endif %}</div>{% endif %}</div>
     <div class="field"><label for="google-from">From address</label><input id="google-from" name="google_from" type="email" autocomplete="off" value="{{ email.values.google_from }}"{% if email.errors.google_from %} aria-invalid="true" aria-describedby="google-from-error"{% endif %}>
-      {% if email.errors.google_from %}<div class="error" id="google-from-error" role="alert">{% icon "warning-circle" %}{{ email.errors.google_from }}</div>{% else %}<div class="hint">Leave empty to send as the connected mailbox. Another address, such as one on an alias domain, must be one of that mailbox's Send mail as addresses in Gmail, or Gmail sends from the mailbox's own address.</div>{% endif %}</div>
+      {% if email.errors.google_from %}<div class="error" id="google-from-error" role="alert">{% icon "warning-circle" %}{{ email.errors.google_from }}</div>{% else %}<div class="hint">Leave empty to send as the connected mailbox. To send as another of its addresses, add it under Send mail as in Gmail first.</div>{% endif %}</div>
   </div>
   <div class="provider-fields provider-smtp">
   <div class="field"><label for="from-address">From address</label><input id="from-address" name="from_address" type="email" autocomplete="off" value="{{ email.values.from_address }}"{% if email.errors.from_address %} aria-invalid="true" aria-describedby="from-address-error"{% endif %}>
-    {% if email.errors.from_address %}<div class="error" id="from-address-error" role="alert">{% icon "warning-circle" %}{{ email.errors.from_address }}</div>{% else %}<div class="hint">On a domain your provider has verified, as its guide explains.</div>{% endif %}</div>
+    {% if email.errors.from_address %}<div class="error" id="from-address-error" role="alert">{% icon "warning-circle" %}{{ email.errors.from_address }}</div>{% else %}<div class="hint">On a domain your provider has verified.</div>{% endif %}</div>
   <div class="field"><label for="smtp-host">SMTP server</label><input id="smtp-host" name="smtp_host" type="text" autocomplete="off" spellcheck="false" value="{{ email.values.smtp_host }}"{% if email.errors.smtp_host %} aria-invalid="true" aria-describedby="smtp-host-error"{% endif %}>
     {% if email.errors.smtp_host %}<div class="error" id="smtp-host-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_host }}</div>{% endif %}</div>
   <div class="field"><label for="smtp-port">Port</label><input id="smtp-port" name="smtp_port" type="text" inputmode="numeric" autocomplete="off" value="{{ email.values.smtp_port }}"{% if email.errors.smtp_port %} aria-invalid="true" aria-describedby="smtp-port-error"{% endif %}>
-    {% if email.errors.smtp_port %}<div class="error" id="smtp-port-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_port }}</div>{% else %}<div class="hint">{{ email.ports }}. DigitalOcean blocks the first three, so use 2525, or 2587 or 2465 for Amazon SES, there.</div>{% endif %}</div>
+    {% if email.errors.smtp_port %}<div class="error" id="smtp-port-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_port }}</div>{% else %}<div class="hint">{{ email.ports }}. On DigitalOcean, use 2525, or 2587 or 2465 for Amazon SES.</div>{% endif %}</div>
   <div class="field"><label for="smtp-username">Username</label><input id="smtp-username" name="smtp_username" type="text" autocomplete="off" spellcheck="false" value="{{ email.values.smtp_username }}"></div>
   <div class="field"><label for="smtp-password">Password or API key</label><input id="smtp-password" name="smtp_password" type="password" autocomplete="new-password" value=""{% if email.password_saved %} placeholder="••••••••••••"{% endif %}>
-    <div class="hint">{% if email.password_saved %}Saved, and never shown. Type a new one to replace it.{% else %}Never shown again once saved.{% endif %}</div></div>
+    <div class="hint">{% if email.password_saved %}Saved. Type a new one to replace it.{% else %}Never shown again once saved.{% endif %}</div></div>
   <div class="field"><label for="smtp-security">Encryption</label><select id="smtp-security" name="smtp_security"{% if email.errors.smtp_security %} aria-invalid="true" aria-describedby="smtp-security-error"{% endif %}>
       <option value="starttls"{% if email.values.smtp_security != "tls" %} selected{% endif %}>STARTTLS, for ports 587, 2525 and 2587</option>
       <option value="tls"{% if email.values.smtp_security == "tls" %} selected{% endif %}>TLS, for ports 465 and 2465</option>
@@ -116,21 +116,21 @@
     {% if email.errors.smtp_security %}<div class="error" id="smtp-security-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_security }}</div>{% endif %}</div>
   </div>
   <div class="field"><label for="email-code">Code from your authenticator app</label><input id="email-code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7"{% if email.errors.code %} aria-invalid="true" aria-describedby="email-code-error"{% endif %}>
-    {% if email.errors.code %}<div class="error" id="email-code-error" role="alert">{% icon "warning-circle" %}{{ email.errors.code }}</div>{% else %}<div class="hint">Email carries codes and links, so changing how it is sent needs a fresh code. Every admin is told.</div>{% endif %}</div>
+    {% if email.errors.code %}<div class="error" id="email-code-error" role="alert">{% icon "warning-circle" %}{{ email.errors.code }}</div>{% else %}<div class="hint">Changing how email is sent needs a code. Every admin is emailed.</div>{% endif %}</div>
   <button class="btn btn-primary" type="submit">Save</button>
 </form>
 </li>
 <li id="google-mailbox" class="step panel provider-google{% if not email.google_ready %} step-waiting{% endif %}">
   <div class="step-head"><h3 class="panel-title">The sending mailbox</h3>{% if email.google_account %}<span class="status status-ok">Connected</span>{% endif %}</div>
   {% if saved == "email" and email.values.provider == "google" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved your Google client. Now connect the mailbox Snug sends from.</span></div>
-  {% elif saved == "google-pending" and email.google_pending %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Google approved Snug for {{ email.google_pending }}. One more code to finish.</span></div>
-  {% elif saved == "email-google-off" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Disconnected. Snug no longer sends through Google, and has given up its permission there.</span></div>
+  {% elif saved == "google-pending" and email.google_pending %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Google approved {{ email.google_pending }}. Enter a code to finish.</span></div>
+  {% elif saved == "email-google-off" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Disconnected from Google. Snug no longer sends email through it.</span></div>
   {% elif saved == "google-no-client" %}<div class="notice notice-error" role="alert">{% icon "warning-circle" %}<span>Save the client ID and secret first.</span></div>
   {% elif saved == "google-expired" %}<div class="notice notice-error" role="alert">{% icon "warning-circle" %}<span>That took too long. Connect again.</span></div>
   {% elif google_error %}<div class="notice notice-error" role="alert">{% icon "warning-circle" %}<span>{{ google_error }}</span></div>{% endif %}
   {% if email.google_pending %}<form class="form" id="google-confirm" method="post" action="{% url 'accounts:google_confirm' %}#google-mailbox" novalidate>
     {% csrf_token %}
-    <p class="hint">Connecting a mailbox changes where Snug's email goes, so it needs a fresh code of its own, even after the one in step 1. Every admin is told.</p>
+    <p class="hint">Connecting a mailbox needs its own code, separate from the one in step 1. Every admin is emailed.</p>
     <div class="field"><label for="google-code">Code from your authenticator app</label><input id="google-code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7"{% if email.errors.google_code %} aria-invalid="true" aria-describedby="google-code-error"{% endif %}>
       {% if email.errors.google_code %}<div class="error" id="google-code-error" role="alert">{% icon "warning-circle" %}{{ email.errors.google_code }}</div>{% endif %}</div>
     <button class="btn btn-primary" type="submit">Connect {{ email.google_pending }}</button>
@@ -138,9 +138,9 @@
   {% elif email.google_account %}<p>Connected as {{ email.google_account }}, since {{ email.google_connected_at|date:"j F Y" }}.</p>
   <form class="form" method="post" action="{% url 'accounts:google_disconnect' %}#google-mailbox" novalidate>{% csrf_token %}
     <div class="field"><label for="google-disconnect-code">Code from your authenticator app</label><input id="google-disconnect-code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7"{% if email.errors.google_disconnect_code %} aria-invalid="true" aria-describedby="google-disconnect-code-error"{% endif %}>
-      {% if email.errors.google_disconnect_code %}<div class="error" id="google-disconnect-code-error" role="alert">{% icon "warning-circle" %}{{ email.errors.google_disconnect_code }}</div>{% else %}<div class="hint">Disconnecting stops email until it is set up again. Every admin is told.</div>{% endif %}</div>
+      {% if email.errors.google_disconnect_code %}<div class="error" id="google-disconnect-code-error" role="alert">{% icon "warning-circle" %}{{ email.errors.google_disconnect_code }}</div>{% else %}<div class="hint">Disconnecting stops email until a mailbox is connected again. Every admin is emailed.</div>{% endif %}</div>
     <button class="btn" type="submit">Disconnect</button></form>
-  {% elif email.google_ready %}<p class="hint">Sign in to Google as the mailbox Snug should send from, such as rooms@ on your domain, and approve. Snug can send from it, and nothing else. When Google sends you back, enter one more code from your authenticator app to finish.</p>
+  {% elif email.google_ready %}<p class="hint">Sign in to Google as the mailbox Snug should send from, such as rooms@ on your domain, and approve. Snug can only send email from it. Back here, enter a code from your authenticator app to finish.</p>
   <a class="btn btn-primary step-action" href="{% url 'accounts:google_connect' %}">Connect Google</a>
   {% else %}<p class="hint">Save your Google client first.</p>{% endif %}
 </li>
@@ -159,14 +159,14 @@
 <div class="section-head stacked"><h2>Branding</h2><p>How your pages look to investors.</p></div>
 <form class="panel form settings-form" method="post" action="{% url 'accounts:branding' %}#branding" novalidate>
   {% csrf_token %}
-  {% if saved == "branding" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if accent %}Saved. Investors' pages use this colour.{% if brand_adjusted %} Text and links use a deeper shade where they need one to stay readable.{% endif %}{% else %}Saved. Investors' pages use Snug's default colour.{% endif %}</span></div>{% endif %}
+  {% if saved == "branding" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if accent %}Saved. Investors' pages use this colour.{% if brand_adjusted %} Text and links are darkened where needed to stay readable.{% endif %}{% else %}Saved. Investors' pages use Snug's default colour.{% endif %}</span></div>{% endif %}
   <div class="field"><label for="company">Company name</label>
     <input id="company" name="company" type="text" maxlength="100" autocomplete="organization" value="{{ company_value }}"{% if company_error %} aria-invalid="true" aria-describedby="company-error"{% endif %}>
     {% if company_error %}<div class="error" id="company-error" role="alert">{% icon "warning-circle" %}{{ company_error }}</div>{% else %}<div class="hint">As investors know it. Shown at the top of their pages when there is no logo, and in every email Snug sends.</div>{% endif %}</div>
   <div class="field"><label class="check"><input name="show_name" type="checkbox" value="1"{% if show_name %} checked{% endif %}><span>Show the name beside the logo<span class="hint">Turn this off if your logo already spells out the name. Without a logo, the name always shows.</span></span></label></div>
   <div class="field"><label for="accent">Accent colour</label>
     <div class="inline-form"><input id="accent-picker" type="color" value="{{ accent_shown }}" aria-label="Choose a colour" data-accent-picker><input id="accent" name="accent" type="text" maxlength="7" autocomplete="off" spellcheck="false" value="{{ accent_typed|default:accent }}" placeholder="{{ accent_shown }}"{% if branding_error %} aria-invalid="true" aria-describedby="accent-error"{% endif %}></div>
-    {% if branding_error %}<div class="error" id="accent-error" role="alert">{% icon "warning-circle" %}{{ branding_error }}</div>{% else %}<div class="hint">Used for buttons and links on investors' pages. Snug adjusts the shade where it needs to, so text stays readable in light and dark mode. Leave it empty for Snug's default.</div>{% endif %}</div>
+    {% if branding_error %}<div class="error" id="accent-error" role="alert">{% icon "warning-circle" %}{{ branding_error }}</div>{% else %}<div class="hint">Used for buttons and links on investors' pages, darkened where needed to keep text readable. Leave it empty for Snug's default.</div>{% endif %}</div>
   <div class="field"><span class="label">Preview</span>
     <div class="v brand-preview" data-brand-preview><p>{% if company %}{{ company }}{% else %}Your company{% endif %} has shared <strong>Seed deck</strong> with you. <a href="#branding">About this link</a></p><span class="btn btn-brand">Send code</span></div></div>
   <button class="btn btn-primary" type="submit">Save</button>
@@ -197,7 +197,7 @@
   {% csrf_token %}
   {% if saved == "nda" and nda %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved as version {{ nda.number }}. Anyone asked for the NDA accepts this version on their next visit.</span></div>{% endif %}
   <div class="field"><label for="nda-text">Agreement</label><textarea id="nda-text" name="text" rows="10"{% if nda_error %} aria-invalid="true" aria-describedby="nda-error"{% endif %}>{% if nda_draft %}{{ nda_draft }}{% elif nda %}{{ nda.text }}{% endif %}</textarea>
-    {% if nda_error %}<div class="error" id="nda-error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% else %}<div class="hint">Saving changed text makes a new version: everyone asked to accept the agreement accepts the new one on their next visit. Earlier acceptances stay on record. Viewers are told this is a record of acceptance, not a signature.</div>{% endif %}</div>
+    {% if nda_error %}<div class="error" id="nda-error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% else %}<div class="hint">Saving changes makes a new version, which everyone accepts on their next visit. Earlier acceptances are kept. Viewers are told this is a record of acceptance, not a signature.</div>{% endif %}</div>
   <button class="btn btn-primary" type="submit">Save agreement</button>
 </form>
 {% if nda_history|length > 1 %}<p class="page-meta">Earlier versions: {% for version in nda_history %}{% if not forloop.first %}version {{ version.number }} ({{ version.created_at|date:"j M Y" }}){% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}.</p>{% endif %}
