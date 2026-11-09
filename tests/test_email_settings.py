@@ -200,6 +200,9 @@ def panel(client: Client, query: str = "") -> str:
     return page[start : page.index("</section>", start)]
 
 
+DOTS = "\u2022" * 12
+
+
 def step(text: str, name: str) -> str:
     """One numbered step of the Email section, from its id to the next step."""
     start = text.index(f'id="{name}"')
@@ -254,8 +257,16 @@ def test_saving_smtp_settings(client: Client) -> None:
     text = panel(client, "?saved=email")
     assert "Saved. Snug sends email through smtp.postmark.example as rooms@fernlea.example." in text
     assert "s3cret" not in text
-    assert 'name="smtp_password" type="password" autocomplete="new-password" value=""' in text
-    assert "A password is saved. Leave this empty to keep it." in text
+    # A saved password shows as dots, the same twelve whatever its length, and is never sent.
+    assert (
+        'name="smtp_password" type="password" autocomplete="new-password" value="" '
+        f'placeholder="{DOTS}"'
+    ) in text
+    assert "Saved, and never shown. Type a new one to replace it." in text
+
+
+def test_an_empty_password_field_has_no_dots(client: Client) -> None:
+    assert f'placeholder="{DOTS}"' not in panel(client)
 
 
 def test_an_empty_password_keeps_the_saved_one(client: Client) -> None:
