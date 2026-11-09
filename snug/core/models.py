@@ -100,6 +100,10 @@ class EmailSettings(models.Model):
     google_client_secret = models.CharField(max_length=200, blank=True)
     google_refresh_token = models.CharField(max_length=1000, blank=True)
     google_account = models.EmailField(blank=True)
+    # Another of the mailbox's addresses to send as, such as one on an alias
+    # domain; "" for the mailbox's own. Gmail sends it only if the mailbox has
+    # it under Send mail as, and otherwise uses the mailbox's own address.
+    google_from_address = models.EmailField(blank=True)
     google_connected_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 

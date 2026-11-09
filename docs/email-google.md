@@ -46,6 +46,12 @@ This is the page Google shows when the mailbox approves Snug.
 4. Back in Snug, enter a fresh code from your authenticator app to finish. Every admin is emailed about the change.
 5. Choose **Send a test**, and check that the email arrived.
 
+## Sending from another address
+
+The emails come from the mailbox that approved Snug. To send from another of its addresses, put it in **From address**, under Google Workspace in Settings, and save with a code.
+
+That address must be one the mailbox can send as. An address on a **user alias domain**, such as `rooms@example.co.uk` when `example.com` is the primary domain, belongs to the primary account, `rooms@example.com`, and Google names that account when it approves Snug. To send as the alias, add it in that mailbox's Gmail settings, under **Accounts**, **Send mail as**, then put it in Snug's From address. Without it, Gmail quietly sends from the mailbox's own address.
+
 ## Changing or stopping it
 
 - To send from another mailbox, choose **Disconnect**, then **Connect Google** again and sign in as the other mailbox.

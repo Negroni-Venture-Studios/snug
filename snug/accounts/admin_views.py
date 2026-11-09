@@ -463,6 +463,7 @@ def _email_context(request: HttpRequest, form: dict[str, Any] | None) -> dict[st
     values = {
         "provider": row.provider or "smtp",
         "google_client_id": row.google_client_id,
+        "google_from": row.google_from_address,
         "from_address": row.from_address,
         "smtp_host": row.smtp_host,
         "smtp_port": row.smtp_port or "",
@@ -583,9 +584,16 @@ def _save_google_client(request: HttpRequest) -> HttpResponse:
     row = EmailSettings.load()
     client_id = request.POST.get("google_client_id", "").strip()[:200]
     secret = request.POST.get("google_client_secret", "").strip()[:200]
+    google_from = request.POST.get("google_from", "").strip()[:254]
     values = {**_email_context(request, None)["values"], "provider": "google"}
     values["google_client_id"] = client_id
+    values["google_from"] = google_from
     errors: dict[str, str] = {}
+    if google_from:
+        try:
+            validate_email(google_from)
+        except ValidationError:
+            errors["google_from"] = "Enter an address, like rooms@example.com, or leave it empty."
     shape = client_id.removesuffix(gmail.CLIENT_SUFFIX)
     if not (client_id.endswith(gmail.CLIENT_SUFFIX) and shape and shape.replace("-", "").isalnum()):
         errors["google_client_id"] = "Paste the client ID, which ends .apps.googleusercontent.com."
@@ -606,6 +614,7 @@ def _save_google_client(request: HttpRequest) -> HttpResponse:
         dropped = _let_go_of_google(row)
     row.provider = "google"
     row.google_client_id = client_id
+    row.google_from_address = google_from
     if secret:
         row.google_client_secret = secret
     row.save()
