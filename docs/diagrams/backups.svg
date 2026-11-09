@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 700" width="960" height="700" role="img" aria-labelledby="t d">
+<title id="t">Backups and restore</title>
+<desc id="d">Litestream copies every change to the database into a replica on the same volume, without a network. Every 5 minutes the rclone backup container checks that the bucket belongs to this Snug, then syncs the replica, the uploads and the branding through rclone crypt, so they are encrypted before they leave the server. Anything the sync would overwrite or delete is kept in deleted/date/ for 30 days. The container records success or a problem for snug doctor and the Overview. sudo snug restore stops Snug, sets the current data aside, copies everything back from the bucket, has Litestream rebuild the database at any moment in the last 7 days, and starts again.</desc>
+<defs>
+  <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
+  <marker id="tip-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-accent"/></marker>
+</defs>
+<rect class="bg" width="960" height="700"/>
+
+<!-- Backing up -->
+<rect class="zone" x="16" y="20" width="928" height="400" rx="12"/>
+<text class="heading" x="36" y="48">BACKING UP</text>
+
+<!-- Litestream, on every change -->
+<text class="small" x="36" y="76">On every change, with no network</text>
+<path class="box" d="M36,98 v42 a64,12 0 0 0 128,0 v-42"/>
+<ellipse class="box" cx="100" cy="98" rx="64" ry="12"/>
+<text class="mono" x="52" y="134">snug.sqlite3</text>
+<rect class="box" x="226" y="90" width="180" height="62" rx="8"/>
+<text class="title" x="242" y="115">Litestream</text>
+<text class="label" x="242" y="137">copies each change</text>
+<rect class="box" x="468" y="90" width="200" height="62" rx="8"/>
+<text class="mono" x="484" y="115">backup/database/</text>
+<text class="label" x="484" y="137">replica, on the same volume</text>
+<path class="line" d="M164,121 H226" marker-end="url(#tip)"/>
+<path class="line" d="M406,121 H468" marker-end="url(#tip)"/>
+
+<!-- rclone, every 5 minutes -->
+<text class="small" x="36" y="196">Every 5 minutes, in the backup container</text>
+<rect class="box" x="36" y="212" width="196" height="76" rx="8"/>
+<text class="title" x="52" y="238">Check the bucket</text>
+<text class="label" x="52" y="258">its instance file must</text>
+<text class="label" x="52" y="275">match this Snug's</text>
+<rect class="box" x="264" y="212" width="196" height="76" rx="8"/>
+<text class="title" x="280" y="238">Sync</text>
+<text class="label" x="280" y="258">the replica, originals</text>
+<text class="label" x="280" y="275">and branding</text>
+<rect class="key" x="492" y="212" width="196" height="76" rx="8"/>
+<text class="title" x="508" y="238">rclone crypt</text>
+<text class="label" x="508" y="258">encrypted on the server;</text>
+<text class="label" x="508" y="275">only you hold the passwords</text>
+<rect class="key" x="720" y="212" width="204" height="76" rx="8"/>
+<text class="title" x="736" y="238">Your bucket</text>
+<text class="mono" x="736" y="262">snug/</text>
+<path class="line" d="M232,250 H264" marker-end="url(#tip)"/>
+<path class="line" d="M460,250 H492" marker-end="url(#tip)"/>
+<path class="line-accent" d="M688,250 H720" marker-end="url(#tip-accent)"/>
+<path class="line" d="M568,152 V180 H362 V212" marker-end="url(#tip)"/>
+
+<!-- What comes of each run -->
+<rect class="box" x="36" y="320" width="424" height="76" rx="8"/>
+<text class="mono" x="52" y="346">backup/last-success or backup/problem</text>
+<text class="label" x="52" y="368">read by snug doctor and the Overview;</text>
+<text class="label" x="52" y="385">a problem stops the copy</text>
+<path class="line-dashed" d="M134,288 V320"/>
+<rect class="box" x="720" y="320" width="204" height="76" rx="8"/>
+<text class="mono" x="736" y="346">deleted/&lt;date&gt;/</text>
+<text class="label" x="736" y="368">anything overwritten or</text>
+<text class="label" x="736" y="385">deleted, kept 30 days</text>
+<path class="line-dashed" d="M822,288 V320"/>
+<text class="small" x="492" y="352">Not backed up: the page cache,</text>
+<text class="small" x="492" y="370">GeoIP data and temporary files,</text>
+<text class="small" x="492" y="388">which Snug can make again.</text>
+
+<!-- Restoring -->
+<rect class="zone" x="16" y="440" width="928" height="240" rx="12"/>
+<text class="heading" x="36" y="468">RESTORING</text>
+<text class="mono" x="128" y="468">sudo snug restore [--at TIME]</text>
+
+<rect class="box" x="36" y="490" width="164" height="96" rx="8"/>
+<text class="title" x="52" y="516">Stop</text>
+<text class="label" x="52" y="538">Snug, Litestream</text>
+<text class="label" x="52" y="555">and the backup</text>
+<rect class="box" x="220" y="490" width="164" height="96" rx="8"/>
+<text class="title" x="236" y="516">Set aside</text>
+<text class="label" x="236" y="538">today's data, in</text>
+<text class="mono" x="236" y="556">previous-&lt;time&gt;/</text>
+<rect class="box" x="404" y="490" width="164" height="96" rx="8"/>
+<text class="title" x="420" y="516">Copy back</text>
+<text class="label" x="420" y="538">the replica, originals</text>
+<text class="label" x="420" y="555">and branding</text>
+<rect class="key" x="588" y="490" width="164" height="96" rx="8"/>
+<text class="title" x="604" y="516">Rebuild</text>
+<text class="label" x="604" y="538">Litestream restores</text>
+<text class="label" x="604" y="555">the database, at any</text>
+<text class="label" x="604" y="572">moment in 7 days</text>
+<rect class="box" x="772" y="490" width="152" height="96" rx="8"/>
+<text class="title" x="788" y="516">Start again</text>
+<text class="label" x="788" y="538">every container</text>
+<path class="line" d="M200,538 H220" marker-end="url(#tip)"/>
+<path class="line" d="M384,538 H404" marker-end="url(#tip)"/>
+<path class="line" d="M568,538 H588" marker-end="url(#tip)"/>
+<path class="line" d="M752,538 H772" marker-end="url(#tip)"/>
+<text class="small" x="36" y="618">If this server already has a database, you type replace before anything moves.</text>
+<text class="small" x="36" y="638">Nothing is deleted: the data set aside stays in the data volume until you remove it.</text>
+<text class="small" x="36" y="658">The restored Snug takes on the bucket's instance file, so it goes on backing up to the same bucket.</text>
+</svg>

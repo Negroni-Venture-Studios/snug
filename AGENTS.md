@@ -22,6 +22,7 @@ uv run ruff check . && uv run ruff format --check .
 uv run mypy                        # strict
 uv run python scripts/check_licences.py
 uv run pre-commit run --all-files  # all of the above, as CI runs it
+python3 docs/diagrams/build.py     # after changing a diagram in docs/diagrams/
 ```
 
 Always use `uv run`. Never install into the system Python.
@@ -33,7 +34,7 @@ Always use `uv run`. Never install into the system Python.
 | `snug/` | The Django project: settings and configuration, and the apps `accounts`, `analytics`, `audit`, `core`, `documents`, `links`, `nda`, `rendering` (the confined worker that reads PDFs, Excel workbooks and MP4 videos), `rooms` and `viewer` |
 | `tests/` | pytest suite; `tests/e2e/` drives a real browser with Playwright |
 | `scripts/` | CI and maintenance scripts (`check_licences.py`) |
-| `docs/` | Operator and design documentation; `docs/design/` holds the mockups, stylesheet seed and logo |
+| `docs/` | Operator and design documentation, and `architecture.md` on how the code works; `docs/design/` holds the mockups, stylesheet seed and logo; `docs/diagrams/` the diagrams' sources and `build.py` |
 | `Dockerfile` | The container image, published by the `Image` workflow |
 | `deploy/` | `compose.yaml` (Snug, Caddy, Litestream and the rclone backup sidecar), `Caddyfile`, `litestream.yml`, `backup.sh`, `restore.sh`, `setup.sh`, `snug` (the server's command), `cloud-init.yaml`, `rclone.conf.example` and `snug.env.example` |
 | `.github/` | CI workflows, CodeQL, Dependabot, templates |

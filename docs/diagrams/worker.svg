@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 670" width="940" height="670" role="img" aria-labelledby="t d">
+<title id="t">The confined document worker</title>
+<desc id="d">Snug opens the file and starts a separate worker process, passing the file as a descriptor. The worker limits its own resources, loads its libraries, reads the input, then confines itself with Landlock and a seccomp filter and refuses to go on unless both are in place. It answers on a pipe, which Snug reads within a size limit and a deadline, killing the worker's whole process group past either.</desc>
+<defs>
+  <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
+  <marker id="tip-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-accent"/></marker>
+</defs>
+<rect class="bg" width="940" height="670"/>
+
+<!-- Snug -->
+<rect class="zone" x="20" y="20" width="420" height="630" rx="10"/>
+<text class="heading" x="40" y="48">SNUG, IN A WEB WORKER</text>
+
+<rect class="box" x="40" y="66" width="380" height="64" rx="8"/>
+<text class="title" x="56" y="92">Opens the file</text>
+<text class="label" x="56" y="114">by the path its database record gives</text>
+
+<rect class="box" x="40" y="146" width="380" height="104" rx="8"/>
+<text class="title" x="56" y="172">Starts the worker</text>
+<text class="mono" x="56" y="194">python -I -m snug.rendering.worker MODE FD</text>
+<text class="label" x="56" y="216">with a clean environment and its own process</text>
+<text class="label" x="56" y="234">group; standard input and errors closed</text>
+
+<path class="line-dashed" d="M230,250 V404" marker-end="url(#tip)"/>
+<text class="small" x="242" y="332">waits on the pipe</text>
+
+<rect class="box" x="40" y="404" width="380" height="104" rx="8"/>
+<text class="title" x="56" y="430">Reads the answer</text>
+<text class="label" x="56" y="452">64 KiB at a time. Past 64 MB, or the deadline</text>
+<text class="label" x="56" y="470">(60 s to inspect or stamp a download, 30 s to</text>
+<text class="label" x="56" y="488">render), it kills the whole process group.</text>
+
+<rect class="box" x="40" y="524" width="380" height="80" rx="8"/>
+<text class="title" x="56" y="550">Turns an error into words</text>
+<text class="label" x="56" y="572">a code such as password or macros becomes</text>
+<text class="label" x="56" y="590">a plain message the admin can act on</text>
+
+<path class="line" d="M230,130 V146" marker-end="url(#tip)"/>
+<path class="line" d="M230,508 V524" marker-end="url(#tip)"/>
+
+<!-- Worker -->
+<rect class="zone" x="500" y="20" width="420" height="630" rx="10"/>
+<text class="heading" x="520" y="48">DOCUMENT WORKER, A SEPARATE PROCESS</text>
+
+<rect class="box" x="520" y="66" width="380" height="64" rx="8"/>
+<text class="title" x="536" y="92"><tspan class="accent">1</tspan><tspan dx="8">Limits itself</tspan></text>
+<text class="label" x="536" y="114">1 GiB memory, 60 s CPU, 64 MB output, 32 files</text>
+
+<rect class="box" x="520" y="146" width="380" height="64" rx="8"/>
+<text class="title" x="536" y="172"><tspan class="accent">2</tspan><tspan dx="8">Loads its libraries</tspan></text>
+<text class="label" x="536" y="194">PDFium, Pillow and pypdf, before it confines</text>
+
+<rect class="box" x="520" y="226" width="380" height="64" rx="8"/>
+<text class="title" x="536" y="252"><tspan class="accent">3</tspan><tspan dx="8">Reads the input</tspan></text>
+<text class="label" x="536" y="274">from the descriptor; a video only in pieces</text>
+
+<rect class="key" x="520" y="306" width="380" height="82" rx="8"/>
+<text class="title" x="536" y="332"><tspan class="accent">4</tspan><tspan dx="8">Confines itself</tspan></text>
+<text class="label" x="536" y="354">no new privileges; Landlock: read fonts only,</text>
+<text class="label" x="536" y="372">no TCP; a seccomp filter: no sockets at all</text>
+
+<rect class="box" x="520" y="404" width="380" height="64" rx="8"/>
+<text class="title" x="536" y="430"><tspan class="accent">5</tspan><tspan dx="8">Checks both are in place</tspan></text>
+<text class="label" x="536" y="452">or refuses to read anything: <tspan class="mono">unconfined</tspan></text>
+
+<rect class="box" x="520" y="484" width="380" height="64" rx="8"/>
+<text class="title" x="536" y="510"><tspan class="accent">6</tspan><tspan dx="8">Parses and answers</tspan></text>
+<text class="label" x="536" y="532">JSON, or the image or file, on the pipe</text>
+
+<text class="heading" x="536" y="582">MODES</text>
+<text class="mono" x="536" y="604">inspect render stamp stamp-pdf inspect-xlsx</text>
+<text class="mono" x="536" y="624">stamp-xlsx inspect-mp4 logo icon confinement</text>
+
+<path class="line" d="M710,130 V146" marker-end="url(#tip)"/>
+<path class="line" d="M710,210 V226" marker-end="url(#tip)"/>
+<path class="line" d="M710,290 V306" marker-end="url(#tip)"/>
+<path class="line" d="M710,388 V404" marker-end="url(#tip)"/>
+<path class="line" d="M710,468 V484" marker-end="url(#tip)"/>
+
+<!-- Between them -->
+<path class="line-accent" d="M420,198 H460 V98 H520" marker-end="url(#tip-accent)"/>
+<text class="small" transform="translate(452,196) rotate(-90)">file descriptor</text>
+<path class="line-accent" d="M520,516 H470 V456 H420" marker-end="url(#tip-accent)"/>
+<text class="small" transform="translate(484,500) rotate(-90)">pipe</text>
+</svg>

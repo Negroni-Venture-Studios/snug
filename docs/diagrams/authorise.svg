@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 780" width="900" height="780" role="img" aria-labelledby="t d">
+<title id="t">The one authorisation path for viewer requests</title>
+<desc id="d">Every request under /v/ goes through authorise(), which makes five checks in order: the link exists and is live; the session belongs to this link and this email, verified if the link asks for a code; the NDA is accepted if one is needed; the reader is in the UK if the link or its room is UK-only; and the document belongs to the link or its room. A failed check ends the request with a 404, the link's own page, the NDA page or a 403. When all five pass, the view receives the link, the session and the document.</desc>
+<defs>
+  <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
+  <marker id="tip-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-ok"/></marker>
+  <marker id="tip-no" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-danger"/></marker>
+</defs>
+<rect class="bg" width="900" height="780"/>
+
+<!-- Start -->
+<rect class="box" x="40" y="24" width="440" height="56" rx="28"/>
+<text class="title" x="64" y="49">A request under</text>
+<text class="mono" x="64" y="68">/v/&lt;token&gt;/</text>
+<text class="mono" x="300" y="49">authorise()</text>
+<text class="small" x="300" y="68">snug/viewer/access.py</text>
+
+<!-- Checks -->
+<rect class="box" x="40" y="112" width="440" height="68" rx="8"/>
+<text class="title" x="60" y="140">1. The link works</text>
+<text class="label" x="60" y="162">it exists, is not revoked and has not expired</text>
+
+<rect class="box" x="40" y="216" width="440" height="68" rx="8"/>
+<text class="title" x="60" y="244">2. The session is for this link</text>
+<text class="label" x="60" y="266">and this email; verified if the link asks for a code</text>
+
+<rect class="box" x="40" y="320" width="440" height="68" rx="8"/>
+<text class="title" x="60" y="348">3. The NDA is accepted</text>
+<text class="label" x="60" y="370">if the link or its room needs one</text>
+
+<rect class="box" x="40" y="424" width="440" height="68" rx="8"/>
+<text class="title" x="60" y="452">4. The reader is in the UK</text>
+<text class="label" x="60" y="474">if the link or its room is UK-only</text>
+
+<rect class="box" x="40" y="528" width="440" height="68" rx="8"/>
+<text class="title" x="60" y="556">5. The document is the link's</text>
+<text class="label" x="60" y="578">or in the link's room</text>
+
+<!-- Success -->
+<rect class="key" x="40" y="632" width="440" height="68" rx="8"/>
+<text class="mono" x="60" y="660">Access(link, session, document)</text>
+<text class="label" x="60" y="682">goes to the view, which shows only that document</text>
+
+<!-- Outcomes -->
+<rect class="box" x="584" y="112" width="296" height="68" rx="8"/>
+<text class="title danger" x="604" y="140">404</text>
+<text class="label" x="604" y="162">"This link is not available"</text>
+
+<rect class="box" x="584" y="216" width="296" height="68" rx="8"/>
+<text class="title" x="604" y="244">The link's own page</text>
+<text class="label" x="604" y="266">which asks for the code</text>
+
+<rect class="box" x="584" y="320" width="296" height="68" rx="8"/>
+<text class="title" x="604" y="348">The NDA page</text>
+<text class="label" x="604" y="370">accept it, then go on</text>
+
+<rect class="box" x="584" y="424" width="296" height="68" rx="8"/>
+<text class="title danger" x="604" y="452">403</text>
+<text class="label" x="604" y="474">recorded in the audit log</text>
+
+<rect class="box" x="584" y="528" width="296" height="68" rx="8"/>
+<text class="title danger" x="604" y="556">404</text>
+<text class="label" x="604" y="578">the same page as a dead link</text>
+
+<!-- Yes, down -->
+<path class="line-ok" d="M260,80 V110" marker-end="url(#tip-ok)"/>
+<path class="line-ok" d="M260,180 V214" marker-end="url(#tip-ok)"/>
+<text class="small ok" x="270" y="202">yes</text>
+<path class="line-ok" d="M260,284 V318" marker-end="url(#tip-ok)"/>
+<text class="small ok" x="270" y="306">yes</text>
+<path class="line-ok" d="M260,388 V422" marker-end="url(#tip-ok)"/>
+<text class="small ok" x="270" y="410">yes</text>
+<path class="line-ok" d="M260,492 V526" marker-end="url(#tip-ok)"/>
+<text class="small ok" x="270" y="514">yes</text>
+<path class="line-ok" d="M260,596 V630" marker-end="url(#tip-ok)"/>
+<text class="small ok" x="270" y="618">yes</text>
+
+<!-- No, across -->
+<path class="line-danger" d="M480,146 H582" marker-end="url(#tip-no)"/>
+<text class="small danger" x="522" y="138">no</text>
+<path class="line-danger" d="M480,250 H582" marker-end="url(#tip-no)"/>
+<text class="small danger" x="522" y="242">no</text>
+<path class="line-danger" d="M480,354 H582" marker-end="url(#tip-no)"/>
+<text class="small danger" x="522" y="346">no</text>
+<path class="line-danger" d="M480,458 H582" marker-end="url(#tip-no)"/>
+<text class="small danger" x="522" y="450">no</text>
+<path class="line-danger" d="M480,562 H582" marker-end="url(#tip-no)"/>
+<text class="small danger" x="522" y="554">no</text>
+
+<!-- Note -->
+<text class="small" x="40" y="740">A test walks every <tspan class="mono">/v/</tspan> URL and fails if one skips this path:</text>
+<text class="mono" x="40" y="760">tests/test_viewer_urls.py</text>
+</svg>
