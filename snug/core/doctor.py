@@ -202,16 +202,16 @@ def https(now: datetime) -> Finding:
 
 def email_setup() -> Finding:
     label = "Email"
-    config = settings.CONFIG
-    if not mail.enabled():
+    now = mail.outgoing()
+    if now.kind == "off":
         return _problem(
             label,
             "Email is not set up, so investors cannot be sent codes and admins cannot be "
-            "invited. See docs/email.md.",
+            "invited. Set it up in Settings, under Email; docs/email.md explains how.",
         )
-    if config.email_outbox:
+    if now.kind == "outbox":
         return _ok(label, "Emails are written to the outbox folder, on localhost only.")
-    return _ok(label, f"Sending through {config.smtp_host}.")
+    return _ok(label, f"Sending through {now.host} as {now.from_address}.")
 
 
 def geoip_data(now: datetime) -> Finding:

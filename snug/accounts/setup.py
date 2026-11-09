@@ -195,10 +195,14 @@ def send_invite(admin: Admin, token: str, by: Admin) -> bool:
     )
 
 
-def alert_admins(*, subject: str, what: str, also: str = "") -> None:
+def alert_admins(
+    *, subject: str, what: str, also: str = "", via: mail.Outgoing | None = None
+) -> None:
     """Tell every working admin about a change to the admins. Best effort.
 
     `also` adds one more address, such as an admin who has just been removed.
+    `via` sends through particular settings, such as the email settings in force
+    before a change, so whoever made it cannot swallow the alert.
     """
     company = company_name()
     context = {"what": what, "company": company, "origin": settings.CONFIG.origin}
@@ -208,4 +212,6 @@ def alert_admins(*, subject: str, what: str, also: str = "") -> None:
     if also:
         recipients.add(also)
     for email in sorted(recipients):
-        mail.send(to=email, subject=f"{company or 'Snug'}: {subject}", text=text, html=html)
+        mail.send(
+            to=email, subject=f"{company or 'Snug'}: {subject}", text=text, html=html, via=via
+        )

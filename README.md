@@ -111,7 +111,7 @@ To remove it all: `docker rm --force snug && docker volume rm snug-data`, then d
 
 ## Running it on a server
 
-[The deployment guide](docs/deployment.md) sets up a fresh Ubuntu server, such as a DigitalOcean droplet, with cloud-init and `sudo snug setup`, which asks for your domain, email and backup bucket on the server itself. [The backups guide](docs/backups.md) explains what is backed up, how to check it and how to restore, and [the email guide](docs/email.md) how to get your provider's details. These are untested on a real server until the full deployment above.
+[The deployment guide](docs/deployment.md) sets up a fresh Ubuntu server, such as a DigitalOcean droplet, with cloud-init and `sudo snug setup`, which asks for your domain and backup bucket on the server itself; email is set up afterwards in Settings. [The backups guide](docs/backups.md) explains what is backed up, how to check it and how to restore, and [the email guide](docs/email.md) how to get your provider's details. These are untested on a real server until the full deployment above.
 
 ## How it is built
 

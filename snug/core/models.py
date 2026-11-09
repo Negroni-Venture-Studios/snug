@@ -76,3 +76,37 @@ class SystemCheck(models.Model):
 
     def __str__(self) -> str:
         return f"{self.name}: {'ok' if self.ok else 'problem'}"
+
+
+class EmailSettings(models.Model):
+    """How Snug sends email, as saved in Settings. One row, always pk 1.
+
+    Apart from SiteSettings, which every viewer page reads, because these
+    hold passwords. A blank provider means nothing is saved, and Snug uses
+    the SMTP settings in snug.env (snug.core.mail.outgoing).
+    """
+
+    provider = models.CharField(max_length=10, blank=True)  # "", or "smtp"
+    from_address = models.EmailField(blank=True)
+    smtp_host = models.CharField(max_length=253, blank=True)
+    smtp_port = models.PositiveIntegerField(null=True, blank=True)
+    smtp_username = models.CharField(max_length=254, blank=True)
+    # Never shown again once saved; Snug needs it as it is to sign in.
+    smtp_password = models.CharField(max_length=500, blank=True)
+    smtp_security = models.CharField(max_length=10, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "email settings"
+
+    def __str__(self) -> str:
+        return "Email settings"
+
+    def __repr__(self) -> str:
+        # Never let the password reach a log or a traceback.
+        return f"EmailSettings(provider={self.provider!r}, smtp_host={self.smtp_host!r})"
+
+    @classmethod
+    def load(cls) -> "EmailSettings":
+        row, _ = cls.objects.get_or_create(pk=1)
+        return row

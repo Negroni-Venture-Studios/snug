@@ -34,6 +34,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- Email is set up in Settings, under Email, and takes effect at once, with a *Send a test* button. Passwords are never shown again. SMTP settings in `snug.env` still work until something is saved there, and `snug setup` no longer asks about email.
 - First-open emails: the first time a link shows anyone a document, every admin is emailed who, what, when and from which country, with a link to that person on the People page. Each admin can turn their own off under Your account in Settings.
 - UK-only mode: a link to a document, or a whole room, can open only for visitors in the UK, Jersey, Guernsey and the Isle of Man. Anyone elsewhere, or anyone Snug cannot place, sees a page saying so and is sent no code, and the refusal is in the audit log. Countries come from DB-IP's free database, kept on the server; `snug doctor` and the Overview warn if it is missing or out of date.
 - Housekeeping downloads DB-IP's free country database once a month and keeps it in the data folder, for UK-only links. Lookups use that copy alone: no visitor's address leaves the server.
