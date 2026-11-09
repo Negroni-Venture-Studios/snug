@@ -31,9 +31,9 @@
 <text class="label" x="56" y="488">render), it kills the whole process group.</text>
 
 <rect class="box" x="40" y="524" width="380" height="80" rx="8"/>
-<text class="title" x="56" y="550">Turns an error into words</text>
-<text class="label" x="56" y="572">a code such as password or macros becomes</text>
-<text class="label" x="56" y="590">a plain message the admin can act on</text>
+<text class="title" x="56" y="550">Turns an error into a message</text>
+<text class="label" x="56" y="572">from a code such as password or macros, in</text>
+<text class="label" x="56" y="590">words the admin can act on</text>
 
 <path class="line" d="M230,130 V146" marker-end="url(#tip)"/>
 <path class="line" d="M230,508 V524" marker-end="url(#tip)"/>

@@ -8,7 +8,7 @@ Snug runs on one Linux server as four containers under Docker Compose:
 
 ## What you need
 
-- A server running Ubuntu 24.04 LTS. A DigitalOcean droplet with 1 GB of memory is enough for one company. Its disk holds every upload: PDFs and workbooks need little room, but a video can be hundreds of megabytes, up to the limit `SNUG_MAX_VIDEO_MB` sets (1 GB unless set; see [configuration.md](configuration.md)). Choose a disk with room for the videos you mean to share.
+- A server running Ubuntu 24.04 LTS. A DigitalOcean droplet with 1 GB of memory is enough for one company. Its disk holds every upload. PDFs and workbooks need little room, but a video can be hundreds of megabytes, up to the limit `SNUG_MAX_VIDEO_MB` sets (1 GB unless set; see [configuration.md](configuration.md)). Choose a disk with room for the videos you mean to share.
 - A domain name, such as `room.example.com`, whose DNS `A` record points at the server, and its `AAAA` record too if the server has IPv6.
 - A way for Snug to send links and codes, set up in Settings once Snug is running: a Google Workspace mailbox, through the Gmail API ([email-google.md](email-google.md)), or an email provider's SMTP details ([email.md](email.md)).
 - A storage bucket for the backups, such as DigitalOcean Spaces, and a key for it. See [backups.md](backups.md).
@@ -73,19 +73,19 @@ Neither can gain privileges once started (`no-new-privileges`). Litestream and t
 
 Caddy writes no access log, because the token is in the URL of every investor's link.
 
-Once a month, housekeeping downloads [DB-IP](https://db-ip.com)'s free country database, about 5 MB, for UK-only links. It is the only download Snug makes by itself, and it sends DB-IP nothing about your visitors: Snug looks addresses up in its own copy.
+Once a month, housekeeping downloads [DB-IP](https://db-ip.com)'s free country database, about 5 MB, for UK-only links. It is the only download Snug makes by itself. Snug looks addresses up in its own copy, so nothing about your visitors goes to DB-IP.
 
 Otherwise Snug connects out only to send email: to Google, when it sends through Google Workspace, or to your SMTP provider. If the server reaches the internet through a proxy, set `HTTPS_PROXY` in `snug.env`. Snug's calls to Google and DB-IP use it; SMTP connects directly.
 
 ### Client addresses
 
-Rate limits and the audit log depend on knowing each visitor's real address. Caddy has fixed addresses on the Compose network, `172.30.83.2` and `fd53:6e75:6700::2`, and Snug believes `X-Forwarded-For` only from those: the Compose file sets `SNUG_TRUSTED_PROXIES` itself, whatever `snug.env` says. Caddy ignores any `X-Forwarded-For` a visitor sends, and passes on the address the connection really came from.
+Rate limits and the audit log depend on knowing each visitor's real address. Caddy has fixed addresses on the Compose network, `172.30.83.2` and `fd53:6e75:6700::2`, and Snug trusts `X-Forwarded-For` only from those. The Compose file sets `SNUG_TRUSTED_PROXIES` itself, overriding any value in `snug.env`. Caddy ignores any `X-Forwarded-For` a visitor sends, and passes on the address the connection really came from.
 
 IPv6 is turned on for the Compose network. Without it, Docker would relay visitors arriving over IPv6 through a proxy of its own, and they would all reach Caddy from one address and share one set of rate limits.
 
 ## Checking it works
 
-`snug doctor` checks everything an operator would want to know, and says what to fix:
+`snug doctor` checks the server and says what to fix:
 
 ```bash
 sudo snug doctor --email you@example.com
@@ -101,11 +101,11 @@ sudo snug doctor --email you@example.com
 | Email | Email is set up, through Google Workspace or SMTP; with `--email`, a code sent to that address is typed back |
 | GeoIP | When anything is UK-only: DB-IP's country data is this month's or last month's |
 
-The admin Overview shows the same problems, so a founder sees them without running a command. When there are none, it says so:
+The admin Overview shows the same problems, so a founder sees them without running a command. When there are none, it shows *Everything is working.*
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/overview-dark.png">
-  <img alt="The admin Overview, saying everything is working, above its numbers and the latest visits." src="images/screenshots/overview-light.png">
+  <img alt="The admin Overview, with the status line Everything is working above its numbers and the latest visits." src="images/screenshots/overview-light.png">
 </picture>
 
 It checks housekeeping, the backups, the email settings and the GeoIP data on each visit; housekeeping runs the document worker, DNS and HTTPS checks every hour, and a failed email is recorded when it fails.
@@ -123,7 +123,7 @@ sudo snug check
 sudo snug doctor
 ```
 
-`sudo snug restore` is the exception: it runs on the server itself, because it stops and starts the containers, as [backups.md](backups.md) explains.
+`sudo snug restore` is the exception. It runs on the server itself, because it stops and starts the containers, as [backups.md](backups.md) explains.
 
 ## Updating
 

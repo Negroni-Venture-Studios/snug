@@ -134,7 +134,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <text class="label" x="36" y="618">Alerts to every admin when the admins or email settings change</text>
 
 <rect class="zone" x="652" y="500" width="288" height="140" rx="10"/>
-<text class="label" x="668" y="550">Every send records whether it</text>
+<text class="label" x="668" y="550">Snug records whether each send</text>
 <text class="label" x="668" y="570">worked, for the Overview and</text>
 <text class="mono" x="668" y="592">snug doctor</text>
 </svg>

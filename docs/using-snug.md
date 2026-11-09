@@ -1,6 +1,6 @@
 # Using Snug
 
-You run Snug from its admin pages, at `/admin/` on your domain. Investors never see those. Each one gets a link of their own, which opens only the document or room you shared with them. The screenshots here are from a demo data room for a made-up company, Fernlea Robotics.
+You run Snug from its admin pages, at `/admin/` on your domain. Each investor gets a link of their own, which opens only the document or room you shared with them. The screenshots here are from a demo data room for a made-up company, Fernlea Robotics.
 
 ## Signing in
 
@@ -13,7 +13,7 @@ Sign in with your email address and password, then the six-digit code from your 
 
 ## The Overview
 
-The first page after signing in. A line at the top says whether everything is working, or shows any problem `snug doctor` would report, such as a late backup. Below it are the number of documents, active links, people who have visited and visits in the last week, then the latest visits, with a person's first open of a document marked *New*.
+The Overview is the first page after signing in. A line at the top says whether everything is working, or shows any problem `snug doctor` would report, such as a late backup. Below it are the number of documents, active links, people who have visited and visits in the last week, then the latest visits, with a person's first open of a document marked *New*.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/overview-dark.png">
@@ -22,7 +22,7 @@ The first page after signing in. A line at the top says whether everything is wo
 
 ## Uploading a document
 
-*Documents*, then *Upload a document*. Give it a title, which investors see, and choose the file: a PDF, an Excel workbook (.xlsx) or an MP4 video. Snug checks the file before it keeps it, and says plainly what is wrong with one it refuses, such as a workbook with macros or a PDF with a password.
+Choose *Documents*, then *Upload a document*. Give it a title, which investors see, and choose the file: a PDF, an Excel workbook (.xlsx) or an MP4 video. Snug checks the file before it keeps it, and says what is wrong with one it refuses, such as a workbook with macros or a PDF with a password.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/upload-dark.png">
@@ -59,7 +59,7 @@ A workbook has no pages, so its page has a description, which investors see abov
   <img alt="The People page: each investor's documents, with a strip of shaded cells, their visits, downloads, total time and when they were last seen." src="images/screenshots/people-light.png">
 </picture>
 
-You are emailed the first time each link is opened. You can turn that off under *Your account* in Settings.
+You are emailed the first time each link is opened. To stop it, untick *Email me when someone first opens a link* under *Your account* in Settings.
 
 ## Sharing a document
 
@@ -128,7 +128,7 @@ A workbook is shown as a card with your description and its sheets, and a button
 
 ## The audit log
 
-Everything admins and investors do, newest first: signing in, creating and revoking links, every code sent, every document opened and every download, with the address and country it came from. Filter it by kind or by email address, and export what you see as a CSV file. Nothing in it can be changed or deleted, by you or by Snug.
+The audit log lists everything admins and investors do, newest first: signing in, creating and revoking links, every code sent, every document opened and every download, with the address and country it came from. Filter it by kind or by email address, and export what you see as a CSV file. Nothing in it can be changed or deleted, by you or by Snug.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/audit-dark.png">

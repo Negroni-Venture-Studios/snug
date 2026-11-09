@@ -40,7 +40,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 .on-action { fill: var(--on-action); font-weight: 600; }
 </style>
 <title id="t">How a request reaches a view</title>
-<desc id="d">A browser's request goes through Caddy, which handles HTTPS and adds X-Forwarded-For, to a gunicorn web worker. There it passes Django's middleware in order: security headers, the health check, static files, sessions, the upload size limit, CSRF, authentication and the admin session limits. The URL router then sends it to the admin views, the viewer views, every one of which goes through authorise(), or the public branding files. What comes back is HTML, page images, video in byte ranges, charts drawn on the server and stamped downloads.</desc>
+<desc id="d">A browser's request goes through Caddy, which handles HTTPS and adds X-Forwarded-For, to a gunicorn web worker. There it passes Django's middleware in order: security headers, the health check, static files, sessions, the upload size limit, CSRF, authentication and the admin session limits. The URL router then sends it to the admin views, the viewer views, every one of which goes through authorise(), or the public branding files. Back come HTML pages, page images, video in byte ranges, charts drawn on the server and stamped downloads.</desc>
 <defs>
   <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
   <marker id="tip-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-accent"/></marker>

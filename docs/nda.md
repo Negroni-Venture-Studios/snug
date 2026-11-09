@@ -2,9 +2,9 @@
 
 Snug can ask a viewer to accept a non-disclosure agreement before they see anything a link shares.
 
-## What it is, and what it is not
+## What an acceptance shows
 
-**An NDA acceptance in Snug is a record of acceptance, not an electronic signature.** It shows that someone with access to the link's email address, giving the name they typed, ticked a box to accept a specific text, at a specific time, from a specific IP address and browser. Whether that is enough for your purposes is a question for your lawyer, not for Snug. If you need a signature, use a signing service, and share the room once it is signed.
+**An NDA acceptance in Snug is a record of acceptance, not an electronic signature.** It shows that someone with access to the link's email address, giving the name they typed, ticked a box to accept a specific text, at a specific time, from a specific IP address and browser. Whether that is enough for your purposes is a question for your lawyer. If you need a signature, use a signing service, and share the room once it is signed.
 
 ## Setting it up
 
@@ -34,4 +34,4 @@ For each acceptance, Snug keeps:
 - the time, their IP address and their browser's user agent;
 - a SHA-256 fingerprint of the exact text accepted.
 
-Acceptances are never changed or deleted by Snug. Each one is also written to the audit log as `viewer.nda_accepted`. Acceptance is per link: someone with two links to the same room accepts on each.
+Acceptances are never changed or deleted by Snug. Each one is also written to the audit log as `viewer.nda_accepted`. Acceptance is per link, so someone with two links to the same room accepts on each.
