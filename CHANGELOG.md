@@ -53,7 +53,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 - [Using Snug](docs/using-snug.md), a guide to every page of the admin and what investors see, with screenshots. The deployment, backups, email, admin accounts and NDA guides have diagrams and screenshots too.
 - Screenshots in the README, in light and dark, taken from a demo company's data room in a real browser by `tests/e2e/test_screenshots.py`, so they can be retaken whenever a page changes.
-- [How Snug works](docs/architecture.md): the processes on the server, a request's path, the one authorisation path, the data, the document worker, reading time, email, background work and backups, with diagrams in light and dark.
+- [How Snug works](docs/architecture.md), a guide to the code for developers, with diagrams in light and dark.
 - Snug counts how long an investor has a workbook's page open, as it does for a page of a PDF. On People, a workbook shows one cell shaded by that time, where it used to say *Spreadsheet*. Investors are told this on the workbook's page.
 - MP4 videos can be shared as documents. Investors watch them in the browser with their email address, the date and the link drawn over the player, and Snug counts time watched in 10-second parts, shown on the document's page and on People. They can download it when the link allows downloads. Uploads are checked in the confined worker, which accepts H.264 video with optional AAC sound and refuses QuickTime and other formats with a plain message. Videos have their own size limit, `SNUG_MAX_VIDEO_MB`, 1 GB by default.
 - A workbook can have a description, written on its page in the admin: plain text, kept across new versions, and shown to investors above its list of sheets.
