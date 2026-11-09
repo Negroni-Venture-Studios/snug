@@ -41,6 +41,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- A workbook can have a description, written on its page in the admin: plain text, kept across new versions, and shown to investors above its list of sheets.
 - Excel workbooks (.xlsx) can be shared as documents, for download only. Investors see the workbook's sheets and a button to download it, and each copy names its reader, the date and the link in its document properties, with every sheet left exactly as uploaded. Uploads are checked in the confined worker: workbooks with macros, ActiveX or embedded objects, old .xls files and workbooks with passwords are refused with a plain message.
 - Email through Amazon SES works from DigitalOcean: Settings accepts SES's ports 2587 (STARTTLS) and 2465 (TLS), beside 25, 465, 587 and 2525.
 - *Clear email settings*, under the choice of provider in Settings and shown whenever anything is saved, forgets the Google client and mailbox or the SMTP details, and withdraws Snug's permission at Google. It needs a fresh code, and every admin is told first. Email then falls back to `snug.env`, or is off.

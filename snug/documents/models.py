@@ -24,8 +24,14 @@ def new_stored_name(extension: str = "pdf") -> str:
     return f"{uuid.uuid4().hex}.{extension}"
 
 
+MAX_DESCRIPTION = 1000
+
+
 class Document(models.Model):
     title = models.CharField(max_length=200)
+    # A workbook's own words for investors, above its sheets: plain text, kept
+    # from version to version. A link's cover message is for one investor.
+    description = models.TextField(blank=True, max_length=MAX_DESCRIPTION)
     token = models.CharField(max_length=32, unique=True, default=new_token, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(

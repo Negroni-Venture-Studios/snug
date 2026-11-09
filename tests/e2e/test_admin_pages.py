@@ -271,6 +271,10 @@ def test_a_workbook_is_uploaded_shared_and_downloaded(
         "Uploaded, an Excel workbook with 2 sheets", timeout=15000
     )
     expect(page.locator(".sheet-list")).to_contain_text("Summary")
+    page.get_by_label("What investors should know").fill("Start on Summary.")
+    page.get_by_role("button", name="Save description").click()
+    expect(page.locator("#description .notice-ok")).to_contain_text("Description saved.")
+    expect(page).to_have_url(re.compile(r"#description$"))
 
     issued = service.create(
         document=Document.objects.get(title="Financial model"),
@@ -285,6 +289,7 @@ def test_a_workbook_is_uploaded_shared_and_downloaded(
     investor.goto(f"{live_server.url}/v/{issued.token}")
     investor.get_by_role("button", name="Open Financial model").click()
     expect(investor.locator(".sheet-list")).to_contain_text("Detail")
+    expect(investor.locator(".description")).to_have_text("Start on Summary.")
     with investor.expect_download() as arriving:
         investor.get_by_role("link", name="Download the workbook").click()
     download = arriving.value
