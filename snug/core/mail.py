@@ -1,7 +1,9 @@
 """Sending email. Failures are reported to the caller, never logged with content."""
 
+import ipaddress
 import logging
 import smtplib
+import socket
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -60,6 +62,38 @@ def outgoing() -> Outgoing:
     if config.email_outbox:
         return Outgoing(kind="outbox", from_address=config.email_from or "snug@localhost")
     return Outgoing(kind="off")
+
+
+# The ports mail providers accept submissions on. Anything else could aim Snug's
+# SMTP client at some other service.
+SMTP_PORTS = (25, 465, 587, 2525)
+
+
+class UnsafeServerError(OSError):
+    """The SMTP server resolves to an address Snug will not connect to."""
+
+
+def _addresses(host: str, port: int) -> list[str]:
+    return [str(info[4][0]) for info in socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)]
+
+
+def public_server(host: str, port: int = 587) -> str:
+    """ "" if Snug may connect to this SMTP server; otherwise "private" or "unknown".
+
+    A stolen admin session could otherwise aim Snug at a service on the server's
+    own network, or at the cloud provider's metadata address. On localhost,
+    for development, anything goes.
+    """
+    if settings.CONFIG.domain == "localhost":
+        return ""
+    try:
+        found = _addresses(host, port)
+    except (OSError, UnicodeError):
+        return "unknown"
+    for address in found:
+        if not ipaddress.ip_address(address.split("%", 1)[0]).is_global:
+            return "private"
+    return "" if found else "unknown"
 
 
 def enabled() -> bool:

@@ -40,3 +40,6 @@ RESET_CODE_FAILURES_PER_LINK = 5
 # Submitting the setup page, from one address. Each submission may hash a
 # password, which is deliberately slow.
 SETUP_PER_IP = Limit("admin.setup.ip", limit=20, window=WINDOW)
+
+# Test emails from Settings, per admin: enough to try a few fixes.
+EMAIL_TEST_PER_ADMIN = Limit("admin.email_test.admin", limit=5, window=WINDOW)

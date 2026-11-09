@@ -79,7 +79,7 @@
   <div class="field"><label for="smtp-host">SMTP server</label><input id="smtp-host" name="smtp_host" type="text" autocomplete="off" spellcheck="false" value="{{ email.values.smtp_host }}"{% if email.errors.smtp_host %} aria-invalid="true" aria-describedby="smtp-host-error"{% endif %}>
     {% if email.errors.smtp_host %}<div class="error" id="smtp-host-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_host }}</div>{% endif %}</div>
   <div class="field"><label for="smtp-port">Port</label><input id="smtp-port" name="smtp_port" type="text" inputmode="numeric" autocomplete="off" value="{{ email.values.smtp_port }}"{% if email.errors.smtp_port %} aria-invalid="true" aria-describedby="smtp-port-error"{% endif %}>
-    {% if email.errors.smtp_port %}<div class="error" id="smtp-port-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_port }}</div>{% else %}<div class="hint">DigitalOcean blocks 25, 465 and 587, so use your provider's alternative, such as 2525.</div>{% endif %}</div>
+    {% if email.errors.smtp_port %}<div class="error" id="smtp-port-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_port }}</div>{% else %}<div class="hint">25, 465, 587 or 2525. DigitalOcean blocks the first three, so use 2525 there.</div>{% endif %}</div>
   <div class="field"><label for="smtp-username">Username</label><input id="smtp-username" name="smtp_username" type="text" autocomplete="off" spellcheck="false" value="{{ email.values.smtp_username }}"></div>
   <div class="field"><label for="smtp-password">Password or API key</label><input id="smtp-password" name="smtp_password" type="password" autocomplete="new-password" value="">
     <div class="hint">{% if email.password_saved %}A password is saved. Leave this empty to keep it.{% else %}Never shown again once saved.{% endif %}</div></div>
@@ -88,6 +88,8 @@
       <option value="tls"{% if email.values.smtp_security == "tls" %} selected{% endif %}>TLS, for port 465</option>
     </select>
     {% if email.errors.smtp_security %}<div class="error" id="smtp-security-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_security }}</div>{% endif %}</div>
+  <div class="field"><label for="email-code">Code from your authenticator app</label><input id="email-code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7"{% if email.errors.code %} aria-invalid="true" aria-describedby="email-code-error"{% endif %}>
+    {% if email.errors.code %}<div class="error" id="email-code-error" role="alert">{% icon "warning-circle" %}{{ email.errors.code }}</div>{% else %}<div class="hint">Email carries codes and links, so changing how it is sent needs a fresh code. Every admin is told.</div>{% endif %}</div>
   <button class="btn btn-primary" type="submit">Save</button>
 </form>
 {% if email_enabled %}<form class="panel form settings-form" id="email-test" method="post" action="{% url 'accounts:email_test' %}#email">

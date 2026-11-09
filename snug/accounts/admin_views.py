@@ -432,19 +432,37 @@ def email_view(request: HttpRequest) -> HttpResponse:
         validate_email(values["from_address"])
     except ValidationError:
         errors["from_address"] = "Enter the address emails come from, like rooms@example.com."
+    port = values["smtp_port"]
+    if not (port.isdecimal() and int(port) in mail.SMTP_PORTS):
+        errors["smtp_port"] = "Use port 25, 465, 587 or 2525."
     if not values["smtp_host"]:
         errors["smtp_host"] = "Enter your provider's SMTP server, like smtp.postmarkapp.com."
-    port = values["smtp_port"]
-    if not (port.isdecimal() and 1 <= int(port) <= 65535):
-        errors["smtp_port"] = "Enter a port number from 1 to 65535."
+    else:
+        where = mail.public_server(
+            values["smtp_host"], int(port) if "smtp_port" not in errors else 587
+        )
+        if where == "private":
+            errors["smtp_host"] = (
+                "That server is on a private network. Snug sends only through public mail servers."
+            )
+        elif where:
+            errors["smtp_host"] = "That server cannot be found. Check its name."
     if values["smtp_security"] not in ("starttls", "tls"):
         errors["smtp_security"] = (
             "Choose STARTTLS or TLS. Email must never cross the internet unencrypted."
         )
+    if not errors:
+        # Email carries codes and reset links: changing where it goes is
+        # confirmed like any change to the admins.
+        refused = _confirmed(request, "email")
+        if refused:
+            errors["code"] = refused
     if errors:
         form = {"values": values, "errors": errors}
-        return _settings_page(request, status=400, email_form=form)
+        status = 429 if errors.get("code") == TOO_MANY else 400
+        return _settings_page(request, status=status, email_form=form)
 
+    before = mail.outgoing()
     row = EmailSettings.load()
     row.provider = "smtp"
     row.from_address = values["from_address"]
@@ -465,6 +483,16 @@ def email_view(request: HttpRequest) -> HttpResponse:
         host=row.smtp_host,
         **{"from": row.from_address},
     )
+    # Through the settings in force before, so whoever made the change cannot
+    # swallow the alert (unless email was off, when there is no other way).
+    setup.alert_admins(
+        subject="Email settings changed",
+        what=(
+            f"{_admin(request).email} changed how Snug sends email. It now sends through "
+            f"{row.smtp_host} as {row.from_address}."
+        ),
+        via=before if before.kind != "off" else None,
+    )
     return redirect("/admin/settings/?saved=email#email")
 
 
@@ -474,10 +502,12 @@ def email_view(request: HttpRequest) -> HttpResponse:
 def email_test_view(request: HttpRequest) -> HttpResponse:
     """Send a short email to the admin who asked, with the settings in force."""
     admin = _admin(request)
+    if not ratelimit.allow(limits.EMAIL_TEST_PER_ADMIN, str(admin.pk)):
+        error = "Too many test emails. Try again in 15 minutes."
+        return _settings_page(request, status=429, email_test_error=error)
     if not mail.enabled():
-        return _settings_page(
-            request, status=400, email_test_error="Save the email settings first."
-        )
+        error = "Save the email settings first."
+        return _settings_page(request, status=400, email_test_error=error)
     sent = mail.send(
         to=admin.email,
         subject="Snug: a test email",

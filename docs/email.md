@@ -89,7 +89,10 @@ Sign in, open **Settings**, and fill in **Email**:
 
 - the address emails come from, on the domain you verified;
 - the SMTP server, port, username, and password or API key from step 3;
-- the encryption: STARTTLS for ports 587 and 2525, or TLS for port 465.
+- the encryption: STARTTLS for ports 587 and 2525, or TLS for port 465;
+- a code from your authenticator app.
+
+Email carries investors' codes and admins' reset links, so changing how it is sent needs a fresh code, and every admin is emailed about it, through the settings in force before the change. Snug sends only through public mail servers, on port 25, 465, 587 or 2525: it refuses a server whose name leads to a private or internal address.
 
 Choose **Save**, and Snug uses the new settings at once, with no restart. The password is never shown again: to change it, type a new one, or leave the box empty to keep it.
 

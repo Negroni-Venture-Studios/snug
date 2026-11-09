@@ -27,6 +27,11 @@ class EmailBackend(BaseEmailBackend):
         # attribute is new in 6.1, and the type stubs do not have it yet.)
         alias = getattr(self, "alias", None) or "default"
         if now.kind == "smtp":
+            # Checked again here, in case the server's DNS has changed since it
+            # was saved, and for the settings in snug.env, which nothing checks.
+            refused = mail.public_server(now.host, now.port)
+            if refused:
+                raise mail.UnsafeServerError(f"The SMTP server is {refused}.")
             backend: BaseEmailBackend = SmtpBackend(
                 host=now.host,
                 port=now.port,

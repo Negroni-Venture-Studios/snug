@@ -10,13 +10,15 @@ import time
 from html import escape
 from typing import Any
 
+import pyotp
 import pytest
 from django.conf import settings
 from django.core import mail as django_mail
 from django.core.mail import EmailMessage
 from django.test import Client
+from django.utils import timezone
 
-from snug.accounts import sessions
+from snug.accounts import sessions, totp
 from snug.accounts.models import Admin
 from snug.audit.models import AuditEvent
 from snug.core import doctor, mail
@@ -24,6 +26,14 @@ from snug.core.email_backend import EmailBackend
 from snug.core.models import EmailSettings
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def public_servers(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[str]]:
+    """Every SMTP server resolves to a public address, unless a test says otherwise."""
+    answers: dict[str, list[str]] = {}
+    monkeypatch.setattr(mail, "_addresses", lambda host, port: answers.get(host, ["93.184.216.34"]))
+    return answers
 
 
 def config(**changes: Any) -> None:
@@ -158,9 +168,23 @@ def test_the_transport_sends_nothing_when_email_is_off() -> None:
 
 
 @pytest.fixture
-def client() -> Client:
+def admin() -> Admin:
     config(domain="room.fernlea.example", smtp_host="")
-    admin = Admin.objects.create(email="ruth@fernlea.example", is_active=True)
+    return Admin.objects.create(
+        email="ruth@fernlea.example",
+        is_active=True,
+        totp_secret=totp.new_secret(),
+        totp_confirmed_at=timezone.now(),
+    )
+
+
+def fresh_code(account: Admin) -> str:
+    Admin.objects.filter(pk=account.pk).update(totp_last_step=0)
+    return pyotp.TOTP(account.totp_secret).now()
+
+
+@pytest.fixture
+def client(admin: Admin) -> Client:
     browser = Client()
     browser.force_login(admin)
     session = browser.session
@@ -177,6 +201,7 @@ def panel(client: Client, query: str = "") -> str:
 
 def save(client: Client, **fields: str) -> Any:
     form = {
+        "code": fresh_code(Admin.objects.get(email="ruth@fernlea.example")),
         "provider": "smtp",
         "from_address": "rooms@fernlea.example",
         "smtp_host": "smtp.postmark.example",
@@ -232,7 +257,8 @@ def test_an_empty_password_keeps_the_saved_one(client: Client) -> None:
             "Enter the address emails come from, like rooms@example.com.",
         ),
         ("smtp_host", "", "Enter your provider's SMTP server, like smtp.postmarkapp.com."),
-        ("smtp_port", "70000", "Enter a port number from 1 to 65535."),
+        ("smtp_port", "70000", "Use port 25, 465, 587 or 2525."),
+        ("smtp_port", "8025", "Use port 25, 465, 587 or 2525."),
         (
             "smtp_security",
             "none",
@@ -264,7 +290,7 @@ def test_sending_a_test_to_yourself(client: Client) -> None:
     save(client)
     response = client.post("/admin/settings/email/test", secure=True)
     assert response["Location"] == "/admin/settings/?saved=email-test#email"
-    (message,) = django_mail.outbox
+    (message,) = [m for m in django_mail.outbox if m.subject == "Snug: a test email"]
     assert message.to == ["ruth@fernlea.example"]
     assert message.subject == "Snug: a test email"
     assert "Sent a test email to ruth@fernlea.example. Check that it arrived" in panel(
@@ -311,3 +337,81 @@ def test_the_real_smtp_transport_is_built_without_old_settings(
     assert EmailBackend(alias="default").send_messages([message]) == 1
     assert built[0].host == "smtp.postmark.example"
     assert built[0].use_tls is True
+
+
+# ---------------------------------------------------------------- a stolen session
+
+
+def test_saving_needs_a_fresh_code(client: Client) -> None:
+    response = save(client, code="000000")
+    assert response.status_code == 400
+    page = response.content.decode()
+    assert 'id="email-code-error"' in page
+    assert EmailSettings.load().provider == ""
+    response = save(client, code="")
+    assert response.status_code == 400
+    assert EmailSettings.load().provider == ""
+
+
+def test_every_admin_is_told_through_the_old_settings(client: Client) -> None:
+    Admin.objects.create(email="omar@fernlea.example", is_active=True)
+    config(smtp_host="smtp.env.example", email_from="env@fernlea.example")
+    save(client)
+    alerts = [m for m in django_mail.outbox if "Email settings changed" in m.subject]
+    assert sorted(m.to[0] for m in alerts) == ["omar@fernlea.example", "ruth@fernlea.example"]
+    assert all(getattr(m, "snug_outgoing").host == "smtp.env.example" for m in alerts)  # noqa: B009
+    assert "ruth@fernlea.example changed how Snug sends email" in alerts[0].body
+    assert "smtp.postmark.example" in alerts[0].body
+
+
+@pytest.mark.parametrize("address", ["10.0.0.5", "127.0.0.1", "169.254.169.254", "fd00::1", "::1"])
+def test_a_private_server_is_refused(
+    client: Client, public_servers: dict[str, list[str]], address: str
+) -> None:
+    public_servers["smtp.postmark.example"] = [address]
+    response = save(client)
+    assert response.status_code == 400
+    assert (
+        "That server is on a private network. Snug sends only through public mail servers."
+        in response.content.decode()
+    )
+
+
+def test_a_server_that_cannot_be_found_is_refused(
+    client: Client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def nowhere(host: str, port: int) -> list[str]:
+        raise OSError("not found")
+
+    monkeypatch.setattr(mail, "_addresses", nowhere)
+    response = save(client)
+    assert response.status_code == 400
+    assert "That server cannot be found. Check its name." in response.content.decode()
+
+
+def test_on_localhost_a_local_server_is_allowed(public_servers: dict[str, list[str]]) -> None:
+    config(domain="localhost")
+    public_servers["mailpit"] = ["127.0.0.1"]
+    assert mail.public_server("mailpit") == ""
+
+
+def test_a_server_that_turns_private_is_refused_at_send(
+    public_servers: dict[str, list[str]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from django.core.mail.backends.smtp import EmailBackend as RealSmtp
+
+    config(domain="room.fernlea.example", smtp_host="")
+    saved_smtp()
+    public_servers["smtp.postmark.example"] = ["10.1.2.3"]  # its DNS changed since saving
+    monkeypatch.setattr(RealSmtp, "send_messages", lambda self, messages: len(messages))
+    message = EmailMessage("Hi", "Body", "rooms@fernlea.example", ["priya@northfield.example"])
+    with pytest.raises(OSError, match="private"):
+        EmailBackend(alias="default").send_messages([message])
+
+
+def test_test_emails_are_limited(client: Client) -> None:
+    save(client)
+    statuses = [
+        client.post("/admin/settings/email/test", secure=True).status_code for _ in range(6)
+    ]
+    assert statuses == [302] * 5 + [429]
