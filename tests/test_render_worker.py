@@ -364,8 +364,10 @@ def test_the_launcher_works_without_django_and_never_opts_in() -> None:
 
 def test_an_unconfined_refusal_is_explained() -> None:
     message = str(sandbox.WorkerError("unconfined"))
-    assert message.startswith("This server cannot open documents safely")
-    assert "Linux 6.7" in message
+    assert message == (
+        "This server cannot open documents safely. It needs Linux 6.7 or later, with Landlock. "
+        "Ask whoever runs the server."
+    )
 
 
 # ---------------------------------------------------------------- in-process, for coverage

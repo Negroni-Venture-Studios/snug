@@ -134,6 +134,9 @@ def test_the_right_address_gets_a_code(browser: Client, issued: service.Issued) 
     assert message.to == [INVESTOR]
     assert re.fullmatch(r"Your code for Seed deck: \d{6}", str(message.subject))
     assert "Seed deck" in message.body and "ignore this email" in message.body
+    assert "Nobody can open the document without it" not in message.body
+    html = str(message.alternatives[0][0])  # type: ignore[attr-defined]
+    assert "Nobody can open the document without it" not in html
     assert AuditEvent.objects.filter(action="viewer.code_sent", target=INVESTOR).exists()
 
 

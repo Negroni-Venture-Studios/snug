@@ -4,5 +4,5 @@
 
 It works once, for {{ minutes }} minutes.
 
-If you did not ask for this code, you can ignore this email. Nobody can open the document without it.
+If you did not ask for this code, you can ignore this email.
 {% endautoescape %}

@@ -10,6 +10,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- Four messages are plainer: the upload refused on a server that cannot confine its document worker, the link form's note on downloading a video, the line under a workbook's sheets, and the investor's code email, which no longer ends on a reassurance.
 - `SNUG_SMTP_PORT` in `snug.env` is held to the same ports as the email settings in Settings (25, 465, 587, 2465, 2525 or 2587), except on `localhost`. Snug refuses to start with any other, and says which ports it takes.
 - The Audit log's filter has two more kinds, *Housekeeping* and *Exports*, for the reading data housekeeping deletes and for exports of the log itself.
 - Resetting an admin's authenticator from the command line is recorded as `admin.second_factor_reset`, the same as from Settings, where it was `admin.2fa_reset`.

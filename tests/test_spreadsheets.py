@@ -172,6 +172,7 @@ def test_a_workbooks_page_lists_its_sheets_and_has_no_page_preview(
     assert "First page" not in page
     # Above a list of boxes, not a ruled list: the explanation sits under the heading.
     assert '<div class="section-head stacked"><h2>Sheets</h2>' in page
+    assert "See who opened and downloaded it on the People page and in the audit log." in page
 
 
 def test_the_link_form_says_a_spreadsheet_needs_downloads(client: Client, model: Document) -> None:
