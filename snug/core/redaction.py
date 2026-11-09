@@ -13,8 +13,12 @@ _SECRET_PATH = re.compile(r"(/v/|/admin/setup/)[^/\s?#\"']+")
 _formatter = logging.Formatter()
 
 
+# Google's one-time code and state, on the way back from connecting a mailbox.
+_SECRET_QUERY = re.compile(r"([?&](?:code|state)=)[^&\s#\"']+")
+
+
 def redact(text: str) -> str:
-    return _SECRET_PATH.sub(r"\1[redacted]", text)
+    return _SECRET_QUERY.sub(r"\1[redacted]", _SECRET_PATH.sub(r"\1[redacted]", text))
 
 
 class RedactSecrets(logging.Filter):

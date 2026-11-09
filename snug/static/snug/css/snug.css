@@ -294,6 +294,13 @@ label.check { display: grid; grid-template-columns: 1.1rem 1fr; gap: 0.65rem; fo
 .notice { display: flex; gap: 0.55rem; align-items: flex-start; font-size: 0.9rem; padding: 0.75rem 0.9rem; border-radius: var(--r); }
 .notice-ok { background: var(--ok-tint); color: var(--ok); }
 .notice-warn { background: var(--warn-tint); color: var(--warn); }
+/* Settings, Email: the fields for the chosen way of sending, by CSS alone. */
+.provider-choice { border: 0; padding: 0; margin: 0; display: grid; gap: 0.6rem; }
+.provider-fields { display: grid; gap: 1.25rem; }
+.email-form:has(#provider-smtp:checked) .provider-google,
+.email-form:has(#provider-google:checked) .provider-smtp { display: none; }
+.email-form code, #google-mailbox code { font-family: var(--mono); font-size: 0.85em; overflow-wrap: anywhere; }
+#google-mailbox form { margin: 0; }
 /* The Overview's status line: problems from the snug doctor checks, or a quiet all-clear. */
 .system-status { margin-bottom: 1.5rem; }
 .system-status > svg { flex: none; margin-top: 0.15rem; }

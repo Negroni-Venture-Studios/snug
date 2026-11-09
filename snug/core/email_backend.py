@@ -14,7 +14,7 @@ from django.core.mail.backends.base import BaseEmailBackend
 from django.core.mail.backends.filebased import EmailBackend as FileBackend
 from django.core.mail.backends.smtp import EmailBackend as SmtpBackend
 
-from snug.core import mail
+from snug.core import gmail, mail
 
 
 class _PinnedSmtpBackend(SmtpBackend):
@@ -69,6 +69,10 @@ class EmailBackend(BaseEmailBackend):
                 timeout=15,
                 alias=alias,
             )
+        elif now.kind == "google":
+            for message in email_messages:
+                gmail.send(message, now)
+            return len(email_messages)
         elif now.kind == "outbox":
             backend = FileBackend(file_path=str(settings.CONFIG.data_dir / "outbox"), alias=alias)
         else:

@@ -86,7 +86,7 @@ class EmailSettings(models.Model):
     the SMTP settings in snug.env (snug.core.mail.outgoing).
     """
 
-    provider = models.CharField(max_length=10, blank=True)  # "", or "smtp"
+    provider = models.CharField(max_length=10, blank=True)  # "", "smtp" or "google"
     from_address = models.EmailField(blank=True)
     smtp_host = models.CharField(max_length=253, blank=True)
     smtp_port = models.PositiveIntegerField(null=True, blank=True)
@@ -94,6 +94,13 @@ class EmailSettings(models.Model):
     # Never shown again once saved; Snug needs it as it is to sign in.
     smtp_password = models.CharField(max_length=500, blank=True)
     smtp_security = models.CharField(max_length=10, blank=True)
+    # Google Workspace (snug.core.gmail): the founder's own internal OAuth client,
+    # and the refresh token the sending mailbox's approval gave.
+    google_client_id = models.CharField(max_length=200, blank=True)
+    google_client_secret = models.CharField(max_length=200, blank=True)
+    google_refresh_token = models.CharField(max_length=1000, blank=True)
+    google_account = models.EmailField(blank=True)
+    google_connected_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
