@@ -44,7 +44,7 @@ def outgoing() -> Outgoing:
         return Outgoing(
             kind="google",
             source="settings",
-            from_address=row.google_account,
+            from_address=row.google_from_address or row.google_account,
             host="Google Workspace",
             client_id=row.google_client_id,
             client_secret=row.google_client_secret,

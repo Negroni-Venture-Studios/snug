@@ -565,3 +565,44 @@ def test_new_credentials_at_the_same_provider_are_a_change(
         secure=True,
     )
     assert not [m for m in django_mail.outbox if "Email settings changed" in m.subject]
+
+
+# ---------------------------------------------------------------- sending as an alias
+
+
+def test_sending_as_another_address_of_the_mailbox(
+    client: Client, admin: Admin, google: Google
+) -> None:
+    """On an alias domain, the mailbox approves as its primary address."""
+    google.account = "rooms@negronicapital.example"
+    connected(client, admin)
+    assert mail.outgoing().from_address == "rooms@negronicapital.example"
+    save_client(client, admin, google_from="rooms@negroniventures.example")
+    now = mail.outgoing()
+    assert now.from_address == "rooms@negroniventures.example"
+    assert EmailSettings.load().google_refresh_token == "refresh-xyz"  # still connected
+    google.calls.clear()
+    gmail.send(EmailMessage("Hi", "Body", now.from_address, ["p@north.example"]), now)
+    sent = raw_of(google.calls[-1])
+    assert sent["From"] == "rooms@negroniventures.example"
+    text = panel(client)
+    assert 'name="google_from" type="email"' in text
+    assert 'value="rooms@negroniventures.example"' in text
+    assert "Snug sends email as rooms@negroniventures.example" in text
+
+
+def test_an_empty_from_address_means_the_mailbox_itself(
+    client: Client, admin: Admin, google: Google
+) -> None:
+    connected(client, admin)
+    save_client(client, admin, google_from="rooms@negroniventures.example")
+    save_client(client, admin, google_from="")
+    assert mail.outgoing().from_address == "rooms@fernlea.example"
+
+
+def test_a_from_address_must_be_an_address(client: Client, admin: Admin) -> None:
+    response = save_client(client, admin, google_from="not an address")
+    assert response.status_code == 400
+    page = response.content.decode()
+    assert 'id="google-from-error"' in page
+    assert "Enter an address, like rooms@example.com, or leave it empty." in page
