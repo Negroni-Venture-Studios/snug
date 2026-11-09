@@ -10,6 +10,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- On a UK-only link that asks for the NDA, someone abroad who opened the NDA page got a server error. They now see the same page as on every other page of the link, saying it opens only in the UK, and the refusal is recorded in the audit log.
 - While an upload is checked, the form says *Checking the file* rather than *Checking the PDF*, since a document can now be a workbook or a video.
 - Other wording that assumed every document is a PDF now covers workbooks and videos too. `snug doctor` and the Overview call the confinement check *Document worker*, People explains that a video's strip has a cell for each 10 seconds, and the Overview counts *People who have visited*.
 - On the Links page, a revoked link's status and details line up with the active links above and below it. A document's versions and a room's documents share their columns the same way.
