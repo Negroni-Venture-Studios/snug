@@ -6,6 +6,7 @@
     python -I -m snug.rendering.worker stamp-pdf FD FONT_FD EMAIL DATE REF
     python -I -m snug.rendering.worker inspect-xlsx FD
     python -I -m snug.rendering.worker stamp-xlsx FD EMAIL DATE REF
+    python -I -m snug.rendering.worker inspect-mp4 FD
 
 Snug opens the PDF and passes the open file as descriptor FD; the worker is
 never given a path. `inspect` prints one line of JSON. `render` writes the
@@ -15,7 +16,10 @@ an untrusted PDF is never decoded outside a confined worker. `stamp-pdf`
 writes the original PDF with a line naming the viewer on every page, and the
 same details in its document properties. `inspect-xlsx` and `stamp-xlsx` do
 the same for an Excel workbook (see snug.rendering.workbook): the sheet
-names, and the workbook with its properties naming the reader. Errors print
+names, and the workbook with its properties naming the reader. `inspect-mp4`
+checks an MP4 video's boxes, reading them in pieces from the descriptor
+rather than whole (see snug.rendering.video), and prints its length and
+size; the video itself is never decoded. Errors print
 {"error": ...} and exit with 3.
 
 Before it touches the PDF, the worker
@@ -37,7 +41,7 @@ import sys
 import zipfile
 from typing import Any
 
-from snug.rendering import workbook  # standard library only, like this module
+from snug.rendering import video, workbook  # standard library only, like this module
 
 MEMORY_BYTES = 1024 * 1024 * 1024  # 1 GiB of address space
 CPU_SECONDS = 60
@@ -599,6 +603,24 @@ def stamp_pdf(data: bytes, font: bytes, email: str, date: str, ref: str) -> byte
         return _stamp_pdf_pages(_resaved(data), font, email, date, ref)
 
 
+def _inspect_mp4(descriptor: int, *, confined: bool, allow_unconfined: bool) -> int:
+    """A video, checked from its descriptor in pieces: it may be larger than our memory."""
+    with os.fdopen(descriptor, "rb") as source:
+        size = os.fstat(source.fileno()).st_size
+        if confined and not fully_confined(confine()) and not allow_unconfined:
+            return _fail("unconfined")
+        try:
+            facts = video.inspect(source, size)
+        except video.Refused as refused:
+            return _fail(refused.code)
+        except MemoryError:
+            return _fail("memory")
+        except Exception:  # noqa: BLE001 - any failure on hostile input is "unreadable"
+            return _fail("unreadable")
+    sys.stdout.write(json.dumps(facts) + "\n")
+    return 0
+
+
 def main(argv: list[str], *, confined: bool = True) -> int:
     allow_unconfined = bool(argv) and argv[0] == ALLOW_UNCONFINED
     if allow_unconfined:
@@ -613,6 +635,8 @@ def main(argv: list[str], *, confined: bool = True) -> int:
     try:
         page = width = 0
         font = b""
+        if len(argv) == 2 and argv[0] == "inspect-mp4":
+            return _inspect_mp4(int(argv[1]), confined=confined, allow_unconfined=allow_unconfined)
         if len(argv) == 2 and argv[0] in ("inspect", "logo", "icon", "inspect-xlsx"):
             mode = argv[0]
         elif len(argv) == 5 and argv[0] == "stamp-xlsx":
