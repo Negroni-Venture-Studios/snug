@@ -5,7 +5,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import HttpRequest
 from django.test import Client
 
 from snug.accounts import sessions
@@ -30,14 +32,17 @@ def admin() -> Admin:
     return Admin.objects.create(email=EMAIL, is_active=True)
 
 
-@pytest.fixture
-def client(admin: Admin) -> Client:
-    browser = Client(REMOTE_ADDR="198.51.100.7")
+def sign_in(browser: Client, admin: Admin) -> Client:
     browser.force_login(admin)
     session = browser.session
     session[sessions.LOGIN_AT] = session[sessions.LAST_ACTIVITY] = time.time()
     session.save()
     return browser
+
+
+@pytest.fixture
+def client(admin: Admin) -> Client:
+    return sign_in(Client(REMOTE_ADDR="198.51.100.7"), admin)
 
 
 def pdf(data: bytes = DECK, name: str = "Seed deck v3.pdf") -> SimpleUploadedFile:
@@ -140,7 +145,7 @@ def test_oversized_uploads_are_refused_before_they_are_read(admin: Admin) -> Non
     # No CSRF token, and a declared size over the limit: refused from the
     # header alone, before Django reads the body for its CSRF check.
     strict = Client(enforce_csrf_checks=True)
-    strict.force_login(admin)
+    sign_in(strict, admin)
     response = strict.post(
         "/admin/documents/new",
         {"title": "Huge"},
@@ -155,10 +160,93 @@ def test_oversized_uploads_are_refused_before_they_are_read(admin: Admin) -> Non
 
 def test_uploads_still_need_a_csrf_token(admin: Admin) -> None:
     strict = Client(enforce_csrf_checks=True)
-    strict.force_login(admin)
+    sign_in(strict, admin)
     response = strict.post("/admin/documents/new", {"title": "Deck", "pdf": pdf()}, secure=True)
     assert response.status_code == 403
     assert not Document.objects.exists()
+
+
+# Anyone but a signed-in admin gets only the allowance for a form's fields, and
+# is refused from the declared size before Django's CSRF check reads the body.
+# Under the documents' limit, so only the missing admin can refuse it.
+BIG = str(50 * 1024 * 1024)
+
+
+@pytest.fixture
+def bodies_read(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """The paths whose request bodies Django parsed."""
+    read: list[str] = []
+    original = HttpRequest._load_post_and_files
+
+    def load(request: HttpRequest) -> None:
+        read.append(request.path)
+        original(request)
+
+    monkeypatch.setattr(HttpRequest, "_load_post_and_files", load)
+    return read
+
+
+def browser_with_a_csrf_cookie() -> Client:
+    browser = Client(enforce_csrf_checks=True, REMOTE_ADDR="198.51.100.7")
+    browser.get("/admin/login", secure=True)
+    assert settings.CSRF_COOKIE_NAME in browser.cookies
+    return browser
+
+
+def post_big(browser: Client, path: str) -> Any:
+    return browser.post(
+        path,
+        {"title": "Huge"},
+        secure=True,
+        headers={"Origin": "https://snug.example.com"},
+        CONTENT_LENGTH=BIG,
+    )
+
+
+@pytest.mark.parametrize("path", ["/admin/documents/new", "/admin/documents/abc/versions"])
+def test_an_upload_from_no_one_is_refused_unread(path: str, bodies_read: list[str]) -> None:
+    response = post_big(browser_with_a_csrf_cookie(), path)
+    assert response.status_code == 302
+    assert response["Location"] == f"/admin/login?next={path}"
+    assert bodies_read == []
+
+
+def test_an_upload_part_way_through_signing_in_is_refused_unread(
+    bodies_read: list[str],
+) -> None:
+    browser = browser_with_a_csrf_cookie()
+    session = browser.session
+    session[sessions.PENDING] = {"admin_id": 1, "at": time.time(), "failures": 0, "next": "/"}
+    session.save()
+    response = post_big(browser, "/admin/documents/new")
+    assert response.status_code == 302
+    assert bodies_read == []
+
+
+def test_an_upload_on_an_expired_session_is_refused_unread(
+    admin: Admin, bodies_read: list[str]
+) -> None:
+    browser = browser_with_a_csrf_cookie()
+    browser.force_login(admin)
+    session = browser.session
+    session[sessions.LOGIN_AT] = session[sessions.LAST_ACTIVITY] = time.time() - 13 * 3600
+    session.save()
+    response = post_big(browser, "/admin/documents/new")
+    assert response["Location"] == "/admin/login?next=/admin/documents/new"
+    assert bodies_read == []
+
+
+def test_a_large_post_to_a_viewer_link_is_refused_unread(bodies_read: list[str]) -> None:
+    response = post_big(browser_with_a_csrf_cookie(), "/v/abc/code")
+    assert response.status_code == 413
+    assert bodies_read == []
+
+
+def test_a_signed_in_admin_still_gets_the_full_allowance(
+    client: Client, bodies_read: list[str]
+) -> None:
+    assert upload_new(client).status_code == 302
+    assert bodies_read == ["/admin/documents/new"]
 
 
 # ---------------------------------------------------------------- the document page and versions

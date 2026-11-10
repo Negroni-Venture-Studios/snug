@@ -19,7 +19,7 @@
 <text class="title" x="224" y="82">Size limit</text>
 <text class="label" x="224" y="104">middleware checks</text>
 <text class="label" x="224" y="121">the declared length;</text>
-<text class="label" x="224" y="138">too big: 413, with</text>
+<text class="label" x="224" y="138">too big: refused,</text>
 <text class="label" x="224" y="155">the body never read</text>
 
 <rect class="box" x="400" y="56" width="166" height="118" rx="8"/>
