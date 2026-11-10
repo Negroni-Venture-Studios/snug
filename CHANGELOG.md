@@ -7,6 +7,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 ### Security
 
 - The PDF worker refuses to read a file unless it has confined itself: Landlock ABI 4 (Linux 6.7) or later, and a new seccomp filter that refuses to create any socket. It used to carry on unconfined if Landlock failed, and Landlock alone let it send UDP. Both were found by an external security audit. `SNUG_UNSAFE_UNCONFINED_RENDERING` allows unconfined reading for development only.
+- A sign-in that has passed the password step is refused at the code step if the password or authenticator has changed since. Someone who knew the old password could otherwise finish signing in, within five minutes, with a code from the app or a recovery code. Found by an external security audit.
 
 ### Fixed
 
