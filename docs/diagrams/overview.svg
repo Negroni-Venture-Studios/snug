@@ -61,7 +61,7 @@
 <text class="label" x="822" y="232">Gmail API or SMTP</text>
 <rect class="key" x="806" y="452" width="174" height="64" rx="8"/>
 <text class="title" x="822" y="478">Your bucket</text>
-<text class="label" x="822" y="500">only you hold the key</text>
+<text class="label" x="822" y="500">encrypted before it arrives</text>
 
 <!-- Connections -->
 <path class="line-accent" d="M190,182 H216 V258 H246" marker-end="url(#tip-accent)"/>

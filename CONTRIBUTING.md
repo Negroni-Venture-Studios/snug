@@ -1,10 +1,10 @@
 # Contributing to Snug
 
-Thank you for helping. Snug holds founders' most sensitive documents, so correct authorisation matters more than features, and every change is held to that.
+Thank you for helping. Snug holds founders' most sensitive documents, so correct authorisation comes before features.
 
 ## Before you start
 
-- Read [docs/architecture.md](docs/architecture.md) for how the code works, and [DESIGN.md](DESIGN.md) for what Snug is and the decisions behind it. DESIGN.md wins over the original brief in `docs/BRIEF.md`.
+- Read [docs/architecture.md](docs/architecture.md) for how the code works, and [DESIGN.md](DESIGN.md) for what Snug is and the decisions behind it. Where DESIGN.md and the original brief in `docs/BRIEF.md` differ, follow DESIGN.md.
 - For anything larger than a small fix, open an issue first so we can agree the approach.
 - Report security problems privately, as [SECURITY.md](SECURITY.md) describes, never in a public issue.
 
@@ -19,7 +19,7 @@ uv sync
 uv run pre-commit install
 ```
 
-To run Snug itself while you work, follow [Running Snug on your own computer](docs/configuration.md#running-snug-on-your-own-computer). On macOS, add `SNUG_UNSAFE_UNCONFINED_RENDERING=true` to your development settings. Snug reads PDFs only inside a Linux Landlock confinement, which macOS lacks, and refuses otherwise. Never set it on a server. The tests set it for themselves on macOS, and CI runs them confined on Linux.
+To run Snug itself while you work, follow [Running Snug on your own computer](docs/configuration.md#running-snug-on-your-own-computer). On macOS, add `SNUG_UNSAFE_UNCONFINED_RENDERING=true` to your development settings. Snug reads uploads only inside a Linux Landlock confinement, which macOS lacks, and refuses otherwise. Never set it on a server. The tests set it for themselves on macOS, and CI runs them confined on Linux.
 
 ## Everyday commands
 
@@ -66,10 +66,10 @@ Merge with a squash or a merge commit. Branches are deleted after merging.
 ## Standards
 
 - **Test first.** Write the test that proves your change, watch it fail for the reason you expect, then make it pass. A test that passes both before and after a change proves nothing about it.
-- **Security requirements are requirements.** [AGENTS.md](AGENTS.md) lists them: one authorisation path for viewer content, no database keys in viewer URLs, no CORS, a strict content security policy, CSRF protection, rate limits, safe file handling, and no secrets in logs. Each has tests; keep them passing and extend them.
+- **Keep to the security requirements.** [AGENTS.md](AGENTS.md) lists them: one authorisation path for viewer content, no database keys in viewer URLs, no CORS, a strict content security policy, CSRF protection, rate limits, safe file handling, and no secrets in logs. Each has tests; keep them passing and extend them.
 - **Type hints throughout**, checked by mypy in strict mode.
 - **No inline scripts, inline styles or `on*=` handlers** in templates. The content security policy forbids them.
-- **Calls out of Snug** over HTTP go only to Google and DB-IP, through `snug/core/outbound.py`, apart from `snug doctor` checking Snug's own domain. The tests never reach the internet.
+- **Calls out of Snug** over HTTP go only to Google and DB-IP, through `snug/core/outbound.py`, apart from `snug doctor`, and housekeeping every hour, checking Snug's own domain. The tests never reach the internet.
 - **British English** in documentation and interface text. In interface text: sentence case, no em or en dashes, and no middle dots used as separators.
 - **Commit messages** use the imperative mood ("Add link revocation", not "Added …"), with a first line under 72 characters.
 - **Changelog.** Add a line under `[Unreleased]` in CHANGELOG.md for anything a user or operator would notice.

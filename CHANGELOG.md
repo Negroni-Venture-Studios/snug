@@ -6,9 +6,11 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Security
 
-- The PDF worker refuses to read a file unless it has confined itself: Landlock ABI 4 (Linux 6.7) or later, and a new seccomp filter that refuses to create any socket. It used to carry on unconfined if Landlock failed, and Landlock alone let it send UDP. Both were found by an external security audit. `SNUG_UNSAFE_UNCONFINED_RENDERING` allows unconfined reading for development only.
-- Signing in goes back to the password step if the password or authenticator changes between the password and the code. Someone who knew the old password could otherwise finish signing in, within five minutes, with a code from the app or a recovery code. An external security audit found this.
-- Snug refuses a POST over 64 KB, enough for a form's fields, unless a signed-in admin sent it, and refuses it before reading the body. A visitor who was not signed in could send the upload forms a body as large as the video limit, 1 GB by default, and Snug wrote it to disk before turning them away. An external security audit found this.
+External security audits found all three.
+
+- The PDF worker refuses to read a file unless it has confined itself: Landlock ABI 4 (Linux 6.7) or later, and a new seccomp filter that refuses to create any socket. It used to carry on unconfined if Landlock failed, and Landlock alone let it send UDP. `SNUG_UNSAFE_UNCONFINED_RENDERING` allows unconfined reading for development only.
+- Signing in goes back to the password step if the password or authenticator changes between the password and the code. Someone who knew the old password could otherwise finish signing in, within five minutes, with a code from the app or a recovery code.
+- Snug refuses a POST over 64 KB, enough for a form's fields, unless a signed-in admin sent it, and refuses it before reading the body. A visitor who was not signed in could send the upload forms a body as large as the video limit, 1 GB by default, and Snug wrote it to disk before turning them away.
 
 ### Fixed
 
@@ -28,7 +30,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 - Hints and notices now say only what happens or what to do, and the first-open email says *Not known* for an unplaced country.
 - A workbook's page in the admin no longer fails with a server error once an investor has opened it. It tried to draw a page-by-page reading chart for a document with no pages.
 - Every viewer event in the audit log records the visitor's country, whether or not the link is UK-only, and the audit log shows it beside the address. The country column had been left empty, though the brief asked for it.
-- The Google Workspace guide takes someone who has never used Google Cloud through every screen, and covers SPF, DKIM and DMARC for each sending domain, user alias domains, and the things DNS hosts and multiple Google accounts get wrong.
+- The Google Workspace guide now starts from a first visit to Google Cloud and covers every screen, SPF, DKIM and DMARC for each sending domain, user alias domains, awkward DNS hosts, and being signed in to more than one Google account.
 - A saved Google client secret or SMTP password shows as dots, so the field no longer looks empty. The value itself is still never sent to the browser.
 - Before you leave for Google, the mailbox step has a note that one more authenticator code is needed on your return, and on your return a green notice shows the approved mailbox.
 - On a Mac, connecting Google killed Snug's server process, and the browser showed an empty response when Google sent you back. Snug's calls to Google and DB-IP now take proxy settings from the environment only, rather than asking macOS, whose frameworks refuse to run in a process gunicorn has forked. A server on Linux was not affected.
@@ -46,11 +48,11 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 - The reader's page picker leaves room for its arrow, which sat on top of the page number, and is the same height as the buttons beside it.
 - The company's name is set in Settings under Branding, beside the colour. It was only in the server's settings, as `SNUG_COMPANY_NAME`, which is now used only until a name is saved.
 - The accent colour shows as a band across the top of every investor page, and on the reader's Download button. Once a document was open, it had been on almost nothing.
-- Signing in, a wrong code from the authenticator app now says that codes change every 30 seconds, and the password page shows a message when more than five minutes have passed since the password.
+- When signing in, a wrong code from the authenticator app now says that codes change every 30 seconds, and the password page shows a message when more than five minutes have passed since the password.
 - Settings lists the admins first, then inviting one, then your account. Its buttons are as wide as their labels, Replace authenticator is orange like the others, and a code box beside other fields is the same height as they are.
 - The theme toggle's sun, moon and half circle are Phosphor icons, like every other icon in Snug.
 - A refused save in Settings opens where it was made, with its red error beside the field and in view, instead of at the top of the page. Inviting, removing or resetting an admin returns to its section too.
-- Every save in the admin interface now shows a green notice in the section where it was made, and the page stays there instead of jumping to the top. A room's page says beside its name when it asks for the NDA, and its four tools sit two by two.
+- Every save in the admin interface now shows a green notice in the section where it was made, and the page stays there instead of jumping to the top. A room's page shows beside its name when it requires the NDA, and its four tools sit two by two.
 - Link expiry dates are shown as the last day the link works. The links list and the link email showed the day after.
 - The README's instructions for trying Snug locally now keep the secret key in a file, and say how to update the container and set a forgotten password.
 - The server no longer stalls, and then answers "Internal Server Error", when a browser holds connections open without using them. `snug serve` now runs threaded workers (`--threads`, 4 by default).
@@ -75,8 +77,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 - UK-only mode: a link to a document, or a whole room, can open only for visitors in the UK, Jersey, Guernsey and the Isle of Man. Anyone elsewhere, or anyone Snug cannot place, is turned away and sent no code, and the refusal is in the audit log. Countries come from DB-IP's free database, kept on the server; `snug doctor` and the Overview warn if it is missing or out of date.
 - Housekeeping downloads DB-IP's free country database once a month and keeps it in the data folder, for UK-only links. Lookups use that copy alone, so no visitor's address leaves the server.
 - The admin sign-in page shows the company's name under the heading, once a name is set in Settings or `SNUG_COMPANY_NAME`.
-- `deploy/cloud-init.yaml` prepares a fresh Ubuntu 24.04 droplet: Docker, automatic security updates, a firewall and Snug's files. Then `sudo snug setup` asks for the domain, email and backup bucket on the server, so no secret is stored with the hosting provider, generates the backup's encryption passwords for you to keep, and starts Snug, or restores it when a saved backup configuration is already in place. [docs/deployment.md](docs/deployment.md) walks through it.
-- `sudo snug restore` brings Snug back from its backups, on the same server or a new one: the latest, or as it was at a moment in the last 7 days. Any data it replaces is moved aside and kept. A `snug` command on the server runs Snug's other commands in its container. The backups refuse to copy into a bucket holding another Snug's backups, so a new server started before its restore cannot overwrite them.
+- `deploy/cloud-init.yaml` prepares a fresh Ubuntu 24.04 droplet: Docker, automatic security updates, a firewall and Snug's files. Then `sudo snug setup` asks for the domain, the company's name and the backup bucket on the server, so no secret is stored with the hosting provider, generates the backup's encryption passwords for you to keep, and starts Snug, or restores it when a saved backup configuration is already in place. [docs/deployment.md](docs/deployment.md) walks through it.
+- `sudo snug restore` brings Snug back from its backups, on the same server or a new one: the latest, or as it was at a moment in the last 7 days. Any data it replaces is moved aside and kept. A `snug` command on the server runs Snug's other commands in its container. The backup container refuses to copy into a bucket holding another Snug's backups, so a new server started before its restore cannot overwrite them.
 - The admin Overview has a status line: any problem `snug doctor` would report, such as a late backup, failing housekeeping, an expiring certificate or an email that could not be sent, or else that everything is working.
 - `snug doctor` checks housekeeping, the backups, the document worker's confinement, DNS, HTTPS and the certificate's expiry, and email, by sending a code you type back. It says what to fix, and exits with status 1 if anything is wrong. [docs/deployment.md](docs/deployment.md) lists the checks.
 - Continuous, encrypted backups to a storage bucket of your own: Litestream records every change to the database, and an rclone container copies it, the uploaded documents and the branding images to the bucket every 5 minutes, encrypted on the server with a key only you hold. [docs/backups.md](docs/backups.md) explains how to set it up.
@@ -120,7 +122,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
   Link tokens are stored only as hashes, so a copy of the database cannot be used to open them. Every link action is recorded in the audit log.
 - The viewer's first pages, at each link's address:
   - a landing page with the document's name and an *About this link* panel;
-  - for links that need verification, an emailed six-digit code, with clear messages for a wrong address, a wrong code and tries left;
+  - for links that need verification, an emailed six-digit code, with messages for a wrong address, a wrong code and tries left;
   - for links that do not, a single *Open* button, so an email scanner visiting the link starts nothing;
   - one page for unknown, expired and revoked links alike.
 

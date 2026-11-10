@@ -13,7 +13,7 @@ Snug runs as four containers under Docker Compose, from [`deploy/compose.yaml`](
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/overview-dark.svg">
-  <img alt="Founders and investors reach Snug through Caddy. Inside the Snug container, gunicorn's web workers serve requests and start a confined document worker for each file. Litestream and rclone share the data volume and copy it, encrypted, to the founder's bucket. Snug sends email through Google or an SMTP server and fetches country data from DB-IP." src="images/diagrams/overview-light.svg">
+  <img alt="Founders and investors reach Snug through Caddy. Inside the Snug container, gunicorn's web workers serve requests and start a confined document worker for each job. Litestream and rclone share the data volume and copy it, encrypted, to the founder's bucket. Snug sends email through Google or an SMTP server and fetches country data from DB-IP." src="images/diagrams/overview-light.svg">
 </picture>
 
 Every container has a read-only filesystem, drops every Linux capability (Caddy keeps one, to listen on ports 80 and 443) and cannot gain new privileges. The Snug, Litestream and backup containers share one volume, `snug-data`, mounted at `/var/lib/snug`, and all three run as the same unprivileged user (10001).
@@ -57,10 +57,10 @@ Inside the Snug container there are three kinds of process:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/request-path-dark.svg">
-  <img alt="A request passes through Caddy to a gunicorn web worker, then Django's middleware in order, and the URL router sends it to the admin views, the viewer views (every one through authorise()) or the public branding files. HTML, page images, video in byte ranges, SVG charts and stamped downloads come back." src="images/diagrams/request-path-light.svg">
+  <img alt="A request passes through Caddy to a gunicorn web worker, then Django's middleware in order, and the URL router sends it to the admin views, the viewer views (every request for content through authorise()) or the public branding files. HTML, page images, video in byte ranges, SVG charts and stamped downloads come back." src="images/diagrams/request-path-light.svg">
 </picture>
 
-Caddy passes each request to `snug:8000` and adds the visitor's address in `X-Forwarded-For`. Snug believes that header only from Caddy's fixed address on the Compose network, the `SNUG_TRUSTED_PROXIES` setting, so a visitor cannot forge their address in the audit log (`snug.core.client.client_ip`).
+Caddy passes each request to `snug:8000` and adds the visitor's address in `X-Forwarded-For`. Snug uses that header only on requests from Caddy's fixed address on the Compose network, the `SNUG_TRUSTED_PROXIES` setting, so a visitor cannot forge their address in the audit log (`snug.core.client.client_ip`).
 
 The middleware runs in this order:
 
@@ -78,7 +78,7 @@ Each view that needs a rate limit calls `snug.core.ratelimit.allow` with a `Limi
 The URL map sends a request to one of three places:
 
 - **`/admin/`**: the admin interface. Every view needs a signed-in admin; `tests/test_admin_urls.py` checks that each one outside a short public list redirects to the sign-in page.
-- **`/v/<token>/`**: everything an investor sees, behind `authorise()`.
+- **`/v/<token>/`**: everything an investor sees. Every request for a document or room goes through `authorise()`.
 - **`/brand/`**: the company's logo, icon and accent colour, which every investor's page loads before anyone has signed in.
 
 ## Admins
@@ -87,7 +87,7 @@ An admin signs in with a password, then a six-digit code from an authenticator a
 
 Admin sessions are Django's own, stored in the database. The hash that ties a session to its admin covers the password and the authenticator secret, so changing either ends that admin's sessions. Only a new password chosen in Settings leaves the browser it was chosen in signed in (`update_session_auth_hash`).
 
-A few changes need a fresh code from the admin's authenticator, even in a session already signed in: inviting, removing or resetting an admin, changing a password, and every change to how email is sent. Replacing your own authenticator takes your password and a code from the old app or a recovery code. `snug.accounts.setup.confirm` checks the code; each failure is rate-limited and recorded in the audit log.
+A few changes need a fresh code from the admin's authenticator, even in a session already signed in: inviting, removing or resetting an admin, changing a password, and every change to how email is sent. Replacing your own authenticator takes your password and a code from the old app or a recovery code. `snug.accounts.setup.confirm` checks the code. Every attempt counts towards a rate limit, and each failure is recorded in the audit log.
 
 Invitations, resets and forgotten-password links are `AdminSetup` rows. Each link holds a random token, and the database keeps only its SHA-256 hash.
 
@@ -95,7 +95,7 @@ Invitations, resets and forgotten-password links are `AdminSetup` rows. Each lin
 
 An investor reaches Snug through a link, `/v/<token>`. The token is 32 random bytes; the database keeps its SHA-256 hash, so a copy of the database cannot be turned back into working links.
 
-When a link asks for a code, Snug emails six digits to the link's address (`snug.viewer.codes`). The code lasts 10 minutes and allows five wrong tries. A correct code starts a viewer session: a random token in the `__Host-snug-viewer` cookie, its hash in a `ViewerSession` row tied to that link and that email address. A link without a code starts an unverified session when the investor presses the *Open* button.
+When a link requires a code, Snug emails six digits to the link's address (`snug.viewer.codes`). The code lasts 10 minutes and allows five wrong tries. A correct code starts a viewer session: a random token in the `__Host-snug-viewer` cookie, its hash in a `ViewerSession` row tied to that link and that email address. A link without a code starts an unverified session when the investor presses the *Open* button.
 
 Every view under `/v/` that shows anything goes through one function, `snug.viewer.access.authorise`, which checks five things in order:
 
@@ -104,7 +104,7 @@ Every view under `/v/` that shows anything goes through one function, `snug.view
   <img alt="authorise() checks five things in order: the link is live, the session belongs to this link and email, the NDA is accepted, the visitor is in the UK if required, and the document belongs to the link or its room. Each failure leads to its own page; success returns the link, session and document to the view." src="images/diagrams/authorise-light.svg">
 </picture>
 
-Each check raises its own exception, and the decorator `viewer_content` turns each into a response: `Unavailable` into one 404 page for unknown, expired and revoked links alike, `NotVerified` into the page that asks for a code, `NeedsNda` into a redirect to the NDA, and `OutsideUK` into a 403, recorded in the audit log. On success the view gets an `Access` with the link, the session and the document.
+Each check raises its own exception, and the decorator `viewer_content` turns each into a response: `Unavailable` into one 404 page, the same for an unknown, expired or revoked link and for a document outside the link, `NotVerified` into the page that asks for a code, `NeedsNda` into a redirect to the NDA, and `OutsideUK` into a 403, recorded in the audit log. On success the view gets an `Access` with the link, the session and the document.
 
 Three views come before a session exists: sending a code, checking it, and opening a link without one. They use `viewer_gate`, which checks only that the link is live and the visitor's country. The NDA page uses `viewer_nda`, which runs `authorise()` without the NDA check it exists to pass.
 
@@ -151,7 +151,7 @@ Files live in the data folder, `SNUG_DATA_DIR`:
 Django receives the upload first, in memory if it is under 2.5 MB and in `tmp/` if not. `snug.documents.ingest.ingest` then makes it a version:
 
 1. It copies the upload to a temporary file in `tmp/`, computing its SHA-256 as it goes and keeping the first kilobyte. As soon as the first bytes show a video, the video limit applies (`SNUG_MAX_VIDEO_MB`); otherwise the document limit does (`SNUG_MAX_UPLOAD_MB`).
-2. The first bytes decide the kind: `ftyp` at byte 4 is an MP4 video, a zip is an Excel workbook, and `%PDF-` is a PDF. An old `.xls` file, or a workbook with a password, is refused with its own message. Every version of a document must be the same kind.
+2. The first bytes set the kind: `ftyp` at byte 4 is an MP4 video, a zip is an Excel workbook, and `%PDF-` is a PDF. An old `.xls` file, or a workbook with a password, is refused with its own message. Every version of a document must be the same kind.
 3. A document worker checks the file. For a PDF it returns the number of pages and their sizes; for a workbook, its visible sheets, after refusing macros, ActiveX and embedded objects; for a video, its length and picture size, after checking its codecs.
 4. In one transaction, Snug writes a `DocumentVersion` and renames the temporary file into `originals/` under a random name. The name the file was uploaded with is kept for display only.
 
@@ -207,20 +207,20 @@ On a Mac, which has no Landlock, `SNUG_UNSAFE_UNCONFINED_RENDERING=true` lets th
 
 `snug.analytics.reading` turns the reader's events into visits and seconds per page:
 
-- Showing a page continues the visit by the same session to the same document within the last 30 minutes, or starts a new one. A new visit is recorded in the audit log, and a link's first visit emails the admins who asked for it (`snug.analytics.notify`).
+- Showing a page continues the visit by the same session to the same document within the last 30 minutes, or starts a new one. A new visit is recorded in the audit log, and after a link's first visit Snug emails the admins who have first-open emails turned on (`snug.analytics.notify`).
 - While the tab is visible, the page's script (`viewer.js`) sends a heartbeat every 15 seconds with `navigator.sendBeacon`. Snug credits the page with the time since its clock last ran, never more than 20 seconds, so a browser cannot claim more time than passed, and a sleeping laptop does not count.
 - Hiding or closing the tab sends `end`, credited the same way. Showing it again sends `resume`, which restarts the clock and credits nothing.
 - A video's script (`video.js`) sends `part` as it plays into each 10-second part, and each part counts as a page. A workbook's card counts as its one page.
 
 `snug.analytics.summary` adds the seconds up for a document's page and for People, and `snug.analytics.charts` draws the strips and bar charts as SVG on the server, with the colour of each cell set by a class for its band of time. The pages need no charting script.
 
-`snug housekeeping` deletes reading data a set time after its link is revoked or expires (12 months unless Settings says otherwise), and records how many visits it deleted.
+`snug housekeeping` deletes reading data a set time after its link is revoked or expires (12 months unless another period is set in Settings), and records how many visits it deleted.
 
 ## The audit log
 
 `snug.audit.models.record` writes an `AuditEvent`: when, who (an admin, an investor's email, the command line or the system), the action, the address, the browser, the country and any details as JSON. Each app wraps it in its own `_audit` helper. Actions are named by area: `admin.login`, `document.version_uploaded`, `link.revoked`, `viewer.downloaded`, `settings.email_changed`, `system.reading_data_deleted` and so on.
 
-The Audit log page filters by kind or email address. Its CSV export records itself first, streams the rows, and puts a quote before any cell a spreadsheet would run as a formula.
+The Audit log page filters by kind or email address. Each CSV export is recorded in the audit log before the rows stream, and any cell a spreadsheet would run as a formula gets a leading quote.
 
 ## Email
 
@@ -231,11 +231,11 @@ The Audit log page filters by kind or email address. Its CSV export records itse
 
 `snug.core.mail.outgoing` picks the route for each message, and `snug.core.email_backend.EmailBackend` sends it. For SMTP it resolves the server's name, refuses it unless every address is public, then connects to the address it checked while TLS still checks the certificate against the name, so a DNS change between the check and the connection cannot redirect it. For Google it calls the Gmail API (`snug.core.gmail`) with an access token from the stored refresh token, kept in memory for its hour.
 
-Connecting Google is an OAuth flow with PKCE, started from Settings. The founder's own Google Cloud project owns the OAuth client, and the mailbox approves it to send email and nothing else. Snug keeps the approval in the session until the admin confirms it with a fresh authenticator code.
+Connecting Google is an OAuth flow with PKCE, started from Settings. The OAuth client belongs to the founder's own Google Cloud project, and the mailbox's user approves it to send email and to see the mailbox's address, nothing else. Snug keeps the approval in the session until the admin confirms it with a fresh authenticator code.
 
-Investors' codes, password links and first-open notices are sent from a background thread, so a slow mail server does not slow the page. Each send records whether it worked, which the Overview and `snug doctor` show.
+First-open notices are sent from a background thread, so a slow mail server does not slow the page. Forgotten-password links are too, so that the reply takes as long whether or not the address is an admin's. An investor's code is sent while they wait, unless their link has had too many wrong addresses: then it is sent in the background, so the reply cannot show whether one went. Snug records whether each send worked, and the Overview and `snug doctor` show it.
 
-Snug makes HTTP calls to Google and DB-IP alone, through `snug.core.outbound.urlopen`, apart from `snug doctor` fetching `/healthz` from Snug's own domain. It takes proxy settings from the environment only. On macOS, urllib's default looks them up through system frameworks that kill a process gunicorn has forked.
+Snug makes HTTP calls to Google and DB-IP alone, through `snug.core.outbound.urlopen`, apart from `snug doctor`, and housekeeping every hour, fetching `/healthz` from Snug's own domain. It takes proxy settings from the environment only. On macOS, urllib's default looks them up through system frameworks that kill a process gunicorn has forked.
 
 ## Background work
 

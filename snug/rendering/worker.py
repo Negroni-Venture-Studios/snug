@@ -27,12 +27,14 @@ image as a PNG. `confinement` reads nothing: it confines itself and reports
 how, for snug doctor. Errors print
 {"error": ...} and exit with 3.
 
-Before it touches the file, the worker
+Before it parses the file, the worker
   - limits its own memory, CPU time, output, open files and processes,
-  - imports everything it will need, and
+  - imports everything it will need,
+  - reads the file's bytes from the descriptor (a video only once confined,
+    in pieces), and
   - confines itself with Landlock, so it cannot open any file except system
     fonts (read-only) or make TCP connections, and a seccomp filter that
-    refuses to create any socket. Without both it refuses to read anything.
+    refuses to create any socket. Without both it refuses to parse anything.
 It imports no Django and no Snug settings, and its environment is empty of
 secrets, so even a file that took over the code reading it would find nothing to take.
 """

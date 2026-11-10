@@ -1,6 +1,6 @@
 # Security policy
 
-Snug holds founders' most sensitive documents, so we treat security reports as the highest priority.
+Snug holds founders' most sensitive documents, so security reports come before all other work.
 
 ## Reporting a vulnerability
 
@@ -34,7 +34,7 @@ Out of scope:
 
 Snug has not been released yet. Security fixes go into `main`, and so into the `:edge` test image. After the first release, they go into the latest release.
 
-## How the project guards itself
+## How changes are checked
 
 Every change to `main` goes through a pull request that must pass CI. Administrators are held to this too. CI runs:
 

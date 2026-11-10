@@ -13,7 +13,7 @@
 
 <rect class="box" x="40" y="66" width="380" height="64" rx="8"/>
 <text class="title" x="56" y="92">Opens the file</text>
-<text class="label" x="56" y="114">by the path its database record gives</text>
+<text class="label" x="56" y="114">from a path Snug builds, never a request</text>
 
 <rect class="box" x="40" y="146" width="380" height="104" rx="8"/>
 <text class="title" x="56" y="172">Starts the worker</text>

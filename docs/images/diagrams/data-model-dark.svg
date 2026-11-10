@@ -92,7 +92,8 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <rect class="box" x="34" y="400" width="180" height="84" rx="8"/>
 <text class="title" x="50" y="424">NdaAcceptance</text>
 <text class="mono" x="50" y="444">name, email</text>
-<text class="mono" x="50" y="462">ip, text_sha256</text>
+<text class="mono" x="50" y="460">ip_address</text>
+<text class="mono" x="50" y="476">text_sha256</text>
 <rect class="box" x="34" y="520" width="180" height="64" rx="8"/>
 <text class="title" x="50" y="544">NdaVersion</text>
 <text class="mono" x="50" y="564">number, text</text>
@@ -102,7 +103,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <text class="mono" x="302" y="462">email, note</text>
 <text class="mono" x="302" y="480">expires_at</text>
 <text class="mono" x="302" y="498">revoked_at</text>
-<text class="small" x="302" y="524">and whether it asks for a</text>
+<text class="small" x="302" y="524">and whether it requires a</text>
 <text class="small" x="302" y="540">code or the NDA, allows</text>
 <text class="small" x="302" y="556">downloads, or is UK-only</text>
 <rect class="box" x="500" y="400" width="176" height="100" rx="8"/>

@@ -78,7 +78,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <rect class="key" x="492" y="212" width="196" height="76" rx="8"/>
 <text class="title" x="508" y="238">rclone crypt</text>
 <text class="label" x="508" y="258">encrypted on the server;</text>
-<text class="label" x="508" y="275">only you hold the passwords</text>
+<text class="label" x="508" y="275">the bucket never sees them</text>
 <rect class="key" x="720" y="212" width="204" height="76" rx="8"/>
 <text class="title" x="736" y="238">Your bucket</text>
 <text class="mono" x="736" y="262">snug/</text>
@@ -91,7 +91,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <rect class="box" x="36" y="320" width="424" height="76" rx="8"/>
 <text class="mono" x="52" y="346">backup/last-success or backup/problem</text>
 <text class="label" x="52" y="368">read by snug doctor and the Overview;</text>
-<text class="label" x="52" y="385">a problem stops the copy</text>
+<text class="label" x="52" y="385">a problem ends that run; the next retries</text>
 <path class="line-dashed" d="M134,288 V320"/>
 <rect class="box" x="720" y="320" width="204" height="76" rx="8"/>
 <text class="mono" x="736" y="346">deleted/&lt;date&gt;/</text>
