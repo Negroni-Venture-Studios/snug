@@ -27,6 +27,8 @@ cloud-init installs Docker from Docker's own repository, Ubuntu's automatic secu
 
 `snug setup` asks for the domain, the company's name and the backup bucket, typed on the server so that no secret is ever stored with DigitalOcean. Email is set up afterwards, in Settings, under Email: [email-google.md](email-google.md) for Google Workspace, [email.md](email.md) for any other provider. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup.
 
+Run `sudo snug setup` again to change the domain or the company's name, or to add a backup bucket you skipped. On a server that already has Snug's data, it keeps the data, leaves the admins as they are and restarts Snug with the new answers.
+
 If `/opt/snug/backup/rclone.conf` is already there, copied from your password manager, and its bucket holds backups, `snug setup` restores them instead of starting afresh. [backups.md](backups.md) explains when you would do this.
 
 ### On another server
