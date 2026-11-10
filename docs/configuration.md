@@ -8,7 +8,7 @@ Snug checks every setting when it starts. If any are missing or wrong, it lists 
 
 | Variable | Required | Default | What it does |
 |---|---|---|---|
-| `SNUG_SECRET_KEY` | Yes | | Signs sessions and other tokens. At least 50 random characters. Keep it secret, and never reuse it between instances. |
+| `SNUG_SECRET_KEY` | Yes | | Signs admin sessions and protects the codes emailed to investors. At least 50 random characters. Keep it secret, and never reuse it between instances. |
 | `SNUG_DOMAIN` | Yes | | The host name people use to reach Snug, like `room.example.com`: no `https://`, port or path. Requests for any other host name are refused. On your own computer it can be `localhost` with a port, like `localhost:8000`, so the links Snug shows and emails include it. |
 | `SNUG_DATA_DIR` | No | `/var/lib/snug` | Where Snug keeps its database and files. Must be an absolute path. Back it up, which the standard deployment does continuously. |
 | `SNUG_TRUSTED_PROXIES` | No | `127.0.0.1/32, ::1/128` | The addresses of the proxy in front of Snug, Caddy in the standard deployment, as a comma-separated list of addresses or networks. The standard Compose file sets this to Caddy's own addresses, whatever `snug.env` says. Snug trusts the client address in `X-Forwarded-For` only on requests from these. Never set it to everything (`0.0.0.0/0`), and Snug refuses to start if you do. Anyone could then claim any address and get round the rate limits. |
@@ -47,7 +47,7 @@ If the server reaches the internet only through a proxy, set `HTTPS_PROXY` in th
 python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 ```
 
-Changing the key signs everyone out. Admins and viewers will need to sign in or verify again.
+Changing the key signs every admin out, and any code already emailed to an investor stops working. Investors who have already verified stay signed in.
 
 ## Running Snug on your own computer
 

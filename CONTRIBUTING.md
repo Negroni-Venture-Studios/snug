@@ -31,7 +31,7 @@ SNUG_E2E=1 uv run pytest tests/e2e --ds=tests.e2e_settings  # a real browser, as
 uv run ruff check .                # lint, including security rules
 uv run ruff format .               # format
 uv run mypy                        # strict type checking
-uv run pre-commit run --all-files  # everything CI runs, locally
+uv run pre-commit run --all-files  # the fast checks; CI also runs coverage, the browser tests and the security scans
 ```
 
 The documentation's pictures are made from the code, so rebuild them when a page or a diagram changes:
@@ -69,7 +69,7 @@ Merge with a squash or a merge commit. Branches are deleted after merging.
 - **Security requirements are requirements.** [AGENTS.md](AGENTS.md) lists them: one authorisation path for viewer content, no database keys in viewer URLs, no CORS, a strict content security policy, CSRF protection, rate limits, safe file handling, and no secrets in logs. Each has tests; keep them passing and extend them.
 - **Type hints throughout**, checked by mypy in strict mode.
 - **No inline scripts, inline styles or `on*=` handlers** in templates. The content security policy forbids them.
-- **Calls out of Snug** over HTTP go through `snug/core/outbound.py`, and only to Google and DB-IP. The tests never reach the internet.
+- **Calls out of Snug** over HTTP go only to Google and DB-IP, through `snug/core/outbound.py`, apart from `snug doctor` checking Snug's own domain. The tests never reach the internet.
 - **British English** in documentation and interface text. In interface text: sentence case, no em or en dashes, and no middle dots used as separators.
 - **Commit messages** use the imperative mood ("Add link revocation", not "Added …"), with a first line under 72 characters.
 - **Changelog.** Add a line under `[Unreleased]` in CHANGELOG.md for anything a user or operator would notice.

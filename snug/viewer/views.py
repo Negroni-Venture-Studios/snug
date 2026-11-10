@@ -5,8 +5,8 @@ configuration to make sure of it:
 
 - viewer_content calls access.authorise, the single authorisation path, and
   is the only way to reach anything from a document;
-- viewer_gate runs only its first check (the link is active), for the pages
-  that exist to start a session.
+- viewer_gate checks only that the link is active and, for a UK-only link,
+  where the reader is, for the pages that exist to start a session.
 """
 
 import hashlib

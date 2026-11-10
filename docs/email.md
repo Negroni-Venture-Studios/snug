@@ -1,12 +1,12 @@
 # Email
 
-Snug sends two kinds of email to investors: links to the people you share documents with, and the six-digit codes they use to prove they own the address a link was sent to. It also emails admins: invites, notices of changes to the admins, and forgotten-password links. Without working email you can still create links and send them yourself, but nobody can verify, so links that require verification cannot be opened.
+Snug sends two kinds of email to investors: links to the people you share documents with, and the six-digit codes they use to prove they own the address a link was sent to. It also emails admins: invitations, notices of changes to the admins or the email settings, an alert the first time each link is opened, a note when your password changes, and links to choose a new password or authenticator. Without working email you can still create links and send them yourself, but nobody can verify, so links that require verification cannot be opened.
 
 Most failed Snug setups fail here.
 
 **Google Workspace.** If your company uses Workspace, Snug can send as a mailbox on your domain through the Gmail API, and [email-google.md](email-google.md) walks through it. The rest of this guide is for any other provider, over SMTP.
 
-Snug sends each email by the first of these routes that is set up, so settings saved in Settings win over the ones in `snug.env`:
+Snug sends each email by the first of these routes that is set up, so SMTP settings saved in Settings, or a connected Google mailbox, take the place of the ones in `snug.env`:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/email-dark.svg">
@@ -26,7 +26,7 @@ Do not send through a personal Gmail or Outlook account. Their limits are low, a
 
 Choose the address Snug's emails come from, on your own domain, such as `rooms@example.com`. People will see it, so make it plain.
 
-Replies do not go to this address. Each link email is set to reply to the admin who created the link, so an investor who replies reaches a person. The sending address only needs to exist if your provider insists on it.
+Replies do not go to this address. Each link email is set to reply to the admin who sent it, so an investor who replies reaches a person. The sending address only needs to exist if your provider insists on it.
 
 ## Step 2: verify your domain with the provider
 
@@ -110,7 +110,7 @@ Choose **Save**, and Snug uses the new settings at once, with no restart. The pa
 
 Emails use your company's name, as set in Settings under Branding, such as "Fernlea Robotics has shared Seed deck with you".
 
-Email can also be set in `snug.env`, with the `SNUG_SMTP_` settings [configuration.md](configuration.md) lists. Snug uses those until something is saved in Settings, which then wins. To go back to them, or to stop email altogether, use **Clear email settings**, under the choice of provider at the top of Email, and enter a code. It appears once anything is saved.
+Email can also be set in `snug.env`, with the `SNUG_SMTP_` settings [configuration.md](configuration.md) lists. Snug uses those until SMTP settings are saved in Settings or a Google mailbox is connected there. To go back to them, or to stop email altogether, use **Clear email settings**, under the choice of provider at the top of Email, and enter a code. It appears once anything is saved.
 
 ## Step 5: send yourself a test
 

@@ -66,7 +66,7 @@ You are emailed the first time each link is opened. To stop it, untick *Email me
 Each link is for one person. On a document's page, choose *New link*, and fill in:
 
 - **Email address**: the person you are sending it to. *Require email verification* is ticked to begin with, so they must type a code Snug emails to that address before they see anything.
-- **Note for yourself**: who they are, such as "Partner, Northfield Capital". Only admins see it.
+- **Note for yourself**: who they are, such as "Partner at Northfield Capital". Only admins see it.
 - **Message for them**: optional, shown above the document and in the email with the link.
 - **Expires**: optional. The link stops working at the end of that day.
 - **Ask for the NDA first**, **Only from the UK** and **Allow download**, as you need them. The NDA is set up once, in Settings; [the NDA guide](nda.md) explains it.
@@ -137,14 +137,14 @@ The audit log lists everything admins and investors do, newest first: signing in
 
 ## Settings
 
-Settings holds the admins, your own account, email, branding, the NDA, the privacy policy link and how long reading data is kept. Each part links to its guide.
+Settings holds the admins, your own account, email, branding, the NDA, the privacy policy link and how long reading data is kept. The admin, email and NDA sections each link to their guide.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-dark.png">
   <img alt="Settings: the list of admins, and a form to invite one, which needs a code from your authenticator app." src="images/screenshots/settings-light.png">
 </picture>
 
-Changing who the admins are, your password or authenticator, or how email is sent, needs a fresh code from your authenticator app, and every admin is emailed about it. [Admin accounts](admin-accounts.md) has the details.
+Changing who the admins are, or how email is sent, needs a fresh code from your authenticator app, and every admin is emailed about it. Every admin is also emailed when you replace your authenticator, which takes a code from the old app or a recovery code. Changing your password also needs a code, and Snug emails you to confirm it. [Admin accounts](admin-accounts.md) has the details.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-account-dark.png">
