@@ -77,7 +77,7 @@ Write the test that proves the change, and confirm it fails for the reason you e
 8. **File handling.** Store uploads under generated names. Resolve paths from database records, never from request parameters. Read and render PDFs, and check and stamp workbooks and check videos, only in the worker process: a timeout and a memory limit, confined by Landlock and a seccomp filter that refuses sockets, and refusing to read anything if it cannot confine itself.
 9. **Never log** tokens, one-time codes, session identifiers or passwords.
 10. **Dependencies.** Ask before adding one, and check that its licence is MIT-compatible (`scripts/check_licences.py`).
-11. **Calls out of Snug** over HTTP go only to Google (the Gmail API, for email) and DB-IP (the country data), through `snug.core.outbound.urlopen`, which takes proxy settings from the environment only. The default urllib opener asks macOS for them, which kills a forked gunicorn worker. Otherwise Snug connects only to the SMTP server set up for email, and `snug doctor` to Snug's own domain. No test may reach the internet; a fixture in `tests/conftest.py` blocks both.
+11. **Calls out of Snug** over HTTP go only to Google (the Gmail API, for email) and DB-IP (the country data), through `snug.core.outbound.urlopen`, which takes proxy settings from the environment only. The default urllib opener asks macOS for them, which kills a forked gunicorn worker. Otherwise Snug connects only to the SMTP server set up for email, and `snug doctor`, and housekeeping every hour, to Snug's own domain. No test may reach the internet; a fixture in `tests/conftest.py` blocks both.
 
 ### Front end
 

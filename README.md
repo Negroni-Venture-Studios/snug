@@ -10,7 +10,7 @@ Snug is a self-hosted data room for early-stage founders. You run it on your own
 
 - Each investor gets their own link, and proves they can read the inbox it was sent to.
 - You can see who opened what, page by page, and revoke a link at any time.
-- Their email address is watermarked on each page they read and on any copy they download.
+- Their email address is on each page they read and in each PDF or workbook they download.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/hero-dark.png">
@@ -33,11 +33,11 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 - **UK-only mode.** A link, or a whole room, can open only for visitors in the UK, Jersey, Guernsey and the Isle of Man, judged by their internet address against a country database kept on your server.
 - **An NDA.** One click-through agreement for your instance, versioned, which you can require before a room or a single-document link opens. Snug records who accepted which text, and when.
 - **The reader.** Pages are rendered on your server and shown one at a time, watermarked with the reader's email address, the date and the link. A download is the original PDF, stamped with the same details, so its text stays searchable. A video plays in the browser with the same details drawn over it; a workbook's card lists its sheets, and the founder can add a description.
-- **Analytics.** Who opened each document, how long they spent on each page (or on each 10 seconds of a video), and how often they downloaded it, on an Overview, each document's page and a People page. Every admin is emailed the first time each link is opened, unless they turn it off. Reading data is deleted 12 months after a link ends, or after a period you set. Everything about your visitors stays on your instance, and Snug does not phone home.
+- **Analytics.** Who opened each document, how long they spent on each page (or on each 10 seconds of a video), and how often they downloaded it, on an Overview, each document's page and a People page. Every admin is emailed the first time each link is opened, unless they turn it off. Reading data is deleted 12 months after a link ends, or after a period you set. Snug does not phone home.
 - **An audit log** of every admin action and every viewer access, with the viewer's country, filterable and exportable as CSV.
-- **Email** through Google Workspace, as a mailbox on your domain over the Gmail API, or any provider over SMTP. It is set up in Settings in numbered steps, ending with a test email, and can be cleared there with one button. The admin, email and NDA sections of Settings each link to their guide.
+- **Email** through Google Workspace, as a mailbox on your domain over the Gmail API, or any provider over SMTP. It is set up in Settings in numbered steps, ending with a test email, and can be cleared there with one button. The admin, account, email and NDA sections of Settings each link to their guide.
 - **Admin accounts** with a password and an authenticator app, recovery codes, invitations by email, and an email to every admin whenever the admins change.
-- **Running it.** Docker Compose with Caddy for HTTPS; continuous backups to a storage bucket of your own, encrypted on your server with a key only you hold; `snug doctor`, which checks the server and says what to fix, and a status line on the Overview showing the same; and `snug restore`.
+- **Running it.** Docker Compose with Caddy for HTTPS; continuous backups to a storage bucket of your own, encrypted on your server with a key only you hold; `snug doctor`, which checks the server and reports what to fix, and a status line on the Overview showing the same; and `snug restore`.
 
 You see who opened what on the Overview, and each person's reading on People:
 
@@ -67,14 +67,14 @@ An investor enters a code sent to their inbox, then reads, or downloads a workbo
 
 - **It shows PDFs and videos, and shares Excel workbooks.** Export anything else, such as Word or PowerPoint files, to PDF first, and video to MP4 with H.264. A workbook is not previewed in the browser. Investors download it, and Snug writes their email address, the date and the link into each copy's document properties. A video's watermark is drawn over the player, so a downloaded copy has no mark, and someone determined can save a video they are watching even with downloads turned off.
 - **Watermarks deter casual leaks; they cannot stop one.** Anyone can photograph a screen.
-- **NDA acceptance is a record, not a signature.** Snug records who accepted which text, and when.
+- **NDA acceptance is a record, not a signature.**
 - **UK-only mode is not export control.** It goes by the visitor's internet address, so a VPN gets round it.
 - It is not a hosted service, and one instance serves one company.
 - No Office or image rendering, comments, e-signatures, single sign-on, investor updates or AI features.
 
 ## Status
 
-**Snug is not ready to run for real yet.** Everything planned for version 1 is built and tested, and the container image is published as a test build, `ghcr.io/negroni-venture-studios/snug:edge`. The server setup is written and tested in CI, but has not yet run on a real server. There is no release, so please do not put real documents in a test instance.
+Everything planned for version 1 is built and tested, and the container image is published as a test build, `ghcr.io/negroni-venture-studios/snug:edge`. The server setup is tested in CI but has not yet run on a real server.
 
 Still to come before the first release:
 
@@ -87,7 +87,7 @@ The order of work in [DESIGN.md](DESIGN.md) has the details.
 
 This needs Docker, and runs Snug on `localhost` only, over plain HTTP, which Snug allows for `localhost` and nowhere else.
 
-First make a settings file holding a new secret key, and keep it. Snug signs sessions with the key and protects viewers' one-time codes with it, so a container started with a different key signs everyone out and cancels any code in flight.
+First make a settings file holding a new secret key, and keep it. Snug signs admins' sessions with the key and protects viewers' one-time codes with it, so a container started with a different key signs every admin out and cancels any code in flight.
 
 ```bash
 python3 -c 'import secrets; print("SNUG_SECRET_KEY=" + secrets.token_urlsafe(64))' > snug.env
@@ -141,7 +141,7 @@ To remove it all: `docker rm --force snug && docker volume rm snug-data`, then d
 
 ## Running it on a server
 
-[The deployment guide](docs/deployment.md) sets up a fresh Ubuntu server, such as a DigitalOcean droplet, with cloud-init and `sudo snug setup`, which asks for your domain and backup bucket on the server itself; email is set up afterwards in Settings. [The backups guide](docs/backups.md) explains what is backed up, how to check it and how to restore. The email guides explain how to send through [Google Workspace](docs/email-google.md), starting from your first visit to Google Cloud, or through [another provider](docs/email.md). These are untested on a real server until the full deployment above.
+[The deployment guide](docs/deployment.md) covers a fresh Ubuntu server, such as a DigitalOcean droplet, set up with cloud-init and `sudo snug setup`, which asks for your domain and backup bucket on the server itself. Email is set up afterwards in Settings, through [Google Workspace](docs/email-google.md), starting from your first visit to Google Cloud, or [another provider](docs/email.md). What is backed up, how to check it and how to restore are in [the backups guide](docs/backups.md). None of these has yet been followed on a real server.
 
 ## How it is built
 

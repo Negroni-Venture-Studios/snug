@@ -2,7 +2,7 @@
 
 Snug sends two kinds of email to investors: links to the people you share documents with, and the six-digit codes they use to prove they own the address a link was sent to. It also emails admins: invitations, notices of changes to the admins or the email settings, an alert the first time each link is opened, a note when your password changes, and links to choose a new password or authenticator. Without working email you can still create links and send them yourself, but nobody can verify, so links that require verification cannot be opened.
 
-Most failed Snug setups fail here.
+Email is the part of the setup most likely to go wrong.
 
 **Google Workspace.** If your company uses Workspace, Snug can send as a mailbox on your domain through the Gmail API, and [email-google.md](email-google.md) walks through it. The rest of this guide is for any other provider, over SMTP.
 
@@ -13,7 +13,7 @@ Snug sends each email by the first of these routes that is set up, so SMTP setti
   <img alt="Snug tries five routes in order and uses the first that applies: Google Workspace saved in Settings, SMTP saved in Settings, SMTP in snug.env, the outbox folder on localhost, or no email. Every SMTP send checks the server resolves only to public addresses and connects to the address it checked." src="images/diagrams/email-light.svg">
 </picture>
 
-Email sent from a new server, from a domain with no authentication records, goes to spam or is refused outright. This guide sets it up properly, once.
+Email sent from a new server, from a domain with no authentication records, goes to spam or is refused outright. The steps below add those records.
 
 ## What you need
 
@@ -56,7 +56,7 @@ Many providers instead ask you to point a subdomain, such as `bounces.example.co
 
 ### DMARC
 
-DMARC tells receiving servers what to do with mail that claims to be from your domain but fails DKIM and SPF, and where to send reports. It is a `TXT` record named `_dmarc.example.com`. If you do not have one, start with:
+A DMARC record sets what receiving servers should do with mail that claims to be from your domain but fails DKIM and SPF, and where to send reports. It is a `TXT` record named `_dmarc.example.com`. If you do not have one, start with:
 
     v=DMARC1; p=none; rua=mailto:dmarc@example.com
 
@@ -136,8 +136,8 @@ Snug logs only the kind of error, never the recipient, subject or contents, beca
 |---|---|
 | `TimeoutError` or a long pause, then failure | The port is blocked. On DigitalOcean, see [Use another port](#on-digitalocean-use-another-port). |
 | `SMTPAuthenticationError` | The username or password is wrong, or the API key has been revoked or lacks permission to send. |
-| `SMTPSenderRefused` | The From address (`SNUG_EMAIL_FROM` in `snug.env`) is not on a domain your provider has verified. |
-| `SSLError` | The encryption (`SNUG_SMTP_SECURITY` in `snug.env`) does not match the port: try STARTTLS for 587, 2525 or 2587, and TLS for 465 or 2465. |
+| `SMTPSenderRefused` | The From address (in Settings, or `SNUG_EMAIL_FROM` in `snug.env`) is not on a domain your provider has verified. |
+| `SSLError` | The encryption (in Settings, or `SNUG_SMTP_SECURITY` in `snug.env`) does not match the port: try STARTTLS for 587, 2525 or 2587, and TLS for 465 or 2465. |
 | Emails arrive, but in spam | DKIM or DMARC is not passing. Check the message's authentication results, as in step 5. A new domain or provider account may also need a few days of low volume to build a reputation. |
 | Emails arrive for some people but not others | Check your provider's dashboard for bounces and blocks. Some company mail filters hold messages containing links until the recipient releases them. |
 

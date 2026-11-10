@@ -42,7 +42,7 @@ A document's page has its numbers at the top: viewers, visits, the median readin
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/document-dark.png">
-  <img alt="The seed deck's page: six viewers, fifteen visits, a median reading time of 8 minutes 10 seconds, a bar chart of the average time on each of 18 pages, and a strip of shaded cells for each investor." src="images/screenshots/document-light.png">
+  <img alt="The seed deck's page: six viewers, fourteen visits, a median reading time of 8 minutes 10 seconds, a bar chart of the average time on each of 18 pages, and a strip of shaded cells for each investor." src="images/screenshots/document-light.png">
 </picture>
 
 A workbook has no pages, so its page has a description, which investors see above its list of sheets, and the sheets themselves. A video's page has a player, and its chart counts time in parts of 10 seconds.
@@ -94,18 +94,18 @@ A room shares several documents through one link, in folders one level deep, suc
   <img alt="A room called Seed round, with five documents in the folders Company, Financials and Legal, each with a menu to move it and a button to remove it." src="images/screenshots/room-light.png">
 </picture>
 
-A room can ask for the NDA, or open only from the UK, for every link to it. Its page has its own *New link*.
+A room can require the NDA, or admit only visitors in the UK, for every link to it. Its page has its own *New link*.
 
 ## What an investor sees
 
-A link opens a page with your company's name, what has been shared and a panel saying what you will see of their visit. If the link asks for a code, they type the email address it was sent to, and Snug emails them six digits.
+A link opens a page with your company's name, what has been shared and a panel saying what you will see of their visit. If the link requires a code, they type the email address it was sent to, and Snug emails them six digits.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/code-dark.png">
   <img alt="The page an investor sees first: Fernlea Robotics has shared Seed deck with you, a box for their email address, and the About this link panel." src="images/screenshots/code-light.png">
 </picture>
 
-If the link asks for the NDA, they read it, type their name and tick to accept before they see anything.
+If the link requires the NDA, they read it, type their name and tick to accept before they see anything.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/nda-dark.png">
@@ -137,14 +137,14 @@ The audit log lists everything admins and investors do, newest first: signing in
 
 ## Settings
 
-Settings holds the admins, your own account, email, branding, the NDA, the privacy policy link and how long reading data is kept. The admin, email and NDA sections each link to their guide.
+Settings holds the admins, your own account, email, branding, the NDA, the privacy policy link and how long reading data is kept. The admin, account, email and NDA sections each link to their guide.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-dark.png">
   <img alt="Settings: the list of admins, and a form to invite one, which needs a code from your authenticator app." src="images/screenshots/settings-light.png">
 </picture>
 
-Changing who the admins are, or how email is sent, needs a fresh code from your authenticator app, and every admin is emailed about it. Every admin is also emailed when you replace your authenticator, which takes a code from the old app or a recovery code. Changing your password also needs a code, and Snug emails you to confirm it. [Admin accounts](admin-accounts.md) has the details.
+Changing who the admins are, or how email is sent, needs a fresh code from your authenticator app, and every admin is emailed about it. Every admin is also emailed when you replace your authenticator, which takes a code from the old app or a recovery code. Changing your password needs a code too, and Snug emails you to confirm it. [Admin accounts](admin-accounts.md) has the details.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-account-dark.png">

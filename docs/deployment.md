@@ -25,7 +25,7 @@ Snug runs on one Linux server as four containers under Docker Compose:
 
 cloud-init installs Docker from Docker's own repository, Ubuntu's automatic security updates, a firewall that lets in only SSH, HTTP and HTTPS, a 1 GB swap file, and Snug's files in `/opt/snug`, with the `snug` command in `/usr/local/bin`. It does not start Snug.
 
-`snug setup` asks for the domain, the company's name and the backup bucket, typed on the server so that no secret is ever stored with DigitalOcean. Email is set up afterwards, in Settings, under Email: [email-google.md](email-google.md) for Google Workspace, [email.md](email.md) for any other provider. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup.
+`snug setup` asks for the domain, the company's name and the backup bucket, typed on the server so that no secret is ever stored with DigitalOcean. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. Email is set up afterwards, in Settings, under Email: [email-google.md](email-google.md) for Google Workspace, [email.md](email.md) for any other provider.
 
 Run `sudo snug setup` again to change the domain or the company's name, or to add a backup bucket you skipped. On a server that already has Snug's data, it keeps the data, leaves the admins as they are and restarts Snug with the new answers.
 
@@ -87,7 +87,7 @@ IPv6 is turned on for the Compose network. Without it, Docker would relay visito
 
 ## Checking it works
 
-`snug doctor` checks the server and says what to fix:
+`snug doctor` checks the server and reports what to fix:
 
 ```bash
 sudo snug doctor --email you@example.com
@@ -110,7 +110,7 @@ The admin Overview shows the same problems, so a founder sees them without runni
   <img alt="The admin Overview, with the status line Everything is working above its numbers and the latest visits." src="images/screenshots/overview-light.png">
 </picture>
 
-It checks housekeeping, the backups, the email settings and the GeoIP data on each visit; housekeeping runs the document worker, DNS and HTTPS checks every hour, and a failed email is recorded when it fails.
+It checks housekeeping, the backups, the email settings and the GeoIP data on each visit; housekeeping runs the document worker, DNS and HTTPS checks every hour, and Snug records a failed email as it happens.
 
 Snug cannot read your inbox, so the email check sends a six-digit code and asks you to type it in. Without `--email`, `snug doctor` asks for an address, or skips the email test when it is not run in a terminal. It exits with status 1 if anything is a problem.
 

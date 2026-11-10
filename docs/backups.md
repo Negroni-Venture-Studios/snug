@@ -1,6 +1,6 @@
 # Backups
 
-The standard deployment backs Snug up continuously to a storage bucket of your own, such as DigitalOcean Spaces. Everything is encrypted on your server before it is uploaded, with a key only you hold, so only you can read it.
+The standard deployment backs Snug up continuously to a storage bucket of your own, such as DigitalOcean Spaces. Everything is encrypted on your server before it is uploaded, with a key only you hold.
 
 ## What is backed up
 
@@ -83,7 +83,7 @@ sudo docker compose exec backup rclone lsf -R snug-backup:
 
 ## Restoring
 
-`snug restore` brings everything back from the bucket: the database, the uploaded documents and the branding images. It works on the same server, after a mistake, or on a new one, after losing the old.
+`snug restore` brings everything back from the bucket: the database, the uploaded documents and the branding images. Use it on the same server after a mistake, or on a new server if the old one is lost.
 
 On a new server, create it with cloud-init as [deployment.md](deployment.md) describes. Before running `snug setup`, put the copy of `rclone.conf` from your password manager in `/opt/snug/backup/`. `snug setup` asks for the domain and your company's name, finds the backups, and restores them. Then sign in to check, and run `sudo snug doctor`.
 

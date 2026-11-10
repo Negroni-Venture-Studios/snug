@@ -40,7 +40,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 .on-action { fill: var(--on-action); font-weight: 600; }
 </style>
 <title id="t">The one authorisation path for viewer requests</title>
-<desc id="d">Every request for content under /v/ goes through authorise(), which makes five checks in order: the link exists and is live; the session belongs to this link and this email, verified if the link asks for a code; the NDA is accepted if one is needed; the reader is in the UK if the link or its room is UK-only; and the document belongs to the link or its room. A failed check ends the request with a 404, the link's own page, the NDA page or a 403. When all five pass, the view receives the link, the session and the document. The three pages that send and check the code check only the first step and, for a UK-only link, where the reader is.</desc>
+<desc id="d">Every request for content under /v/ goes through authorise(), which makes five checks in order: the link exists and is live; the session belongs to this link and this email, verified if the link requires a code; the NDA is accepted if one is needed; the reader is in the UK if the link or its room is UK-only; and the document belongs to the link or its room. A failed check ends the request with a 404, the link's own page, the NDA page or a 403. When all five pass, the view receives the link, the session and the document. The three pages that send a code, check it, or open a link without one check only the first step and, for a UK-only link, where the reader is.</desc>
 <defs>
   <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
   <marker id="tip-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-ok"/></marker>
@@ -62,7 +62,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 
 <rect class="box" x="40" y="216" width="440" height="68" rx="8"/>
 <text class="title" x="60" y="244">2. The session is for this link</text>
-<text class="label" x="60" y="266">and this email; verified if the link asks for a code</text>
+<text class="label" x="60" y="266">and this email; verified if the link requires a code</text>
 
 <rect class="box" x="40" y="320" width="440" height="68" rx="8"/>
 <text class="title" x="60" y="348">3. The NDA is accepted</text>
@@ -128,6 +128,6 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <text class="small danger" x="522" y="554">no</text>
 
 <!-- Note -->
-<text class="small" x="40" y="740">The code pages check only steps 1 and 4. A test fails on any other <tspan class="mono">/v/</tspan> URL that skips this path:</text>
+<text class="small" x="40" y="740">The code and open pages check only steps 1 and 4; a test fails on any other <tspan class="mono">/v/</tspan> URL that skips this path:</text>
 <text class="mono" x="40" y="760">tests/test_viewer_urls.py</text>
 </svg>

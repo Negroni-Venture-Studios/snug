@@ -7,7 +7,7 @@ Admins are the people at your company who upload documents, issue links and read
 The first admin is created on the server, from the command line:
 
 ```bash
-snug createadmin --email you@yourcompany.com
+sudo snug createadmin --email you@yourcompany.com
 ```
 
 Snug then:
@@ -35,7 +35,7 @@ Snug then:
 
 The link takes them to a page where they choose a password, scan a QR code with their authenticator app, enter a code from it, and see their recovery codes once. They can then sign in.
 
-Inviting needs email; without it, create each admin on the server with `snug createadmin`, as above.
+Inviting needs email; without it, create each admin on the server with `sudo snug createadmin`, as above.
 
 ## Removing an admin
 
@@ -47,7 +47,7 @@ You cannot remove yourself, and Snug never lets the last admin be removed. For a
 
 If another admin has lost their phone and their recovery codes, choose **Reset second factor** beside them in **Settings**, and enter a fresh code from your own authenticator. Their old authenticator and recovery codes stop working at once, and they are signed out everywhere. They are emailed a link, which works for 72 hours, to set up their authenticator again. Their password does not change, and every admin is emailed.
 
-To replace your own authenticator, sign in with a recovery code, or ask another admin.
+To replace your own authenticator, use **Replace your authenticator** in **Settings**, as described below.
 
 ## Signing in
 
@@ -66,7 +66,7 @@ Go to `/admin/` on your Snug domain. Enter your email address and password, then
   - 10 code attempts against one account;
   - 5 wrong codes after one correct password, which then takes you back to the password.
 
-  Every attempt counts, right or wrong. You will only meet these limits if something is wrong.
+  Every attempt counts, right or wrong.
 
   The account limit is generous, so that someone typing wrong passwords cannot easily lock you out.
 - **Changing your password or second factor signs you out in every other browser**, and in this one too for a second factor. It also stops any sign-in that is past the password and waiting for its code.
@@ -87,14 +87,14 @@ Use **Forgotten your password?** on the sign-in page and enter your email addres
 - **The link works once, for one hour.** Asking again replaces it.
 - **You also need a code from your authenticator app**, or one of your recovery codes, to set the new password. So someone who gets into your mailbox cannot change your password.
 - **Five wrong codes spend the link**, and you need to ask for a new one. Codes on this page have their own limit, so they never stop you signing in.
-- **The page never says whether an address belongs to an admin.** It gives the same reply either way, and the reply takes as long either way.
+- **The page never says whether an address belongs to an admin.** It gives the same reply, in the same time, either way.
 - **Asking is limited** to 5 times from one IP address, and 3 times for one email address, in 15 minutes.
 - **Changing your password signs you out everywhere**, and Snug emails you to say it changed.
 
 Without email, ask another admin to help, or run this on the server:
 
 ```bash
-snug reset-password you@yourcompany.com
+sudo snug reset-password you@yourcompany.com
 ```
 
 It asks for the new password twice. Like the link, it signs you out everywhere and is written to the audit log; your authenticator keeps working. Django's own `changepassword` is disabled, because it writes nothing to the audit log.
@@ -111,11 +111,11 @@ For a new phone: in **Settings**, under **Your account**, find **Replace your au
 ## Losing your phone
 
 - If you still have your recovery codes, sign in with one of them, then replace your authenticator as above.
-- If you have lost the recovery codes too, another admin can reset your second factor from the admin interface.
+- If you have lost the recovery codes too, another admin can reset your second factor from the admin interface, if email is set up.
 - If you are the only admin, run this on the server:
 
 ```bash
-snug reset-2fa you@yourcompany.com
+sudo snug reset-2fa you@yourcompany.com
 ```
 
 It asks you to confirm, shows a new QR code, and issues new recovery codes. The old authenticator and the old recovery codes stop working at once.

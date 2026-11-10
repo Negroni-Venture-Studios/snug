@@ -4,7 +4,7 @@ If your company uses Google Workspace, Snug can send its emails as a mailbox on 
 
 Snug sends through the Gmail API, over HTTPS. It cannot use Google's mail servers directly from DigitalOcean, which blocks the only ports they accept.
 
-Google needs to know about Snug first, so there is a one-time setup in the Google Cloud console. Google offers no way to do it from the command line. This guide assumes you have never used Google Cloud before, and takes you through every screen. It takes about fifteen minutes.
+Google needs to know about Snug first, so there is a one-time setup in the Google Cloud console. Google offers no way to do it from the command line. The steps below start from a first visit to Google Cloud and cover every screen. Allow about fifteen minutes.
 
 ## What you need
 
@@ -42,7 +42,7 @@ The page changes to *API/Service details*, with **Status: Enabled**. Ignore its 
 
 ## Step 3: describe Snug to your users
 
-This is the page Google shows when the mailbox approves Snug.
+This is the page Google shows when you approve Snug for the mailbox.
 
 1. In the left-hand sidebar, choose **OAuth consent screen**. Google opens *Google Auth Platform*, saying it is not configured yet. Choose **Get started**.
 2. **App information.** Enter **Snug** as the app name, choose your own address as the user support email, and choose **Next**.
@@ -54,7 +54,7 @@ A message says *OAuth configuration created*, and the page shows *OAuth overview
 
 ## Step 4: create the client
 
-The client is how Snug identifies itself to Google. It has an ID, which is not secret, and a secret, which is.
+The client is how Snug identifies itself to Google. It has a client ID, which is public, and a client secret.
 
 1. On *OAuth overview*, choose **Create OAuth client**. Later, you can find it under **Clients** in the sidebar.
 2. **Application type:** choose **Web application**.
@@ -75,7 +75,7 @@ Google says changes can take a few minutes to take effect. If Google later says 
 
 ## Step 5: connect Snug
 
-In Snug, open **Settings**, and under **Email** choose **Google Workspace**. Snug lays the rest out in three numbered steps, and each moves you on to the next.
+In Snug, open **Settings**, and under **Email** choose **Google Workspace**. The rest is in three numbered steps; saving each one takes you to the next.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-google-dark.png">
@@ -92,7 +92,7 @@ Google may approve a different address from the one you expected. If your Worksp
 
 ## Sending from another address
 
-Snug sends as the mailbox that approved it. To send as another of its addresses, put it in **From address**, in step 1, and save with a code.
+Snug sends as the mailbox you approved it for. To send as another of its addresses, put it in **From address**, in step 1, and save with a code.
 
 That address must be one the mailbox can send as. Workspace domains come in two kinds.
 
@@ -131,7 +131,7 @@ If **Start authentication** fails, the record Google finds does not match the ke
 
 ### DMARC
 
-DMARC tells receiving servers what to do with mail that claims to be from your domain but fails SPF and DKIM, and where to send reports. It is a `TXT` record named `_dmarc`. If you have none, start with this, using an address of yours that can receive the reports:
+A DMARC record sets what receiving servers should do with mail that claims to be from your domain but fails SPF and DKIM, and where to send reports. It is a `TXT` record named `_dmarc`. If you have none, start with this, using an address of yours that can receive the reports:
 
     v=DMARC1; p=none; rua=mailto:dmarc@example.com
 
