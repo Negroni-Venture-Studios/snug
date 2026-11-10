@@ -95,7 +95,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
         error = "That email address and password do not match an admin."
         return render(request, "accounts/login.html", {**context, "error": error})
 
-    sessions.start_pending(request, admin.pk, _safe_next(request, context["next"]))
+    sessions.start_pending(request, admin, _safe_next(request, context["next"]))
     return redirect("accounts:login_code")
 
 
@@ -127,19 +127,29 @@ def _second_step(
         return render(request, template, {"error": TOO_MANY}, status=429)
 
     submitted = request.POST.get("code", "")
-    if method == "totp":
-        with transaction.atomic():
-            # Re-read inside the write transaction, so two requests carrying
-            # the same code cannot both pass the replay check.
-            fresh = Admin.objects.get(pk=admin.pk)
+    with transaction.atomic():
+        # Re-read inside the write transaction, so two requests carrying the
+        # same code cannot both pass the replay check, and a password or
+        # authenticator changed since the password step is seen.
+        fresh = Admin.objects.filter(pk=admin.pk, is_active=True).first()
+        current = fresh is not None and sessions.credentials_unchanged(pending, fresh)
+        if fresh is None or not current:
+            ok = False
+        elif method == "totp":
             step = totp.verify(fresh.totp_secret, submitted, last_step=fresh.totp_last_step)
             if step is not None:
                 fresh.totp_last_step = step
                 fresh.save(update_fields=["totp_last_step"])
-        ok = step is not None
-    else:
-        ok = recovery.use(admin, submitted)
+            ok = step is not None
+        else:
+            ok = recovery.use(fresh, submitted)
 
+    if fresh is None or not current:
+        sessions.clear_pending(request)
+        _audit(
+            request, "admin.login_failed", admin.email, step=method, reason="credentials_changed"
+        )
+        return redirect("accounts:login")
     if not ok:
         _audit(request, "admin.login_failed", admin.email, step=method, reason="wrong")
         if sessions.record_code_failure(request, pending) >= limits.CODE_FAILURES_PER_PASSWORD:
@@ -149,12 +159,12 @@ def _second_step(
 
     sessions.clear_pending(request)
     # login() rotates the session key again and stores the session auth hash.
-    login(request, admin, backend="django.contrib.auth.backends.ModelBackend")
+    login(request, fresh, backend="django.contrib.auth.backends.ModelBackend")
     sessions.mark_signed_in(request)
     details: dict[str, Any] = {"method": method}
     if method == "recovery":
-        details["recovery_codes_left"] = recovery.remaining(admin)
-    _audit(request, "admin.login", admin.email, actor=admin.email, **details)
+        details["recovery_codes_left"] = recovery.remaining(fresh)
+    _audit(request, "admin.login", fresh.email, actor=fresh.email, **details)
     return HttpResponseRedirect(pending["next"])
 
 

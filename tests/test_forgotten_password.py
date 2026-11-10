@@ -312,6 +312,19 @@ def test_signing_in_with_the_new_password(client: Client, admin: Admin, link: st
     assert response.status_code == 302 and response["Location"] == "/admin/login/code"
 
 
+def test_a_reset_stops_a_sign_in_already_past_the_password(
+    client: Client, admin: Admin, link: str
+) -> None:
+    other = Client(REMOTE_ADDR="203.0.113.9")
+    assert post(other, "/admin/login", {"email": EMAIL, "password": PASSWORD}).status_code == 302
+    choose(client, link, code_for(admin))
+    # A code the account would otherwise accept: the reset spent this step.
+    Admin.objects.filter(pk=admin.pk).update(totp_last_step=0)
+    response = post(other, "/admin/login/code", {"code": code_for(admin)})
+    assert response["Location"] == "/admin/login"
+    assert other.get("/admin/", secure=True).status_code == 302
+
+
 # ---------------------------------------------------------------- on the server
 
 
