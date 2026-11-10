@@ -39,7 +39,7 @@
     --on-action: #1A0B00;                        /* Vermouth 500: 6.4:1 */
     --focus:     light-dark(#B24400, #FF8133);
     --ok:        light-dark(#127D47, #1ABC6B);   /* PCB 400 / 200 */
-    --ok-tint:   light-dark(rgba(18,125,71,0.09), rgba(26,188,107,0.12));
+    --ok-tint:   light-dark(rgba(18,125,71,0.07), rgba(26,188,107,0.12));
     --warn:      light-dark(#8a5a00, #FFAB1A);
     --warn-tint: light-dark(rgba(255,171,26,0.16), rgba(255,171,26,0.12));
     --danger:    light-dark(#a8322b, #f08a7e);

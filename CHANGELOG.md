@@ -14,6 +14,7 @@ External security audits found all three.
 
 ### Fixed
 
+- In light mode, the pale green behind status labels and notices is a little paler, so their green text reaches 4.5:1 on the page background, up from 4.46:1. A new test checks every text colour in the stylesheet, in both themes, against everything it is shown on.
 - `snug setup` can be run again on a server already running Snug, to change the domain or the company's name. It used to find the backups in the bucket and start restoring them over the live data, then stop at the restore's confirmation prompt. It also creates the data volume through Snug's own container, so that on a new server Snug's user owns it rather than root.
 - The PDF reader and the video page show the *About this link* panel below the page or the video, with the link's message and what the founder will see. A message used to show only on the pages before the document opened.
 - The SMTP password and the Google client secret in Settings have the eye that shows what is typed, like every other password box.
