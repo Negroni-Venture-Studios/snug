@@ -1,16 +1,17 @@
 """Signing in: the two steps, every refusal, fixation, timeouts and the audit log."""
 
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 
 import pyotp
 import pytest
+from django.core.management import call_command
 from django.test import Client
 from django.utils import timezone
 
 from snug.accounts import limits, recovery, sessions, totp
-from snug.accounts.models import Admin
+from snug.accounts.models import Admin, RecoveryCode
 from snug.audit.models import AuditEvent
 from snug.core import ratelimit
 
@@ -228,6 +229,90 @@ def test_a_deactivated_admin_cannot_finish_signing_in(client: Client, admin: Adm
     admin.save()
     response = post(client, "/admin/login/code", {"code": code_for(admin)})
     assert response["Location"] == "/admin/login"
+
+
+# ---------------------------------------------------------------- credentials changed meanwhile
+#
+# Someone who passed the password step must not finish signing in once the
+# password or authenticator has changed: they no longer know the password.
+
+NEW_PASSWORD = "another long passphrase entirely"
+
+
+def change_in_settings(admin: Admin, monkeypatch: pytest.MonkeyPatch) -> None:
+    owner = Client(REMOTE_ADDR="203.0.113.9")
+    owner.force_login(admin)
+    session = owner.session
+    session[sessions.LOGIN_AT] = session[sessions.LAST_ACTIVITY] = time.time()
+    session.save()
+    data = {
+        "current": PASSWORD,
+        "password": NEW_PASSWORD,
+        "password2": NEW_PASSWORD,
+        "code": code_for(admin),
+    }
+    response = post(owner, "/admin/settings/password", data)
+    assert response["Location"] == "/admin/settings/?saved=password#account"
+
+
+def change_on_the_server(admin: Admin, monkeypatch: pytest.MonkeyPatch) -> None:
+    typed = iter([NEW_PASSWORD, NEW_PASSWORD])
+    monkeypatch.setattr("getpass.getpass", lambda prompt="": next(typed))
+    call_command("reset-password", EMAIL, stdout=None)
+
+
+def change_authenticator(admin: Admin, monkeypatch: pytest.MonkeyPatch) -> None:
+    admin.totp_secret = totp.new_secret()
+    admin.save()
+
+
+Change = Callable[[Admin, pytest.MonkeyPatch], None]
+
+
+def still_valid_code(admin: Admin) -> str:
+    """A code the account as it is now would accept, so only the change can refuse it."""
+    Admin.objects.filter(pk=admin.pk).update(totp_last_step=0)
+    return code_for(Admin.objects.get(pk=admin.pk))
+
+
+def refused_as_changed(client: Client, response: Any) -> None:
+    assert response["Location"] == "/admin/login"
+    assert sessions.PENDING not in client.session
+    assert not signed_in(client)
+    assert events("admin.login_failed")[-1].details["reason"] == "credentials_changed"
+
+
+@pytest.mark.parametrize("change", [change_in_settings, change_on_the_server, change_authenticator])
+def test_a_change_meanwhile_stops_the_code_step(
+    client: Client, admin: Admin, monkeypatch: pytest.MonkeyPatch, change: Change
+) -> None:
+    password_step(client)
+    change(admin, monkeypatch)
+    response = post(client, "/admin/login/code", {"code": still_valid_code(admin)})
+    refused_as_changed(client, response)
+
+
+@pytest.mark.parametrize("change", [change_in_settings, change_on_the_server, change_authenticator])
+def test_a_change_meanwhile_stops_a_recovery_code(
+    client: Client, admin: Admin, monkeypatch: pytest.MonkeyPatch, change: Change
+) -> None:
+    code = recovery.issue(admin)[0]
+    password_step(client)
+    change(admin, monkeypatch)
+    response = post(client, "/admin/login/recovery", {"code": code})
+    refused_as_changed(client, response)
+    assert RecoveryCode.objects.filter(admin=admin, used_at__isnull=True).count() == 10
+
+
+def test_a_pending_login_from_before_this_check_starts_again(client: Client, admin: Admin) -> None:
+    password_step(client)
+    session = client.session
+    pending = session[sessions.PENDING]
+    del pending["credentials"]
+    session[sessions.PENDING] = pending
+    session.save()
+    response = post(client, "/admin/login/code", {"code": code_for(admin)})
+    refused_as_changed(client, response)
 
 
 # ---------------------------------------------------------------- recovery codes

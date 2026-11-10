@@ -6,6 +6,9 @@ from typing import TypedDict
 
 from django.contrib.auth import logout
 from django.http import HttpRequest, HttpResponse
+from django.utils.crypto import constant_time_compare
+
+from snug.accounts.models import Admin
 
 PENDING = "snug.pending"
 LOGIN_AT = "snug.login_at"
@@ -23,16 +26,33 @@ ACTIVITY_GRANULARITY = 60
 
 class Pending(TypedDict):
     admin_id: int
+    # A hash of the password and authenticator key the password step checked.
+    credentials: str
     at: float
     failures: int
     next: str
 
 
-def start_pending(request: HttpRequest, admin_id: int, next_url: str) -> None:
+def start_pending(request: HttpRequest, admin: Admin, next_url: str) -> None:
     # A fresh session key at each step, so a session id planted before the
     # password cannot be carried into the signed-in session.
     request.session.cycle_key()
-    request.session[PENDING] = Pending(admin_id=admin_id, at=time.time(), failures=0, next=next_url)
+    request.session[PENDING] = Pending(
+        admin_id=admin.pk,
+        credentials=admin.get_session_auth_hash(),
+        at=time.time(),
+        failures=0,
+        next=next_url,
+    )
+
+
+def credentials_unchanged(pending: Pending, admin: Admin) -> bool:
+    """Whether the password and authenticator are still those the password step checked.
+
+    A new password or authenticator in the meantime means whoever passed the
+    password step may no longer know it, so they must start again.
+    """
+    return constant_time_compare(pending.get("credentials", ""), admin.get_session_auth_hash())
 
 
 def get_pending(request: HttpRequest) -> Pending | None:
