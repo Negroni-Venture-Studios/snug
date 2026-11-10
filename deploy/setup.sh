@@ -9,7 +9,9 @@
 # docs/deployment.md explains it.
 #
 # If backup/rclone.conf is already here, copied from a password manager, and
-# its bucket holds backups, setup restores them instead of starting afresh.
+# its bucket holds backups, setup restores them instead of starting afresh,
+# unless this server already has a database. Running it again on a working
+# server changes the answers and restarts Snug, keeping its data.
 
 set -eu
 cd "$(dirname "$0")"
@@ -53,6 +55,9 @@ set_env() {
 # rclone inside the backup container, with no input: it would swallow answers.
 rclone() { docker compose run --rm --no-deps -T --entrypoint rclone backup "$@" < /dev/null; }
 
+# Whether this server already has a Snug database.
+has_database() { docker compose run --rm --no-deps -T --entrypoint test snug -e /var/lib/snug/snug.sqlite3 < /dev/null; }
+
 [ -f snug.env ] || : > snug.env
 chmod 600 snug.env
 [ -e .env ] || ln -s snug.env .env
@@ -87,12 +92,25 @@ fi
 ask "Your company's name, as investors know it (you can change it later in Settings)" ""
 [ -z "$reply" ] || set_env SNUG_COMPANY_NAME "$reply"
 
+# The first container to mount the data volume creates it. Through Snug's own
+# container it belongs to Snug's user; through the backup container's rclone,
+# whose image has no /var/lib/snug, it would belong to root. Compose needs
+# SNUG_DOMAIN before it runs anything, so this comes after the domain.
+docker compose run --rm --no-deps -T --entrypoint true snug < /dev/null
+existing=no
+if has_database; then
+	existing=yes
+fi
+
 # ---------------------------------------------------------------- backups
 say
 restoring=no
 if [ -s backup/rclone.conf ]; then
 	say "Using the backup settings already in backup/rclone.conf."
-	if [ -n "$(rclone lsf snug-backup:database 2> /dev/null || true)" ]; then
+	if [ "$existing" = yes ]; then
+		say "This server already has Snug's data, so setup keeps it. To restore from the"
+		say "backups instead, run sudo snug restore."
+	elif [ -n "$(rclone lsf snug-backup:database 2> /dev/null || true)" ]; then
 		restoring=yes
 		say "Its bucket holds a Snug's backups: setup will restore them."
 	fi
@@ -163,6 +181,11 @@ if [ "$restoring" = yes ]; then
 	sh ./restore.sh < /dev/null
 	say
 	say "Snug is restored at https://$domain. Sign in as before."
+elif [ "$existing" = yes ]; then
+	say "Restarting Snug with these settings..."
+	docker compose up --detach --wait
+	say
+	say "Snug is running at https://$domain. Sign in as before."
 else
 	say "Starting Snug..."
 	docker compose up --detach --wait
