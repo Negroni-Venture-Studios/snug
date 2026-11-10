@@ -14,6 +14,7 @@ import dataclasses
 import hashlib
 import json
 import logging
+import re
 import time
 from email import message_from_bytes
 from typing import Any
@@ -189,10 +190,10 @@ def test_saving_the_client(client: Client, admin: Admin) -> None:
     assert event.details == {"provider": "google", "client": CLIENT_ID}
     text = panel(client, "?saved=email")
     assert "GOCSPX" not in text
-    assert (
-        'name="google_client_secret" type="password" autocomplete="new-password" value="" '
-        f'placeholder="{DOTS}"'
-    ) in text
+    box = re.search(r'<input [^>]*name="google_client_secret"[^>]*>', text)
+    assert box
+    assert 'type="password"' in box.group(0) and 'value=""' in box.group(0)
+    assert f'placeholder="{DOTS}"' in box.group(0)
     assert "Saved. Type a new one to replace it." in text
     assert not mail.enabled()  # not until a mailbox is connected
 

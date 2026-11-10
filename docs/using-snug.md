@@ -67,7 +67,7 @@ Each link is for one person. On a document's page, choose *New link*, and fill i
 
 - **Email address**: the person you are sending it to. *Require email verification* is ticked to begin with, so they must type a code Snug emails to that address before they see anything.
 - **Note for yourself**: who they are, such as "Partner at Northfield Capital". Only admins see it.
-- **Message for them**: optional, shown above the document and in the email with the link.
+- **Message for them**: optional. They see it in the *About this link* panel on each of their pages, and in the email with the link.
 - **Expires**: optional. The link stops working at the end of that day.
 - **Ask for the NDA first**, **Only from the UK** and **Allow download**, as you need them. The NDA is set up once, in Settings; [the NDA guide](nda.md) explains it.
 
