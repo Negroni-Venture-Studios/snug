@@ -12,6 +12,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- The guides and diagrams match the code again. Changing the secret key signs admins out but leaves investors signed in, `snug doctor` reports a failed backup copy at once, Google email counts only once a mailbox is connected, and the document worker parses a file only once it is confined, where the guides said it read nothing before.
 - Four messages are plainer: the upload refused on a server that cannot confine its document worker, the link form's note on downloading a video, the line under a workbook's sheets, and the investor's code email, which no longer ends on a reassurance.
 - `SNUG_SMTP_PORT` in `snug.env` is held to the same ports as the email settings in Settings (25, 465, 587, 2465, 2525 or 2587), except on `localhost`. Snug refuses to start with any other, and says which ports it takes.
 - The Audit log's filter has two more kinds, *Housekeeping* and *Exports*, for the reading data housekeeping deletes and for exports of the log itself.
