@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 670" width="940" height="670" role="img" aria-labelledby="t d">
 <title id="t">The confined document worker</title>
-<desc id="d">Snug opens the file and starts a separate worker process, passing the file as a descriptor. The worker limits its own resources, loads its libraries, reads the input, then confines itself with Landlock and a seccomp filter and refuses to go on unless both are in place. It answers on a pipe, which Snug reads within a size limit and a deadline, killing the worker's whole process group past either.</desc>
+<desc id="d">Snug opens the file and starts a separate worker process, passing the file as a descriptor. The worker limits its own resources, loads its libraries, reads the input, then confines itself with Landlock and a seccomp filter and refuses to go on unless both are in place. A video is read only once the worker is confined, in pieces. It answers on a pipe, which Snug reads within a size limit and a deadline, killing the worker's whole process group past either.</desc>
 <defs>
   <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
   <marker id="tip-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-accent"/></marker>
@@ -19,16 +19,16 @@
 <text class="title" x="56" y="172">Starts the worker</text>
 <text class="mono" x="56" y="194">python -I -m snug.rendering.worker MODE FD</text>
 <text class="label" x="56" y="216">with a clean environment and its own process</text>
-<text class="label" x="56" y="234">group; standard input and errors closed</text>
+<text class="label" x="56" y="234">group; standard input and errors on /dev/null</text>
 
 <path class="line-dashed" d="M230,250 V404" marker-end="url(#tip)"/>
 <text class="small" x="242" y="332">waits on the pipe</text>
 
 <rect class="box" x="40" y="404" width="380" height="104" rx="8"/>
 <text class="title" x="56" y="430">Reads the answer</text>
-<text class="label" x="56" y="452">64 KiB at a time. Past 64 MB, or the deadline</text>
-<text class="label" x="56" y="470">(60 s to inspect or stamp a download, 30 s to</text>
-<text class="label" x="56" y="488">render), it kills the whole process group.</text>
+<text class="label" x="56" y="452">64 KiB at a time. Past its size limit or deadline</text>
+<text class="label" x="56" y="470">(64 MB, more for a stamped download; 60 s, or</text>
+<text class="label" x="56" y="488">30 s to render), it kills the process group.</text>
 
 <rect class="box" x="40" y="524" width="380" height="80" rx="8"/>
 <text class="title" x="56" y="550">Turns an error into a message</text>
@@ -44,15 +44,15 @@
 
 <rect class="box" x="520" y="66" width="380" height="64" rx="8"/>
 <text class="title" x="536" y="92"><tspan class="accent">1</tspan><tspan dx="8">Limits itself</tspan></text>
-<text class="label" x="536" y="114">1 GiB memory, 60 s CPU, 64 MB output, 32 files</text>
+<text class="label" x="536" y="114">1 GiB memory, 60 s CPU, 32 open files</text>
 
 <rect class="box" x="520" y="146" width="380" height="64" rx="8"/>
 <text class="title" x="536" y="172"><tspan class="accent">2</tspan><tspan dx="8">Loads its libraries</tspan></text>
-<text class="label" x="536" y="194">PDFium, Pillow and pypdf, before it confines</text>
+<text class="label" x="536" y="194">PDFium, Pillow, pypdf and the workbook reader</text>
 
 <rect class="box" x="520" y="226" width="380" height="64" rx="8"/>
 <text class="title" x="536" y="252"><tspan class="accent">3</tspan><tspan dx="8">Reads the input</tspan></text>
-<text class="label" x="536" y="274">from the descriptor; a video only in pieces</text>
+<text class="label" x="536" y="274">from the descriptor; a video later, in pieces</text>
 
 <rect class="key" x="520" y="306" width="380" height="82" rx="8"/>
 <text class="title" x="536" y="332"><tspan class="accent">4</tspan><tspan dx="8">Confines itself</tspan></text>
@@ -61,7 +61,7 @@
 
 <rect class="box" x="520" y="404" width="380" height="64" rx="8"/>
 <text class="title" x="536" y="430"><tspan class="accent">5</tspan><tspan dx="8">Checks both are in place</tspan></text>
-<text class="label" x="536" y="452">or refuses to read anything: <tspan class="mono">unconfined</tspan></text>
+<text class="label" x="536" y="452">or refuses to parse anything: <tspan class="mono">unconfined</tspan></text>
 
 <rect class="box" x="520" y="484" width="380" height="64" rx="8"/>
 <text class="title" x="536" y="510"><tspan class="accent">6</tspan><tspan dx="8">Parses and answers</tspan></text>

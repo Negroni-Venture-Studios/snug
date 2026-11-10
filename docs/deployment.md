@@ -25,7 +25,7 @@ Snug runs on one Linux server as four containers under Docker Compose:
 
 cloud-init installs Docker from Docker's own repository, Ubuntu's automatic security updates, a firewall that lets in only SSH, HTTP and HTTPS, a 1 GB swap file, and Snug's files in `/opt/snug`, with the `snug` command in `/usr/local/bin`. It does not start Snug.
 
-`snug setup` asks for the domain, the company's name and the backup bucket, typed on the server so that no secret is ever stored with DigitalOcean. Email is set up afterwards, in Settings, under Email: [email-google.md](email-google.md) for Google Workspace, [email.md](email.md) for any other provider. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. You can run it again to change an answer.
+`snug setup` asks for the domain, the company's name and the backup bucket, typed on the server so that no secret is ever stored with DigitalOcean. Email is set up afterwards, in Settings, under Email: [email-google.md](email-google.md) for Google Workspace, [email.md](email.md) for any other provider. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup.
 
 If `/opt/snug/backup/rclone.conf` is already there, copied from your password manager, and its bucket holds backups, `snug setup` restores them instead of starting afresh. [backups.md](backups.md) explains when you would do this.
 
@@ -94,7 +94,7 @@ sudo snug doctor --email you@example.com
 | Check | Fine when |
 |---|---|
 | Housekeeping | `snug housekeeping`, which Snug runs every hour to clear expired codes, sessions and old reading data, has completed in the last 3 hours |
-| Backups | The backup container has copied everything to the bucket in the last 15 minutes ([backups.md](backups.md)) |
+| Backups | The last copy to the bucket succeeded, less than 15 minutes ago ([backups.md](backups.md)) |
 | Document worker | A fresh worker confines itself with Landlock ABI 4 or later and the socket filter, so it is allowed to read documents |
 | DNS | The domain resolves; the report lists the addresses it points to |
 | HTTPS | The domain answers Snug's health check over HTTPS, with a valid certificate that has more than 14 days left |

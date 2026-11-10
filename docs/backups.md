@@ -25,7 +25,7 @@ The server holds the bucket's keys, so someone who takes control of it can delet
 Two containers beside Snug do the work, as [deployment.md](deployment.md) describes:
 
 - **Litestream** copies every change to the database into `backup/database` in Snug's data volume, within a second. Its settings are in `litestream.yml`.
-- **backup** runs rclone every 5 minutes. It copies `backup/database`, `originals/` and `branding/` to the bucket through an rclone crypt remote, which encrypts each file's name and contents (XSalsa20 and Poly1305) before it leaves the server. Its script is `backup.sh`. `SNUG_BACKUP_EVERY` in `snug.env` sets the interval in seconds, 300 unless set; `snug doctor` still reports a problem after 15 minutes without a copy.
+- **backup** runs rclone every 5 minutes. It copies `backup/database`, `originals/` and `branding/` to the bucket through an rclone crypt remote, which encrypts each file's contents (XSalsa20 and Poly1305) and its name (AES-256) before it leaves the server. Its script is `backup.sh`. `SNUG_BACKUP_EVERY` in `snug.env` sets the interval in seconds, 300 unless set; `snug doctor` still reports a problem after 15 minutes without a copy.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/backups-dark.svg">
@@ -60,7 +60,7 @@ sudo chmod 600 /opt/snug/backup/rclone.conf
 
 ## Checking
 
-`snug doctor` reports a problem if nothing has been copied to the bucket for 15 minutes, with the reason when the backup container recorded one ([deployment.md](deployment.md)).
+`snug doctor` reports a problem as soon as a copy to the bucket fails, with the reason the backup container recorded, and also if nothing has been copied for 15 minutes ([deployment.md](deployment.md)).
 
 Within 5 minutes of starting, the backup container records its first complete copy:
 

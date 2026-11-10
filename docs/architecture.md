@@ -16,13 +16,13 @@ Snug runs as four containers under Docker Compose, from [`deploy/compose.yaml`](
   <img alt="Founders and investors reach Snug through Caddy. Inside the Snug container, gunicorn's web workers serve requests and start a confined document worker for each file. Litestream and rclone share the data volume and copy it, encrypted, to the founder's bucket. Snug sends email through Google or an SMTP server and fetches country data from DB-IP." src="images/diagrams/overview-light.svg">
 </picture>
 
-Every container has a read-only filesystem, drops every Linux capability and cannot gain new privileges. The Snug, Litestream and backup containers share one volume, `snug-data`, mounted at `/var/lib/snug`, and all three run as the same unprivileged user (10001).
+Every container has a read-only filesystem, drops every Linux capability (Caddy keeps one, to listen on ports 80 and 443) and cannot gain new privileges. The Snug, Litestream and backup containers share one volume, `snug-data`, mounted at `/var/lib/snug`, and all three run as the same unprivileged user (10001).
 
 Inside the Snug container there are three kinds of process:
 
 - **The gunicorn master** starts and watches the web workers. A thread in it runs `snug housekeeping` as a fresh process when Snug starts and every hour after.
 - **Two web workers**, each with four threads (gunicorn's `gthread` class), serve the requests.
-- **Document workers**: a web worker starts one for each job that reads an uploaded file, such as checking an upload or drawing a page. It confines itself before it reads anything, and exits when the job is done.
+- **Document workers**: a web worker starts one for each job that reads an uploaded file, such as checking an upload or drawing a page. It confines itself before it parses anything, and exits when the job is done.
 
 ## The code
 
@@ -64,7 +64,7 @@ Caddy passes each request to `snug:8000` and adds the visitor's address in `X-Fo
 
 The middleware runs in this order:
 
-1. Django's `SecurityMiddleware`, then its content security policy, then `X-Frame-Options`. The policy allows only what it lists, and it lists only Snug's own address, so no inline script or style can run.
+1. Django's `SecurityMiddleware`, then its content security policy, then `X-Frame-Options`. The policy allows only Snug's own address, and `data:` for images, so no inline script or style can run.
 2. `extra_security_headers`: `Permissions-Policy` and `Cross-Origin-Resource-Policy`.
 3. `health_check` answers `/healthz` for Docker's health check, before the host check.
 4. WhiteNoise serves `/static/`.
@@ -73,7 +73,7 @@ The middleware runs in this order:
 7. `upload_size_limit` refuses an oversized POST from its declared length, before anything reads the body. Anyone but a signed-in admin is allowed 64 KB, enough for a form's fields. The refusal is a 413, or the sign-in page for an admin whose session has ended. It runs before the CSRF check, since that would read the body to find the token.
 8. CSRF.
 
-Each view that needs a rate limit calls `snug.core.ratelimit.allow` with a `Limit` (a scope, a count and a window). The counts are kept in the database, in fixed windows, keyed by a hash of the scope and the address or account.
+Each view that needs a rate limit calls `snug.core.ratelimit.allow` with a `Limit` (a scope, a count and a window), or `exceeded` to look without counting. The counts are kept in the database, in fixed windows, keyed by a hash of the scope and the address, account or link.
 
 The URL map sends a request to one of three places:
 
@@ -87,7 +87,7 @@ An admin signs in with a password, then a six-digit code from an authenticator a
 
 Admin sessions are Django's own, stored in the database. The hash that ties a session to its admin covers the password and the authenticator secret, so changing either ends that admin's sessions. Only a new password chosen in Settings leaves the browser it was chosen in signed in (`update_session_auth_hash`).
 
-A few changes need a fresh code from the admin's authenticator, even in a session already signed in: inviting, removing or resetting an admin, changing a password or an authenticator, and every change to how email is sent. `snug.accounts.setup.confirm` checks the code; each failure is rate-limited and recorded in the audit log.
+A few changes need a fresh code from the admin's authenticator, even in a session already signed in: inviting, removing or resetting an admin, changing a password, and every change to how email is sent. Replacing your own authenticator takes your password and a code from the old app or a recovery code. `snug.accounts.setup.confirm` checks the code; each failure is rate-limited and recorded in the audit log.
 
 Invitations, resets and forgotten-password links are `AdminSetup` rows. Each link holds a random token, and the database keeps only its SHA-256 hash.
 
@@ -95,7 +95,7 @@ Invitations, resets and forgotten-password links are `AdminSetup` rows. Each lin
 
 An investor reaches Snug through a link, `/v/<token>`. The token is 32 random bytes; the database keeps its SHA-256 hash, so a copy of the database cannot be turned back into working links.
 
-When a link asks for a code, Snug emails six digits to the link's address (`snug.viewer.codes`). The code lasts 10 minutes and allows five wrong tries. A correct code starts a viewer session: a random token in the `__Host-snug-viewer` cookie, its hash in a `ViewerSession` row tied to that link and that email address. A link without a code starts an unverified session when the investor presses *Open*.
+When a link asks for a code, Snug emails six digits to the link's address (`snug.viewer.codes`). The code lasts 10 minutes and allows five wrong tries. A correct code starts a viewer session: a random token in the `__Host-snug-viewer` cookie, its hash in a `ViewerSession` row tied to that link and that email address. A link without a code starts an unverified session when the investor presses the *Open* button.
 
 Every view under `/v/` that shows anything goes through one function, `snug.viewer.access.authorise`, which checks five things in order:
 
@@ -159,7 +159,7 @@ A refusal at any step shows a plain message beside the form and records `documen
 
 ## The document worker
 
-Every uploaded file is untrusted. Snug reads them only in a separate process, the document worker (`snug.rendering.worker`), which confines itself before it reads a byte.
+Every uploaded file is untrusted. Snug reads them only in a separate process, the document worker (`snug.rendering.worker`), which confines itself before it parses a byte.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/worker-dark.svg">
@@ -168,16 +168,16 @@ Every uploaded file is untrusted. Snug reads them only in a separate process, th
 
 `snug.rendering.sandbox.run` starts `python -I -m snug.rendering.worker MODE FD`:
 
-- with an environment of `PATH`, `LANG` and nothing else, so no `SNUG_*` setting reaches it;
+- with an environment of `PATH`, `LANG` and `PYTHONDONTWRITEBYTECODE` alone, so no `SNUG_*` setting reaches it;
 - in its own process group;
 - with the file already open, passed as a file descriptor, never as a path;
-- with standard input and errors closed, and its output on a pipe.
+- with standard input and errors on `/dev/null`, and its output on a pipe.
 
 The worker then:
 
-1. limits itself to 1 GiB of memory, 60 seconds of CPU, 64 MB of output and 32 open files, with no core dumps and no new processes;
-2. loads its libraries (PDFium, Pillow, pypdf) and runs each once, so nothing has to load later;
-3. reads its input;
+1. limits itself to 1 GiB of memory, 60 seconds of CPU, 64 MB written to any file and 32 open files, with no core dumps and no new processes;
+2. loads PDFium and Pillow, and runs pypdf and the workbook reader once on tiny files, so nothing has to load later;
+3. reads its input, except a video, which it reads in pieces once it is confined;
 4. confines itself: no new privileges, then a Landlock ruleset that allows nothing but reading the system's fonts and refuses TCP, then a seccomp filter that refuses to create any socket;
 5. refuses to go on unless Landlock ABI 4 or later (Linux 6.7) and the filter are both in place;
 6. does its job and writes the answer to the pipe: a line of JSON, or the image or file it made.
@@ -235,7 +235,7 @@ Connecting Google is an OAuth flow with PKCE, started from Settings. The founder
 
 Investors' codes, password links and first-open notices are sent from a background thread, so a slow mail server does not slow the page. Each send records whether it worked, which the Overview and `snug doctor` show.
 
-Snug makes HTTP calls to Google and to DB-IP alone, all through `snug.core.outbound.urlopen`. It takes proxy settings from the environment only. On macOS, urllib's default looks them up through system frameworks that kill a process gunicorn has forked.
+Snug makes HTTP calls to Google and DB-IP alone, through `snug.core.outbound.urlopen`, apart from `snug doctor` fetching `/healthz` from Snug's own domain. It takes proxy settings from the environment only. On macOS, urllib's default looks them up through system frameworks that kill a process gunicorn has forked.
 
 ## Background work
 
@@ -274,7 +274,7 @@ The content security policy allows no inline script or style, so the few scripts
 | `theme.js` | The theme toggle |
 | `admin.js` | Admin helpers: upload progress, copy buttons, and the tabs on a narrow screen |
 | `reveal.js` | The eye that shows what is typed in a password box |
-| `nda-first.js` | Shows the box for writing the first NDA while *Ask for the NDA* is ticked |
+| `nda-first.js` | Shows the box for writing the first NDA while a box asking for the NDA is ticked |
 | `brand.js` | Keeps the accent colour's picker and its text in step |
 | `viewer.js` | The reader's keyboard and page picker, and heartbeats |
 | `video.js` | The video player's heartbeats, parts and full screen |

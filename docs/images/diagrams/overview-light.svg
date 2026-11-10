@@ -40,7 +40,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 .on-action { fill: var(--on-action); font-weight: 600; }
 </style>
 <title id="t">Snug on one server</title>
-<desc id="d">Founders and investors reach Snug through Caddy. Inside the Snug container, gunicorn's web workers serve requests and start a confined document worker for each file. Litestream and the rclone backup container share the data volume and copy it, encrypted, to the founder's bucket. Snug sends email through Google or an SMTP server and fetches country data from DB-IP.</desc>
+<desc id="d">Founders and investors reach Snug through Caddy. Inside the Snug container, gunicorn's web workers serve requests and start a confined document worker for each job. Litestream and the rclone backup container share the data volume and copy it, encrypted, to the founder's bucket. Snug sends email through Google or an SMTP server and fetches country data from DB-IP.</desc>
 <defs>
   <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
   <marker id="tip-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-accent"/></marker>
@@ -75,7 +75,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <text class="label" x="446" y="232">Django, several threads each</text>
 <rect class="key" x="430" y="262" width="300" height="56" rx="8"/>
 <text class="title" x="446" y="286">Document worker</text>
-<text class="label" x="446" y="306">one per file: Landlock, seccomp, no network</text>
+<text class="label" x="446" y="306">one per job: Landlock, seccomp, no network</text>
 
 <!-- Data volume, drawn as a cylinder -->
 <path class="box" d="M414,386 v92 a82,16 0 0 0 164,0 v-92"/>
