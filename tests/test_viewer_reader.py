@@ -190,3 +190,12 @@ def test_a_page_that_cannot_be_rendered_says_so(
     monkeypatch.setattr("snug.rendering.pages.stamped_page", fail)
     response = get(opened(issued), image_url(issued))
     assert response.status_code == 503
+
+
+def test_the_reader_shows_the_about_panel_with_the_message(document: Document) -> None:
+    """DESIGN.md: the cover message is in the About this link panel on every page."""
+    issued = issue(document, message="Ahead of Thursday's call.\nPage 5 is the one.")
+    page = get(opened(issued), f"/v/{issued.token}").content.decode()
+    assert 'aria-label="About this link"' in page
+    assert "Ahead of Thursday&#x27;s call.<br>Page 5 is the one." in page
+    assert "how long you spend on each page" in page

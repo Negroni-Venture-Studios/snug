@@ -396,6 +396,8 @@ input.code-field { font-family: var(--mono); letter-spacing: 0.15em; }
    page watermark, though the browser's tools could hide it. The frame, not
    the bare video, goes full screen, so the mark goes with it. */
 .player { display: grid; gap: 1.1rem; justify-items: center; }
+/* Below the page or the video, where it moves nothing the reader is looking at. */
+.reader > .about, .player > .about { width: 100%; max-width: 32rem; margin-top: 1.5rem; }
 .video-frame { position: relative; width: 100%; border-radius: 2px; overflow: hidden; border: 1px solid var(--border); background: #000000; }
 .video-frame video { display: block; width: 100%; height: auto; max-height: 80vh; }
 .video-frame:fullscreen video { max-height: none; height: 100%; }

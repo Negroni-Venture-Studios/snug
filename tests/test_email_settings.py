@@ -6,6 +6,7 @@ Passwords can be replaced but are never shown again.
 """
 
 import dataclasses
+import re
 import time
 from html import escape
 from typing import Any
@@ -258,10 +259,10 @@ def test_saving_smtp_settings(client: Client) -> None:
     assert "Saved. Snug sends email through smtp.postmark.example as rooms@fernlea.example." in text
     assert "s3cret" not in text
     # A saved password shows as dots, the same twelve whatever its length, and is never sent.
-    assert (
-        'name="smtp_password" type="password" autocomplete="new-password" value="" '
-        f'placeholder="{DOTS}"'
-    ) in text
+    box = re.search(r'<input [^>]*name="smtp_password"[^>]*>', text)
+    assert box
+    assert 'type="password"' in box.group(0) and 'value=""' in box.group(0)
+    assert f'placeholder="{DOTS}"' in box.group(0)
     assert "Saved. Type a new one to replace it." in text
 
 

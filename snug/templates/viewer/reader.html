@@ -22,6 +22,7 @@
     </form>
   </nav>
   <p class="reader-note">Pages are shown as images, so a screen reader can only read their numbers. {% if link.allow_download %}Download the PDF to read it with a screen reader.{% else %}Ask the person who sent this link for a copy you can read with a screen reader.{% endif %}</p>
+  {% include "viewer/_about.html" %}
 </div>
 {% else %}
 <div class="gate-grid">

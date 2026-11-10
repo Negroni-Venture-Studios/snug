@@ -12,6 +12,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- The PDF reader and the video page show the *About this link* panel below the page or the video, with the link's message and what the founder will see. A message used to show only on the pages before the document opened.
+- The SMTP password and the Google client secret in Settings have the eye that shows what is typed, like every other password box.
 - The guides and diagrams match the code again. Changing the secret key signs admins out but leaves investors signed in, `snug doctor` reports a failed backup copy at once, Google email counts only once a mailbox is connected, and the document worker parses a file only once it is confined, where the guides said it read nothing before.
 - Four messages are plainer: the upload refused on a server that cannot confine its document worker, the link form's note on downloading a video, the line under a workbook's sheets, and the investor's code email, which no longer ends on a reassurance.
 - `SNUG_SMTP_PORT` in `snug.env` is held to the same ports as the email settings in Settings (25, 465, 587, 2465, 2525 or 2587), except on `localhost`. Snug refuses to start with any other, and says which ports it takes.

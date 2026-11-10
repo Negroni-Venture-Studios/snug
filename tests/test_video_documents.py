@@ -416,3 +416,12 @@ def test_the_admin_uploads_a_video(client: Client) -> None:
     assert "Uploaded, an MP4 video, 0:02 long. Create a link to share it." in page
     event = AuditEvent.objects.get(action="document.version_uploaded")
     assert (event.details["kind"], event.details["seconds"]) == ("mp4", 2.0)
+
+
+def test_the_video_page_shows_the_about_panel_with_the_message(demo: Document) -> None:
+    """Found in a docs check: the cover message never showed beside a video."""
+    issued = issue(demo, message="The demo from the board meeting.")
+    page = opened(issued).get(f"/v/{issued.token}", secure=True).content.decode()
+    assert 'aria-label="About this link"' in page
+    assert "The demo from the board meeting." in page
+    assert "how long you watch each part" in page
