@@ -48,7 +48,7 @@ def upload_size_limit(
 ) -> Callable[[HttpRequest], HttpResponse]:
     def middleware(request: HttpRequest) -> HttpResponse:
         if too_large(request):
-            # An admin whose session has ended signs in again, as the view would ask.
+            # An admin whose session has ended is sent to sign in again, as login_required does.
             if not request.user.is_authenticated and request.path.startswith("/admin/"):
                 return redirect_to_login(request.get_full_path())
             context = {

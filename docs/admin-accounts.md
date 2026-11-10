@@ -69,7 +69,7 @@ Go to `/admin/` on your Snug domain. Enter your email address and password, then
   Every attempt counts, right or wrong. You will only meet these limits if something is wrong.
 
   The account limit is generous, so that someone typing wrong passwords cannot easily lock you out.
-- **Changing your password or second factor signs you out in every other browser**, and a new second factor signs out this one too. Either change also stops a sign-in that is past the password and waiting for its code.
+- **Changing your password or second factor signs you out in every other browser**, and in this one too for a second factor. It also stops any sign-in that is past the password and waiting for its code.
 
 ## Changing your password
 

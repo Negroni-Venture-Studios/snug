@@ -7,8 +7,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 ### Security
 
 - The PDF worker refuses to read a file unless it has confined itself: Landlock ABI 4 (Linux 6.7) or later, and a new seccomp filter that refuses to create any socket. It used to carry on unconfined if Landlock failed, and Landlock alone let it send UDP. Both were found by an external security audit. `SNUG_UNSAFE_UNCONFINED_RENDERING` allows unconfined reading for development only.
-- A sign-in that has passed the password step is refused at the code step if the password or authenticator has changed since. Someone who knew the old password could otherwise finish signing in, within five minutes, with a code from the app or a recovery code. Found by an external security audit.
-- Snug refuses a large POST from anyone but a signed-in admin before reading it. Anyone could send a body as large as the video limit, 1 GB by default, to the upload forms, and Snug read it to disk before refusing them. Anyone else is now allowed 64 KB, enough for a form's fields. Found by an external security audit.
+- Signing in goes back to the password step if the password or authenticator changes between the password and the code. Someone who knew the old password could otherwise finish signing in, within five minutes, with a code from the app or a recovery code. An external security audit found this.
+- Snug refuses a POST over 64 KB, enough for a form's fields, unless a signed-in admin sent it, and refuses it before reading the body. A visitor who was not signed in could send the upload forms a body as large as the video limit, 1 GB by default, and Snug wrote it to disk before turning them away. An external security audit found this.
 
 ### Fixed
 

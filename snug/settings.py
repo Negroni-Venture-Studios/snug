@@ -72,7 +72,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "snug.accounts.sessions.session_limits",
     # Before the CSRF check, which would otherwise read the whole upload first,
-    # and after the two above, so it knows whether a signed-in admin sent it.
+    # and after the two above, which set request.user.
     "snug.documents.uploads.upload_size_limit",
     "django.middleware.csrf.CsrfViewMiddleware",
 ]
