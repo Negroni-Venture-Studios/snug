@@ -83,9 +83,9 @@ The URL map sends a request to one of three places:
 
 ## Admins
 
-An admin signs in with a password, then a six-digit code from an authenticator app or one of ten recovery codes. Passwords are hashed with Argon2id. The code check (`snug.accounts.totp`) allows one step either side of now and refuses a code already used. Between the two steps, the session holds only a pending sign-in, valid for 5 minutes and five wrong codes.
+An admin signs in with a password, then a six-digit code from an authenticator app or one of ten recovery codes. Passwords are hashed with Argon2id. The code check (`snug.accounts.totp`) allows one step either side of now and refuses a code already used. Between the two steps, the session holds only a pending sign-in, valid for 5 minutes and five wrong codes. It records a hash of the password and authenticator secret the first step checked, and the code step compares it with the account as it is now, in the same transaction that spends the code. A password or authenticator changed in between sends the sign-in back to the password step, with the code unspent.
 
-Admin sessions are Django's own, stored in the database. The hash that ties a session to its admin covers the password and the authenticator secret, so changing either signs that admin out everywhere.
+Admin sessions are Django's own, stored in the database. The hash that ties a session to its admin covers the password and the authenticator secret, so changing either ends that admin's other sessions. A new password set in Settings keeps the browser that set it signed in (`update_session_auth_hash`); a new authenticator ends that session too.
 
 A few changes need a fresh code from the admin's authenticator, even in a session already signed in: inviting, removing or resetting an admin, changing a password or an authenticator, and every change to how email is sent. `snug.accounts.setup.confirm` checks the code; each failure is rate-limited and recorded in the audit log.
 
