@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
+from django.http import HttpRequest
 from django.test import Client, RequestFactory, override_settings
 
 from snug.accounts import sessions
@@ -21,7 +23,7 @@ from snug.audit.models import AuditEvent
 from snug.config import ConfigError, load_config
 from snug.documents.ingest import UploadRejectedError, ingest
 from snug.documents.models import Document, DocumentVersion
-from snug.documents.uploads import too_large
+from snug.documents.uploads import FORM_OVERHEAD, too_large
 from snug.links import service
 from snug.rooms.models import Room, RoomDocument
 from tests.pdfs import chunks, make_pdf
@@ -154,9 +156,14 @@ def test_videos_have_their_own_size_limit() -> None:
         assert "the most this instance accepts for a video" in str(refused.value)
 
 
+def from_an_admin(request: HttpRequest) -> HttpRequest:
+    request.user = Admin(email="ruth@fernlea.example", is_active=True)
+    return request
+
+
 @pytest.mark.parametrize("path", ["/admin/documents/new", "/admin/documents/AbCdEf123_-x/versions"])
 def test_the_request_limit_allows_a_video_sized_upload(path: str) -> None:
-    request = RequestFactory().post(path, CONTENT_LENGTH=str(50 * 1024 * 1024))
+    request = from_an_admin(RequestFactory().post(path, CONTENT_LENGTH=str(50 * 1024 * 1024)))
     with override_settings(MAX_UPLOAD_BYTES=10 * 1024 * 1024, MAX_VIDEO_BYTES=100 * 1024 * 1024):
         assert not too_large(request)
     with override_settings(MAX_UPLOAD_BYTES=10 * 1024 * 1024, MAX_VIDEO_BYTES=20 * 1024 * 1024):
@@ -169,9 +176,20 @@ def test_the_request_limit_allows_a_video_sized_upload(path: str) -> None:
 )
 def test_only_the_upload_forms_get_the_video_limit(path: str) -> None:
     """Found in review: every POST, an investor's included, could send a video-sized body."""
-    request = RequestFactory().post(path, CONTENT_LENGTH=str(50 * 1024 * 1024))
+    request = from_an_admin(RequestFactory().post(path, CONTENT_LENGTH=str(50 * 1024 * 1024)))
     with override_settings(MAX_UPLOAD_BYTES=10 * 1024 * 1024, MAX_VIDEO_BYTES=100 * 1024 * 1024):
         assert too_large(request)
+
+
+@pytest.mark.parametrize("path", ["/admin/documents/new", "/v/sometoken/code/send"])
+def test_anyone_else_gets_only_a_forms_fields(path: str) -> None:
+    """Found by an external audit: anyone could send a video-sized body to the upload forms."""
+    request = RequestFactory().post(path, CONTENT_LENGTH=str(FORM_OVERHEAD + 1))
+    request.user = AnonymousUser()
+    assert too_large(request)
+    request = RequestFactory().post(path, CONTENT_LENGTH=str(FORM_OVERHEAD))
+    request.user = AnonymousUser()
+    assert not too_large(request)
 
 
 def test_the_video_limit_is_a_setting() -> None:

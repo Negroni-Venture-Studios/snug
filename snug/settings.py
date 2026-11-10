@@ -69,11 +69,12 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    # Before the CSRF check, which would otherwise read the whole upload first.
-    "snug.documents.uploads.upload_size_limit",
-    "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "snug.accounts.sessions.session_limits",
+    # Before the CSRF check, which would otherwise read the whole upload first,
+    # and after the two above, so it knows whether a signed-in admin sent it.
+    "snug.documents.uploads.upload_size_limit",
+    "django.middleware.csrf.CsrfViewMiddleware",
 ]
 
 ROOT_URLCONF = "snug.urls"

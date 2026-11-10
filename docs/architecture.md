@@ -69,9 +69,9 @@ The middleware runs in this order:
 3. `health_check` answers `/healthz` for Docker's health check, before the host check.
 4. WhiteNoise serves `/static/`.
 5. Sessions and Django's common middleware.
-6. `upload_size_limit` refuses an oversized upload with a 413 from its declared length, before anything reads the body. It runs before the CSRF check, since that would read the body to find the token.
-7. CSRF, then authentication.
-8. `session_limits` signs an admin out after an hour without activity, or 12 hours after signing in.
+6. Authentication, then `session_limits`, which signs an admin out after an hour without activity, or 12 hours after signing in.
+7. `upload_size_limit` refuses an oversized POST from its declared length, before anything reads the body. Anyone but a signed-in admin is allowed 64 KB, enough for a form's fields. The refusal is a 413, or the sign-in page for an admin whose session has ended. It runs before the CSRF check, since that would read the body to find the token.
+8. CSRF.
 
 Each view that needs a rate limit calls `snug.core.ratelimit.allow` with a `Limit` (a scope, a count and a window). The counts are kept in the database, in fixed windows, keyed by a hash of the scope and the address or account.
 
