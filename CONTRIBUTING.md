@@ -41,7 +41,7 @@ python3 docs/diagrams/build.py     # the diagrams, from docs/diagrams/*.svg
 SNUG_E2E=1 SNUG_SCREENSHOTS=1 uv run pytest tests/e2e/test_screenshots.py --ds=tests.e2e_settings
 ```
 
-The second builds a demo company's data room (`tests/demo.py`), opens each page in light and dark in Chromium, and writes the framed screenshots to `docs/images/screenshots/`. Everything in the demo is made up.
+The second builds a demo company's data room (`tests/demo.py`), opens each page in light and dark in Chromium, and writes the framed screenshots to `docs/images/screenshots/`.
 
 ## How a change gets into `main`
 

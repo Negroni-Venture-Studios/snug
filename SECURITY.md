@@ -36,7 +36,7 @@ Security fixes go into the next release, and only the latest release is supporte
 
 ## How changes are checked
 
-Every change to `main` goes through a pull request that must pass CI. Administrators are held to this too. CI runs:
+Every change to `main`, an administrator's included, goes through a pull request that must pass CI. CI runs:
 
 - ruff's security rules;
 - strict type checking;

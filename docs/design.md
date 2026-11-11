@@ -85,13 +85,13 @@ Separate services, not linked into Snug: Caddy and Litestream (both Apache-2.0),
 
 ## 3. Front end
 
-The design draws on the Negroni brand. It follows the general rules of a design-taste guide (type, colour discipline, copy, button and form contrast, and its list of AI tells) but not its landing-page advice, since Snug is an admin tool.
+The design draws on the Negroni brand.
 
 ### 3.1 Design read
 
 An admin tool for founders and a reader for investors, in the Negroni palette, built from native CSS and server-rendered HTML.
 
-On the taste guide's dials: variance 3 (orderly, aligned, few surprises), motion 2 (hover and press feedback only), density 5 in the admin and 2 in the viewer.
+Layouts are orderly and aligned, the only motion is hover and press feedback, and the viewer is sparser than the admin.
 
 ### 3.2 Principles
 
@@ -145,7 +145,6 @@ Each token is written once with CSS `light-dark()`, resolved by `color-scheme` o
 - **Chrome.** A 4px Campari 300 bar over a 2px Citrus 300 bar runs across the top of every admin page, adapted from the header bars of the Negroni document template. A short PCB 300 rule sits in the footer. Most of the brand's colour is in this chrome, so the rest of the page can stay quiet.
 - **Reading intensity**, used in the admin's reading heatmap, runs Citrus 100, Citrus 300, Campari 300, Campari 500 in light mode, and from dim amber up to Campari 200 in dark mode.
 - **One accent.** Campari is the only action colour. Citrus appears only in the chrome and the heatmap. PCB appears only for "all good" states.
-- The taste guide warns against warm near-black text and cream backgrounds as a default "premium" look. Snug uses them because they are the Negroni brand book's own colours.
 
 **Viewer palette** (neutral stone, so any founder colour sits well on it).
 
@@ -268,7 +267,7 @@ The company's logo at the top left with its name beside it, or either alone, and
 
 ### 3.14 Logo
 
-The Snug icon is a **half-glazed snug door**, chosen from eight concepts. A snug is the small private room in a British pub, which suits a private room for documents and a studio named after a cocktail.
+The Snug icon is a **half-glazed snug door**. A snug is the small private room in a British pub, which suits a private room for documents and a studio named after a cocktail.
 
 - **Construction.** It is drawn on a 200 by 200 grid in the manner of the Negroni glyph:
   - a square-topped door standing on a threshold, in round-ended 13-unit strokes;
@@ -284,7 +283,7 @@ The Snug icon is a **half-glazed snug door**, chosen from eight concepts. A snug
   - `snug-glyph.svg`, the glyph alone;
   - `snug-icon-campari.svg`, `snug-icon-vermouth.svg` and `snug-icon-citrus.svg`;
   - `favicon.svg`;
-  - `index.html` shows them as browsers load them, and `concepts.html`, built by `build_concepts.py`, contains all eight concepts.
+  - `index.html` shows them as browsers load them, and `concepts.html`, built by `build_concepts.py`, contains the eight concepts the icon was chosen from.
 
   The favicon is SVG.
 

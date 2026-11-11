@@ -72,7 +72,7 @@ More screenshots are in [Using Snug](docs/using-snug.md).
 
 ## Status
 
-Version 1.0.0 is the first release, with the container image `ghcr.io/negroni-venture-studios/snug:1.0.0`. Before it, Snug was set up on a DigitalOcean droplet by following the DigitalOcean guide alone, with email through Google Workspace, and restored from its backups onto a second droplet.
+Version 1.0.0 is the first release, with the container image `ghcr.io/negroni-venture-studios/snug:1.0.0`.
 
 [What Snug protects against](docs/security.md) sets out the limits of its watermarks, the NDA record and UK-only mode. Planned work is in the [issues labelled enhancement](https://github.com/Negroni-Venture-Studios/snug/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
 

@@ -2,8 +2,6 @@
 
 Snug sends two kinds of email to investors: links to the people you share documents with, and the six-digit codes they use to prove they own the address a link was sent to. It also emails admins: invitations, notices of changes to the admins or the email settings, an alert the first time each link is opened, a note when your password changes, and links to choose a new password or authenticator. Without working email you can still create links and send them yourself, but nobody can verify, so links that require verification cannot be opened.
 
-Email is the part of the setup most likely to go wrong.
-
 **Google Workspace.** If your company uses Workspace, Snug can send as a mailbox on your domain through the Gmail API, set up as in [email-google.md](email-google.md). The rest of this guide is for any other provider, over SMTP.
 
 Snug sends each email by the first of these routes that is set up, so SMTP settings saved in Settings, or a connected Google mailbox, take the place of the ones in `snug.env`:

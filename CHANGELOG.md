@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Changed
+
+- The README and guides state facts plainly, without hedges such as "at the time of writing" or notes on how Snug was tested before its release.
+
 ## [1.0.0] - 2026-11-11
 
 The first release.
