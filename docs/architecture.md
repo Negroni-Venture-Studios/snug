@@ -148,14 +148,14 @@ Files live in the data folder, `SNUG_DATA_DIR`:
   <img alt="An upload passes a size limit, is received by Django, copied, hashed and given a kind from its first bytes, checked against earlier versions and inspected by the confined worker, then saved as a new version in one transaction and audited. The steps marked with a dot can refuse it with a plain message beside the form." src="images/diagrams/upload-light.svg">
 </picture>
 
-Django receives the upload first, in memory if it is under 2.5 MB and in `tmp/` if not. `snug.documents.ingest.ingest` then makes it a version:
+Django receives the upload first, in memory if it is under 2.5 MB and in `tmp/` if not. `snug.documents.ingest` then makes it a version, with `check` for the first three steps and `store` for the last:
 
 1. It copies the upload to a temporary file in `tmp/`, computing its SHA-256 as it goes and keeping the first kilobyte. As soon as the first bytes show a video, the video limit applies (`SNUG_MAX_VIDEO_MB`); otherwise the document limit does (`SNUG_MAX_UPLOAD_MB`).
 2. The first bytes set the kind: `ftyp` at byte 4 is an MP4 video, a zip is an Excel workbook, and `%PDF-` is a PDF. An old `.xls` file, or a workbook with a password, is refused with its own message. Every version of a document must be the same kind.
-3. A document worker checks the file. For a PDF it returns the number of pages and their sizes; for a workbook, its visible sheets, after refusing macros, ActiveX and embedded objects; for a video, its length and picture size, after checking its codecs.
-4. In one transaction, Snug writes a `DocumentVersion` and renames the temporary file into `originals/` under a random name. The name the file was uploaded with is kept for display only.
+3. A document worker checks the file. Snug has written nothing to the database yet, so no other write waits for the check. For a PDF it returns the number of pages and their sizes; for a workbook, its visible sheets, after refusing macros, ActiveX and embedded objects; for a video, its length and picture size, after checking its codecs.
+4. Only then, in one transaction, Snug writes a `DocumentVersion` and renames the temporary file into `originals/` under a random name. The name the file was uploaded with is kept for display only.
 
-A refusal at any step shows a plain message beside the form and records `document.upload_refused`. The temporary file is always deleted, and a new document is rolled back, so a refused upload leaves nothing behind but the audit entry.
+A refusal at any step shows a plain message beside the form and records `document.upload_refused`. The temporary file is always deleted, and a new document is created only once its file has passed, so a refused upload leaves nothing behind but the audit entry.
 
 ## The document worker
 
