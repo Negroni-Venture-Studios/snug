@@ -29,6 +29,7 @@ External security audits found these.
 
 ### Fixed
 
+- A new server's startup script includes Docker's signing key, instead of fetching it from Ubuntu's keyserver. When the keyserver failed, the server was left without Docker and said nothing; `snug setup` and the login message now say if Docker is missing.
 - Uploading a new document no longer holds up every other change to the database while Snug checks the file.
 - If Snug cannot find a free link reference, the link form says so instead of showing a server error. Snug tries 50 references, up from 5.
 - Six digits in a script other than ASCII are tried as a recovery code, not as a code from the authenticator app.

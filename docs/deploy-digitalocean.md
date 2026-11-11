@@ -260,6 +260,7 @@ It emails you a code to type back, and ends with `Everything is working.` when a
 | The console says `droplet-agent is not running` | The server is still installing. Wait five minutes and click **Reload**. |
 | The console is black and does not respond | It has disconnected. Close it and click **Web Console** again. |
 | The console says `snug: command not found` | The server is still installing. Close the console, wait five minutes, and open it again. |
+| The console or `snug setup` says `Docker is missing` | The server's installation stopped part-way, usually because a download failed. Destroy the server (on its page, **Settings**, then **Destroy**) and create a new one, as in step 3. |
 | Snug says a value `contains ' (a single quote)` | Choose a value without a `'`, and run `sudo snug setup` again. |
 | The browser cannot reach your Snug address | Check the DNS records in step 5. |
 | The Overview shows a backup problem | **Settings**, under **Backups**, shows the reason. Check the bucket's name and key in **Snug backups** against steps 1 and 2. |

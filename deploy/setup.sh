@@ -24,6 +24,14 @@ fi
 
 say() { printf '%s\n' "$*"; }
 
+# cloud-init installs Docker; if a download failed, it is missing, and
+# nothing here can work.
+if ! docker compose version > /dev/null 2>&1; then
+	say "Snug's installation did not finish: Docker is missing. See"
+	say "If something goes wrong, in docs/deploy-digitalocean.md."
+	exit 1
+fi
+
 # ask PROMPT [DEFAULT]: the answer, or the default, in $reply.
 ask() {
 	if [ -n "${2:-}" ]; then printf '%s [%s]: ' "$1" "$2"; else printf '%s: ' "$1"; fi
