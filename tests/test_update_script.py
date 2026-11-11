@@ -44,6 +44,10 @@ printf 'new %s\\n' "$name" > "$out"
 """
 
 
+# Where GitHub redirects /releases/latest once there is a release.
+NEWEST = "https://github.com/Negroni-Venture-Studios/snug/releases/tag/v1.4.2"
+
+
 def tool(folder: Path, name: str, body: str) -> None:
     path = folder / name
     path.write_text(body)
@@ -71,7 +75,7 @@ def server(tmp_path: Path) -> Path:
 
 
 def run_update(
-    server: Path, *, broken: str = "", latest: str = "", ref: str | None = None
+    server: Path, *, broken: str = "", latest: str = NEWEST, ref: str | None = None
 ) -> tuple[subprocess.CompletedProcess[str], list[str]]:
     log = server.parent / "log"
     log.touch()
@@ -101,7 +105,7 @@ def test_it_replaces_the_files_then_pulls_and_restarts(server: Path) -> None:
     for name in FILES:
         assert (server / name).read_text() == f"new {name}\n", name
     fetched = [call for call in calls if call.startswith("curl") and "/deploy/" in call]
-    assert all("/Negroni-Venture-Studios/snug/main/deploy/" in call for call in fetched)
+    assert all("/Negroni-Venture-Studios/snug/v1.4.2/deploy/" in call for call in fetched)
     assert f"install -m 755 {server / 'snug'} /usr/local/bin/snug" in calls
     docker = [call for call in calls if call.startswith("docker")]
     assert docker == ["docker compose pull", "docker compose up --detach --wait"]
@@ -144,10 +148,16 @@ def test_it_fetches_the_newest_release(server: Path) -> None:
     assert all("/Negroni-Venture-Studios/snug/v1.4.2/deploy/" in call for call in fetched)
 
 
-def test_without_a_release_it_fetches_main(server: Path) -> None:
-    _, calls = run_update(server, latest=RELEASES)  # GitHub's answer when there is none
-    fetched = [call for call in calls if "/deploy/" in call]
-    assert all("/snug/main/deploy/" in call for call in fetched)
+@pytest.mark.parametrize("answer", [RELEASES, ""])  # no release yet; the lookup failed
+def test_without_a_release_it_changes_nothing(server: Path, answer: str) -> None:
+    # Found in the audit of 11 November 2026: falling back to main ran unreleased code.
+    result, calls = run_update(server, latest=answer)
+    assert result.returncode != 0
+    assert "could not find Snug's newest release" in result.stdout + result.stderr
+    assert "Nothing has changed" in result.stdout + result.stderr
+    assert not any("/deploy/" in call for call in calls)
+    assert not any(call.startswith(("docker", "install")) for call in calls)
+    assert (server / "compose.yaml").read_text() == "old compose.yaml\n"
 
 
 def test_snug_ref_chooses_without_asking_github(server: Path) -> None:

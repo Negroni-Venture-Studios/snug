@@ -26,9 +26,9 @@
 </div>
 {% if page.has_other_pages %}
 <nav class="pager" aria-label="Pages">
-  {% if page.has_previous %}<a class="btn" href="?page={{ page.previous_page_number }}{% if kind %}&amp;kind={{ kind }}{% endif %}{% if q %}&amp;q={{ q|urlencode }}{% endif %}">Newer</a>{% endif %}
+  {% if page.has_previous %}<a class="btn" href="?page={{ page.previous_page_number }}{% if kind %}&amp;kind={{ kind|urlencode }}{% endif %}{% if q %}&amp;q={{ q|urlencode }}{% endif %}">Newer</a>{% endif %}
   <span class="muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
-  {% if page.has_next %}<a class="btn" href="?page={{ page.next_page_number }}{% if kind %}&amp;kind={{ kind }}{% endif %}{% if q %}&amp;q={{ q|urlencode }}{% endif %}">Older</a>{% endif %}
+  {% if page.has_next %}<a class="btn" href="?page={{ page.next_page_number }}{% if kind %}&amp;kind={{ kind|urlencode }}{% endif %}{% if q %}&amp;q={{ q|urlencode }}{% endif %}">Older</a>{% endif %}
 </nav>
 {% endif %}
 {% else %}

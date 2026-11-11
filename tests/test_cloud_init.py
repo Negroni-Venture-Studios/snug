@@ -1,5 +1,6 @@
 """deploy/cloud-init.yaml, read as text. CI checks it against cloud-init's schema."""
 
+import hashlib
 from pathlib import Path
 
 CLOUD_INIT = (Path(__file__).resolve().parent.parent / "deploy" / "cloud-init.yaml").read_text()
@@ -45,12 +46,36 @@ def test_dockers_key_is_in_the_file_not_fetched_from_a_keyserver() -> None:
     source = CLOUD_INIT.split("docker.list:", 1)[1].split("packages:", 1)[0]
     assert "keyid:" not in source and "keyserver" not in source
     block = source.split("key: |", 1)[1].split("-----END PGP PUBLIC KEY BLOCK-----", 1)[0]
-    armoured = "\n".join(line.strip() for line in block.strip("\n").splitlines())
+    armoured = "\n".join(line.strip() for line in block.strip().splitlines())
     assert armoured.startswith("-----BEGIN PGP PUBLIC KEY BLOCK-----")
     assert fingerprint(armoured + "\n") == DOCKER_KEY
+    # The whole block, subkey and signatures too, byte for byte as Docker
+    # publishes it at download.docker.com/linux/ubuntu/gpg (audit N1).
+    whole = armoured + "\n-----END PGP PUBLIC KEY BLOCK-----\n"
+    assert hashlib.sha256(whole.encode()).hexdigest() == (
+        "1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570"
+    )
 
 
 def test_the_login_message_says_when_docker_is_missing() -> None:
     motd = CLOUD_INIT.split("- path: /etc/update-motd.d/99-snug", 1)[1].split("- path:", 1)[0]
     assert "command -v docker" in motd
-    assert "Docker is missing" in motd
+    assert "did not finish" in motd
+
+
+def test_a_server_without_a_release_is_not_set_up_from_main() -> None:
+    # Found in the audit of 11 November 2026: falling back to main ran unreleased code.
+    assert "ref=main" not in CLOUD_INIT
+    fetch = CLOUD_INIT.split("releases/latest", 1)[1].split("for file in", 1)[0]
+    assert "exit 1" in fetch
+
+
+def test_the_login_message_says_when_the_install_did_not_finish() -> None:
+    motd = CLOUD_INIT.split("- path: /etc/update-motd.d/99-snug", 1)[1].split("- path:", 1)[0]
+    assert "/usr/local/bin/snug" in motd
+    assert "did not finish" in motd
+    # The guide's address, since the server has no copy of the docs (audit N2).
+    assert (
+        "https://github.com/Negroni-Venture-Studios/snug/blob/main/docs/deploy-digitalocean.md"
+        in motd
+    )

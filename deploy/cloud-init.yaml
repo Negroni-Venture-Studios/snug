@@ -101,10 +101,11 @@ write_files:
     content: |
       #!/bin/sh
       # snug setup writes the secret key; until then, say what to do.
-      if ! command -v docker > /dev/null; then
+      if ! command -v docker > /dev/null || [ ! -x /usr/local/bin/snug ]; then
         echo
-        echo "Snug's installation did not finish: Docker is missing. See"
-        echo "If something goes wrong, in docs/deploy-digitalocean.md."
+        echo "Snug's installation did not finish. Destroy this server and create a"
+        echo "new one, as If something goes wrong describes at"
+        echo "https://github.com/Negroni-Venture-Studios/snug/blob/main/docs/deploy-digitalocean.md"
         echo
       elif ! grep -q '^SNUG_SECRET_KEY=.' /opt/snug/snug.env 2>/dev/null; then
         echo
@@ -134,11 +135,12 @@ runcmd:
   - mkdir -p /opt/snug/backup
   - |
     set -eu
-    # The newest release, or main before the first one.
-    latest=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/Negroni-Venture-Studios/snug/releases/latest || true)
+    # The newest release. If the lookup fails, stop, rather than set the
+    # server up from main, which holds code that has not been released.
+    latest=$(curl -fsSLI --retry 5 -o /dev/null -w '%{url_effective}' https://github.com/Negroni-Venture-Studios/snug/releases/latest || true)
     case "$latest" in
       */releases/tag/*) ref="${latest##*/}" ;;
-      *) ref=main ;;
+      *) echo "Could not find Snug's newest release on GitHub." >&2; exit 1 ;;
     esac
     base="https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/$ref/deploy"
     cd /opt/snug

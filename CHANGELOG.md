@@ -16,7 +16,7 @@ The first release.
 
 External security audits found these.
 
-- New servers and `snug update` download the server's files from the newest release, not from the `main` branch, so a server runs only what has been released.
+- New servers and `snug update` download the server's files from the newest release, not from the `main` branch, and stop if they cannot find it, so a server runs only what has been released.
 - The document worker refuses to read a file if it cannot set its memory limit, and its seccomp filter refuses to trace, signal, re-prioritise or change the limits of other processes, or read their memory. The watermark's drawing is capped whatever the page's shape, so a PDF page of extreme shape no longer stops its download being stamped.
 - Snug believes the `X-Forwarded-Proto` header only from a trusted proxy, so a request over plain HTTP can no longer pass for HTTPS if Snug's port is ever reached without Caddy.
 - A refused upload replaces only the main part of the admin page, and nothing in the reply runs.
@@ -29,6 +29,8 @@ External security audits found these.
 
 ### Fixed
 
+- A backup status file that is not readable text no longer breaks Settings and the Overview.
+- [What Snug protects against](docs/security.md) no longer overstates four things: admins are alerted only once email is set up, investors' notice beside a document does not mention their IP address, video downloads are not stamped, and backups need a bucket. It now also covers guessed codes and passwords, the confined worker that reads uploads, and HTTPS.
 - A new server's startup script includes Docker's signing key, instead of fetching it from Ubuntu's keyserver. When the keyserver failed, the server was left without Docker and said nothing; `snug setup` and the login message now say if Docker is missing.
 - Uploading a new document no longer holds up every other change to the database while Snug checks the file.
 - If Snug cannot find a free link reference, the link form says so instead of showing a server error. Snug tries 50 references, up from 5.

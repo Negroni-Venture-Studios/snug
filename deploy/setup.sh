@@ -27,8 +27,9 @@ say() { printf '%s\n' "$*"; }
 # cloud-init installs Docker; if a download failed, it is missing, and
 # nothing here can work.
 if ! docker compose version > /dev/null 2>&1; then
-	say "Snug's installation did not finish: Docker is missing. See"
-	say "If something goes wrong, in docs/deploy-digitalocean.md."
+	say "Snug's installation did not finish: Docker is missing. Destroy this server"
+	say "and create a new one, as If something goes wrong describes at"
+	say "https://github.com/Negroni-Venture-Studios/snug/blob/main/docs/deploy-digitalocean.md"
 	exit 1
 fi
 
