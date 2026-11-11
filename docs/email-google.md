@@ -4,7 +4,7 @@ If your company uses Google Workspace, Snug can send its emails as a mailbox on 
 
 Snug sends through the Gmail API, over HTTPS. It cannot use Google's mail servers directly from DigitalOcean, which blocks the only ports they accept.
 
-Google needs to know about Snug first, so there is a one-time setup in the Google Cloud console. Google offers no way to do it from the command line. The steps below start from a first visit to Google Cloud and cover every screen. Allow about fifteen minutes.
+Google needs to know about Snug first, so there is a one-time setup in the Google Cloud console. The steps below start from a first visit to Google Cloud and cover every screen. Allow about fifteen minutes.
 
 ## What you need
 
@@ -24,7 +24,7 @@ Use a browser profile, or a private window, signed in only to your Workspace acc
 A project holds everything you set up for Snug, kept apart from anything else in your Google Cloud account.
 
 1. Open [console.cloud.google.com](https://console.cloud.google.com), signed in with your Workspace account. Accept the terms of service if Google asks.
-2. A banner offers a free trial with credit. Choose **Dismiss**. Snug needs no billing, and the trial can be started only once, with its credit expiring 90 days later, so keep it for when you need it.
+2. A banner offers a free trial with credit. Choose **Dismiss**. Snug needs no billing.
 3. Google may have made a project called *My First Project*. Leave it; it costs nothing. Click its name in the bar at the top, next to the Google Cloud logo. A box called *Select a resource* opens.
 4. Choose **New project**, at its top right.
 5. Name it **Snug**. Leave **Organisation** as it is. It is your Workspace organisation, named after your primary domain, which may not be the domain you send from. Leave **Location** as it is too. Google gives the project an ID, such as `snug-514212`, which you never need.
@@ -54,12 +54,12 @@ A message says *OAuth configuration created*, and the page shows *OAuth overview
 
 ## Step 4: create the client
 
-The client is how Snug identifies itself to Google. It has a client ID, which is public, and a client secret.
+The client is how Snug identifies itself to Google. It has a client ID and a client secret.
 
 1. On *OAuth overview*, choose **Create OAuth client**. Later, you can find it under **Clients** in the sidebar.
 2. **Application type:** choose **Web application**.
 3. **Name:** **Snug**, which only you see.
-4. **Authorised JavaScript origins:** leave empty. Snug talks to Google only from the server.
+4. **Authorised JavaScript origins:** leave empty.
 5. **Authorised redirect URIs:** choose **Add URI**, and paste the address Snug shows in Settings, under Email, in step 1 after you choose Google Workspace. On a server it looks like this:
 
         https://room.example.com/admin/settings/email/google/callback
@@ -83,9 +83,9 @@ In Snug, open **Settings**, and under **Email** choose **Google Workspace**. The
 </picture>
 
 1. **Your Google client.** Paste the client ID and the client secret. Leave **From address** empty for now. Enter a code from your authenticator app, and choose **Save**. Afterwards the secret shows as dots. It is saved, and never shown again.
-2. **The sending mailbox.** Choose **Connect Google**. Google asks which account to use; choose the mailbox Snug will send from. Google then lists what Snug asks for, which should be only *Send email on your behalf*. Snug cannot read the mailbox. Choose **Continue**.
+2. **The sending mailbox.** Choose **Connect Google**. Google asks which account to use; choose the mailbox Snug will send from. Google then lists what Snug asks for, which should be only *Send email on your behalf*. Choose **Continue**.
 
-   Back in Snug, a green notice shows the mailbox Google approved. Enter a fresh code from your authenticator app to finish. Connecting changes where Snug's email goes, so it needs its own code, even after the one in step 1. Every admin is emailed about the change.
+   Back in Snug, a green notice shows the mailbox Google approved. Enter a fresh code from your authenticator app to finish. It is a second code, after the one in step 1. Every admin is emailed about the change.
 3. **Send a test.** Snug emails you, through the mailbox. Check that it arrived, and not in spam.
 
 Google may approve a different address from the one you expected. If your Workspace has more than one domain, Google gives the mailbox's **primary** address.
