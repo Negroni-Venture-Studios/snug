@@ -267,4 +267,42 @@ It emails you a code to type back, and ends with `Everything is working.` when a
 
 To change your Snug address or company name later, run `sudo snug setup` again. It keeps your documents and accounts.
 
+## Bringing Snug back on a new server
+
+If the server is lost, or you want to move Snug, the backups bring everything back on a new server: documents, links, admin accounts, reading data, the audit log and the email settings. It takes about twenty minutes, most of it the new server installing itself.
+
+You need the backup settings you saved in your password manager in step 7. Without them, nobody can read the backups.
+
+1. **If the old server still runs, turn it off.** Open its console, as in step 6, and type `sudo snug doctor`. The `Backups` line says when Snug last copied to the bucket. Anything since then will not come back, so wait for a copy, at most five minutes, if you have just changed something. Then type `poweroff` and press Return. Never run both servers at once: they would copy over each other's backups.
+2. **Create a new server**, as in step 3. Any name will do, such as `snug-2`. Choose a new root password, and save it as a new item in your password manager.
+3. **Note its addresses**, as in step 4.
+4. **Point your Snug address at it.** In your domain's DNS settings, change the `A` and `AAAA` records from step 5 to the new server's addresses. Change the records that are there rather than adding new ones: with both, visitors reach either server at random.
+5. **Restore.** When the new server is ready, open its console, as in step 6, and type `sudo snug setup`.
+
+   | Snug asks | You type |
+   |---|---|
+   | `The domain investors will use, like room.example.com` | the same Snug address as before |
+   | `Your company's name, as investors know it` | your company's name |
+   | `Are you restoring Snug from an earlier server's backups? Type yes or no [no]` | `yes` |
+
+   Snug asks you to paste the backup settings. Copy the whole of them from your password manager, from the first line, `# Snug's backups`, to the last, `password2 = ...`, and paste them into the console. Snug says `Found the backups: setup will restore them`, fetches them, and ends:
+
+   ```
+   Snug is restored at https://room.yourcompany.com. Sign in as before.
+   ```
+
+6. **Sign in** with the same email address, password and authenticator app as before. The new server signs every admin out once. Investors' links work as they did.
+7. **Check**, in the console, with your own email address:
+
+   ```bash
+   sudo snug doctor --email you@yourcompany.com
+   ```
+
+   It ends `Everything is working.` once the new server is copying to the bucket again.
+8. **Delete the old server**, if it still exists. On its page, click **Settings**, then **Destroy** near the bottom. Type the server's name and click **Destroy**. Do not turn it back on: it would copy its older data over the backups.
+
+To give the new server the old one's name, click **Edit** beside **Droplet Name** in its **Settings**.
+
+If the new server has a different Snug address, add its address to the Google client too, as [the Google Workspace guide](email-google.md) describes. [The backups guide](backups.md) explains restoring to an earlier moment, and restoring on the same server.
+
 [The deployment reference](deployment.md) describes how the server is set up, for anyone who wants the detail.
