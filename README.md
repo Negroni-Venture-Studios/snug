@@ -76,7 +76,7 @@ More screenshots are in [Using Snug](docs/using-snug.md).
 
 Everything planned for version 1 is built and tested. The container image is published only as a test build, `ghcr.io/negroni-venture-studios/snug:edge`, and there is no release yet. On 11 November 2026 Snug was set up on a DigitalOcean droplet by following the DigitalOcean guide alone, with email through Google Workspace. The same day it was restored from its backups onto a second droplet, and the documents, links, reading data, audit log, admin account and email settings all came back.
 
-Still to come before the first release, from the [order of work](DESIGN.md#4-order-of-work), is a guide to what Snug does and does not protect against.
+[What Snug protects against](docs/security.md) sets out the limits of its watermarks, the NDA record and UK-only mode. The first release is next, from the [order of work](DESIGN.md#4-order-of-work).
 
 ## Trying it on your own computer
 
