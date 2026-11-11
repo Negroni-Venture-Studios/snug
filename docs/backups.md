@@ -22,7 +22,7 @@ The server holds the bucket's keys, so someone who takes control of it can delet
 
 ## How it works
 
-Two containers beside Snug do the work, as [deployment.md](deployment.md) describes:
+Two containers beside Snug make the backups:
 
 - **Litestream** copies every change to the database into `backup/database` in Snug's data volume, within a second. Its settings are in `litestream.yml`.
 - **backup** runs rclone every 5 minutes. It copies `backup/database`, `originals/` and `branding/` to the bucket through an rclone crypt remote, which encrypts each file's contents (XSalsa20 and Poly1305) and its name (AES-256) before it leaves the server. Its script is `backup.sh`. `SNUG_BACKUP_EVERY` in `snug.env` sets the interval in seconds, 300 unless set; `snug doctor` still reports a problem after 15 minutes without a copy.
@@ -32,7 +32,7 @@ Two containers beside Snug do the work, as [deployment.md](deployment.md) descri
   <img alt="Litestream copies every database change to a replica on the same volume, and every 5 minutes rclone encrypts the replica, the uploads and the branding into your bucket, keeping anything it would overwrite or delete for 30 days. sudo snug restore sets the current data aside, copies everything back and rebuilds the database at any moment in the last 7 days." src="images/diagrams/backups-light.svg">
 </picture>
 
-Only the backup container sees the bucket's keys and the encryption password, in `/opt/snug/backup/rclone.conf`. Snug itself never does, so a fault in Snug cannot reach the backups. The backup container can reach the internet, but not Snug.
+Only the backup container sees the bucket's keys and the encryption passwords, in `/opt/snug/backup/rclone.conf`, so a fault in Snug cannot reach the backups. The backup container can reach the internet, but not Snug.
 
 ## Setting up
 
@@ -41,7 +41,7 @@ Only the backup container sees the bucket's keys and the encryption password, in
 1. In the control panel, create a Spaces bucket in the region nearest your server. Keep it private, with no CDN.
 2. Under *Spaces Object Storage*, *Access Keys*, create a key limited to that bucket, with read and write access. Note the access key and its secret.
 
-**Copy the settings `snug setup` shows you into your password manager.** They are in `/opt/snug/backup/rclone.conf`, and hold the bucket's key and the two encryption passwords. The passwords are the only way to read the backups. If the server is lost and you do not have them, the backups are useless.
+**Copy the settings `snug setup` shows you into your password manager.** They are in `/opt/snug/backup/rclone.conf`, and hold the bucket's key and the two encryption passwords. The passwords are the only way to read the backups.
 
 ### By hand
 
@@ -60,7 +60,7 @@ sudo chmod 600 /opt/snug/backup/rclone.conf
 
 ## Checking
 
-`snug doctor` reports a problem as soon as a copy to the bucket fails, with the reason the backup container recorded, and also if nothing has been copied for 15 minutes ([deployment.md](deployment.md)).
+`snug doctor` reports a problem as soon as a copy to the bucket fails, with the reason the backup container recorded, and also if nothing has been copied for 15 minutes ([deployment.md](deployment.md)). Settings shows the same under **Backups**, with the time the last complete copy finished.
 
 Within 5 minutes of starting, the backup container records its first complete copy:
 

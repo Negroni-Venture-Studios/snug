@@ -1,10 +1,10 @@
 # Sending through Google Workspace
 
-If your company uses Google Workspace, Snug can send its emails as a mailbox on your domain, such as `rooms@example.com`. The emails leave through Google, signed for your domain, and appear in that mailbox's *Sent* folder.
+If your company uses Google Workspace, Snug can send its emails as a mailbox on your domain, such as `rooms@example.com`. The emails leave through Google and appear in that mailbox's *Sent* folder.
 
 Snug sends through the Gmail API, over HTTPS. It cannot use Google's mail servers directly from DigitalOcean, which blocks the only ports they accept.
 
-Google needs to know about Snug first, so there is a one-time setup in the Google Cloud console. The steps below start from a first visit to Google Cloud and cover every screen. Allow about fifteen minutes.
+Google needs to know about Snug first, so there is a one-time setup in the Google Cloud console. Allow about fifteen minutes.
 
 ## What you need
 

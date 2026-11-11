@@ -34,7 +34,7 @@ uv run mypy                        # strict type checking
 uv run pre-commit run --all-files  # the fast checks; CI also runs coverage, the browser tests and the security scans
 ```
 
-The documentation's pictures are made from the code, so rebuild them when a page or a diagram changes:
+Rebuild the documentation's pictures when a page or a diagram changes:
 
 ```bash
 python3 docs/diagrams/build.py     # the diagrams, from docs/diagrams/*.svg

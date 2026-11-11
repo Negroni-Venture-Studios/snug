@@ -77,8 +77,8 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <text class="label" x="280" y="275">and branding</text>
 <rect class="key" x="492" y="212" width="196" height="76" rx="8"/>
 <text class="title" x="508" y="238">rclone crypt</text>
-<text class="label" x="508" y="258">encrypted on the server;</text>
-<text class="label" x="508" y="275">the bucket never sees them</text>
+<text class="label" x="508" y="258">encrypted before they</text>
+<text class="label" x="508" y="275">leave the server</text>
 <rect class="key" x="720" y="212" width="204" height="76" rx="8"/>
 <text class="title" x="736" y="238">Your bucket</text>
 <text class="mono" x="736" y="262">snug/</text>
@@ -132,6 +132,6 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <path class="line" d="M568,538 H588" marker-end="url(#tip)"/>
 <path class="line" d="M752,538 H772" marker-end="url(#tip)"/>
 <text class="small" x="36" y="618">If this server already has a database, you type replace before anything moves.</text>
-<text class="small" x="36" y="638">Nothing is deleted: the data set aside stays in the data volume until you remove it.</text>
+<text class="small" x="36" y="638">The data set aside stays in the data volume until you remove it.</text>
 <text class="small" x="36" y="658">The restored Snug takes on the bucket's instance file, so it goes on backing up to the same bucket.</text>
 </svg>

@@ -288,7 +288,7 @@ def link_revoke(request: HttpRequest, ref: str) -> HttpResponse:
     if not link.is_revoked():
         service.revoke(link, _admin(request))
         _audit(request, "link.revoked", link)
-    text = f"Revoked {link.label}. It stopped working at once, for anyone already in too."
+    text = f"Revoked {link.label}. It stopped working at once, including on pages already open."
     return notices.saved(request, link.target_url(), "links", text)
 
 

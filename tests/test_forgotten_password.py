@@ -106,6 +106,7 @@ def test_a_link_is_emailed_for_one_hour(
     assert message.subject == "Choose a new password for Snug"
     assert "works once, for one hour" in message.body
     assert "your authenticator" in message.body
+    assert message.body.rstrip().endswith("you can ignore this email.")  # no reassurance after it
     row = AdminSetup.objects.get(admin=admin)
     assert row.purpose == AdminSetup.Purpose.PASSWORD
     left = row.expires_at - timezone.now()

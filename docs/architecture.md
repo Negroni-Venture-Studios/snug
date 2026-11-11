@@ -226,12 +226,12 @@ The Audit log page filters by kind or email address. Each CSV export is recorded
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/email-dark.svg">
-  <img alt="Snug tries each route in order and uses the first that applies: Google Workspace saved in Settings, SMTP saved in Settings, SMTP in snug.env, the outbox folder on localhost, or no email. Every SMTP send checks the server resolves only to public addresses and connects to the address it checked." src="images/diagrams/email-light.svg">
+  <img alt="Snug tries each route in order and uses the first that applies: Google Workspace saved in Settings, SMTP saved in Settings, SMTP in snug.env, the outbox folder on localhost, or no email. For every SMTP send, Snug checks that the server resolves only to public addresses, then connects to the address it checked." src="images/diagrams/email-light.svg">
 </picture>
 
 `snug.core.mail.outgoing` picks the route for each message, and `snug.core.email_backend.EmailBackend` sends it. For SMTP it resolves the server's name, refuses it unless every address is public, then connects to the address it checked while TLS still checks the certificate against the name, so a DNS change between the check and the connection cannot redirect it. For Google it calls the Gmail API (`snug.core.gmail`) with an access token from the stored refresh token, kept in memory for its hour.
 
-Connecting Google is an OAuth flow with PKCE, started from Settings. The OAuth client belongs to the founder's own Google Cloud project, and the mailbox's user approves it to send email and to see the mailbox's address, nothing else. Snug keeps the approval in the session until the admin confirms it with a fresh authenticator code.
+Connecting Google is an OAuth flow with PKCE, started from Settings. The OAuth client belongs to the founder's own Google Cloud project, and the mailbox's user approves it only to send email and to see the mailbox's address. Snug keeps the approval in the session until the admin confirms it with a fresh authenticator code.
 
 First-open notices are sent from a background thread, so a slow mail server does not slow the page. Forgotten-password links are too, so that the reply takes as long whether or not the address is an admin's. An investor's code is sent while they wait, unless their link has had too many wrong addresses: then it is sent in the background, so the reply cannot show whether one went. Snug records whether each send worked, and the Overview and `snug doctor` show it.
 

@@ -8,7 +8,7 @@ You need:
 
 - **A DigitalOcean account**, with a payment card added. Sign up at [digitalocean.com](https://www.digitalocean.com).
 - **A domain name you own**, such as `yourcompany.com`, and the login for the company you bought it from, where its DNS settings are.
-- **A password manager**, such as 1Password or Bitwarden. You will save four things in it as you go.
+- **A password manager**, such as 1Password or Bitwarden. You will make three items in it as you go.
 - **An authenticator app on your phone**, such as 1Password, Google Authenticator or Authy.
 
 Decide on the address investors will use. A part of your own domain works best, such as `room.yourcompany.com`. This guide calls it **your Snug address**.
@@ -17,7 +17,7 @@ The server and the backup storage cost about $11 a month at the time of writing:
 
 ## 1. Create the storage for your backups
 
-Snug copies everything to a storage bucket every five minutes, so nothing is lost if the server is.
+Snug copies everything to a storage bucket every five minutes, so if the server is lost, at most five minutes of changes go with it.
 
 1. Sign in to DigitalOcean at [cloud.digitalocean.com](https://cloud.digitalocean.com).
 2. Click **Create** at the top of the page, scroll to the bottom of the menu, and choose **Spaces Object Storage**.
@@ -195,7 +195,7 @@ password2 = another-example-password
 Type saved once it is in your password manager:
 ```
 
-**Copy everything between the lines into Snug backups in your password manager.** Without it, nobody can read the backups, including you. Then type `saved` and press Return.
+**Copy everything between the lines into Snug backups in your password manager.** Then type `saved` and press Return.
 
 Snug checks its settings and starts. This takes another minute or two.
 
@@ -262,14 +262,14 @@ It emails you a code to type back, and ends with `Everything is working.` when a
 | The console says `snug: command not found` | The server is still installing. Close the console, wait five minutes, and open it again. |
 | Snug says a value `contains ' (a single quote)` | Choose a value without a `'`, and run `sudo snug setup` again. |
 | The browser cannot reach your Snug address | Check the DNS records in step 5. |
-| The Overview shows a backup problem | Check the bucket's name and key in **Snug backups** against steps 1 and 2, then run `sudo snug setup` again. |
+| The Overview shows a backup problem | **Settings**, under **Backups**, shows the reason. Check the bucket's name and key in **Snug backups** against steps 1 and 2. |
 | Anything else | In the console, type `sudo snug doctor` and press Return. It lists what is wrong and how to fix it. |
 
 To change your Snug address or company name later, run `sudo snug setup` again. It keeps your documents and accounts.
 
 ## Keeping Snug up to date
 
-Ubuntu installs its security updates by itself. Updates to Snug you install yourself, whenever [the changelog](../CHANGELOG.md) lists something you want.
+Ubuntu installs its own security updates. To update Snug, whenever [the changelog](../CHANGELOG.md) lists something you want:
 
 1. Open the console, as in step 6.
 2. Type this, and press Return:
@@ -284,7 +284,7 @@ Snug downloads the new version and restarts, which takes under a minute, and end
 Snug is up to date. To check everything is working: sudo snug doctor
 ```
 
-Your documents, links, accounts and settings are kept. Then type `sudo snug doctor` to check.
+Your documents, links, accounts and settings are kept.
 
 ## Bringing Snug back on a new server
 
@@ -324,4 +324,4 @@ To give the new server the old one's name, click **Edit** beside **Droplet Name*
 
 If the new server has a different Snug address, add its address to the Google client too, as [the Google Workspace guide](email-google.md) describes. [The backups guide](backups.md) explains restoring to an earlier moment, and restoring on the same server.
 
-[The deployment reference](deployment.md) describes how the server is set up, for anyone who wants the detail.
+[The deployment reference](deployment.md) describes how the server is set up.

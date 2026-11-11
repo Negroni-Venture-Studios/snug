@@ -22,12 +22,12 @@ You will get a response within 72 hours. We will work with you on a fix and agre
 In scope:
 
 - Snug's own code: authorisation, sessions, links, verification codes, file handling, the confined worker that reads PDFs, Excel workbooks and MP4 videos, video streaming, analytics, the admin interface, and email, including the Google Workspace connection.
-- The deployment files we ship: the container image, the Compose file, the Caddy and Litestream configuration, the backup, restore and setup scripts, and cloud-init.
+- The deployment files we ship: the container image, the Compose file, the Caddy and Litestream configuration, the backup, restore, setup and update scripts, the `snug` command, and cloud-init.
 
 Out of scope:
 
 - Weaknesses in an operator's own infrastructure or configuration that Snug's documentation already warns against.
-- The limits Snug documents openly, such as a watermark being unable to stop someone photographing a screen.
+- The limits Snug documents, such as a watermark being unable to stop someone photographing a screen.
 - Social engineering of founders or investors.
 
 ## Supported versions

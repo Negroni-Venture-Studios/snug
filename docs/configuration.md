@@ -11,7 +11,7 @@ Snug checks every setting when it starts. If any are missing or wrong, it lists 
 | `SNUG_SECRET_KEY` | Yes | | Signs admin sessions and protects the codes emailed to investors. At least 50 random characters. Keep it secret, and never reuse it between instances. |
 | `SNUG_DOMAIN` | Yes | | The host name people use to reach Snug, like `room.example.com`: no `https://`, port or path. Requests for any other host name are refused. On your own computer it can be `localhost` with a port, like `localhost:8000`, so the links Snug shows and emails include it. |
 | `SNUG_DATA_DIR` | No | `/var/lib/snug` | Where Snug keeps its database and files. Must be an absolute path. Back it up, which the standard deployment does continuously. |
-| `SNUG_TRUSTED_PROXIES` | No | `127.0.0.1/32, ::1/128` | The addresses of the proxy in front of Snug, Caddy in the standard deployment, as a comma-separated list of addresses or networks. The standard Compose file sets this to Caddy's own addresses, overriding any value in `snug.env`. Snug trusts the client address in `X-Forwarded-For` only on requests from these. Never set it to everything (`0.0.0.0/0`), and Snug refuses to start if you do. Anyone could then claim any address and get round the rate limits. |
+| `SNUG_TRUSTED_PROXIES` | No | `127.0.0.1/32, ::1/128` | The addresses of the proxy in front of Snug, Caddy in the standard deployment, as a comma-separated list of addresses or networks. The standard Compose file sets this to Caddy's own addresses, overriding any value in `snug.env`. Snug trusts the client address in `X-Forwarded-For` only on requests from these. Snug refuses to start with `0.0.0.0/0`, which would let anyone claim any address and get round the rate limits. |
 | `SNUG_MAX_UPLOAD_MB` | No | `100` | The largest PDF or Excel workbook an admin can upload, in megabytes, from 1 to 1024. Large decks with many images can reach tens of megabytes. |
 | `SNUG_MAX_VIDEO_MB` | No | `1024` | The largest MP4 video an admin can upload, in megabytes, from 1 to 8192. Ten minutes of 1080p is a few hundred megabytes. Check the server's disk, and its backups, have room. |
 | `SNUG_VIEWER_SESSION_DAYS` | No | `7` | How long a viewer stays signed in to a link after verifying, in days, from 1 to 90. Revoking a link ends its sessions at once, whatever this is set to. |
@@ -83,10 +83,10 @@ uv run snug --env-file ~/snug-dev.env serve --bind 127.0.0.1:8000
 
 Without SMTP settings, Snug on `localhost` writes each email to the `outbox` folder inside the data folder instead of sending it, so you can read the links it would have sent.
 
-To create an admin, run `uv run snug --env-file ~/snug-dev.env createadmin --email you@example.com`; [the admin accounts guide](admin-accounts.md) explains the rest.
+To create an admin, run `uv run snug --env-file ~/snug-dev.env createadmin --email you@example.com`, as in [the admin accounts guide](admin-accounts.md).
 
 To try Google Workspace sending on your own computer, add `http://localhost:8000/admin/settings/email/google/callback` to the OAuth client's redirect addresses, as [email-google.md](email-google.md) describes.
 
 ## What Snug never logs
 
-Snug does not write a request access log. Viewer links have their access token in the URL, and the security requirements forbid logging tokens, one-time codes, session identifiers or passwords. An unexpected error is logged with its traceback, and any link or setup token in it is replaced with `[redacted]`.
+Snug does not write a request access log, since viewer links have their access token in the URL. It never logs tokens, one-time codes, session identifiers or passwords. An unexpected error is logged with its traceback, and any link or setup token in it is replaced with `[redacted]`.

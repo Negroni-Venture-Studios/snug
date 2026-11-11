@@ -98,7 +98,7 @@ A room can require the NDA, or admit only visitors in the UK, for every link to 
 
 ## What an investor sees
 
-A link opens a page with your company's name, what has been shared and a panel saying what you will see of their visit. If the link requires a code, they type the email address it was sent to, and Snug emails them six digits.
+A link opens a page with your company's name, what has been shared and a panel listing what you will see of their visit. If the link requires a code, they type the email address it was sent to, and Snug emails them six digits.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/code-dark.png">
@@ -151,14 +151,14 @@ Changing who the admins are, or how email is sent, needs a fresh code from your 
   <img alt="Your account in Settings: changing your password, which needs your current password and a code from your authenticator app." src="images/screenshots/settings-account-light.png">
 </picture>
 
-Email is set up in numbered steps, ending with a test email. [The Google Workspace guide](email-google.md) and [the email guide](email.md) walk through them.
+Email is set up in numbered steps, ending with a test email, as in [the Google Workspace guide](email-google.md) or, for another provider, [the email guide](email.md).
 
 ### Branding
 
 Branding sets how investors' pages look. Each part is saved on its own.
 
 - **Company name**, shown at the top of investors' pages when there is no logo, and in every email Snug sends. `snug setup` asks for it first.
-- **Accent colour**, for buttons and links on investors' pages. Snug darkens it where needed to keep text readable, and the preview shows the result before you save. Leave it empty for Snug's own.
+- **Accent colour**, for buttons and links on investors' pages. Snug adjusts it where needed to keep text readable, and the preview shows the result before you save. Leave it empty for Snug's own.
 - **Logo**, a PNG or JPEG up to 2 MB, shown at the top of investors' pages. Untick *Show the name beside the logo* if the logo already spells it out.
 - **Tab icon**, a square PNG or JPEG for investors' browser tabs. Without one, Snug uses your logo if it is roughly square, and otherwise your initial on your accent colour.
 
