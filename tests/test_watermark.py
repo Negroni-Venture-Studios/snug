@@ -86,6 +86,38 @@ def test_oversized_images_are_refused(tmp_path: Path) -> None:
         stamp(big)
 
 
+@pytest.mark.parametrize(
+    ("size", "full"),
+    [((8000, 800), False), ((800, 8000), False), ((1600, 2263), True), ((800, 450), True)],
+)
+def test_the_mark_square_is_bounded_whatever_the_page_shape(
+    size: tuple[int, int], full: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Security audit follow-up, 11 November 2026: the mark is drawn on a square
+    # as wide as the page's diagonal, so a long thin page within MAX_SIDE and
+    # MAX_PIXELS asked for a square of 8,000 pixels a side (256 MB of RGBA).
+    squares: list[int] = []
+    new = Image.new
+
+    def spy(mode: str, dimensions: tuple[int, int], *args: object) -> Image.Image:
+        if mode == "RGBA" and dimensions[0] == dimensions[1]:
+            side = dimensions[0]
+            assert side * side <= 2 * worker.MAX_PIXELS + 4 * side, dimensions
+            squares.append(side)
+        return new(mode, dimensions, *args)  # type: ignore[arg-type]
+
+    page = io.BytesIO()
+    Image.new("RGB", size, "white").save(page, "WEBP")
+    monkeypatch.setattr(Image, "new", spy)
+    stamped = image(
+        worker.stamp(page.getvalue(), pages.WATERMARK_FONT.read_bytes(), EMAIL, DATE, REF)
+    )
+    assert stamped.width == size[0] and stamped.height > size[1]
+    width, height = size
+    # An ordinary page keeps its mark exactly: drawn at full size, not enlarged.
+    assert (squares == [int((width**2 + height**2) ** 0.5) + 1]) is full
+
+
 # ---------------------------------------------------------------- in-process, for coverage
 
 
