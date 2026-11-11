@@ -41,6 +41,11 @@ write_files:
         echo "Snug is installed but not set up. Run: sudo snug setup"
         echo
       fi
+  # Swap only under memory pressure: the swap file can hold memory with the
+  # secret key in it.
+  - path: /etc/sysctl.d/60-snug.conf
+    content: |
+      vm.swappiness = 10
 
 # Room for the document worker, which may use up to 1 GiB, on a small server.
 swap:
@@ -54,6 +59,7 @@ runcmd:
   - ufw allow 443/tcp
   - ufw allow 443/udp
   - ufw --force enable
+  - sysctl -p /etc/sysctl.d/60-snug.conf
   - systemctl enable --now docker
   - mkdir -p /opt/snug/backup
   - |

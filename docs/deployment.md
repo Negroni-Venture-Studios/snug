@@ -25,7 +25,7 @@ Snug runs on one Linux server as four containers under Docker Compose:
    sudo snug setup
    ```
 
-cloud-init installs Docker from Docker's own repository, Ubuntu's automatic security updates, a firewall that lets in only SSH, HTTP and HTTPS, a 1 GB swap file, and Snug's files in `/opt/snug`, with the `snug` command in `/usr/local/bin`. It does not start Snug.
+cloud-init installs Docker from Docker's own repository, Ubuntu's automatic security updates, a firewall that lets in only SSH, HTTP and HTTPS, a 1 GB swap file, used only under memory pressure, and Snug's files in `/opt/snug`, with the `snug` command in `/usr/local/bin`. It does not start Snug.
 
 `snug setup` asks for the domain, the company's name and the backup bucket. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. Email is set up afterwards, in Settings, under Email: [email-google.md](email-google.md) for Google Workspace, [email.md](email.md) for any other provider.
 
