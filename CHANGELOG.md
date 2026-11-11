@@ -6,14 +6,18 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Security
 
-External security audits found all three.
+External security audits found these.
 
+- `snug setup` clears the screen and the terminal's scrollback once you type `saved`, where the backup settings used to stay visible.
+- New servers swap only under memory pressure (`vm.swappiness` 10), so less of Snug's memory, including its secret key, is written to the swap file.
 - The PDF worker refuses to read a file unless it has confined itself: Landlock ABI 4 (Linux 6.7) or later, and a new seccomp filter that refuses to create any socket. It used to carry on unconfined if Landlock failed, and Landlock alone let it send UDP. `SNUG_UNSAFE_UNCONFINED_RENDERING` allows unconfined reading for development only.
 - Signing in goes back to the password step if the password or authenticator changes between the password and the code. Someone who knew the old password could otherwise finish signing in, within five minutes, with a code from the app or a recovery code.
 - Snug refuses a POST over 64 KB, enough for a form's fields, unless a signed-in admin sent it, and refuses it before reading the body. A visitor who was not signed in could send the upload forms a body as large as the video limit, 1 GB by default, and Snug wrote it to disk before turning them away.
 
 ### Fixed
 
+- An investor who accepts the NDA twice at once is recorded once. Upgrading removes any duplicate acceptances already recorded, keeping the earliest.
+- Two admins publishing the NDA at the same moment no longer get a server error: the later save becomes the next version.
 - The README's status says Snug has been set up and restored on a real server, the guides match the code again, and several messages are plainer, among them the revoked-link notice and the forgotten-password email.
 - A new server set up with `deploy/cloud-init.yaml` restarts once at the end of its installation if Ubuntu's updates need it, such as a new kernel. Ubuntu used to leave the server showing *System restart required*.
 - In light mode, the pale green behind status labels and notices is a little paler, so their green text reaches 4.5:1 on the page background, up from 4.46:1. A new test checks every text colour in the stylesheet, in both themes, against everything it is shown on.
