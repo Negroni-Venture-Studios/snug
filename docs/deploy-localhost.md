@@ -75,7 +75,7 @@ Snug shows ten recovery codes. Each lets you sign in once without your phone. Ke
 
 Open [http://localhost:8000/admin/](http://localhost:8000/admin/) in your browser, and sign in with your email address, your password and a code from your app.
 
-The Overview says that nothing has been backed up. That is expected: backups need a server.
+The Overview says that nothing has been backed up, since backups need a server.
 
 ## Reading Snug's emails
 

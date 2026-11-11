@@ -56,7 +56,7 @@ Your documents, the database and the record of who read them stay on your server
 
 Snug is served only over HTTPS, with a certificate from Let's Encrypt that Caddy renews, and tells browsers to use nothing else for a year.
 
-Anyone with root on the server can read everything on it, including the documents, the database, and the email password or Google permission saved in Settings. So can your hosting provider, as with any server. Keep the server's root password, and the console it opens, to the people who run Snug.
+Anyone with root on the server can read everything on it, including the documents, the database, and the email password or Google permission saved in Settings. So can your hosting provider. Keep the server's root password, and the console it opens, to the people who run Snug.
 
 Every admin has the same rights, and signs in with a password and a code from an authenticator app. Adding or removing an admin, or changing how email is sent, needs a fresh code, and once email is set up, Snug emails every admin about it.
 

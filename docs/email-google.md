@@ -25,7 +25,7 @@ A project holds everything you set up for Snug, kept apart from anything else in
 
 1. Open [console.cloud.google.com](https://console.cloud.google.com), signed in with your Workspace account. Accept the terms of service if Google asks.
 2. A banner offers a free trial with credit. Choose **Dismiss**. Snug needs no billing.
-3. Google may have made a project called *My First Project*. Leave it; it costs nothing. Click its name in the bar at the top, next to the Google Cloud logo. A box called *Select a resource* opens.
+3. Google may have made a project called *My First Project*. Leave it. Click its name in the bar at the top, next to the Google Cloud logo. A box called *Select a resource* opens.
 4. Choose **New project**, at its top right.
 
    <img alt="Select a resource, with the New project button at its top right." src="images/google/project-picker.png">
@@ -103,7 +103,7 @@ A box shows the **Client ID** and the **Client secret**. **Copy the secret befor
 
 If you lose the secret, open the client under **Clients**, choose **Add secret**, and delete the old one afterwards.
 
-Google says changes can take a few minutes to take effect. If Google later says *redirect_uri_mismatch*, wait five minutes before looking for a mistake.
+Changes to the client can take a few minutes to take effect. If Google later says *redirect_uri_mismatch*, wait five minutes before looking for a mistake.
 
 ## Step 5: connect Snug
 
@@ -137,7 +137,7 @@ Without *Send mail as*, Gmail quietly sends from the mailbox's primary address i
 
 Receiving servers check three DNS records before they trust mail from your domain. Without them, Snug's emails go to spam or are refused. They live in the DNS of the domain the emails come **from**, and every domain you send from needs its own set, alias domains included.
 
-Your Workspace administrator may have set them up already. To check, open the [Admin console](https://admin.google.com), then **Account**, **Domains**, **Manage domains**, and look at **Email setup status** for each domain. It lists MX, SPF and DKIM, each marked *Complete* or *Incorrect*. Google says changes can take up to 72 hours to show there, though most show within hours.
+Your Workspace administrator may have set them up already. To check, open the [Admin console](https://admin.google.com), then **Account**, **Domains**, **Manage domains**, and look at **Email setup status** for each domain. It lists MX, SPF and DKIM, each marked *Complete* or *Incorrect*. Changes can take up to 72 hours to show there, though most show within hours.
 
 You add the records at your DNS host: your registrar, Cloudflare, or wherever your domain's records are kept.
 
@@ -167,7 +167,7 @@ A DMARC record sets what receiving servers should do with mail that claims to be
 
     v=DMARC1; p=none; rua=mailto:dmarc@example.com
 
-`p=none` asks for reports without affecting delivery. Once the reports show that your real mail passes, usually after a couple of weeks, change it to `p=quarantine`. Gmail and Yahoo expect every bulk sender to have a DMARC record.
+`p=none` asks for reports without affecting delivery. Once the reports show that your real mail passes, usually after a couple of weeks, change it to `p=quarantine`.
 
 If you already have a DMARC record, leave it as it is.
 

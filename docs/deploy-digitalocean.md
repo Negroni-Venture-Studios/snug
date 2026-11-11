@@ -13,7 +13,7 @@ You need:
 
 Decide on the address investors will use. A part of your own domain works best, such as `room.yourcompany.com`. This guide calls it **your Snug address**.
 
-The server and the backup storage cost about $11 a month at the time of writing: $6 for the server and $5 for the storage.
+The server and the backup storage cost about $11 a month: $6 for the server and $5 for the storage.
 
 ## 1. Create the storage for your backups
 
