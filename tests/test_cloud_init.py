@@ -79,3 +79,13 @@ def test_the_login_message_says_when_the_install_did_not_finish() -> None:
         "https://github.com/Negroni-Venture-Studios/snug/blob/main/docs/deploy-digitalocean.md"
         in motd
     )
+
+
+def test_the_login_message_says_wait_while_cloud_init_is_still_running() -> None:
+    # A console opened during the ten-minute install must not be told the
+    # installation failed and to destroy the server.
+    motd = CLOUD_INIT.split("- path: /etc/update-motd.d/99-snug", 1)[1].split("- path:", 1)[0]
+    running = motd.index("cloud-init status")
+    assert running < motd.index("did not finish")
+    assert "still installing" in motd
+    assert "fifteen" not in motd

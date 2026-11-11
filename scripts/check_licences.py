@@ -1,7 +1,7 @@
 """Fail if any installed package has a licence incompatible with MIT.
 
 Snug is MIT licensed. GPL and AGPL dependencies would stop us distributing it
-that way, which is why the brief rules out PyMuPDF, Ghostscript and Poppler.
+that way, which is why Snug uses none of PyMuPDF, Ghostscript and Poppler.
 This checks every installed package, direct or transitive, using pip-licenses.
 
 Run: uv run python scripts/check_licences.py

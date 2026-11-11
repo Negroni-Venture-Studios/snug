@@ -8,7 +8,7 @@ license-files = ["LICENSE"]
 requires-python = ">=3.12"
 authors = [{ name = "Negroni Venture Studios" }]
 classifiers = [
-    "Development Status :: 1 - Planning",
+    "Development Status :: 5 - Production/Stable",
     "Framework :: Django",
     "Intended Audience :: Developers",
     "Operating System :: POSIX :: Linux",
@@ -75,7 +75,7 @@ select = [
     "SIM",          # simplifications
     "BLE",          # no blind except
     "RUF",          # ruff's own
-    "TID",          # tidy imports (banned APIs arrive with step 1)
+    "TID",          # tidy imports and the banned APIs below
     "PTH",          # pathlib over os.path: file paths come from records, never strings glued together
 ]
 

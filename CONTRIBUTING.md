@@ -87,7 +87,7 @@ Snug keeps its dependencies few and well maintained.
 1. On a branch, set the version in `pyproject.toml` (then run `uv lock`), name that version's image in `deploy/compose.yaml`, and date its section in `CHANGELOG.md`. `tests/test_release.py` checks the three agree.
 2. Check that `docs/deploy-localhost.md` and `docs/deploy-digitalocean.md` describe the release.
 3. Tag a release candidate, `vX.Y.Z-rc.N`, on the branch. Its image is published as `:X.Y.Z-rc.N`, and `:latest` does not move. Set up a fresh server by following the DigitalOcean guide, with the startup script changed to download the candidate's tag and run its image.
-4. Merge the pull request, tag `vX.Y.Z` on the merge commit, and publish a GitHub release for the tag. New servers and `snug update` look for the newest published release, so until it is published they find nothing and stop.
+4. Merge the pull request, tag `vX.Y.Z` on the merge commit, and publish a GitHub release for the tag. New servers and `snug update` use the newest published release, so they stay on the previous one until this one is published.
 
 ## Code of conduct
 

@@ -101,7 +101,7 @@ sudo snug doctor --email you@example.com
 |---|---|
 | Housekeeping | `snug housekeeping`, which runs every hour, has completed in the last 3 hours |
 | Backups | The last copy to the bucket succeeded, less than 15 minutes ago ([backups.md](backups.md)) |
-| Document worker | A fresh worker confines itself with Landlock ABI 4 or later and the seccomp filter, which refuses sockets and refuses to trace, signal, re-prioritise or change the limits of another process, so it is allowed to read documents |
+| Document worker | A fresh worker confines itself with Landlock ABI 4 or later and the seccomp filter, which refuses sockets and any reach into another process: tracing it, reading or writing its memory, signalling it, re-prioritising it or changing its limits. Only then may it read documents |
 | DNS | The domain resolves; the report lists the addresses it points to |
 | HTTPS | The domain answers Snug's health check over HTTPS, with a valid certificate that has more than 14 days left |
 | Email | Email is set up, through Google Workspace or SMTP; with `--email`, a code sent to that address is typed back |
@@ -111,7 +111,7 @@ The admin Overview shows the same problems. When there are none, it shows *Every
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/overview-dark.png">
-  <img alt="The admin Overview, with the status line Everything is working above its numbers and the latest visits." src="images/screenshots/overview-light.png">
+  <img alt="The admin Overview, with the status line Everything is working, the running version, Snug 1.0.0, and a link to Updating Snug above its numbers and the latest visits." src="images/screenshots/overview-light.png">
 </picture>
 
 It checks housekeeping, the backups, the email settings and the GeoIP data on each visit; housekeeping runs the document worker, DNS and HTTPS checks every hour, and Snug records a failed email as it happens.

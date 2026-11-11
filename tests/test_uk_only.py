@@ -187,7 +187,7 @@ def test_the_nda_page_refuses_abroad_like_every_other_page(
 def test_every_viewer_event_records_its_country_without_uk_only(
     place: dict[str, str | None],
 ) -> None:
-    """The brief: record the country of every view, whether or not the restriction is on."""
+    """The country of every view is recorded, whether or not the restriction is on."""
     issued = deck_link(uk_only=False, require_verification=False)
     place["country"] = "FR"
     visitor = Client()

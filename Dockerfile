@@ -44,7 +44,8 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Snug and its render worker run as one unprivileged user. The worker is
-# confined by Landlock and resource limits, not a second user (DESIGN.md).
+# confined by Landlock, seccomp and resource limits, not a second user
+# (docs/design.md).
 RUN groupadd --system --gid 10001 snug \
  && useradd --system --uid 10001 --gid snug --home-dir /var/lib/snug --shell /usr/sbin/nologin snug \
  && install --directory --owner snug --group snug --mode 0700 /var/lib/snug

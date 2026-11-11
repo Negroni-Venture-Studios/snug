@@ -70,7 +70,7 @@ def test_a_late_backup_is_shown(client: Client, data_folder: Path) -> None:
     line = status_of(client)
     assert 'class="system-status notice notice-warn" role="alert"' in line
     assert "<strong>Backups.</strong> Nothing has been copied to the bucket for 40" in line
-    assert "Run <code>snug doctor</code> on the server for more." in line
+    assert "Run <code>sudo snug doctor</code> on the server for more." in line
 
 
 @pytest.mark.usefixtures("all_well")
@@ -164,7 +164,7 @@ def test_a_failed_email_is_recorded_and_a_later_success_clears_it(
     assert not row.ok
     assert row.message == (
         "An email could not be sent (SMTPAuthenticationError). "
-        "Run snug doctor --email you@example.com to test."
+        "Run sudo snug doctor --email you@example.com to test."
     )
     assert "priya" not in row.message and "123456" not in row.message
 

@@ -864,7 +864,7 @@ def email_test_view(request: HttpRequest) -> HttpResponse:
     if not sent:
         error = (
             "The test email could not be sent. Check the settings, and Snug's log for the "
-            "kind of error: docker compose logs snug."
+            "kind of error: sudo docker compose logs snug, in /opt/snug."
         )
         return _settings_page(request, status=502, email_test_error=error)
     return redirect(f"/admin/settings/?saved=email-test#{TEST_STEP}")
@@ -1002,7 +1002,8 @@ def reset_view(request: HttpRequest) -> HttpResponse:
         return _change_page(request, target, "reset", error=error, status=400)
     if not mail.enabled():
         error = (
-            "Resetting needs email, to send them a setup link. On the server, use snug reset-2fa."
+            "Resetting needs email, to send them a setup link. On the server, run "
+            "sudo snug reset-2fa with their email address."
         )
         return _change_page(request, target, "reset", error=error, status=503)
     refused = _refused(request, target, "reset")

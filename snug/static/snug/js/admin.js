@@ -3,7 +3,7 @@
 
 (function () {
   // On a narrow screen the tabs scroll sideways. Start with the current one
-  // in view, so the page says where you are.
+  // in view, so you can see where you are.
   var current = document.querySelector('nav.tabs [aria-current="page"]');
   if (current && current.parentElement.scrollWidth > current.parentElement.clientWidth) {
     current.parentElement.scrollLeft = current.offsetLeft - current.parentElement.offsetLeft - 16;

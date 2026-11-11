@@ -1,6 +1,6 @@
 """Reading time: visits, pages shown, and time per page from heartbeats.
 
-The brief: the viewer sends view started, page shown, a heartbeat while the
+The viewer sends view started, page shown, a heartbeat while the
 tab is visible, and view ended. Snug measures elapsed time itself, so a
 browser cannot claim more time than really passed.
 """

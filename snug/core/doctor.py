@@ -127,7 +127,8 @@ def confinement() -> Finding:
     return _problem(
         label,
         f"The document worker cannot confine itself ({how}), so Snug will not read documents. "
-        f"It needs Linux {_LINUX_FOR_ABI[MIN_LANDLOCK_ABI]} or later.",
+        f"It needs Linux {_LINUX_FOR_ABI[MIN_LANDLOCK_ABI]} or later, with Landlock, seccomp "
+        "and a memory limit.",
     )
 
 

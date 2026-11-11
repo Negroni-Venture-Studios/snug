@@ -13,7 +13,7 @@
     return document.documentElement.getAttribute('data-theme') || 'dark';
   }
 
-  // The label names the state you are in, matching the glyph.
+  // The label gives the state you are in, matching the glyph.
   function label(mode) {
     document.querySelectorAll('.theme-toggle').forEach(function (button) {
       button.setAttribute('aria-label', 'Theme: ' + NAMES[mode]);

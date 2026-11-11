@@ -1,5 +1,5 @@
 # Where Snug's backups go, and the key that encrypts them. Copy to
-# /opt/snug/backup/rclone.conf and fill in; docs/backups.md explains each step.
+# /opt/snug/backup/rclone.conf and fill in; docs/backups.md explains how.
 # Keep a copy of the finished file in your password manager: without it, the
 # backups cannot be read by anyone, including you.
 

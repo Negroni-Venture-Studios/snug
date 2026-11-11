@@ -1,7 +1,7 @@
 """Rendered pages: made on demand in the worker, then cached on disk.
 
 The cache holds plain pages per version, page and width. Watermarks are
-stamped on each request (step 4), so one cached page serves every viewer.
+stamped on each request, so one cached page serves every viewer.
 The worker returns the image through a pipe; Snug writes the cache file.
 """
 

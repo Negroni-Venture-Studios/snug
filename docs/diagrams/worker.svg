@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 670" width="940" height="670" role="img" aria-labelledby="t d">
 <title id="t">The confined document worker</title>
-<desc id="d">Snug opens the file and starts a separate worker process, passing the file as a descriptor. The worker limits its own resources, loads its libraries, reads the input, then confines itself with Landlock and a seccomp filter and refuses to go on unless both are in place. A video is read only once the worker is confined, in pieces. It answers on a pipe, which Snug reads within a size limit and a deadline, killing the worker's whole process group past either.</desc>
+<desc id="d">Snug opens the file and starts a separate worker process, passing the file as a descriptor. The worker limits its own resources, loads its libraries, reads the input, then confines itself with Landlock and a seccomp filter, and refuses to go on without both and its memory limit. A video is read only once the worker is confined, in pieces. It answers on a pipe, which Snug reads within a size limit and a deadline, killing the worker's whole process group past either.</desc>
 <defs>
   <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
   <marker id="tip-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-accent"/></marker>
@@ -57,10 +57,10 @@
 <rect class="key" x="520" y="306" width="380" height="82" rx="8"/>
 <text class="title" x="536" y="332"><tspan class="accent">4</tspan><tspan dx="8">Confines itself</tspan></text>
 <text class="label" x="536" y="354">no new privileges; Landlock: read fonts only,</text>
-<text class="label" x="536" y="372">no TCP; a seccomp filter: no sockets at all</text>
+<text class="label" x="536" y="372">no TCP; seccomp: no sockets, no other processes</text>
 
 <rect class="box" x="520" y="404" width="380" height="64" rx="8"/>
-<text class="title" x="536" y="430"><tspan class="accent">5</tspan><tspan dx="8">Checks both are in place</tspan></text>
+<text class="title" x="536" y="430"><tspan class="accent">5</tspan><tspan dx="8">Checks it is limited and confined</tspan></text>
 <text class="label" x="536" y="452">or refuses to parse anything: <tspan class="mono">unconfined</tspan></text>
 
 <rect class="box" x="520" y="484" width="380" height="64" rx="8"/>

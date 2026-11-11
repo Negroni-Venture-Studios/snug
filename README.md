@@ -35,7 +35,7 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 - **An audit log** of every admin action and every viewer access, with the viewer's country, filterable and exportable as CSV.
 - **Email** through Google Workspace, as a mailbox on your domain over the Gmail API, or any provider over SMTP. It is set up in Settings in numbered steps, ending with a test email, and can be cleared there.
 - **Admin accounts** with a password and an authenticator app, recovery codes, invitations by email, and an email to every admin whenever the admins change.
-- **Running it.** Docker Compose with Caddy for HTTPS; continuous backups to a storage bucket of your own, encrypted on your server with a key only you hold, with the last copy shown in Settings; `snug doctor`, which checks the server and reports what to fix, and a status line on the Overview showing the same; `snug update`, for the latest version; and `snug restore`.
+- **Running it.** Docker Compose with Caddy for HTTPS; continuous backups to a storage bucket of your own, encrypted on your server with a key only you hold, with the last copy shown in Settings; `snug doctor`, which checks the server and reports what to fix, and a status line on the Overview showing the same, with the running version beneath it; `snug update`, which moves the server to the newest release; and `snug restore`.
 
 You see who opened what on the Overview, and each person's reading on People:
 
@@ -86,7 +86,7 @@ To put Snug on a server, follow [Putting Snug on DigitalOcean](docs/deploy-digit
 
 ## How it is built
 
-Python and Django, with SQLite in WAL mode, server-rendered pages and very little JavaScript. PDFs are read and rendered with pypdfium2 in a separate process, limited in memory and time and confined by Linux Landlock and a filter that blocks network access, so a hostile PDF cannot reach your data. The same process checks Excel workbooks and MP4 videos, with the standard library alone; it never decodes a video, which the viewer's browser plays. Snug is one container image, run beside Caddy, Litestream and rclone. [How Snug works](docs/architecture.md) explains the code, with diagrams, and [docs/design.md](docs/design.md) the decisions behind it.
+Python and Django, with SQLite in WAL mode, server-rendered pages and very little JavaScript. PDFs are read and rendered with pypdfium2 in a separate process, limited in memory and time and confined by Linux Landlock and a filter that blocks network access and any reach into other processes, so a hostile PDF cannot reach your data. The same process checks Excel workbooks and MP4 videos, with the standard library alone; it never decodes a video, which the viewer's browser plays. Snug is one container image, run beside Caddy, Litestream and rclone. [How Snug works](docs/architecture.md) explains the code, with diagrams, and [docs/design.md](docs/design.md) the decisions behind it.
 
 UK-only mode uses [IP geolocation by DB-IP](https://db-ip.com), licensed CC BY 4.0, which your server downloads once a month.
 

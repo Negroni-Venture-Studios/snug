@@ -123,7 +123,7 @@ A room link's documents are checked on every request against the room's current 
 - A `Link` points at a document or a room, never both; a check constraint in the database holds it to exactly one.
 - A link always shows its document's newest version. `Visit.version_number` records which version was read, as a number, so deleting an old version would not delete the reading data.
 - `AuditEvent` rows can be added but never changed or deleted. The model refuses it, and so do SQLite triggers created by the audit app's first migration.
-- An `NdaAcceptance` holds the name, email, address, browser and a SHA-256 hash of the exact text accepted. Its foreign keys are protected, so a link someone has accepted the NDA on cannot be deleted.
+- An `NdaAcceptance` holds the name, email, address, browser and a SHA-256 hash of the exact text accepted. A link holds one for each version of the NDA, enforced by a unique constraint, and the first is kept. Its foreign keys are protected, so a link someone has accepted the NDA on cannot be deleted.
 - `SiteSettings` and `EmailSettings` each hold one row. They keep what admins change in Settings, so a change needs no restart. `EmailSettings` holds the SMTP password, the Google client secret and the refresh token as they are, since Snug needs them to send email.
 
 Files live in the data folder, `SNUG_DATA_DIR`:
@@ -164,7 +164,7 @@ Every uploaded file is untrusted. Snug reads them only in a separate process, th
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/worker-dark.svg">
-  <img alt="Snug opens the file and starts the worker with a clean environment and the file as a descriptor. The worker limits its resources, loads its libraries, reads the input, confines itself with Landlock and a seccomp filter, refuses to continue unless both are in place, then answers on a pipe that Snug reads up to a size limit and a deadline." src="images/diagrams/worker-light.svg">
+  <img alt="Snug opens the file and starts the worker with a clean environment and the file as a descriptor. The worker limits its resources, loads its libraries, reads the input, confines itself with Landlock and a seccomp filter, refuses to continue unless both are in place and its memory limit is set, then answers on a pipe that Snug reads up to a size limit and a deadline." src="images/diagrams/worker-light.svg">
 </picture>
 
 `snug.rendering.sandbox.run` starts `python -I -m snug.rendering.worker MODE FD`:
@@ -179,7 +179,7 @@ The worker then:
 1. limits itself to 1 GiB of memory, 60 seconds of CPU, 64 MB written to any file and 32 open files, with no core dumps and no new processes;
 2. loads PDFium and Pillow, and runs pypdf and the workbook reader once on tiny files, so nothing has to load later;
 3. reads its input, except a video, which it reads in pieces once it is confined;
-4. confines itself: no new privileges, then a Landlock ruleset that allows nothing but reading the system's fonts and refuses TCP, then a seccomp filter that refuses to create any socket, or to trace, signal, re-prioritise or change the limits of another process;
+4. confines itself: no new privileges, then a Landlock ruleset that allows nothing but reading the system's fonts and refuses TCP, then a seccomp filter that refuses to create any socket, or to reach into another process: tracing it, reading or writing its memory, signalling it, re-prioritising it or changing its limits;
 5. refuses to go on unless Landlock ABI 4 or later (Linux 6.7), the filter and the memory limit are all in place;
 6. does its job and writes the answer to the pipe: a line of JSON, or the image or file it made.
 
@@ -273,7 +273,7 @@ The content security policy allows no inline script or style, so the few scripts
 |---|---|
 | `theme-init.js` | Applies the saved light or dark theme before the page is drawn |
 | `theme.js` | The theme toggle |
-| `admin.js` | Admin helpers: upload progress, copy buttons, and the tabs on a narrow screen. It sends an upload form itself, and the server answers with the address to go to, since a followed redirect would lose its `#section`. |
+| `admin.js` | Admin helpers: upload progress, copy buttons, and the tabs on a narrow screen. It sends an upload form itself. For a saved upload the server answers with the address to go to, since a followed redirect would lose its `#section`; for a refused one it sends the form with its error, and only the page's `<main>` is replaced. |
 | `reveal.js` | The eye that shows what is typed in a password box |
 | `nda-first.js` | Shows the box for writing the first NDA while a box asking for the NDA is ticked |
 | `brand.js` | Keeps the accent colour's picker and its text in step |

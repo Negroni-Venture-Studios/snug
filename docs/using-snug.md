@@ -17,7 +17,7 @@ The Overview is the first page after signing in. A line at the top says whether 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/overview-dark.png">
-  <img alt="The Overview: everything is working, five documents, nine active links, six people who have visited and fourteen visits this week, with the latest visits listed below." src="images/screenshots/overview-light.png">
+  <img alt="The Overview: everything is working, Snug 1.0.0 with a link to Updating Snug, five documents, nine active links, six people who have visited and fourteen visits this week, with the latest visits listed below." src="images/screenshots/overview-light.png">
 </picture>
 
 ## Uploading a document
@@ -73,7 +73,7 @@ Each link is for one person. On a document's page, choose *New link*, and fill i
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/link-new-dark.png">
-  <img alt="The form for a new link: email address, a note for yourself, a message for them, an expiry date, and boxes for verification, the NDA, UK only and downloads." src="images/screenshots/link-new-light.png">
+  <img alt="The form for a new link: email address, a note for yourself, a message for them and an expiry date, beside a note that the link is shown only once." src="images/screenshots/link-new-light.png">
 </picture>
 
 *Create and email* sends it; *Create and copy* shows the link once, to send yourself. If it is lost, send a new link.
@@ -157,7 +157,7 @@ Email is set up in numbered steps, ending with a test email, as in [the Google W
 
 Branding sets how investors' pages look. Each part is saved on its own.
 
-- **Company name**, shown at the top of investors' pages when there is no logo, and in every email Snug sends. `snug setup` asks for it first.
+- **Company name**, shown at the top of investors' pages when there is no logo, and in every email Snug sends. `snug setup` asks for it, and this is where to change it.
 - **Accent colour**, for buttons and links on investors' pages. Snug adjusts it where needed to keep text readable, and the preview shows the result before you save. Leave it empty for Snug's own.
 - **Logo**, a PNG or JPEG up to 2 MB, shown at the top of investors' pages. Untick *Show the name beside the logo* if the logo already spells it out.
 - **Tab icon**, a square PNG or JPEG for investors' browser tabs. Without one, Snug uses your logo if it is roughly square, and otherwise your initial on your accent colour.

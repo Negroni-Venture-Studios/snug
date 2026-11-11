@@ -1,7 +1,7 @@
 """The viewer's access rules: codes, sessions and the single authorisation path.
 
 Every viewer request for content goes through snug.viewer.access.authorise.
-These tests walk its checks in order, including the cases the brief names:
+These tests walk its checks in order, including these cases:
 revoked links with open sessions, expired links, link A's session used against
 link B, and a document outside the link.
 """

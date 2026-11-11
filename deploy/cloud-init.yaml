@@ -5,7 +5,7 @@
 # calls "Startup scripts" and most other providers "User data". Once the
 # server is up, open its console and run
 #   sudo snug setup
-# docs/deploy-digitalocean.md takes you through every step.
+# Every step is in docs/deploy-digitalocean.md.
 
 package_update: true
 package_upgrade: true
@@ -101,11 +101,15 @@ write_files:
     content: |
       #!/bin/sh
       # snug setup writes the secret key; until then, say what to do.
-      if ! command -v docker > /dev/null || [ ! -x /usr/local/bin/snug ]; then
+      if cloud-init status 2> /dev/null | grep -q 'status: running'; then
         echo
-        echo "Snug's installation did not finish. Destroy this server and create a"
-        echo "new one, as If something goes wrong describes at"
-        echo "https://github.com/Negroni-Venture-Studios/snug/blob/main/docs/deploy-digitalocean.md"
+        echo "Snug is still installing. Close the console, wait five minutes, and open it again."
+        echo
+      elif ! command -v docker > /dev/null || [ ! -x /usr/local/bin/snug ]; then
+        echo
+        echo "Snug's installation did not finish. Destroy this server and create a new"
+        echo "one, as described at"
+        echo "https://github.com/Negroni-Venture-Studios/snug/blob/main/docs/deploy-digitalocean.md#if-something-goes-wrong"
         echo
       elif ! grep -q '^SNUG_SECRET_KEY=.' /opt/snug/snug.env 2>/dev/null; then
         echo
