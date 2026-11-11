@@ -135,6 +135,8 @@ sudo snug doctor
 sudo snug update
 ```
 
-`snug update` downloads the latest versions of the files in `/opt/snug` from GitHub, as cloud-init does, and replaces them only once every one has arrived. `snug.env` and `backup/` are never touched. It then installs the new `snug` command, pulls the new images, and restarts the containers that changed. Snug applies any database migrations when it starts.
+`snug update` downloads the files in `/opt/snug` from the newest release on GitHub, or from `main` before the first release, as cloud-init does, and replaces them only once every one has arrived. `snug.env` and `backup/` are never touched. It then installs the new `snug` command, pulls the new images, and restarts the containers that changed. Snug applies any database migrations when it starts.
 
-To download from another branch or tag, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`. It is `main` unless set.
+To download from another branch or tag, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`.
+
+The Overview shows which Snug is running, under its status line: a release's version, or `edge` and the commit for a build of `main`.

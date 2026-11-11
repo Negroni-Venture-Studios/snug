@@ -8,12 +8,14 @@ import pytest
 from django.test import Client
 
 from snug.accounts import sessions
-from snug.accounts.admin_views import DOCS_URL
 from snug.accounts.models import Admin
+from snug.core.version import docs_url
 
 pytestmark = pytest.mark.django_db
 
 DOCS = Path(__file__).parent.parent / "docs"
+# Running from source, the guides are main's.
+DOCS_URL = "https://github.com/Negroni-Venture-Studios/snug/blob/main/docs/"
 
 # Section id, and the guides linked under its heading.
 GUIDES = {
@@ -41,7 +43,7 @@ def head(page: str, section: str) -> str:
 
 
 def test_the_guides_are_on_github_and_exist() -> None:
-    assert DOCS_URL == "https://github.com/Negroni-Venture-Studios/snug/blob/main/docs/"
+    assert docs_url() == DOCS_URL
     for guides in GUIDES.values():
         for name in guides:
             assert (DOCS / name).is_file(), name

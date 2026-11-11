@@ -28,6 +28,8 @@ FILES = [
 # Writes "new <file>" to the -o path, unless the file is named in $BROKEN.
 CURL = """#!/bin/sh
 echo "curl $*" >> "$LOG"
+# The lookup of the newest release prints where GitHub redirected it.
+case " $* " in *" -w "*) printf '%s' "$LATEST"; exit 0 ;; esac
 out=""; url=""
 while [ $# -gt 0 ]; do
 	case "$1" in
@@ -69,7 +71,7 @@ def server(tmp_path: Path) -> Path:
 
 
 def run_update(
-    server: Path, *, broken: str = ""
+    server: Path, *, broken: str = "", latest: str = "", ref: str | None = None
 ) -> tuple[subprocess.CompletedProcess[str], list[str]]:
     log = server.parent / "log"
     log.touch()
@@ -78,7 +80,11 @@ def run_update(
         "PATH": f"{server.parent / 'bin'}:{os.environ['PATH']}",
         "LOG": str(log),
         "BROKEN": broken,
+        "LATEST": latest,
     }
+    env.pop("SNUG_REF", None)
+    if ref is not None:
+        env["SNUG_REF"] = ref
     result = subprocess.run(
         ["/bin/sh", str(server / "update.sh")],
         capture_output=True,
@@ -94,7 +100,7 @@ def test_it_replaces_the_files_then_pulls_and_restarts(server: Path) -> None:
     assert result.returncode == 0, result.stdout + result.stderr
     for name in FILES:
         assert (server / name).read_text() == f"new {name}\n", name
-    fetched = [call for call in calls if call.startswith("curl")]
+    fetched = [call for call in calls if call.startswith("curl") and "/deploy/" in call]
     assert all("/Negroni-Venture-Studios/snug/main/deploy/" in call for call in fetched)
     assert f"install -m 755 {server / 'snug'} /usr/local/bin/snug" in calls
     docker = [call for call in calls if call.startswith("docker")]
@@ -125,3 +131,27 @@ def test_it_fetches_the_same_files_as_a_new_server() -> None:
     cloud_init = listed((DEPLOY / "cloud-init.yaml").read_text(), "for file in")
     update = listed((DEPLOY / "update.sh").read_text(), 'files="')
     assert update == cloud_init == FILES
+
+
+RELEASES = "https://github.com/Negroni-Venture-Studios/snug/releases"
+
+
+def test_it_fetches_the_newest_release(server: Path) -> None:
+    _, calls = run_update(server, latest=f"{RELEASES}/tag/v1.4.2")
+    assert any(call.startswith("curl") and f"{RELEASES}/latest" in call for call in calls)
+    fetched = [call for call in calls if "/deploy/" in call]
+    assert len(fetched) == len(FILES)
+    assert all("/Negroni-Venture-Studios/snug/v1.4.2/deploy/" in call for call in fetched)
+
+
+def test_without_a_release_it_fetches_main(server: Path) -> None:
+    _, calls = run_update(server, latest=RELEASES)  # GitHub's answer when there is none
+    fetched = [call for call in calls if "/deploy/" in call]
+    assert all("/snug/main/deploy/" in call for call in fetched)
+
+
+def test_snug_ref_chooses_without_asking_github(server: Path) -> None:
+    _, calls = run_update(server, latest=f"{RELEASES}/tag/v1.4.2", ref="some-branch")
+    assert not any(f"{RELEASES}/latest" in call for call in calls)
+    fetched = [call for call in calls if "/deploy/" in call]
+    assert all("/snug/some-branch/deploy/" in call for call in fetched)

@@ -23,7 +23,7 @@ from snug.accounts import limits, passwords, recovery, setup, totp
 from snug.accounts.models import Admin, AdminSetup
 from snug.analytics import retention
 from snug.audit.models import AuditEvent, record
-from snug.core import brand, doctor, gmail, logo, mail, ratelimit
+from snug.core import brand, doctor, gmail, logo, mail, ratelimit, version
 from snug.core.client import client_ip, user_agent
 from snug.core.models import EmailSettings, SiteSettings, company_name
 from snug.nda import terms as nda_terms
@@ -53,11 +53,6 @@ def _audit(request: HttpRequest, action: str, actor: str, target: str, **details
     )
 
 
-# The guides each Settings section links to. Snug has no tagged releases yet, so
-# they are the latest; once it has, link to the running version's tag instead.
-DOCS_URL = "https://github.com/Negroni-Venture-Studios/snug/blob/main/docs/"
-
-
 def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> HttpResponse:
     now = timezone.now()
     pending = {
@@ -69,7 +64,8 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
     admins = [{"account": a, "setup": pending.get(a.pk)} for a in Admin.objects.all()]
     context = {
         "tab": "settings",
-        "docs_url": DOCS_URL,
+        # The guides for the running release, so an older one reads its own.
+        "docs_url": version.docs_url(),
         "admins": admins,
         "email_enabled": mail.enabled(),
         "done": next((k for k in ("invited", "removed", "reset") if request.GET.get(k) == "1"), ""),

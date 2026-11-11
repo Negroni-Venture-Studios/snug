@@ -64,7 +64,12 @@ runcmd:
   - mkdir -p /opt/snug/backup
   - |
     set -eu
-    ref=main
+    # The newest release, or main before the first one.
+    latest=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/Negroni-Venture-Studios/snug/releases/latest || true)
+    case "$latest" in
+      */releases/tag/*) ref="${latest##*/}" ;;
+      *) ref=main ;;
+    esac
     base="https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/$ref/deploy"
     cd /opt/snug
     for file in compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh update.sh snug; do

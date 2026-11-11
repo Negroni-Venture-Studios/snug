@@ -474,3 +474,22 @@ def test_settings_shows_when_the_backups_last_reached_the_bucket(
     expect(beside).to_have_attribute("target", "_blank")
     if shots:
         section.screenshot(path=f"{shots}/settings-backups-problem.png")
+
+
+def test_the_overview_shows_the_version_under_the_status(
+    live_server: Any, page: Page, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("SNUG_BUILD_VERSION", "1.4.2")
+    sign_in(live_server, page)
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.goto(f"{live_server.url}/admin/")
+    status = page.locator(".system-status")
+    line = page.locator(".system-version")
+    expect(line).to_contain_text("Snug 1.4.2.")
+    status_box, line_box = status.bounding_box(), line.bounding_box()
+    assert status_box is not None and line_box is not None
+    assert line_box["y"] > status_box["y"] + status_box["height"] - 1
+    guide = line.get_by_role("link", name="Updating Snug")
+    expect(guide).to_have_attribute("target", "_blank")
+    if shots := os.environ.get("SNUG_SHOT_DIR"):
+        page.locator("main").screenshot(path=f"{shots}/overview-version.png")

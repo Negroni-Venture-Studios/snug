@@ -11,6 +11,7 @@
 {% else %}
 <div class="system-status system-status-ok" role="status">{% icon "check" %}<span>Everything is working.</span></div>
 {% endif %}
+<p class="system-version">{% if running.commit_url %}<a href="{{ running.commit_url }}" target="_blank" rel="noopener noreferrer">{{ running.name }}</a>{% else %}{{ running.name }}{% endif %}. <a href="{{ docs_url }}deploy-digitalocean.md#keeping-snug-up-to-date" target="_blank" rel="noopener noreferrer">Updating Snug</a></p>
 {% if not documents %}
 <div class="empty">
   <h2>Nothing to show yet</h2>

@@ -56,6 +56,13 @@ ENV PATH=/app/.venv/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     SNUG_DATA_DIR=/var/lib/snug
 
+# Which Snug this is, shown on the Overview: a release's version, or "edge"
+# and the commit. Set by the Image workflow; empty in a local build.
+ARG SNUG_BUILD_VERSION=""
+ARG SNUG_BUILD_COMMIT=""
+ENV SNUG_BUILD_VERSION=$SNUG_BUILD_VERSION \
+    SNUG_BUILD_COMMIT=$SNUG_BUILD_COMMIT
+
 USER snug
 WORKDIR /var/lib/snug
 VOLUME /var/lib/snug
