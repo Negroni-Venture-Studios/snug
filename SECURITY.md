@@ -27,7 +27,7 @@ In scope:
 Out of scope:
 
 - Weaknesses in an operator's own infrastructure or configuration that Snug's documentation already warns against.
-- The limits Snug documents, such as a watermark being unable to stop someone photographing a screen.
+- The limits set out in [What Snug protects against](docs/security.md), such as a watermark being unable to stop someone photographing a screen.
 - Social engineering of founders or investors.
 
 ## Supported versions
