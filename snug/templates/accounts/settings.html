@@ -156,7 +156,7 @@
 </ol>
 </section>
 <div class="section" id="branding">
-<div class="section-head stacked"><h2>Branding</h2><p>How your pages look to investors.</p></div>
+<div class="section-head stacked"><h2>Branding</h2><p>How your pages look to investors.</p>{% include "accounts/partials/doc_link.html" with page="using-snug.md#branding" label="Using Snug" %}</div>
 <form class="panel form settings-form" method="post" action="{% url 'accounts:branding' %}#branding" novalidate>
   {% csrf_token %}
   {% if saved == "branding" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if accent %}Saved. Investors' pages use this colour.{% if brand_adjusted %} Text and links are darkened where needed to stay readable.{% endif %}{% else %}Saved. Investors' pages use Snug's default colour.{% endif %}</span></div>{% endif %}
@@ -204,7 +204,7 @@
 </div>
 
 <div class="section" id="privacy">
-<div class="section-head stacked"><h2>Privacy</h2><p>Viewers are told what Snug records about them. You can add a link to your own privacy policy.</p></div>
+<div class="section-head stacked"><h2>Privacy</h2><p>Viewers are told what Snug records about them. You can add a link to your own privacy policy.</p>{% include "accounts/partials/doc_link.html" with page="using-snug.md#privacy-and-reading-data" label="Using Snug" %}</div>
 <form class="panel form settings-form" method="post" action="{% url 'accounts:privacy' %}#privacy" novalidate>
   {% csrf_token %}
   {% if saved == "privacy" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved.</span></div>{% endif %}
@@ -220,5 +220,14 @@
     {% if retention_error %}<div class="error" id="retention-error" role="alert">{% icon "warning-circle" %}{{ retention_error }}</div>{% else %}<div class="hint">What each person read or watched, and for how long, is deleted this long after their link is revoked or expires. While a link works, its reading data is kept. The audit log is kept regardless. Some sectors need longer: seven years is 84 months.</div>{% endif %}</div>
   <button class="btn btn-primary" type="submit">Save</button>
 </form>
+</div>
+
+<div class="section" id="backups">
+<div class="section-head stacked"><h2>Backups</h2><p>Every 5 minutes, Snug copies your documents and its database to your own storage bucket, encrypted on this server.</p>{% include "accounts/partials/doc_link.html" with page="backups.md" label="The backups guide" %}</div>
+<div class="panel backup-status">
+  <p>{% if backup.problem %}<span class="status status-warn">Problem</span>{% else %}<span class="status status-ok">Working</span>{% endif %} {{ backup.message }}</p>
+  {% if backup_at %}<p class="hint">The last complete copy finished at {{ backup_at|date:"H:i" }} on {{ backup_at|date:"j F Y" }}.</p>{% endif %}
+  {% if backup.problem %}<p class="hint"><a href="{{ docs_url }}backups.md" target="_blank" rel="noopener noreferrer">The backups guide</a> explains how to set backups up, and what to do about each problem.</p>{% endif %}
+</div>
 </div>
 {% endblock %}

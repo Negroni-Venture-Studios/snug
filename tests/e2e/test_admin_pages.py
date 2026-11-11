@@ -1,6 +1,8 @@
 """Admin pages in a real browser: what only a click can prove under the CSP."""
 
+import os
 import re
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -396,3 +398,41 @@ def test_a_video_is_uploaded_and_shown_with_its_watermark(
     )
     assert piece.status == 206 and len(piece.body()) == 100
     investor.close()
+
+
+def test_settings_shows_when_the_backups_last_reached_the_bucket(
+    live_server: Any, page: Page, data_folder: Path
+) -> None:
+    copied = datetime.now(UTC) - timedelta(minutes=4)
+    (data_folder / "backup").mkdir()
+    (data_folder / "backup" / "last-success").write_text(
+        copied.strftime("%Y-%m-%dT%H:%M:%SZ"), encoding="utf-8"
+    )
+    sign_in(live_server, page)
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.goto(f"{live_server.url}/admin/settings/#backups")
+    section = page.locator("#backups")
+    expect(section).to_be_in_viewport()
+    expect(section.locator(".status")).to_have_text("Working")
+    expect(section).to_contain_text("Last copied to the bucket 4\u00a0minutes ago.")
+    guide = section.get_by_role("link", name="The backups guide")
+    expect(guide).to_have_attribute("href", re.compile(r"/docs/backups\.md$"))
+    expect(guide).to_have_attribute("target", "_blank")
+    for name, anchor in (("branding", "branding"), ("privacy", "privacy-and-reading-data")):
+        link = page.locator(f"#{name} .section-head .doc-link")
+        expect(link).to_have_attribute("href", re.compile(rf"/docs/using-snug\.md#{anchor}$"))
+    shots = os.environ.get("SNUG_SHOT_DIR")
+    if shots:
+        section.screenshot(path=f"{shots}/settings-backups.png")
+
+    (data_folder / "backup" / "last-success").unlink()
+    (data_folder / "backup" / "problem").write_text(
+        "Backups are not set up. Run sudo snug setup to add a bucket.", encoding="utf-8"
+    )
+    page.reload()
+    expect(section.locator(".status")).to_have_text("Problem")
+    beside = section.locator(".backup-status").get_by_role("link", name="The backups guide")
+    expect(beside).to_be_visible()
+    expect(beside).to_have_attribute("target", "_blank")
+    if shots:
+        section.screenshot(path=f"{shots}/settings-backups-problem.png")

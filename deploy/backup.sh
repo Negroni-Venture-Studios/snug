@@ -78,7 +78,7 @@ while :; do
 		owner=$?
 	fi
 	if [ ! -s /config/rclone/rclone.conf ]; then
-		record problem "Backups are not set up: there is no rclone.conf."
+		record problem "Backups are not set up. Run sudo snug setup to add a bucket."
 	elif [ "$owner" = 1 ]; then
 		record problem "The bucket holds another Snug's backups, so nothing was copied. Run snug restore to bring them here, or use another bucket."
 	elif [ "$owner" = 2 ]; then

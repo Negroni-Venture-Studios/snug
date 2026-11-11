@@ -137,7 +137,7 @@ The audit log lists everything admins and investors do, newest first: signing in
 
 ## Settings
 
-Settings holds the admins, your own account, email, branding, the NDA, the privacy policy link and how long reading data is kept. The admin, account, email and NDA sections each link to their guide.
+Settings holds the admins, your own account, email, branding, the NDA, the privacy policy link, how long reading data is kept, and when the backups last ran. Each section has a link to its guide.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-dark.png">
@@ -152,3 +152,22 @@ Changing who the admins are, or how email is sent, needs a fresh code from your 
 </picture>
 
 Email is set up in numbered steps, ending with a test email. [The Google Workspace guide](email-google.md) and [the email guide](email.md) walk through them.
+
+### Branding
+
+Branding sets how investors' pages look. Each part is saved on its own.
+
+- **Company name**, shown at the top of investors' pages when there is no logo, and in every email Snug sends. `snug setup` asks for it first.
+- **Accent colour**, for buttons and links on investors' pages. Snug darkens it where needed to keep text readable, and the preview shows the result before you save. Leave it empty for Snug's own.
+- **Logo**, a PNG or JPEG up to 2 MB, shown at the top of investors' pages. Untick *Show the name beside the logo* if the logo already spells it out.
+- **Tab icon**, a square PNG or JPEG for investors' browser tabs. Without one, Snug uses your logo if it is roughly square, and otherwise your initial on your accent colour.
+
+### Privacy and reading data
+
+Beside each document, investors are told what you will see: when they open it, how long they spend on each page, and that every page shows their email address. To add a link to your own privacy policy there, enter its address under **Privacy policy address**.
+
+**Keep reading data for** sets how long Snug keeps what each person read or watched once their link is revoked or expires: 12 months unless you change it, and anything from 1 to 120. While a link works, its reading data is kept. The link and the audit log are kept regardless.
+
+### Backups
+
+Backups shows when Snug last copied your documents and database to your bucket, or what went wrong. It is the same check as `snug doctor` on the server. [Backups](backups.md) explains how they work, and how to restore from them.
