@@ -61,6 +61,7 @@ External security audits found all three.
 
 ### Added
 
+- A step-by-step guide to trying Snug on your own Mac, `docs/deploy-localhost.md`, from installing Docker Desktop onwards. It replaces the README's shorter section, which assumed Docker and Python were installed.
 - [Using Snug](docs/using-snug.md), a guide to every page of the admin and what investors see, with screenshots. The deployment, backups, email, admin accounts and NDA guides have diagrams and screenshots too.
 - Screenshots in the README, in light and dark, taken from a demo company's data room in a real browser by `tests/e2e/test_screenshots.py`, so they can be retaken whenever a page changes.
 - [How Snug works](docs/architecture.md), a guide to the code for developers, with diagrams in light and dark.
