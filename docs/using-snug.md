@@ -170,4 +170,4 @@ Beside each document, investors are told what you will see: when they open it, h
 
 ### Backups
 
-Backups shows when Snug last copied your documents and database to your bucket, or what went wrong. It is the same check as `snug doctor` on the server. [Backups](backups.md) explains how they work, and how to restore from them.
+Backups shows when Snug last copied your documents and database to your bucket, or what went wrong. It is the same check as `snug doctor` on the server. [Backups](backups.md) explains how to restore from them.

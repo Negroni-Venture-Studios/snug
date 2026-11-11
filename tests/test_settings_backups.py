@@ -91,7 +91,7 @@ def test_a_problem_links_the_guide_beside_it(client: Client, data_folder: Path) 
     panel = section[section.index('class="panel backup-status"') :]
     assert "Backups are not set up. Run sudo snug setup to add a bucket." in panel
     assert 'docs/backups.md"' in panel
-    assert "explains how to set backups up" in panel
+    assert "The backups guide</a> explains how to set them up." in panel
 
 
 def test_working_backups_need_no_second_link(client: Client, data_folder: Path) -> None:

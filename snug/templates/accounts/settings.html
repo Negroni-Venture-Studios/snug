@@ -227,7 +227,7 @@
 <div class="panel backup-status">
   <p>{% if backup.problem %}<span class="status status-warn">Problem</span>{% else %}<span class="status status-ok">Working</span>{% endif %} {{ backup.message }}</p>
   {% if backup_at %}<p class="hint">The last complete copy finished at {{ backup_at|date:"H:i" }} on {{ backup_at|date:"j F Y" }}.</p>{% endif %}
-  {% if backup.problem %}<p class="hint"><a href="{{ docs_url }}backups.md" target="_blank" rel="noopener noreferrer">The backups guide</a> explains how to set backups up, and what to do about each problem.</p>{% endif %}
+  {% if backup.problem %}<p class="hint"><a href="{{ docs_url }}backups.md" target="_blank" rel="noopener noreferrer">The backups guide</a> explains how to set them up.</p>{% endif %}
 </div>
 </div>
 {% endblock %}
