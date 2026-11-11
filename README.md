@@ -19,8 +19,6 @@ Snug is a self-hosted data room for early-stage founders. You run it on your own
 
 Snug is open source, published by [Negroni Venture Studios](https://negroniventurestudios.com/). Your documents, and the record of who read them, stay on your server and in your own encrypted backups.
 
-> **Status: test builds only.** Snug has been set up on a real DigitalOcean server from its guide, and restored from its backups onto a second one, but there is no release yet. Please do not put real documents in it until there is. See [Status](#status).
-
 ## Who it is for
 
 Founders raising a seed or Series A round who want more than a shared Drive folder, without paying monthly for a hosted data room or putting their most sensitive documents on someone else's servers.
@@ -74,9 +72,9 @@ More screenshots are in [Using Snug](docs/using-snug.md).
 
 ## Status
 
-Everything planned for version 1 is built and tested. The container image is published only as a test build, `ghcr.io/negroni-venture-studios/snug:edge`, and there is no release yet. On 11 November 2026 Snug was set up on a DigitalOcean droplet by following the DigitalOcean guide alone, with email through Google Workspace. The same day it was restored from its backups onto a second droplet, and the documents, links, reading data, audit log, admin account and email settings all came back.
+Version 1.0.0 is the first release, with the container image `ghcr.io/negroni-venture-studios/snug:1.0.0`. Before it, Snug was set up on a DigitalOcean droplet by following the DigitalOcean guide alone, with email through Google Workspace, and restored from its backups onto a second droplet.
 
-[What Snug protects against](docs/security.md) sets out the limits of its watermarks, the NDA record and UK-only mode. The first release is next, from the [order of work](DESIGN.md#4-order-of-work).
+[What Snug protects against](docs/security.md) sets out the limits of its watermarks, the NDA record and UK-only mode. Planned work is in the [issues labelled enhancement](https://github.com/Negroni-Venture-Studios/snug/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
 
 ## Trying it on your own computer
 

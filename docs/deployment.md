@@ -65,7 +65,7 @@ Compose treats `$` in `snug.env` as the start of a variable. Wrap any value cont
 
 | | Snug | Caddy |
 |---|---|---|
-| Image | `ghcr.io/negroni-venture-studios/snug:edge`, a test build of the latest code; set `SNUG_IMAGE` in `.env` to use another | `caddy`, pinned by digest |
+| Image | `ghcr.io/negroni-venture-studios/snug` at the release's version, such as `:1.0.0`; set `SNUG_IMAGE` in `.env` to use another, such as `:edge`, a build of the latest code on `main` | `caddy`, pinned by digest |
 | Data | The `snug-data` volume, mounted at `/var/lib/snug` | The `caddy-data` volume, holding its certificates |
 | Ports | None on the server; only Caddy can reach it | 80 and 443, with 443 over UDP for HTTP/3 |
 | Filesystem | Read-only, apart from the data folder and `/tmp` | Read-only, apart from its volumes and `/tmp` |

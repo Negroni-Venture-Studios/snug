@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-11
+
+The first release.
+
 ### Security
 
 External security audits found these.
@@ -191,4 +195,5 @@ External security audits found these.
 - DESIGN.md, recording the architecture, the agreed decisions and the front-end design, with clickable mockups and the Snug logo in `docs/design/`.
 - The original project brief, kept for the record in `docs/BRIEF.md`.
 
-[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/commits/main
+[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/Negroni-Venture-Studios/snug/releases/tag/v1.0.0
