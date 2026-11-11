@@ -205,6 +205,61 @@ def test_creating_a_link_is_audited(client: Client, document: Document) -> None:
     assert event.details["verification"] is True
 
 
+TAKEN = "TAKN"  # every reference new_ref gives, until it gives a free one
+
+
+def taken_then(
+    monkeypatch: pytest.MonkeyPatch, document: Document, collisions: int | None
+) -> list[str]:
+    """Make the first `collisions` references collide (all of them, if None)."""
+    from snug.links import service
+
+    Link.objects.create(
+        ref=TAKEN, email="sam@eastgate.example", token_hash="x" * 64, document=document
+    )
+    given: list[str] = []
+
+    def new_ref() -> str:
+        given.append(TAKEN if collisions is None or len(given) < collisions else "FREE")
+        return given[-1]
+
+    monkeypatch.setattr(service, "new_ref", new_ref)
+    return given
+
+
+def test_a_link_reference_is_found_after_many_collisions(
+    client: Client, document: Document, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # As links accumulate, more of the 31^4 references are taken.
+    given = taken_then(monkeypatch, document, collisions=30)
+    response = create(client, document)
+    assert response.status_code == 302
+    assert Link.objects.get(email=INVESTOR).ref == "FREE"
+    assert len(given) == 31
+
+
+@pytest.mark.parametrize("target", ["document", "room"])
+def test_no_free_link_reference_is_a_clear_error(
+    client: Client, document: Document, monkeypatch: pytest.MonkeyPatch, target: str
+) -> None:
+    from snug.links import service
+    from snug.rooms.models import Room
+
+    given = taken_then(monkeypatch, document, collisions=None)
+    if target == "room":
+        room = Room.objects.create(name="Seed round")
+        path = f"/admin/links/for-room/{room.token}"
+    else:
+        path = f"/admin/links/for/{document.token}"
+    response = client.post(path, {"email": INVESTOR, "note": "Partner"}, secure=True)
+    assert response.status_code == 503
+    assert "Snug could not find a free link reference." in response.content.decode()
+    assert f'value="{INVESTOR}"' in response.content.decode()  # the form keeps its details
+    assert not Link.objects.filter(email=INVESTOR).exists()
+    assert len(given) == service.REF_ATTEMPTS == 50
+    assert not AuditEvent.objects.filter(action="link.created").exists()
+
+
 def test_links_need_a_signed_in_admin_and_csrf(admin: Admin, document: Document) -> None:
     assert Client().get(f"/admin/links/for/{document.token}", secure=True).status_code == 302
     strict = Client(enforce_csrf_checks=True)

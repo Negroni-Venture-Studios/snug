@@ -212,19 +212,25 @@ def _new_link(
     if write_nda:
         nda_terms.publish_first(request, nda_text, by=_admin(request), written_on="link form")
 
-    issued = service.create(
-        document=document,
-        room=room,
-        email=email,
-        note=note,
-        message=message,
-        expires_at=expires_at,
-        require_verification=require_verification,
-        require_nda=require_nda,
-        allow_download=allow_download,
-        uk_only=uk_only,
-        created_by=_admin(request),
-    )
+    try:
+        issued = service.create(
+            document=document,
+            room=room,
+            email=email,
+            note=note,
+            message=message,
+            expires_at=expires_at,
+            require_verification=require_verification,
+            require_nda=require_nda,
+            allow_download=allow_download,
+            uk_only=uk_only,
+            created_by=_admin(request),
+        )
+    except service.NoFreeReferenceError:
+        # Any NDA written on this form is published already, so the form shows it.
+        context["nda"] = nda_terms.current()
+        error = "Snug could not find a free link reference. Try again."
+        return render(request, "links/new.html", {**context, "error": error}, status=503)
     _audit(
         request,
         "link.created",
