@@ -19,7 +19,7 @@ services:
     env_file: snug.env
     environment:
       # Caddy's fixed addresses on the network below, and nothing else, are
-      # believed about the client's address.
+      # believed about the client's address and whether it used HTTPS.
       SNUG_TRUSTED_PROXIES: 172.30.83.2/32, fd53:6e75:6700::2/128
     volumes:
       - snug-data:/var/lib/snug
@@ -98,7 +98,7 @@ services:
     volumes:
       - snug-data:/var/lib/snug
       - ./backup.sh:/usr/local/bin/snug-backup:ro
-      # rclone.conf: the bucket's keys and the encryption password. Only this
+      # rclone.conf: the bucket's keys and the encryption passwords. Only this
       # container sees them; Snug never does.
       - ./backup:/config/rclone:ro
     networks:

@@ -35,12 +35,14 @@ On a new server, `snug setup` asks whether you are restoring Snug from an earlie
 
 ### On another server
 
-On any Linux server with Docker Engine and its Compose plugin, fetch the same files and run `snug setup`:
+On any Linux server with Docker Engine and its Compose plugin, fetch the newest release's files and run `snug setup`:
 
 ```bash
 sudo mkdir -p /opt/snug/backup && cd /opt/snug
+release=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/Negroni-Venture-Studios/snug/releases/latest)
+release=${release##*/}
 for file in compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh update.sh snug; do
-  sudo curl -fsSLO "https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/main/deploy/$file"
+  sudo curl -fsSLO "https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/$release/deploy/$file"
 done
 sudo install -m 755 snug /usr/local/bin/snug
 sudo snug setup
@@ -83,7 +85,7 @@ Otherwise Snug connects out only to send email: to Google, when it sends through
 
 ### Client addresses
 
-Rate limits and the audit log depend on knowing each visitor's real address. Caddy has fixed addresses on the Compose network, `172.30.83.2` and `fd53:6e75:6700::2`, and Snug trusts `X-Forwarded-For` only from those. The Compose file sets `SNUG_TRUSTED_PROXIES` itself, overriding any value in `snug.env`. Caddy ignores any `X-Forwarded-For` a visitor sends, and passes on the address the connection really came from.
+Rate limits and the audit log depend on knowing each visitor's real address. Caddy has fixed addresses on the Compose network, `172.30.83.2` and `fd53:6e75:6700::2`, and Snug trusts `X-Forwarded-For` and `X-Forwarded-Proto` only from those. The Compose file sets `SNUG_TRUSTED_PROXIES` itself, overriding any value in `snug.env`. Caddy ignores any `X-Forwarded-For` a visitor sends, and passes on the address the connection really came from.
 
 IPv6 is turned on for the Compose network. Without it, Docker would relay visitors arriving over IPv6 through a proxy of its own, and they would all reach Caddy from one address and share one set of rate limits.
 
@@ -135,7 +137,7 @@ sudo snug doctor
 sudo snug update
 ```
 
-`snug update` downloads the files in `/opt/snug` from the newest release on GitHub, or from `main` before the first release, as cloud-init does, and replaces them only once every one has arrived. `snug.env` and `backup/` are never touched. It then installs the new `snug` command, pulls the new images, and restarts the containers that changed. Snug applies any database migrations when it starts.
+`snug update` downloads the files in `/opt/snug` from the newest release on GitHub, as cloud-init does, and replaces them only once every one has arrived. `snug.env` and `backup/` are never touched. It then installs the new `snug` command, pulls the new images, and restarts the containers that changed. Snug applies any database migrations when it starts.
 
 To download from another branch or tag, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`.
 

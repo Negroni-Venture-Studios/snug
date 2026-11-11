@@ -17,6 +17,6 @@ labels: bug
 
 ## Your instance
 
-- Snug version:
+- Snug version, from the line under the Overview's status:
 - Where it runs (for example, a DigitalOcean droplet in London):
 - Output of `sudo snug doctor`, with anything private removed:

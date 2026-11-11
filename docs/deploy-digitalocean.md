@@ -284,7 +284,7 @@ Snug downloads the new version and restarts, which takes under a minute, and end
 Snug is up to date. To check everything is working: sudo snug doctor
 ```
 
-Your documents, links, accounts and settings are kept.
+Your documents, links, accounts and settings are kept. The Overview shows the new version under the line at the top.
 
 ## Bringing Snug back on a new server
 

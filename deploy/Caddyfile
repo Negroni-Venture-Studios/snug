@@ -7,6 +7,6 @@
 }
 
 {$SNUG_DOMAIN} {
-	# No access log: investors' links carry their token in the URL.
+	# No access log: investors' links have their token in the URL.
 	reverse_proxy snug:8000
 }

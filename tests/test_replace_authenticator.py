@@ -1,7 +1,6 @@
 """Replacing your own authenticator while signed in, for a new phone.
 
-Before version 1 (DESIGN.md section 4): until now another admin had to reset
-it, or `snug reset-2fa` ran on the server. It asks for the password and a
+It asks for the password and a
 code from the current authenticator, or a recovery code when the old phone
 is gone. The old authenticator and recovery codes stop working at once, and
 the admin goes straight to the setup page for the new one; the link is also

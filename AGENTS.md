@@ -37,7 +37,7 @@ Always use `uv run`. Never install into the system Python.
 | `scripts/` | CI and maintenance scripts (`check_licences.py`) |
 | `docs/` | Operator and design documentation, and `architecture.md` on how the code works; `docs/design/` holds the mockups, stylesheet seed and logo; `docs/diagrams/` the diagrams' sources and `build.py` |
 | `Dockerfile` | The container image, published by the `Image` workflow |
-| `deploy/` | `compose.yaml` (Snug, Caddy, Litestream and the rclone backup sidecar), `Caddyfile`, `litestream.yml`, `backup.sh`, `restore.sh`, `setup.sh`, `snug` (the server's command), `cloud-init.yaml`, `rclone.conf.example` and `snug.env.example` |
+| `deploy/` | `compose.yaml` (Snug, Caddy, Litestream and the rclone backup sidecar), `Caddyfile`, `litestream.yml`, `backup.sh`, `restore.sh`, `setup.sh`, `update.sh`, `snug` (the server's command), `cloud-init.yaml`, `rclone.conf.example` and `snug.env.example` |
 | `.github/` | CI workflows, CodeQL, Dependabot, templates |
 
 ## Rules
@@ -45,7 +45,7 @@ Always use `uv run`. Never install into the system Python.
 ### Git and pull requests
 
 - `main` is protected. **Never commit to `main` or push to it.** Create a branch, push it, open a pull request, and let CI pass.
-- Keep pull requests small and focused. Each step of the plan is several of them, each leaving the suite green.
+- Keep pull requests small and focused. A larger change is several of them, each leaving the suite green.
 - Commit messages are in the imperative mood, with a first line under 72 characters.
 - When you author or co-author a commit, end the message with this trailer:
 

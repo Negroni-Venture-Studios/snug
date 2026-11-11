@@ -1,6 +1,6 @@
 """The founder's logo: uploaded in Settings, re-encoded in the confined worker.
 
-Before version 1 (DESIGN.md section 4, founder branding). PNG or JPEG only;
+PNG or JPEG only;
 the worker decodes it and writes a fresh PNG, at most 800 by 240 pixels, so
 a hostile image file never reaches Snug's own process and an SVG, which can
 carry script, is never accepted. Investors see it at the top of their pages,

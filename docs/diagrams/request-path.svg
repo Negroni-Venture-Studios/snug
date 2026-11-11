@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" width="960" height="640" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 692" width="960" height="692" role="img" aria-labelledby="t d">
 <title id="t">How a request reaches a view</title>
-<desc id="d">A browser's request goes through Caddy, which handles HTTPS and adds X-Forwarded-For, to a gunicorn web worker. There it passes Django's middleware in order: security headers, the health check, static files, sessions, authentication, the admin session limits, the upload size limit and CSRF. The URL router then sends it to the admin views, the viewer views, where every request for content goes through authorise(), or the public branding files. Back come HTML pages, page images, video in byte ranges, charts drawn on the server and stamped downloads.</desc>
+<desc id="d">A browser's request goes through Caddy, which handles HTTPS and adds X-Forwarded-For, to a gunicorn web worker. There it passes Django's middleware in order: X-Forwarded-Proto, dropped unless Caddy sent it, security headers, the health check, static files, sessions, authentication, the admin session limits, the upload size limit and CSRF. The URL router then sends it to the admin views, the viewer views, where every request for content goes through authorise(), or the public branding files. Back come HTML pages, page images, video in byte ranges, charts drawn on the server and stamped downloads.</desc>
 <defs>
   <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
   <marker id="tip-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-accent"/></marker>
 </defs>
-<rect class="bg" width="960" height="640"/>
+<rect class="bg" width="960" height="692"/>
 
 <!-- Browser and Caddy -->
 <rect class="box" x="20" y="101" width="140" height="70" rx="8"/>
@@ -18,55 +18,58 @@
 <text class="mono" x="212" y="164">X-Forwarded-For</text>
 
 <!-- The web worker and its middleware -->
-<rect class="zone" x="374" y="60" width="258" height="560" rx="10"/>
+<rect class="zone" x="374" y="60" width="258" height="612" rx="10"/>
 <text class="heading" x="398" y="84">GUNICORN WEB WORKER</text>
 <text class="small" x="398" y="104">2 workers, 4 threads each</text>
 
 <rect class="box" x="398" y="118" width="218" height="46" rx="6"/>
-<text x="412" y="137">Security headers</text>
-<text class="small" x="412" y="155">CSP, HSTS, no framing</text>
+<text x="412" y="137">X-Forwarded-Proto</text>
+<text class="small" x="412" y="155">kept only from Caddy</text>
 <rect class="box" x="398" y="170" width="218" height="46" rx="6"/>
-<text x="412" y="189">Health check</text>
-<text class="small" x="412" y="207">/healthz answered here</text>
+<text x="412" y="189">Security headers</text>
+<text class="small" x="412" y="207">CSP, HSTS, no framing</text>
 <rect class="box" x="398" y="222" width="218" height="46" rx="6"/>
-<text x="412" y="241">WhiteNoise</text>
-<text class="small" x="412" y="259">serves /static/</text>
+<text x="412" y="241">Health check</text>
+<text class="small" x="412" y="259">/healthz answered here</text>
 <rect class="box" x="398" y="274" width="218" height="46" rx="6"/>
-<text x="412" y="293">Sessions</text>
-<text class="small" x="412" y="311">the admin's, in the database</text>
+<text x="412" y="293">WhiteNoise</text>
+<text class="small" x="412" y="311">serves /static/</text>
 <rect class="box" x="398" y="326" width="218" height="46" rx="6"/>
-<text x="412" y="345">Authentication</text>
-<text class="small" x="412" y="363">the admin, if signed in</text>
+<text x="412" y="345">Sessions</text>
+<text class="small" x="412" y="363">the admin's, in the database</text>
 <rect class="box" x="398" y="378" width="218" height="46" rx="6"/>
-<text x="412" y="397">Admin session limits</text>
-<text class="small" x="412" y="415">1 hour idle, 12 hours in all</text>
+<text x="412" y="397">Authentication</text>
+<text class="small" x="412" y="415">the admin, if signed in</text>
 <rect class="box" x="398" y="430" width="218" height="46" rx="6"/>
-<text x="412" y="449">Upload size limit</text>
-<text class="small" x="412" y="467">refused before it is read</text>
+<text x="412" y="449">Admin session limits</text>
+<text class="small" x="412" y="467">1 hour idle, 12 hours in all</text>
 <rect class="box" x="398" y="482" width="218" height="46" rx="6"/>
-<text x="412" y="501">CSRF</text>
-<text class="small" x="412" y="519">checks every POST</text>
+<text x="412" y="501">Upload size limit</text>
+<text class="small" x="412" y="519">refused before it is read</text>
+<rect class="box" x="398" y="534" width="218" height="46" rx="6"/>
+<text x="412" y="553">CSRF</text>
+<text class="small" x="412" y="571">checks every POST</text>
 
-<rect class="key" x="398" y="546" width="218" height="56" rx="8"/>
-<text class="title" x="412" y="570">URL router</text>
-<text class="mono" x="412" y="590">snug/urls.py</text>
+<rect class="key" x="398" y="598" width="218" height="56" rx="8"/>
+<text class="title" x="412" y="622">URL router</text>
+<text class="mono" x="412" y="642">snug/urls.py</text>
 
 <!-- Views -->
-<rect class="box" x="680" y="290" width="260" height="92" rx="8"/>
-<text class="title" x="696" y="314">Admin views</text>
-<text class="mono" x="696" y="334">/admin/</text>
-<text class="small" x="696" y="354">password and authenticator;</text>
-<text class="small" x="696" y="370">a fresh code for sensitive changes</text>
+<rect class="box" x="680" y="342" width="260" height="92" rx="8"/>
+<text class="title" x="696" y="366">Admin views</text>
+<text class="mono" x="696" y="386">/admin/</text>
+<text class="small" x="696" y="406">password and authenticator;</text>
+<text class="small" x="696" y="422">a fresh code for sensitive changes</text>
 
-<rect class="key" x="680" y="398" width="260" height="76" rx="8"/>
-<text class="title" x="696" y="422">Viewer views</text>
-<text class="mono" x="696" y="442">/v/&lt;token&gt;/</text>
-<text class="small" x="696" y="462">content through authorise()</text>
+<rect class="key" x="680" y="450" width="260" height="76" rx="8"/>
+<text class="title" x="696" y="474">Viewer views</text>
+<text class="mono" x="696" y="494">/v/&lt;token&gt;/</text>
+<text class="small" x="696" y="514">content through authorise()</text>
 
-<rect class="box" x="680" y="490" width="260" height="76" rx="8"/>
-<text class="title" x="696" y="514">Branding</text>
-<text class="mono" x="696" y="534">/brand/</text>
-<text class="small" x="696" y="554">logo, icon and colours; public</text>
+<rect class="box" x="680" y="542" width="260" height="76" rx="8"/>
+<text class="title" x="696" y="566">Branding</text>
+<text class="mono" x="696" y="586">/brand/</text>
+<text class="small" x="696" y="606">logo, icon and colours; public</text>
 
 <!-- What comes back -->
 <rect class="zone" x="680" y="60" width="260" height="206" rx="10"/>
@@ -84,10 +87,10 @@
 
 <!-- Connections -->
 <path class="line-accent" d="M160,136 H196" marker-end="url(#tip-accent)"/>
-<path class="line-accent" d="M360,136 H386 V574 H398" marker-end="url(#tip-accent)"/>
-<path class="line-accent" d="M616,574 H648 V336 H680" marker-end="url(#tip-accent)"/>
-<path class="line-accent" d="M648,436 H680" marker-end="url(#tip-accent)"/>
-<path class="line-accent" d="M648,528 H680" marker-end="url(#tip-accent)"/>
-<path class="line-dashed" d="M810,290 V268" marker-end="url(#tip)"/>
+<path class="line-accent" d="M360,136 H386 V626 H398" marker-end="url(#tip-accent)"/>
+<path class="line-accent" d="M616,626 H648 V388 H680" marker-end="url(#tip-accent)"/>
+<path class="line-accent" d="M648,488 H680" marker-end="url(#tip-accent)"/>
+<path class="line-accent" d="M648,580 H680" marker-end="url(#tip-accent)"/>
+<path class="line-dashed" d="M810,342 V268" marker-end="url(#tip)"/>
 <path class="line-dashed" d="M810,60 V36 H90 V99" marker-end="url(#tip)"/>
 </svg>
