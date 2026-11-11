@@ -79,7 +79,8 @@ def test_the_overview_shows_the_version_and_how_to_update(monkeypatch: pytest.Mo
     line = page[start : page.index("</p>", start)]
     assert "Snug 1.4.2." in line
     assert (
-        'href="https://github.com/Negroni-Venture-Studios/snug/blob/v1.4.2/docs/'
+        '<a class="doc-link" href="https://github.com/Negroni-Venture-Studios/snug/blob/v1.4.2/docs/'
         'deploy-digitalocean.md#keeping-snug-up-to-date"' in line
     )
+    assert "<svg" in line  # the book icon every guide link has
     assert page.index("system-status") < start  # under the status line
