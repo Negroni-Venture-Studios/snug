@@ -9,6 +9,9 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 External security audits found these.
 
 - The document worker refuses to read a file if it cannot set its memory limit, and its seccomp filter refuses to trace, signal, re-prioritise or change the limits of other processes, or read their memory. The watermark's drawing is capped whatever the page's shape, so a PDF page of extreme shape no longer stops its download being stamped.
+- Snug believes the `X-Forwarded-Proto` header only from a trusted proxy, so a request over plain HTTP can no longer pass for HTTPS if Snug's port is ever reached without Caddy.
+- A refused upload replaces only the main part of the admin page, and nothing in the reply runs.
+- The content security policy no longer allows `data:` images.
 - `snug setup` clears the screen and the terminal's scrollback once you type `saved`, where the backup settings used to stay visible.
 - New servers swap only under memory pressure (`vm.swappiness` 10), so less of Snug's memory, including its secret key, is written to the swap file.
 - The PDF worker refuses to read a file unless it has confined itself: Landlock ABI 4 (Linux 6.7) or later, and a new seccomp filter that refuses to create any socket. It used to carry on unconfined if Landlock failed, and Landlock alone let it send UDP. `SNUG_UNSAFE_UNCONFINED_RENDERING` allows unconfined reading for development only.
@@ -17,6 +20,9 @@ External security audits found these.
 
 ### Fixed
 
+- Uploading a new document no longer holds up every other change to the database while Snug checks the file.
+- If Snug cannot find a free link reference, the link form says so instead of showing a server error. Snug tries 50 references, up from 5.
+- Six digits in a script other than ASCII are tried as a recovery code, not as a code from the authenticator app.
 - An investor who accepts the NDA twice at once is recorded once. Upgrading removes any duplicate acceptances already recorded, keeping the earliest.
 - Two admins publishing the NDA at the same moment no longer get a server error: the later save becomes the next version.
 - The README's status says Snug has been set up and restored on a real server, the guides match the code again, and several messages are plainer, among them the revoked-link notice and the forgotten-password email.
