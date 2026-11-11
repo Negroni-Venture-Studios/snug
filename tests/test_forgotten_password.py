@@ -206,6 +206,31 @@ def test_a_recovery_code_works_instead(client: Client, admin: Admin, link: str) 
     assert event.details == {"method": "recovery", "recovery_codes_left": len(codes) - 1}
 
 
+def test_only_ascii_digits_are_a_code_from_the_app(
+    client: Client, admin: Admin, link: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The authenticator check takes ASCII digits only (snug.accounts.totp), so
+    # six digits from another script are tried as a recovery code, as is
+    # anything else that is not a code from the app.
+    from snug.accounts import passwords, setup
+
+    tried: list[str] = []
+
+    def refuse(method: str) -> Callable[[Admin, str], bool]:
+        def check(admin: Admin, code: str) -> bool:
+            tried.append(method)
+            return False
+
+        return check
+
+    monkeypatch.setattr(setup, "confirm", refuse("totp"))
+    monkeypatch.setattr(recovery, "use", refuse("recovery"))
+    assert passwords.is_app_code(" 123456 ")
+    assert not passwords.is_app_code("١٢٣٤٥٦")  # Arabic-Indic digits
+    assert choose(client, link, "١٢٣٤٥٦").status_code == 400
+    assert tried == ["recovery"]
+
+
 @pytest.mark.parametrize("code", ["000000", "", "aaaa-bbbb-cccc-dddd"])
 def test_a_wrong_code_changes_nothing(client: Client, admin: Admin, link: str, code: str) -> None:
     response = choose(client, link, code)

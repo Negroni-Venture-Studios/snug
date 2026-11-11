@@ -20,7 +20,7 @@ from snug.core import mail
 from snug.core.models import company_name
 
 LINK_HOURS = 1
-_TOTP = re.compile(r"^\s*\d{6}\s*$")
+_TOTP = re.compile(r"^\s*[0-9]{6}\s*$")  # ASCII only, as snug.accounts.totp checks
 
 
 def resettable(email: str) -> Admin | None:
