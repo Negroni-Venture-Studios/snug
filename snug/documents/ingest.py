@@ -11,7 +11,9 @@ import math
 import os
 import tempfile
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
+from typing import Any
 
 from django.conf import settings
 from django.db import transaction
@@ -116,28 +118,54 @@ def _same_kind(document: Document, kind: str) -> None:
     )
 
 
-def ingest(
-    document: Document,
-    chunks: Iterable[bytes],
-    *,
-    filename: str,
-    uploaded_by: Admin | None,
-) -> DocumentVersion:
-    """Add an uploaded PDF, workbook or video to a document as its next version."""
+@dataclass(frozen=True)
+class Checked:
+    """An upload the worker has read, waiting in the temporary folder to be stored."""
+
+    path: Path
+    size: int
+    sha256: str
+    kind: str
+    facts: dict[str, Any]
+
+    def discard(self) -> None:
+        self.path.unlink(missing_ok=True)
+
+
+def check(chunks: Iterable[bytes], *, document: Document | None = None) -> Checked:
+    """Receive an upload and have the worker read it.
+
+    Nothing is written to the database here. SQLite runs write transactions in
+    IMMEDIATE mode, so one held open while the worker reads the file would keep
+    every other writer waiting. A new version must be the document's kind.
+    """
     temporary, size, sha256, kind = _receive(chunks)
     try:
-        _same_kind(document, kind)
-        workbook = kind == DocumentVersion.Kind.XLSX
-        video = kind == DocumentVersion.Kind.MP4
+        if document is not None:
+            _same_kind(document, kind)
         try:
-            if video:
+            if kind == DocumentVersion.Kind.MP4:
                 facts = sandbox.inspect_mp4(temporary)
-            elif workbook:
+            elif kind == DocumentVersion.Kind.XLSX:
                 facts = sandbox.inspect_xlsx(temporary)
             else:
                 facts = sandbox.inspect(temporary)
         except sandbox.WorkerError as error:
             raise UploadRejectedError(str(error)) from error
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
+    return Checked(path=temporary, size=size, sha256=sha256, kind=kind, facts=facts)
+
+
+def store(
+    document: Document, checked: Checked, *, filename: str, uploaded_by: Admin | None
+) -> DocumentVersion:
+    """Add a checked upload to a document as its next version."""
+    kind, facts = checked.kind, checked.facts
+    workbook = kind == DocumentVersion.Kind.XLSX
+    video = kind == DocumentVersion.Kind.MP4
+    try:
         if video:
             # A video's "pages" are its parts, so the reading analytics count time on each.
             pages = max(1, math.ceil(facts["seconds"] / PART_SECONDS))
@@ -152,8 +180,8 @@ def ingest(
                 document=document,
                 number=highest + 1,
                 original_filename=_display_name(filename),
-                size_bytes=size,
-                sha256=sha256,
+                size_bytes=checked.size,
+                sha256=checked.sha256,
                 stored_name=new_stored_name(kind),
                 kind=kind,
                 page_count=pages,
@@ -166,7 +194,19 @@ def ingest(
             destination.parent.mkdir(parents=True, exist_ok=True)
             version.save()
             # Same disk, so this is an atomic rename, not a copy.
-            temporary.replace(destination)
+            checked.path.replace(destination)
         return version
     finally:
-        temporary.unlink(missing_ok=True)
+        checked.discard()
+
+
+def ingest(
+    document: Document,
+    chunks: Iterable[bytes],
+    *,
+    filename: str,
+    uploaded_by: Admin | None,
+) -> DocumentVersion:
+    """Add an uploaded PDF, workbook or video to a document as its next version."""
+    checked = check(chunks, document=document)
+    return store(document, checked, filename=filename, uploaded_by=uploaded_by)

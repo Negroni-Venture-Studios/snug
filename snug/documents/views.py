@@ -25,7 +25,7 @@ from snug.audit.models import AuditEvent, record
 from snug.core import notices, ranges
 from snug.core.client import client_ip, user_agent
 from snug.documents import storage
-from snug.documents.ingest import UploadRejectedError, ingest
+from snug.documents.ingest import Checked, UploadRejectedError, check, store
 from snug.documents.models import MAX_DESCRIPTION, Document, DocumentVersion
 from snug.rendering import pages, sandbox
 
@@ -62,11 +62,9 @@ def _uploaded(request: HttpRequest) -> UploadedFile[bytes] | None:
 
 
 def _store(
-    request: HttpRequest, document: Document, upload: UploadedFile[bytes]
+    request: HttpRequest, document: Document, checked: Checked, upload: UploadedFile[bytes]
 ) -> DocumentVersion:
-    version = ingest(
-        document, upload.chunks(), filename=upload.name or "", uploaded_by=_admin(request)
-    )
+    version = store(document, checked, filename=upload.name or "", uploaded_by=_admin(request))
     _audit(
         request,
         "document.version_uploaded",
@@ -119,15 +117,21 @@ def document_new(request: HttpRequest) -> HttpResponse:
     if "error" in context or upload is None:
         return render(request, "documents/new.html", context, status=400)
 
+    # Checked before the write transaction, which would otherwise hold every
+    # other writer back while the worker reads the file.
     try:
-        with transaction.atomic():
-            document = Document.objects.create(title=title, created_by=_admin(request))
-            _audit(request, "document.created", title, document=document.token)
-            _store(request, document, upload)
+        checked = check(upload.chunks())
     except UploadRejectedError as error:
         _audit(request, "document.upload_refused", title, reason=str(error))
         context["error"] = str(error)
         return render(request, "documents/new.html", context, status=400)
+    try:
+        with transaction.atomic():
+            document = Document.objects.create(title=title, created_by=_admin(request))
+            _audit(request, "document.created", title, document=document.token)
+            _store(request, document, checked, upload)
+    finally:
+        checked.discard()
     version = document.latest_version()
     if version is not None and version.is_video:
         what = f"an MP4 video, {version.length} long"
@@ -223,10 +227,12 @@ def version_upload(request: HttpRequest, token: str) -> HttpResponse:
         error = "Choose a PDF, an Excel workbook or an MP4 video to upload."
     else:
         try:
-            _store(request, document, upload)
+            checked = check(upload.chunks(), document=document)
         except UploadRejectedError as rejected:
             _audit(request, "document.upload_refused", document.title, reason=str(rejected))
             error = str(rejected)
+        else:
+            _store(request, document, checked, upload)
     if error:
         context = {**_detail_context(request, document), "error": error}
         return render(request, "documents/detail.html", context, status=400)

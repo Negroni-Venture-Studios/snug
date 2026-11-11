@@ -1,9 +1,11 @@
-"""Middleware: security headers Django does not set, and the health check."""
+"""Middleware: forwarded headers, security headers Django does not set, and the health check."""
 
 from collections.abc import Callable
 
 from django.http import HttpRequest, HttpResponse
 from django.utils.cache import add_never_cache_headers
+
+from snug.core.client import from_trusted_proxy
 
 Handler = Callable[[HttpRequest], HttpResponse]
 
@@ -25,6 +27,22 @@ PERMISSIONS_POLICY = ", ".join(
 )
 
 HEALTH_PATH = "/healthz"
+
+
+def forwarded_proto(get_response: Handler) -> Handler:
+    """Drop X-Forwarded-Proto unless a trusted proxy sent the request.
+
+    Caddy sets it, and SECURE_PROXY_SSL_HEADER makes Django believe it. From
+    anyone else it would let a plain HTTP request pass for HTTPS. First in
+    MIDDLEWARE, before anything calls request.is_secure().
+    """
+
+    def middleware(request: HttpRequest) -> HttpResponse:
+        if not from_trusted_proxy(request):
+            request.META.pop("HTTP_X_FORWARDED_PROTO", None)
+        return get_response(request)
+
+    return middleware
 
 
 def extra_security_headers(get_response: Handler) -> Handler:

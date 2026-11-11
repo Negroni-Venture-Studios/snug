@@ -4,7 +4,7 @@
 {% block content %}
 <div class="title-row">
   <div><h1 class="page-title">Audit log</h1><div class="page-meta">Everything admins and viewers have done, newest first. Nothing here can be changed or deleted.</div></div>
-  <div class="actions"><a class="btn" href="{% url 'audit:export' %}{% if kind or q %}?{% if kind %}kind={{ kind }}{% endif %}{% if kind and q %}&amp;{% endif %}{% if q %}q={{ q|urlencode }}{% endif %}{% endif %}">{% icon "download-simple" %}Export CSV</a></div>
+  <div class="actions"><a class="btn" href="{% url 'audit:export' %}{% if kind or q %}?{% if kind %}kind={{ kind|urlencode }}{% endif %}{% if kind and q %}&amp;{% endif %}{% if q %}q={{ q|urlencode }}{% endif %}{% endif %}">{% icon "download-simple" %}Export CSV</a></div>
 </div>
 <form class="filters" method="get" action="{% url 'audit:list' %}">
   <label class="visually-hidden" for="kind">Kind</label>

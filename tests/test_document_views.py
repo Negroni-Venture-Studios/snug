@@ -141,6 +141,89 @@ def test_a_refused_file_creates_nothing(client: Client, data_folder: Path) -> No
     assert list((data_folder / "originals").iterdir()) == []
 
 
+@pytest.mark.parametrize("first", [True, False], ids=["new document", "new version"])
+def test_the_file_is_checked_before_the_database_is_locked(
+    client: Client, monkeypatch: pytest.MonkeyPatch, first: bool
+) -> None:
+    # SQLite runs write transactions in IMMEDIATE mode: one held open while the
+    # worker reads the file would keep every other writer waiting until it ends.
+    from django.db import connection
+
+    from snug.rendering import sandbox
+
+    if not first:
+        upload_new(client)
+    # The test itself runs in a transaction: count only the blocks the view opens.
+    outside = len(connection.atomic_blocks)
+    opened: list[int] = []
+    original = sandbox.inspect
+
+    def inspect(path: Any) -> dict[str, Any]:
+        opened.append(len(connection.atomic_blocks) - outside)
+        return original(path)
+
+    monkeypatch.setattr(sandbox, "inspect", inspect)
+    if first:
+        response = upload_new(client)
+    else:
+        document = Document.objects.get()
+        response = client.post(
+            f"/admin/documents/{document.token}/versions", {"pdf": pdf()}, secure=True
+        )
+    assert response.status_code == 302
+    assert opened == [0]
+    assert DocumentVersion.objects.count() == (1 if first else 2)
+
+
+def test_a_file_the_worker_refuses_creates_nothing(
+    client: Client, monkeypatch: pytest.MonkeyPatch, data_folder: Path
+) -> None:
+    # A PDF by its first bytes, refused only once the worker has read it.
+    from snug.rendering import sandbox
+
+    def refuse(path: Any) -> dict[str, Any]:
+        raise sandbox.WorkerError("password")
+
+    monkeypatch.setattr(sandbox, "inspect", refuse)
+    response = upload_new(client)
+    assert response.status_code == 400
+    assert "This PDF is protected by a password." in response.content.decode()
+    assert not Document.objects.exists()
+    assert actions() == ["document.upload_refused"]
+    assert list((data_folder / "originals").iterdir()) == []
+    assert list((data_folder / "tmp").iterdir()) == []
+
+
+HOSTILE = '<img src=x onerror="alert(1)">'
+ESCAPED = "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;"
+
+
+def test_a_refused_upload_page_escapes_the_title_and_file_name(client: Client) -> None:
+    # admin.js puts this page in place of the form, so nothing in it may be markup.
+    response = client.post(
+        "/admin/documents/new",
+        {"title": HOSTILE, "pdf": pdf(b"Not a PDF at all", name=f"{HOSTILE}.pdf")},
+        secure=True,
+    )
+    page = response.content.decode()
+    assert response.status_code == 400
+    assert "<img src=x" not in page
+    assert f'value="{ESCAPED}"' in page
+
+
+def test_a_refused_version_escapes_the_title_in_its_error(client: Client) -> None:
+    upload_new(client, title=HOSTILE)
+    document = Document.objects.get()
+    workbook = SimpleUploadedFile(f"{HOSTILE}.xlsx", b"PK\x03\x04" + b"\0" * 64)
+    response = client.post(
+        f"/admin/documents/{document.token}/versions", {"pdf": workbook}, secure=True
+    )
+    page = response.content.decode()
+    assert response.status_code == 400
+    assert "<img src=x" not in page
+    assert f"{ESCAPED} is a PDF. Upload a PDF as its new version" in page
+
+
 def test_oversized_uploads_are_refused_before_they_are_read(admin: Admin) -> None:
     # No CSRF token, and a declared size over the limit: refused from the
     # header alone, before Django reads the body for its CSRF check.

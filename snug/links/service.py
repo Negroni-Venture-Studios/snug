@@ -19,6 +19,14 @@ if TYPE_CHECKING:
     from snug.rooms.models import Room
 
 VIEWER_PREFIX = "/v/"
+# A reference is four characters from 31, so 923,521 in all. A new one
+# collides more often as links accumulate: a run of 50 collisions means the
+# references are close to used up.
+REF_ATTEMPTS = 50
+
+
+class NoFreeReferenceError(Exception):
+    """Every reference tried for a new link was taken."""
 
 
 def link_url(token: str) -> str:
@@ -51,7 +59,7 @@ def create(
 ) -> Issued:
     if (document is None) == (room is None):
         raise ValueError("A link shares one document or one room.")
-    for _ in range(5):
+    for _ in range(REF_ATTEMPTS):
         link = Link(
             ref=new_ref(),
             email=email,
@@ -71,9 +79,9 @@ def create(
             with transaction.atomic():
                 link.save()
         except IntegrityError:
-            continue  # a reference collision: 31^4 is small enough to retry
+            continue  # a reference collision: try another
         return Issued(link=link, token=token)
-    raise RuntimeError("Could not allocate a link reference.")
+    raise NoFreeReferenceError
 
 
 def reissue(link: Link) -> Issued:

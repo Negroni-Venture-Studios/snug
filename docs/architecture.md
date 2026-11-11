@@ -64,14 +64,15 @@ Caddy passes each request to `snug:8000` and adds the visitor's address in `X-Fo
 
 The middleware runs in this order:
 
-1. Django's `SecurityMiddleware`, then its content security policy, then `X-Frame-Options`. The policy allows only Snug's own address, and `data:` for images, so no inline script or style can run.
-2. `extra_security_headers`: `Permissions-Policy` and `Cross-Origin-Resource-Policy`.
-3. `health_check` answers `/healthz` for Docker's health check, before the host check.
-4. WhiteNoise serves `/static/`.
-5. Sessions and Django's common middleware.
-6. Authentication, then `session_limits`, which signs an admin out after an hour without activity, or 12 hours after signing in.
-7. `upload_size_limit` refuses an oversized POST from its declared length, before anything reads the body. Anyone but a signed-in admin is allowed 64 KB, enough for a form's fields. The refusal is a 413, or the sign-in page for an admin whose session has ended. It runs before the CSRF check, since that would read the body to find the token.
-8. CSRF.
+1. `forwarded_proto` drops the `X-Forwarded-Proto` header unless the request came from a trusted proxy, as for `X-Forwarded-For`, so a visitor cannot pass a plain HTTP request off as HTTPS.
+2. Django's `SecurityMiddleware`, then its content security policy, then `X-Frame-Options`. The policy allows only Snug's own address, so no inline script or style can run.
+3. `extra_security_headers`: `Permissions-Policy` and `Cross-Origin-Resource-Policy`.
+4. `health_check` answers `/healthz` for Docker's health check, before the host check.
+5. WhiteNoise serves `/static/`.
+6. Sessions and Django's common middleware.
+7. Authentication, then `session_limits`, which signs an admin out after an hour without activity, or 12 hours after signing in.
+8. `upload_size_limit` refuses an oversized POST from its declared length, before anything reads the body. Anyone but a signed-in admin is allowed 64 KB, enough for a form's fields. The refusal is a 413, or the sign-in page for an admin whose session has ended. It runs before the CSRF check, since that would read the body to find the token.
+9. CSRF.
 
 Each view that needs a rate limit calls `snug.core.ratelimit.allow` with a `Limit` (a scope, a count and a window), or `exceeded` to look without counting. The counts are kept in the database, in fixed windows, keyed by a hash of the scope and the address, account or link.
 
@@ -148,14 +149,14 @@ Files live in the data folder, `SNUG_DATA_DIR`:
   <img alt="An upload passes a size limit, is received by Django, copied, hashed and given a kind from its first bytes, checked against earlier versions and inspected by the confined worker, then saved as a new version in one transaction and audited. The steps marked with a dot can refuse it with a plain message beside the form." src="images/diagrams/upload-light.svg">
 </picture>
 
-Django receives the upload first, in memory if it is under 2.5 MB and in `tmp/` if not. `snug.documents.ingest.ingest` then makes it a version:
+Django receives the upload first, in memory if it is under 2.5 MB and in `tmp/` if not. `snug.documents.ingest` then makes it a version, with `check` for the first three steps and `store` for the last:
 
 1. It copies the upload to a temporary file in `tmp/`, computing its SHA-256 as it goes and keeping the first kilobyte. As soon as the first bytes show a video, the video limit applies (`SNUG_MAX_VIDEO_MB`); otherwise the document limit does (`SNUG_MAX_UPLOAD_MB`).
 2. The first bytes set the kind: `ftyp` at byte 4 is an MP4 video, a zip is an Excel workbook, and `%PDF-` is a PDF. An old `.xls` file, or a workbook with a password, is refused with its own message. Every version of a document must be the same kind.
-3. A document worker checks the file. For a PDF it returns the number of pages and their sizes; for a workbook, its visible sheets, after refusing macros, ActiveX and embedded objects; for a video, its length and picture size, after checking its codecs.
-4. In one transaction, Snug writes a `DocumentVersion` and renames the temporary file into `originals/` under a random name. The name the file was uploaded with is kept for display only.
+3. A document worker checks the file. Snug has written nothing to the database yet, so no other write waits for the check. For a PDF it returns the number of pages and their sizes; for a workbook, its visible sheets, after refusing macros, ActiveX and embedded objects; for a video, its length and picture size, after checking its codecs.
+4. Only then, in one transaction, Snug writes a `DocumentVersion` and renames the temporary file into `originals/` under a random name. The name the file was uploaded with is kept for display only.
 
-A refusal at any step shows a plain message beside the form and records `document.upload_refused`. The temporary file is always deleted, and a new document is rolled back, so a refused upload leaves nothing behind but the audit entry.
+A refusal at any step shows a plain message beside the form and records `document.upload_refused`. The temporary file is always deleted, and a new document is created only once its file has passed, so a refused upload leaves nothing behind but the audit entry.
 
 ## The document worker
 

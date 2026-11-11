@@ -57,10 +57,13 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# Order matters. The header middleware comes first, so every response gets
-# its headers, including the health check and static files, which are both
-# answered before the rest of the stack runs.
+# Order matters. X-Forwarded-Proto is dropped first, unless a trusted proxy
+# sent it, before anything asks whether the request is secure. The header
+# middleware comes next, so every response gets its headers, including the
+# health check and static files, which are both answered before the rest of
+# the stack runs.
 MIDDLEWARE = [
+    "snug.core.middleware.forwarded_proto",
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.csp.ContentSecurityPolicyMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -150,8 +153,9 @@ MAILERS = {"default": {"BACKEND": "snug.core.email_backend.EmailBackend"}}
 
 # ---------------------------------------------------------------- security
 #
-# Caddy terminates TLS and is the only thing that can reach the app, so the
-# X-Forwarded-Proto header it sets can be trusted. Caddy also redirects HTTP.
+# Caddy terminates TLS and redirects HTTP. The X-Forwarded-Proto header it
+# sets is believed only on requests from SNUG_TRUSTED_PROXIES: the
+# forwarded_proto middleware drops it from anyone else.
 
 if CONFIG.https:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -183,7 +187,7 @@ SECURE_CSP = {
     "default-src": [CSP.NONE],
     "script-src": [CSP.SELF],
     "style-src": [CSP.SELF],
-    "img-src": [CSP.SELF, "data:"],
+    "img-src": [CSP.SELF],
     # Videos stream from Snug itself, through the same authorisation as pages.
     "media-src": [CSP.SELF],
     "font-src": [CSP.SELF],
