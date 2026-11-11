@@ -105,7 +105,7 @@ def backup_files(folder: Path, *, success: datetime | None = None, problem: str 
 def test_no_backup_yet_is_a_problem(data_folder: Path) -> None:
     found = doctor.backups(NOW)
     assert found.status == "problem"
-    assert found.message == "Nothing has been backed up yet. See docs/backups.md."
+    assert found.message == "Nothing has been backed up yet."
 
 
 def test_a_backup_this_minute(data_folder: Path) -> None:
@@ -142,8 +142,9 @@ def test_the_backup_container_says_what_went_wrong(data_folder: Path) -> None:
 
 
 def test_backups_not_set_up(data_folder: Path) -> None:
-    backup_files(data_folder, problem="Backups are not set up: there is no rclone.conf.")
-    assert doctor.backups(NOW).message == "Backups are not set up: there is no rclone.conf."
+    not_set_up = "Backups are not set up. Run sudo snug setup to add a bucket."
+    backup_files(data_folder, problem=not_set_up)
+    assert doctor.backups(NOW).message == not_set_up
 
 
 def test_an_unreadable_time_is_a_problem(data_folder: Path) -> None:

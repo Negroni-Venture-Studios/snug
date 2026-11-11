@@ -23,7 +23,7 @@ from snug.accounts import limits, passwords, recovery, setup, totp
 from snug.accounts.models import Admin, AdminSetup
 from snug.analytics import retention
 from snug.audit.models import AuditEvent, record
-from snug.core import brand, gmail, logo, mail, ratelimit
+from snug.core import brand, doctor, gmail, logo, mail, ratelimit
 from snug.core.client import client_ip, user_agent
 from snug.core.models import EmailSettings, SiteSettings, company_name
 from snug.nda import terms as nda_terms
@@ -78,6 +78,8 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
         "privacy_url": SiteSettings.load().privacy_url,
         **_branding_context(request),
         "retention_months": SiteSettings.load().reading_retention_months,
+        "backup": doctor.backups(now),
+        "backup_at": doctor.last_backup(),
         "nda": nda_terms.current(),
         "nda_history": NdaVersion.objects.select_related("created_by")[:10],
         "values": {"email": ""},

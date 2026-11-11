@@ -85,14 +85,20 @@ def _read_time(text: str) -> datetime | None:
     return moment if moment.tzinfo else None
 
 
+def last_backup() -> datetime | None:
+    """When the backup container last finished a complete copy to the bucket."""
+    with contextlib.suppress(OSError):
+        path = settings.CONFIG.data_dir / "backup" / "last-success"
+        return _read_time(path.read_text(encoding="utf-8"))
+    return None
+
+
 def backups(now: datetime) -> Finding:
     """Reads what the backup container records in the data folder (deploy/backup.sh)."""
     label = "Backups"
     folder = settings.CONFIG.data_dir / "backup"
-    success: datetime | None = None
+    success = last_backup()
     problem = ""
-    with contextlib.suppress(OSError):
-        success = _read_time((folder / "last-success").read_text(encoding="utf-8"))
     with contextlib.suppress(OSError):
         problem = (folder / "problem").read_text(encoding="utf-8").strip()[:200]
     if problem:
@@ -100,7 +106,7 @@ def backups(now: datetime) -> Finding:
             problem += f" The last complete copy was {_ago(success, now)} ago."
         return _problem(label, problem)
     if success is None:
-        return _problem(label, "Nothing has been backed up yet. See docs/backups.md.")
+        return _problem(label, "Nothing has been backed up yet.")
     if now - success > BACKUP_LATE:
         return _problem(label, f"Nothing has been copied to the bucket for {_ago(success, now)}.")
     return _ok(label, f"Last copied to the bucket {_ago(success, now)} ago.")
