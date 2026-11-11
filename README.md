@@ -61,7 +61,7 @@ An investor enters a code sent to their inbox, then reads, or downloads a workbo
   <img alt="A workbook shared with an investor: its description, its sheets, and a button to download it, with their details written into the copy." src="docs/images/screenshots/workbook-light.png" width="49%">
 </picture>
 
-[Using Snug](docs/using-snug.md) goes through every page, for you and for the investors you share with.
+[Using Snug](docs/using-snug.md) shows each admin page and what an investor sees.
 
 ## What Snug does not do
 
@@ -76,72 +76,18 @@ An investor enters a code sent to their inbox, then reads, or downloads a workbo
 
 Everything planned for version 1 is built and tested, and the container image is published as a test build, `ghcr.io/negroni-venture-studios/snug:edge`. The server setup is tested in CI but has not yet run on a real server.
 
-Still to come before the first release:
+Still to come before the first release, from the [order of work](DESIGN.md#4-order-of-work):
 
 - a full deployment to a DigitalOcean droplet, following the guide alone, and a restore onto a second one;
 - a step-by-step guide for a DigitalOcean droplet in London, and a guide to what Snug does and does not protect against.
 
-The order of work in [DESIGN.md](DESIGN.md) has the details.
-
 ## Trying it on your own computer
 
-This needs Docker, and runs Snug on `localhost` only, over plain HTTP, which Snug allows for `localhost` and nowhere else.
-
-First make a settings file holding a new secret key, and keep it. Snug signs admins' sessions with the key and protects viewers' one-time codes with it, so a container started with a different key signs every admin out and cancels any code in flight.
-
-```bash
-python3 -c 'import secrets; print("SNUG_SECRET_KEY=" + secrets.token_urlsafe(64))' > snug.env
-chmod 600 snug.env
-```
-
-Then start Snug:
-
-```bash
-docker run --detach --name snug --publish 127.0.0.1:8000:8000 \
-  --env-file snug.env --env SNUG_DOMAIN=localhost:8000 --env SNUG_HTTPS=false \
-  --volume snug-data:/var/lib/snug \
-  ghcr.io/negroni-venture-studios/snug:edge
-```
-
-Create the first admin, which asks for a password and shows a QR code for your authenticator app:
-
-```bash
-docker exec --interactive --tty snug snug createadmin --email you@example.com
-```
-
-and sign in at <http://localhost:8000/admin/>. The Overview will show that nothing has been backed up, since backups need the server setup below. Without email settings, Snug writes each email, such as a viewer's code, to a file in the container instead of sending it. To read them:
-
-```bash
-docker exec snug sh -c 'cat /var/lib/snug/outbox/*'
-```
-
-[The configuration guide](docs/configuration.md) lists every setting.
-
-**Updating.** Your documents and everything else live in the `snug-data` volume, so the container can be replaced at any time. Pull the new image, remove the container, then run the same `docker run` command as above, from the folder holding `snug.env`:
-
-```bash
-docker pull ghcr.io/negroni-venture-studios/snug:edge
-docker rm --force snug
-```
-
-If you started Snug without a `snug.env` file, save its key from the running container first:
-
-```bash
-docker inspect snug --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^SNUG_SECRET_KEY=' > snug.env
-chmod 600 snug.env
-```
-
-**A forgotten password.** With email set up, use "Forgotten your password?" on the sign-in page. Without it, set a new one from the command line; the authenticator app keeps working as before:
-
-```bash
-docker exec --interactive --tty snug snug reset-password you@example.com
-```
-
-To remove it all: `docker rm --force snug && docker volume rm snug-data`, then delete `snug.env`.
+[Trying Snug on your own computer](docs/deploy-localhost.md) starts from installing Docker Desktop on a Mac, and has Snug running in about fifteen minutes.
 
 ## Running it on a server
 
-[The deployment guide](docs/deployment.md) covers a fresh Ubuntu server, such as a DigitalOcean droplet, set up with cloud-init and `sudo snug setup`, which asks for your domain and backup bucket on the server itself. Email is set up afterwards in Settings, through [Google Workspace](docs/email-google.md), starting from your first visit to Google Cloud, or [another provider](docs/email.md). What is backed up, how to check it and how to restore are in [the backups guide](docs/backups.md). None of these has yet been followed on a real server.
+[The deployment guide](docs/deployment.md) sets Snug up on a fresh Ubuntu server, such as a DigitalOcean droplet. Email is set up afterwards in Settings, through [Google Workspace](docs/email-google.md) or [another provider](docs/email.md). [The backups guide](docs/backups.md) covers checking the backups and restoring from them. None of these has yet been followed on a real server.
 
 ## How it is built
 

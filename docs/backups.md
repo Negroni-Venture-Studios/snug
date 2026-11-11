@@ -105,7 +105,7 @@ sudo snug restore --at 2026-11-05T14:00:00Z
 
 If the server already has a database, `snug restore` asks you to type `replace` first. The data it replaces is kept, in a folder in the data volume named `previous-` and the time.
 
-Each Snug has a random identity, kept in the data volume and, from the first backup, in the bucket. The backup container never copies into a bucket that holds another Snug's backups. If a new server is started before it is restored, its backups stop with that problem until `snug restore` brings the bucket's data, and its identity, to the server, so the real backups are never replaced with an empty database.
+Each Snug has a random identity, kept in the data volume and, from the first backup, in the bucket. The backup container never copies into a bucket that holds another Snug's backups. If a new server is started before it is restored, its backups stop with that problem until `snug restore` brings the bucket's data, and its identity, to the server.
 
 Documents deleted in the last 30 days are not restored with the rest. They are in the bucket under `deleted/` and the date they were deleted, and can be copied back by hand:
 

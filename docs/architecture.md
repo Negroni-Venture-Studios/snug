@@ -207,7 +207,7 @@ On a Mac, which has no Landlock, `SNUG_UNSAFE_UNCONFINED_RENDERING=true` lets th
 
 `snug.analytics.reading` turns the reader's events into visits and seconds per page:
 
-- Showing a page continues the visit by the same session to the same document within the last 30 minutes, or starts a new one. A new visit is recorded in the audit log, and after a link's first visit Snug emails the admins who have first-open emails turned on (`snug.analytics.notify`).
+- Showing a page continues the visit by the same session to the same document within the last 30 minutes, or starts a new one. A new visit is recorded in the audit log, and after a link's first visit Snug emails the admins who have first-open emails turned on (`snug.analytics.notify`). A single conditional update on `Link.first_opened_at` claims the first open, so two pages loading together send one email.
 - While the tab is visible, the page's script (`viewer.js`) sends a heartbeat every 15 seconds with `navigator.sendBeacon`. Snug credits the page with the time since its clock last ran, never more than 20 seconds, so a browser cannot claim more time than passed, and a sleeping laptop does not count.
 - Hiding or closing the tab sends `end`, credited the same way. Showing it again sends `resume`, which restarts the clock and credits nothing.
 - A video's script (`video.js`) sends `part` as it plays into each 10-second part, and each part counts as a page. A workbook's card counts as its one page.
@@ -272,7 +272,7 @@ The content security policy allows no inline script or style, so the few scripts
 |---|---|
 | `theme-init.js` | Applies the saved light or dark theme before the page is drawn |
 | `theme.js` | The theme toggle |
-| `admin.js` | Admin helpers: upload progress, copy buttons, and the tabs on a narrow screen |
+| `admin.js` | Admin helpers: upload progress, copy buttons, and the tabs on a narrow screen. It sends an upload form itself, and the server answers with the address to go to, since a followed redirect would lose its `#section`. |
 | `reveal.js` | The eye that shows what is typed in a password box |
 | `nda-first.js` | Shows the box for writing the first NDA while a box asking for the NDA is ticked |
 | `brand.js` | Keeps the accent colour's picker and its text in step |
