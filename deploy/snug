@@ -3,6 +3,7 @@
 #
 #   sudo snug setup                  ask for the settings and start Snug (setup.sh)
 #   sudo snug restore [--at TIME]    restore from the backups (restore.sh)
+#   sudo snug update                 the latest server files and images (update.sh)
 #   sudo snug doctor                 any other command runs in Snug's container
 #
 # SNUG_HOME is the folder holding compose.yaml: /opt/snug unless set.
@@ -17,6 +18,9 @@ case "${1:-}" in
 	restore)
 		shift
 		exec sh ./restore.sh "$@"
+		;;
+	update)
+		exec sh ./update.sh
 		;;
 	"")
 		exec docker compose exec snug snug help
