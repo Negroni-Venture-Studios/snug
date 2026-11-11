@@ -135,12 +135,45 @@ def test_a_refused_upload_shows_its_error(live_server: Any, page: Page, data_fol
 
     sign_in(live_server, page)
     page.goto(f"{live_server.url}/admin/documents/new")
-    page.get_by_label("File").set_input_files(
-        files=FilePayload(name="deck.pdf", mimeType="application/pdf", buffer=make_pdf((960, 540)))
-    )
+    page.locator("header").evaluate("header => header.setAttribute('data-kept', 'yes')")
+    deck = FilePayload(name="deck.pdf", mimeType="application/pdf", buffer=make_pdf((960, 540)))
+    page.get_by_label("File").set_input_files(files=deck)
     page.get_by_role("button", name="Upload").click()  # no title
     expect(page.locator(".notice-error")).to_contain_text("Give the document a title.")
     expect(page.get_by_role("button", name="Upload")).to_be_enabled()
+    # Only the page's main part was replaced: the header is the one it had.
+    expect(page.locator("header[data-kept='yes']")).to_have_count(1)
+    expect(page).to_have_title("Upload a document to Snug")
+
+    # The form that came back is sent by the script too, and this time it works.
+    page.get_by_label("Title").fill("Seed deck")
+    page.get_by_label("File").set_input_files(files=deck)
+    with page.expect_request("**/admin/documents/new") as sent:
+        page.get_by_role("button", name="Upload").click()
+    assert sent.value.headers.get("x-snug-upload") == "1"
+    expect(page.locator(".notice-ok")).to_contain_text("Uploaded, 1 page", timeout=15000)
+
+
+def test_a_refused_version_shows_its_error_in_view(
+    live_server: Any, page: Page, data_folder: Any
+) -> None:
+    from snug.documents import ingest
+    from snug.documents.models import Document
+    from tests.pdfs import chunks, make_pdf
+
+    deck = Document.objects.create(title="Seed deck")
+    ingest.ingest(deck, chunks(make_pdf((960, 540))), filename="deck.pdf", uploaded_by=None)
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/documents/{deck.token}")
+    page.locator("header").evaluate("header => header.setAttribute('data-kept', 'yes')")
+    page.get_by_label("File").set_input_files(
+        files=FilePayload(name="notes.txt", mimeType="text/plain", buffer=b"Not a PDF at all")
+    )
+    page.get_by_role("button", name="Upload version").click()
+    error = page.locator(".notice-error")
+    expect(error).to_contain_text("Snug takes PDFs, Excel workbooks (.xlsx) and MP4 videos")
+    expect(error).to_be_in_viewport()
+    expect(page.locator("header[data-kept='yes']")).to_have_count(1)
 
 
 def test_admin_pages_fit_a_phone(live_server: Any, page: Page) -> None:

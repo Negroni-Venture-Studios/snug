@@ -172,7 +172,7 @@ def test_the_file_is_checked_before_the_database_is_locked(
         )
     assert response.status_code == 302
     assert opened == [0]
-    assert DocumentVersion.objects.count() == 1 if first else 2
+    assert DocumentVersion.objects.count() == (1 if first else 2)
 
 
 def test_a_file_the_worker_refuses_creates_nothing(
@@ -192,6 +192,36 @@ def test_a_file_the_worker_refuses_creates_nothing(
     assert actions() == ["document.upload_refused"]
     assert list((data_folder / "originals").iterdir()) == []
     assert list((data_folder / "tmp").iterdir()) == []
+
+
+HOSTILE = '<img src=x onerror="alert(1)">'
+ESCAPED = "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;"
+
+
+def test_a_refused_upload_page_escapes_the_title_and_file_name(client: Client) -> None:
+    # admin.js puts this page in place of the form, so nothing in it may be markup.
+    response = client.post(
+        "/admin/documents/new",
+        {"title": HOSTILE, "pdf": pdf(b"Not a PDF at all", name=f"{HOSTILE}.pdf")},
+        secure=True,
+    )
+    page = response.content.decode()
+    assert response.status_code == 400
+    assert "<img src=x" not in page
+    assert f'value="{ESCAPED}"' in page
+
+
+def test_a_refused_version_escapes_the_title_in_its_error(client: Client) -> None:
+    upload_new(client, title=HOSTILE)
+    document = Document.objects.get()
+    workbook = SimpleUploadedFile(f"{HOSTILE}.xlsx", b"PK\x03\x04" + b"\0" * 64)
+    response = client.post(
+        f"/admin/documents/{document.token}/versions", {"pdf": workbook}, secure=True
+    )
+    page = response.content.decode()
+    assert response.status_code == 400
+    assert "<img src=x" not in page
+    assert f"{ESCAPED} is a PDF. Upload a PDF as its new version" in page
 
 
 def test_oversized_uploads_are_refused_before_they_are_read(admin: Admin) -> None:
