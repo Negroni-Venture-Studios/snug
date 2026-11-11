@@ -322,6 +322,8 @@ SYSCALLS = {
             "prlimit64": 302,
             "kcmp": 312,
             "process_madvise": 440,
+            "sched_setattr": 314,
+            "process_mrelease": 448,
         },
     ),
     "aarch64": (
@@ -354,6 +356,8 @@ SYSCALLS = {
             "prlimit64": 261,
             "kcmp": 272,
             "process_madvise": 440,
+            "sched_setattr": 274,
+            "process_mrelease": 448,
         },
     ),
 }
@@ -409,6 +413,8 @@ def test_the_filter_refuses_sockets_and_reaching_into_other_processes(machine: s
         "move_pages",
         "migrate_pages",
         "process_madvise",
+        "sched_setattr",
+        "process_mrelease",
     ):
         for target in (0, WORKER_PID, WORKER_PID + 1, 1):
             assert _seccomp(program, arch, numbers[name], target) == SECCOMP_EPERM, name

@@ -217,6 +217,8 @@ _REFUSED = (
     "move_pages",
     "migrate_pages",
     "process_madvise",
+    "sched_setattr",
+    "process_mrelease",
 )
 # The syscalls that send a signal: allowed only to the worker itself.
 _SIGNALLING = ("kill", "tkill", "tgkill", "rt_sigqueueinfo", "rt_tgsigqueueinfo")
@@ -248,6 +250,8 @@ _SECCOMP_ARCHES = {
             "pidfd_open": 434,
             "pidfd_getfd": 438,
             "process_madvise": 440,
+            "sched_setattr": 314,
+            "process_mrelease": 448,
         },
     ),
     "aarch64": (
@@ -276,6 +280,8 @@ _SECCOMP_ARCHES = {
             "pidfd_open": 434,
             "pidfd_getfd": 438,
             "process_madvise": 440,
+            "sched_setattr": 274,
+            "process_mrelease": 448,
         },
     ),
 }

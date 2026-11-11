@@ -8,6 +8,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 External security audits found these.
 
+- The document worker refuses to read a file if it cannot set its memory limit, and its seccomp filter refuses to trace, signal, re-prioritise or change the limits of other processes, or read their memory. The watermark's drawing is capped whatever the page's shape, so a PDF page of extreme shape no longer stops its download being stamped.
 - `snug setup` clears the screen and the terminal's scrollback once you type `saved`, where the backup settings used to stay visible.
 - New servers swap only under memory pressure (`vm.swappiness` 10), so less of Snug's memory, including its secret key, is written to the swap file.
 - The PDF worker refuses to read a file unless it has confined itself: Landlock ABI 4 (Linux 6.7) or later, and a new seccomp filter that refuses to create any socket. It used to carry on unconfined if Landlock failed, and Landlock alone let it send UDP. `SNUG_UNSAFE_UNCONFINED_RENDERING` allows unconfined reading for development only.
