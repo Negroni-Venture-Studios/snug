@@ -62,6 +62,7 @@ External security audits found all three.
 
 ### Added
 
+- On a new server, `snug setup` asks whether you are restoring Snug from an earlier server's backups. Answer `yes` and paste the backup settings from your password manager, and it checks the bucket and restores. You used to have to put the settings file in place with a text editor on the server first.
 - `docs/deploy-digitalocean.md` takes a founder from an empty DigitalOcean account to Snug running at their own address: every click, every answer `snug setup` asks for, and what to do when the console is not ready yet, with screenshots from a real deployment. The Google Workspace email guide has screenshots of each step too.
 - A step-by-step guide to trying Snug on your own Mac, `docs/deploy-localhost.md`, from installing Docker Desktop onwards. It replaces the README's shorter section, which assumed Docker and Python were installed.
 - [Using Snug](docs/using-snug.md), a guide to every page of the admin and what investors see, with screenshots. The deployment, backups, email, admin accounts and NDA guides have diagrams and screenshots too.

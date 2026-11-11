@@ -31,7 +31,7 @@ cloud-init installs Docker from Docker's own repository, Ubuntu's automatic secu
 
 Run `sudo snug setup` again to change the domain or the company's name, or to add a backup bucket you skipped. On a server that already has Snug's data, it keeps the data, leaves the admins as they are and restarts Snug with the new answers.
 
-If `/opt/snug/backup/rclone.conf` is already there, copied from your password manager, and its bucket holds backups, `snug setup` restores them instead of starting afresh. [backups.md](backups.md) explains when you would do this.
+On a new server, `snug setup` asks whether you are restoring Snug from an earlier server's backups. If you answer `yes` and paste the backup settings saved in your password manager, it restores the backups instead of starting afresh. It does the same if `/opt/snug/backup/rclone.conf` is already there and its bucket holds backups. [backups.md](backups.md) explains when you would do this.
 
 ### On another server
 

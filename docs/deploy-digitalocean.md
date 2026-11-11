@@ -161,6 +161,7 @@ Snug then downloads itself. The first time, this takes a minute or two. Then it 
 
 | Snug asks | You type |
 |---|---|
+| `Are you restoring Snug from an earlier server's backups? Type yes or no [no]` | nothing: press Return |
 | `Spaces region [lon1]` | nothing: press Return |
 | `Bucket name` | the bucket's name, from **Snug backups** |
 | `Access key` | the Access Key ID, from **Snug backups** |
