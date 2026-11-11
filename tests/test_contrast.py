@@ -4,7 +4,7 @@ AGENTS.md asks for WCAG AA on every text pairing, in both themes. This reads
 the tokens from snug.css, takes each side of every light-dark() pair, blends
 the translucent tints over the surfaces beneath them, and measures each text
 colour against everything it is used on. It also checks that the "Lowest
-contrast" figures in DESIGN.md section 3.4 are the ones measured here.
+contrast" figures in docs/design.md section 3.4 are the ones measured here.
 
 The founder's accent shades come from /brand/brand.css, chosen by the server
 for any colour; tests/test_brand_colour.py covers those.
@@ -19,7 +19,7 @@ from snug.core.brand import contrast
 
 ROOT = Path(__file__).resolve().parent.parent
 CSS = (ROOT / "snug" / "static" / "snug" / "css" / "snug.css").read_text()
-DESIGN = (ROOT / "DESIGN.md").read_text()
+DESIGN = (ROOT / "docs" / "design.md").read_text()
 
 AA = 4.5
 THEMES = ("light", "dark")
@@ -115,7 +115,7 @@ def test_the_primary_button_text_reads_on_the_action_colour(theme: str) -> None:
 
 
 def table_rows() -> dict[str, str]:
-    """The admin palette's "Lowest contrast" column in DESIGN.md, by token."""
+    """The admin palette's "Lowest contrast" column in docs/design.md, by token."""
     section = DESIGN[DESIGN.index("**Admin palette**") : DESIGN.index("**Viewer palette**")]
     rows = re.findall(r"^\| `(--[a-z0-9-]+)`[^\n]*\| ([0-9.]+(?: / [0-9.]+)?) \|$", section, re.M)
     return dict(rows)

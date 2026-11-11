@@ -1,6 +1,6 @@
 # How Snug works
 
-Snug is a Django application that runs in Docker on one server. [DESIGN.md](../DESIGN.md) records why it is built this way, and [AGENTS.md](../AGENTS.md) the rules for changing it.
+Snug is a Django application that runs in Docker on one server. [docs/design.md](design.md) records why it is built this way, and [AGENTS.md](../AGENTS.md) the rules for changing it.
 
 ## On one server
 

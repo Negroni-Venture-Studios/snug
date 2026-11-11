@@ -8,6 +8,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 The first release.
 
+### Changed
+
+- The design document is now [docs/design.md](docs/design.md), beside the architecture guide, and describes Snug as built. How to release is in [CONTRIBUTING.md](CONTRIBUTING.md#releasing).
+
 ### Removed
 
 - The original brief, `docs/BRIEF.md`. What it asked for and Snug does not do yet is in the [issues labelled enhancement](https://github.com/Negroni-Venture-Studios/snug/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).

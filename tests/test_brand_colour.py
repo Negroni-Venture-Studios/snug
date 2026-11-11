@@ -23,7 +23,7 @@ from snug.links import service
 
 pytestmark = pytest.mark.django_db
 
-# Viewer surfaces, light and dark (DESIGN.md section 3.4).
+# Viewer surfaces, light and dark (docs/design.md section 3.4).
 LIGHT = ("#fafaf9", "#ffffff")
 DARK = ("#1c1917", "#262220")
 
