@@ -41,6 +41,9 @@ class NdaAcceptance(models.Model):
 
     class Meta:
         ordering = ("-accepted_at",)
+        constraints = (
+            models.UniqueConstraint(fields=("link", "version"), name="nda_one_acceptance_per_link"),
+        )
 
     def __str__(self) -> str:
         return f"{self.name} accepted version {self.version_id}"

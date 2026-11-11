@@ -7,10 +7,13 @@ acceptance is per link and per version.
 
 import hashlib
 import time
+from collections.abc import Callable
 from typing import Any
 
 import pytest
-from django.test import Client
+from django.db import IntegrityError, transaction
+from django.db.models.query import QuerySet
+from django.test import Client, RequestFactory
 
 from snug.accounts import sessions
 from snug.accounts.models import Admin
@@ -80,6 +83,33 @@ def accept(browser: Client, issued: service.Issued, **fields: str) -> Any:
     return browser.post(f"/v/{issued.token}/nda", data, secure=True)
 
 
+def stale_current(monkeypatch: pytest.MonkeyPatch, seen: NdaVersion | None, times: int) -> None:
+    """terms.current() answers `seen` for its next `times` calls: another admin's
+    publish lands between this request reading the NDA and writing it."""
+    real = terms.current
+    calls = {"n": 0}
+
+    def current() -> NdaVersion | None:
+        calls["n"] += 1
+        return seen if calls["n"] <= times else real()
+
+    monkeypatch.setattr(terms, "current", current)
+
+
+def missed_once(monkeypatch: pytest.MonkeyPatch, model: type[Any]) -> None:
+    """The first lookup of `model` finds nothing: a racing request has not committed yet."""
+    real: Callable[..., Any] = QuerySet.get
+    missed = {"done": False}
+
+    def get(self: QuerySet[Any], *args: Any, **kwargs: Any) -> Any:
+        if self.model is model and not missed["done"]:
+            missed["done"] = True
+            raise model.DoesNotExist
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(QuerySet, "get", get)
+
+
 # ---------------------------------------------------------------- versions
 
 
@@ -89,6 +119,34 @@ def test_publishing_versions_the_text() -> None:
     assert terms.publish(f"  {TEXT}  ", by=None) == first  # unchanged text, no new version
     second = terms.publish(TEXT + " For two years.", by=None)
     assert second.number == 2 and terms.current() == second
+
+
+def test_a_racing_publish_takes_the_next_number(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Found in the audit of 10 November 2026: two admins saving at once both
+    # chose the same number, and the second save failed with a server error.
+    first = terms.publish(TEXT, by=None)
+    NdaVersion.objects.create(number=2, text="Theirs.", sha256="0" * 64)
+    stale_current(monkeypatch, first, times=1)
+    mine = terms.publish(TEXT + " Mine.", by=None)
+    assert (mine.number, mine.text) == (3, TEXT + " Mine.")
+
+
+def test_a_racing_publish_of_the_same_text_keeps_theirs(monkeypatch: pytest.MonkeyPatch) -> None:
+    first = terms.publish(TEXT, by=None)
+    theirs = NdaVersion.objects.create(number=2, text=TEXT + " Same.", sha256="0" * 64)
+    stale_current(monkeypatch, first, times=1)
+    assert terms.publish(TEXT + " Same.", by=None) == theirs
+    assert NdaVersion.objects.count() == 2
+
+
+def test_a_racing_first_publish_uses_theirs(monkeypatch: pytest.MonkeyPatch) -> None:
+    theirs = terms.publish("Theirs, published first.", by=None)
+    admin = Admin.objects.create(email="ruth@fernlea.example", is_active=True)
+    stale_current(monkeypatch, None, times=1)
+    request = RequestFactory().post("/admin/rooms/")
+    version = terms.publish_first(request, TEXT, by=admin, written_on="room")
+    assert version == theirs and NdaVersion.objects.count() == 1
+    assert not AuditEvent.objects.filter(action="settings.nda_published").exists()
 
 
 # ---------------------------------------------------------------- authorise(), check 3
@@ -214,9 +272,55 @@ def test_when_no_nda_is_needed_its_page_goes_to_the_document(document: Document)
     assert response.status_code == 303 and response["Location"] == f"/v/{issued.token}"
 
 
+def test_a_link_holds_one_acceptance_of_each_version(room: Room, nda: NdaVersion) -> None:
+    issued = share(room=room)
+    fields = {"link": issued.link, "version": nda, "name": "Priya Shah", "email": INVESTOR}
+    NdaAcceptance.objects.create(**fields)
+    with pytest.raises(IntegrityError), transaction.atomic():
+        NdaAcceptance.objects.create(**fields)
+
+
+def test_accepting_again_keeps_the_first_record(room: Room, nda: NdaVersion) -> None:
+    issued = share(room=room)
+    first, _ = terms.accept(
+        issued.link, nda, name="Priya Shah", email=INVESTOR, ip=None, user_agent=""
+    )
+    again = terms.accept(issued.link, nda, name="P Shah", email=INVESTOR, ip=None, user_agent="")
+    assert again == (first, False) and NdaAcceptance.objects.get().name == "Priya Shah"
+
+
+def test_a_racing_acceptance_keeps_the_first_record(
+    room: Room, nda: NdaVersion, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Found in the audit of 10 November 2026: two acceptances posted at once
+    # both passed the check and both wrote a record.
+    issued = share(room=room)
+    first, _ = terms.accept(
+        issued.link, nda, name="Priya Shah", email=INVESTOR, ip=None, user_agent=""
+    )
+    missed_once(monkeypatch, NdaAcceptance)
+    again = terms.accept(issued.link, nda, name="P Shah", email=INVESTOR, ip=None, user_agent="")
+    assert again == (first, False) and NdaAcceptance.objects.count() == 1
+
+
+@pytest.mark.usefixtures("nda")
+def test_a_second_acceptance_posted_at_once_is_not_recorded(
+    room: Room, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    issued = share(room=room)
+    browser = opened(issued)
+    assert accept(browser, issued).status_code == 303
+    # The second request read the NDA as not yet accepted, before the first wrote.
+    monkeypatch.setattr(terms, "accepted", lambda link, version: False)
+    response = accept(browser, issued, name="P Shah")
+    assert response.status_code == 303 and response["Location"] == f"/v/{issued.token}"
+    assert NdaAcceptance.objects.get().name == "Priya Shah"
+    assert AuditEvent.objects.filter(action="viewer.nda_accepted").count() == 1
+
+
 def test_acceptances_cannot_be_changed(room: Room, nda: NdaVersion) -> None:
     issued = share(room=room)
-    record = terms.accept(
+    record, _ = terms.accept(
         issued.link, nda, name="Priya Shah", email=INVESTOR, ip=None, user_agent=""
     )
     record.name = "Someone else"
@@ -248,6 +352,16 @@ def test_the_nda_is_set_in_settings() -> None:
     browser.post("/admin/settings/nda", {"text": TEXT + " Amended."}, secure=True)
     assert NdaVersion.objects.count() == 2
     assert AuditEvent.objects.filter(action="settings.nda_published").count() == 2
+
+
+def test_a_racing_save_in_settings_is_saved(monkeypatch: pytest.MonkeyPatch) -> None:
+    browser = admin_client()
+    first = terms.publish(TEXT, by=None)
+    NdaVersion.objects.create(number=2, text="Theirs.", sha256="0" * 64)
+    stale_current(monkeypatch, first, times=2)
+    response = browser.post("/admin/settings/nda", {"text": TEXT + " Mine."}, secure=True)
+    assert response.status_code == 302 and response["Location"].endswith("saved=nda#nda")
+    assert NdaVersion.objects.get(number=3).text == TEXT + " Mine."
 
 
 def test_a_room_can_require_the_nda_only_once_there_is_one(document: Document) -> None:
