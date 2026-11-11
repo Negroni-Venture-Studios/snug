@@ -25,6 +25,12 @@ def _trusted(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     return any(address in network for network in settings.CONFIG.trusted_proxies)
 
 
+def from_trusted_proxy(request: HttpRequest) -> bool:
+    """Whether the request came straight from a trusted proxy, so its forwarded headers count."""
+    peer = _parse(request.META.get("REMOTE_ADDR", ""))
+    return peer is not None and _trusted(peer)
+
+
 def client_ip(request: HttpRequest) -> str | None:
     """The client's address, or None if it cannot be determined."""
     peer = _parse(request.META.get("REMOTE_ADDR", ""))

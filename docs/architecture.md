@@ -64,14 +64,15 @@ Caddy passes each request to `snug:8000` and adds the visitor's address in `X-Fo
 
 The middleware runs in this order:
 
-1. Django's `SecurityMiddleware`, then its content security policy, then `X-Frame-Options`. The policy allows only Snug's own address, and `data:` for images, so no inline script or style can run.
-2. `extra_security_headers`: `Permissions-Policy` and `Cross-Origin-Resource-Policy`.
-3. `health_check` answers `/healthz` for Docker's health check, before the host check.
-4. WhiteNoise serves `/static/`.
-5. Sessions and Django's common middleware.
-6. Authentication, then `session_limits`, which signs an admin out after an hour without activity, or 12 hours after signing in.
-7. `upload_size_limit` refuses an oversized POST from its declared length, before anything reads the body. Anyone but a signed-in admin is allowed 64 KB, enough for a form's fields. The refusal is a 413, or the sign-in page for an admin whose session has ended. It runs before the CSRF check, since that would read the body to find the token.
-8. CSRF.
+1. `forwarded_proto` drops the `X-Forwarded-Proto` header unless the request came from a trusted proxy, as for `X-Forwarded-For`, so a visitor cannot pass a plain HTTP request off as HTTPS.
+2. Django's `SecurityMiddleware`, then its content security policy, then `X-Frame-Options`. The policy allows only Snug's own address, and `data:` for images, so no inline script or style can run.
+3. `extra_security_headers`: `Permissions-Policy` and `Cross-Origin-Resource-Policy`.
+4. `health_check` answers `/healthz` for Docker's health check, before the host check.
+5. WhiteNoise serves `/static/`.
+6. Sessions and Django's common middleware.
+7. Authentication, then `session_limits`, which signs an admin out after an hour without activity, or 12 hours after signing in.
+8. `upload_size_limit` refuses an oversized POST from its declared length, before anything reads the body. Anyone but a signed-in admin is allowed 64 KB, enough for a form's fields. The refusal is a 413, or the sign-in page for an admin whose session has ended. It runs before the CSRF check, since that would read the body to find the token.
+9. CSRF.
 
 Each view that needs a rate limit calls `snug.core.ratelimit.allow` with a `Limit` (a scope, a count and a window), or `exceeded` to look without counting. The counts are kept in the database, in fixed windows, keyed by a hash of the scope and the address, account or link.
 

@@ -79,3 +79,27 @@ def test_cookies_are_host_only_secure_and_hidden_from_scripts() -> None:
 
 def test_django_admin_is_not_installed() -> None:
     assert "django.contrib.admin" not in settings.INSTALLED_APPS
+
+
+# Caddy sets X-Forwarded-Proto. From anyone else it is ignored, as
+# X-Forwarded-For is (snug.core.client), so a request over plain HTTP cannot
+# pass for HTTPS. Django sends HSTS only on a request it believes is secure.
+VISITOR = "203.0.113.9"
+
+
+def test_forwarded_proto_from_a_visitor_is_ignored() -> None:
+    response = Client(REMOTE_ADDR=VISITOR).get("/healthz", headers={"X-Forwarded-Proto": "https"})
+    assert response.status_code == 200
+    assert "Strict-Transport-Security" not in response.headers
+
+
+def test_forwarded_proto_from_the_proxy_is_believed() -> None:
+    # With no SNUG_TRUSTED_PROXIES, the loopback addresses are the trusted proxies.
+    response = Client(REMOTE_ADDR="127.0.0.1").get(
+        "/healthz", headers={"X-Forwarded-Proto": "https"}
+    )
+    assert response.headers["Strict-Transport-Security"] == "max-age=31536000"
+
+
+def test_the_forwarded_proto_check_runs_before_anything_reads_it() -> None:
+    assert settings.MIDDLEWARE[0] == "snug.core.middleware.forwarded_proto"
