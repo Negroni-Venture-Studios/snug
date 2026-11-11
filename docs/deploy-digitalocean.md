@@ -22,7 +22,7 @@ Snug copies everything to a storage bucket every five minutes, so nothing is los
 1. Sign in to DigitalOcean at [cloud.digitalocean.com](https://cloud.digitalocean.com).
 2. Click **Create** at the top of the page, scroll to the bottom of the menu, and choose **Spaces Object Storage**.
 
-   <img alt="DigitalOcean's Create menu, with Spaces Object Storage near the bottom." src="images/digitalocean/create-menu.png" width="300">
+   <img alt="DigitalOcean's Create menu, with Spaces Object Storage near the bottom." src="images/digitalocean/create-menu.png">
 
 3. Under **Choose a datacenter region**, choose **London**. Leave **Standard Storage** chosen.
 
@@ -82,7 +82,7 @@ DigitalOcean calls a server a droplet.
    > [!NOTE]
    > **You can use an SSH key instead of a password.** It is safer, but needs a few commands on your own computer first. DigitalOcean explains how in [Add SSH keys to Droplets](https://docs.digitalocean.com/products/droplets/how-to/add-ssh-keys/). Choose **SSH Keys**, then **Add an SSH Key**, and paste the public key. The rest of this guide is the same either way.
    >
-   > <img alt="DigitalOcean's Add a public SSH key dialog." src="images/digitalocean/auth-ssh-key.png" width="560">
+   > <img alt="DigitalOcean's Add a public SSH key dialog." src="images/digitalocean/auth-ssh-key.png">
 
 7. Under **Networking**, tick **Public IPv6 address**. Leave **Public IPv4 address** ticked.
 
@@ -128,7 +128,7 @@ Things that often go wrong:
 1. On the droplet's page, click **Web Console** at the top right. A black window opens.
 2. If it says `droplet-agent is not running on the target droplet`, the server is still installing. Wait five minutes, then click **Reload** in that window.
 
-   <img alt="The console's message droplet-agent is not running on the target droplet, with Reload and Close." src="images/digitalocean/console-not-ready.png" width="520">
+   <img alt="The console's message droplet-agent is not running on the target droplet, with Reload and Close." src="images/digitalocean/console-not-ready.png">
 
 3. When the server is ready, the console shows a welcome message, and near the end:
 

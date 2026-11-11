@@ -52,23 +52,27 @@ The page changes to *API/Service details*, with **Status: Enabled**. Ignore its 
 
 This is the page Google shows when you approve Snug for the mailbox.
 
-1. The sidebar on the left shows only icons. Point at the fourth to see its name, **OAuth consent screen**, and click it. Google opens *Google Auth Platform*, saying it is not configured yet. Choose **Get started**.
+1. The sidebar on the left shows only icons. Point at the fourth to see its name, **OAuth consent screen**, and click it.
 
-   <img alt="Google auth platform not configured yet, with the Get started button." src="images/google/auth-get-started.png" width="480">
+   <img alt="The Gmail API's page after enabling it, with the fourth sidebar icon, OAuth consent screen, marked." src="images/google/sidebar-consent.png">
 
-2. **App information.** Enter **Snug** as the app name, choose your own address as the user support email, and choose **Next**.
+2. Google opens *Google Auth Platform*, saying it is not configured yet. Choose **Get started**.
 
-   <img alt="App Information, with the app name Snug and a user support email chosen." src="images/google/app-information.png" width="480">
+   <img alt="Google auth platform not configured yet, with the Get started button." src="images/google/auth-get-started.png">
 
-3. **Audience.** Choose **Internal**, then **Next**. Only accounts in your Workspace organisation can then approve Snug, and Google does not need to review it.
+3. **App information.** Enter **Snug** as the app name, choose your own address as the user support email, and choose **Next**.
 
-   <img alt="Audience, with Internal chosen." src="images/google/audience-internal.png" width="480">
+   <img alt="App Information, with the app name Snug and a user support email chosen." src="images/google/app-information.png">
 
-4. **Contact information.** Type your own address and press Return. It turns into a tag in the box. Choose **Next**.
+4. **Audience.** Choose **Internal**, then **Next**. Only accounts in your Workspace organisation can then approve Snug, and Google does not need to review it.
 
-   <img alt="Contact Information, with an address added as a tag." src="images/google/contact-information.png" width="480">
+   <img alt="Audience, with Internal chosen." src="images/google/audience-internal.png">
 
-5. **Finish.** Tick the box agreeing to the *Google API Services: User Data Policy*, choose **Continue**, then **Create**.
+5. **Contact information.** Type your own address and press Return. It turns into a tag in the box. Choose **Next**.
+
+   <img alt="Contact Information, with an address added as a tag." src="images/google/contact-information.png">
+
+6. **Finish.** Tick the box agreeing to the *Google API Services: User Data Policy*, choose **Continue**, then **Create**.
 
 A message says *OAuth configuration created*, and the page shows *OAuth overview*.
 
@@ -83,14 +87,14 @@ The client is how Snug identifies itself to Google. It has a client ID and a cli
 2. **Application type:** choose **Web application**.
 3. **Name:** delete the suggested *Web client 1* and type **Snug**, which only you see.
 
-   <img alt="Create OAuth client ID, with Web application chosen as the application type." src="images/google/web-application.png" width="480">
+   <img alt="Create OAuth client ID, with Web application chosen as the application type." src="images/google/web-application.png">
 
 4. **Authorised JavaScript origins:** leave empty.
 5. **Authorised redirect URIs:** choose **Add URI**, and paste the address Snug shows in Settings, under Email, in step 1 after you choose Google Workspace. On a server it looks like this:
 
         https://room.example.com/admin/settings/email/google/callback
 
-   <img alt="Authorised redirect URIs, with Snug's callback address added, and the AI-powered agent box unticked." src="images/google/redirect-uri.png" width="480">
+   <img alt="Authorised redirect URIs, with Snug's callback address added, and the AI-powered agent box unticked." src="images/google/redirect-uri.png">
 
    It must match exactly, with `https://`, your domain, and no slash at the end. If you also try Snug on your own computer, add its address as a second URI, such as `http://localhost:8000/admin/settings/email/google/callback`. Google allows plain `http` only for `localhost`.
 6. Leave **Use this client for an AI-powered agent** unticked, and choose **Create**.
