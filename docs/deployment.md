@@ -25,7 +25,7 @@ Snug runs on one Linux server as four containers under Docker Compose:
    sudo snug setup
    ```
 
-cloud-init installs Docker from Docker's own repository, Ubuntu's automatic security updates, a firewall that lets in only SSH, HTTP and HTTPS, a 1 GB swap file, and Snug's files in `/opt/snug`, with the `snug` command in `/usr/local/bin`. It does not start Snug.
+cloud-init installs Docker from Docker's own repository, Ubuntu's automatic security updates, a firewall that lets in only SSH, HTTP and HTTPS, a 1 GB swap file, used only under memory pressure, and Snug's files in `/opt/snug`, with the `snug` command in `/usr/local/bin`. It does not start Snug.
 
 `snug setup` asks for the domain, the company's name and the backup bucket. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. Email is set up afterwards, in Settings, under Email: [email-google.md](email-google.md) for Google Workspace, [email.md](email.md) for any other provider.
 
@@ -72,6 +72,8 @@ Compose treats `$` in `snug.env` as the start of a variable. Wrap any value cont
 | Privileges | Runs as the unprivileged `snug` user, with no Linux capabilities | Only the capability to listen on ports below 1024 |
 
 Neither can gain privileges once started (`no-new-privileges`). Litestream and the backup container are confined the same way, and run as Snug's user, which owns the data volume. Litestream has no network at all; the backup container is on a network of its own, from which it can reach the bucket but not Snug. Docker keeps at most 30 MB of each container's output.
+
+The database in the `snug-data` volume holds the SMTP password and Google's client secret and refresh token unencrypted, so give only Snug's admins access to the server and its volumes.
 
 Caddy writes no access log, because the token is in the URL of every investor's link.
 

@@ -551,7 +551,7 @@ def nda(request: HttpRequest, access: Access, token: str) -> HttpResponse:
     if errors:
         context.update(errors=errors, name=name)
         return render(request, "viewer/nda.html", context, status=400)
-    terms.accept(
+    _record, created = terms.accept(
         access.link,
         version,
         name=name,
@@ -559,6 +559,8 @@ def nda(request: HttpRequest, access: Access, token: str) -> HttpResponse:
         ip=client_ip(request),
         user_agent=user_agent(request),
     )
+    if not created:  # accepted meanwhile, in another request
+        return _see_other(token)
     _audit(
         request,
         "viewer.nda_accepted",

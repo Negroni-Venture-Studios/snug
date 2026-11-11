@@ -6,9 +6,11 @@ Docker or the network.
 """
 
 import os
+import pty
 import shutil
 import stat
 import subprocess
+import threading
 from pathlib import Path
 
 import pytest
@@ -57,7 +59,12 @@ def run_setup(
     bucket_has_backups: bool,
     answers: str = "",
     succeeds: bool = True,
+    terminal: bool = False,
 ) -> list[str]:
+    """Run setup.sh; what it printed is left in `screen`, beside the server folder.
+
+    With `terminal`, its output goes to a pseudo-terminal, as over SSH.
+    """
     log = server.parent / "log"
     log.touch()
     env = {
@@ -68,16 +75,48 @@ def run_setup(
         "BUCKET_HAS_BACKUPS": "yes" if bucket_has_backups else "no",
     }
     # Enter for the domain, then the company's name, then any later answers.
-    result = subprocess.run(
-        ["/bin/sh", str(server / "setup.sh")],
-        input="\nFernlea Robotics\n" + answers,
-        capture_output=True,
-        text=True,
-        env=env,
-        check=False,
-    )
-    assert (result.returncode == 0) == succeeds, result.stdout + result.stderr
+    typed = "\nFernlea Robotics\n" + answers
+    if terminal:
+        returncode, printed = on_a_terminal(["/bin/sh", str(server / "setup.sh")], typed, env)
+    else:
+        result = subprocess.run(
+            ["/bin/sh", str(server / "setup.sh")],
+            input=typed,
+            capture_output=True,
+            text=True,
+            env=env,
+            check=False,
+        )
+        returncode, printed = result.returncode, result.stdout + result.stderr
+    (server.parent / "screen").write_text(printed)
+    assert (returncode == 0) == succeeds, printed
     return log.read_text().splitlines()
+
+
+def on_a_terminal(command: list[str], typed: str, env: dict[str, str]) -> tuple[int, str]:
+    """Run `command` with its output on a pseudo-terminal and `typed` as its input."""
+    controller, terminal = pty.openpty()
+    chunks: list[bytes] = []
+
+    def read() -> None:
+        while True:
+            try:
+                chunk = os.read(controller, 4096)
+            except OSError:  # Linux: the terminal closed
+                return
+            if not chunk:  # macOS: the terminal closed
+                return
+            chunks.append(chunk)
+
+    reader = threading.Thread(target=read)
+    reader.start()
+    process = subprocess.run(
+        command, input=typed.encode(), stdout=terminal, stderr=terminal, env=env, check=False
+    )
+    os.close(terminal)
+    reader.join(timeout=10)
+    os.close(controller)
+    return process.returncode, b"".join(chunks).decode()
 
 
 def test_a_second_run_keeps_the_data_and_restarts_snug(server: Path) -> None:
@@ -186,3 +225,30 @@ def test_answering_no_asks_for_a_new_bucket(server: Path) -> None:
     settings = (server / "backup" / "rclone.conf").read_text()
     assert "endpoint = ams3.digitaloceanspaces.com" in settings
     assert "remote = bucket:fernlea-backups/snug" in settings
+
+
+# Clears the screen, then the scrollback, as `clear` does.
+CLEAR = "\033[H\033[2J\033[3J"
+
+
+def test_the_backup_settings_are_cleared_from_the_terminal_once_saved(server: Path) -> None:
+    # Found in the audit of 10 November 2026: the settings stayed in the
+    # terminal's scrollback after the founder had saved them.
+    (server / "backup" / "rclone.conf").unlink()
+    answers = "no\nams3\nfernlea-backups\nDO00FERNLEA\nfernlea-secret\nsaved\n"
+    run_setup(server, has_database=False, bucket_has_backups=False, answers=answers, terminal=True)
+    screen = (server.parent / "screen").read_text()
+    shown = screen.index("secret_access_key = fernlea-secret")
+    cleared = screen.index(CLEAR)
+    assert shown < screen.index("Type saved once it is in your password manager") < cleared
+    assert "fernlea-secret" not in screen[cleared:]
+    assert "The backup settings have been cleared from the screen." in screen[cleared:]
+
+
+def test_without_a_terminal_nothing_is_cleared(server: Path) -> None:
+    (server / "backup" / "rclone.conf").unlink()
+    answers = "no\nams3\nfernlea-backups\nDO00FERNLEA\nfernlea-secret\nsaved\n"
+    run_setup(server, has_database=False, bucket_has_backups=False, answers=answers)
+    screen = (server.parent / "screen").read_text()
+    assert "secret_access_key = fernlea-secret" in screen
+    assert "\033[" not in screen

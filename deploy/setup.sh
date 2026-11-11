@@ -197,6 +197,11 @@ else
 			printf 'Type saved once it is in your password manager: '
 			read -r answer || exit 1
 		done
+		if [ -t 1 ]; then
+			# The screen, then the scrollback, so the settings cannot be scrolled back to.
+			printf '\033[H\033[2J\033[3J'
+			say "The backup settings have been cleared from the screen."
+		fi
 	fi
 fi
 if [ -s backup/rclone.conf ]; then

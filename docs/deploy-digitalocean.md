@@ -197,7 +197,7 @@ Type saved once it is in your password manager:
 
 **Copy everything between the lines into Snug backups in your password manager.** Then type `saved` and press Return.
 
-Snug checks its settings and starts. This takes another minute or two.
+Snug clears the screen, then checks its settings and starts. This takes another minute or two.
 
 ## 8. Create your admin account
 
