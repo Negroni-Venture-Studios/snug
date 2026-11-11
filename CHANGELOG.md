@@ -8,6 +8,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 External security audits found these.
 
+- New servers and `snug update` download the server's files from the newest release, not from the `main` branch, so a server runs only what has been released.
 - The document worker refuses to read a file if it cannot set its memory limit, and its seccomp filter refuses to trace, signal, re-prioritise or change the limits of other processes, or read their memory. The watermark's drawing is capped whatever the page's shape, so a PDF page of extreme shape no longer stops its download being stamped.
 - Snug believes the `X-Forwarded-Proto` header only from a trusted proxy, so a request over plain HTTP can no longer pass for HTTPS if Snug's port is ever reached without Caddy.
 - A refused upload replaces only the main part of the admin page, and nothing in the reply runs.
@@ -74,6 +75,7 @@ External security audits found these.
 
 ### Added
 
+- The Overview shows which Snug is running, under the status line: a release's version, or the commit of a test build, with a link to the guide on updating. Settings links each section to the guides for the running release.
 - [What Snug protects against](docs/security.md), including what its watermarks, download stamps, NDA record and UK-only mode cannot stop.
 - Settings shows when the backups last reached the bucket, as *Working* or *Problem*, with the same sentence as `snug doctor` and the time the last copy finished, so you can check without the server's console. The section is as wide as the forms above it. A problem has a link to the backups guide beside it, and a server without backups says to run `sudo snug setup`, where it used to say a file was missing. The Branding and Privacy sections link to new parts of [Using Snug](docs/using-snug.md), so every section in Settings links to its guide.
 - `sudo snug update` brings a server up to date: the latest server files from GitHub, replaced only once every one has arrived, then the new images. It never touches `snug.env` or the backup settings. Updating used to pull new images only, leaving the server's own files as they were when it was made.

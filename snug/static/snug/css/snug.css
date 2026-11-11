@@ -335,6 +335,8 @@ input[type="password"]::placeholder { color: var(--text-2); opacity: 1; letter-s
 .system-status code { font-family: var(--mono); font-size: 0.85em; }
 .system-status-ok { display: flex; gap: 0.45rem; align-items: center; font-size: 0.875rem; color: var(--text-2); }
 .system-status-ok > svg { color: var(--ok); }
+.system-status:has(+ .system-version) { margin-bottom: 0.35rem; }
+.system-version { margin: 0 0 1.5rem; font-size: 0.8125rem; color: var(--text-2); }
 .side-note { font-size: 0.9rem; color: var(--text-2); }
 .side-note h2 { font-size: 1rem; font-weight: 500; color: var(--text); margin-bottom: 0.75rem; }
 
