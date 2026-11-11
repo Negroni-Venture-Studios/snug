@@ -312,6 +312,16 @@ SYSCALLS = {
             "io_uring_setup": 425,
             "pidfd_open": 434,
             "pidfd_getfd": 438,
+            "setpriority": 141,
+            "sched_setparam": 142,
+            "sched_setscheduler": 144,
+            "sched_setaffinity": 203,
+            "ioprio_set": 251,
+            "migrate_pages": 256,
+            "move_pages": 279,
+            "prlimit64": 302,
+            "kcmp": 312,
+            "process_madvise": 440,
         },
     ),
     "aarch64": (
@@ -334,6 +344,16 @@ SYSCALLS = {
             "io_uring_setup": 425,
             "pidfd_open": 434,
             "pidfd_getfd": 438,
+            "ioprio_set": 30,
+            "sched_setparam": 118,
+            "sched_setscheduler": 119,
+            "sched_setaffinity": 122,
+            "setpriority": 140,
+            "migrate_pages": 238,
+            "move_pages": 239,
+            "prlimit64": 261,
+            "kcmp": 272,
+            "process_madvise": 440,
         },
     ),
 }
@@ -378,9 +398,32 @@ def test_the_filter_refuses_sockets_and_reaching_into_other_processes(machine: s
         "pidfd_open",
         "pidfd_getfd",
         "pidfd_send_signal",
+        # Re-prioritising, re-scheduling or moving the memory of a process,
+        # even the worker's own: nothing it runs does (review, 11 November 2026).
+        "setpriority",
+        "ioprio_set",
+        "sched_setaffinity",
+        "sched_setscheduler",
+        "sched_setparam",
+        "kcmp",
+        "move_pages",
+        "migrate_pages",
+        "process_madvise",
     ):
-        for target in (WORKER_PID, WORKER_PID + 1, 1):
+        for target in (0, WORKER_PID, WORKER_PID + 1, 1):
             assert _seccomp(program, arch, numbers[name], target) == SECCOMP_EPERM, name
+
+
+@pytest.mark.parametrize("machine", sorted(SYSCALLS))
+def test_the_filter_lets_the_worker_change_only_its_own_limits(machine: str) -> None:
+    # glibc's getrlimit and setrlimit call prlimit64 with 0, meaning the caller.
+    arch, numbers = SYSCALLS[machine]
+    program = worker._seccomp_filter(machine, WORKER_PID)
+    assert program is not None
+    for target in (0, WORKER_PID):
+        assert _seccomp(program, arch, numbers["prlimit64"], target, 7) == SECCOMP_ALLOW
+    for target in (WORKER_PID + 1, 1, -1, -WORKER_PID):
+        assert _seccomp(program, arch, numbers["prlimit64"], target, 7) == SECCOMP_EPERM, target
 
 
 @pytest.mark.parametrize("machine", sorted(SYSCALLS))
@@ -441,6 +484,28 @@ def test_a_confined_worker_can_signal_only_itself(tmp_path: Path) -> None:
     lines = result.stdout.splitlines()
     assert lines[0].endswith(", no sockets"), result.stdout + result.stderr
     assert lines[1:] == ["sent refused refused refused", "caught"], result.stdout + result.stderr
+
+
+@linux_only
+def test_a_confined_worker_cannot_change_another_process(tmp_path: Path) -> None:
+    # Each would succeed unconfined: reading the parent's limit, and setting
+    # the worker's own priority and processors to what they already are.
+    script = (
+        "def attempt(call, *args):\n"
+        "    try:\n"
+        "        call(*args)\n"
+        "        return 'done'\n"
+        "    except PermissionError:\n"
+        "        return 'refused'\n"
+        "print(resource.getrlimit(resource.RLIMIT_NOFILE)[0] > 0)\n"
+        "print(attempt(resource.prlimit, os.getppid(), resource.RLIMIT_NOFILE),\n"
+        "      attempt(os.setpriority, os.PRIO_PROCESS, 0, os.getpriority(os.PRIO_PROCESS, 0)),\n"
+        "      attempt(os.sched_setaffinity, 0, os.sched_getaffinity(0)))\n"
+    )
+    result = _confined(script, tmp_path, setup="import os, resource")
+    lines = result.stdout.splitlines()
+    assert lines[0].endswith(", no sockets"), result.stdout + result.stderr
+    assert lines[1:] == ["True", "refused refused refused"], result.stdout + result.stderr
 
 
 @linux_only

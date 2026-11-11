@@ -99,7 +99,7 @@ sudo snug doctor --email you@example.com
 |---|---|
 | Housekeeping | `snug housekeeping`, which runs every hour, has completed in the last 3 hours |
 | Backups | The last copy to the bucket succeeded, less than 15 minutes ago ([backups.md](backups.md)) |
-| Document worker | A fresh worker confines itself with Landlock ABI 4 or later and the seccomp filter, so it is allowed to read documents |
+| Document worker | A fresh worker confines itself with Landlock ABI 4 or later and the seccomp filter, which refuses sockets and refuses to trace, signal, re-prioritise or change the limits of another process, so it is allowed to read documents |
 | DNS | The domain resolves; the report lists the addresses it points to |
 | HTTPS | The domain answers Snug's health check over HTTPS, with a valid certificate that has more than 14 days left |
 | Email | Email is set up, through Google Workspace or SMTP; with `--email`, a code sent to that address is typed back |
