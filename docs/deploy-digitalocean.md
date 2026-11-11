@@ -278,7 +278,7 @@ Ubuntu installs its security updates by itself. Updates to Snug you install your
    sudo snug update
    ```
 
-Snug downloads the new version and restarts, which takes a minute or two, and ends:
+Snug downloads the new version and restarts, which takes under a minute, and ends:
 
 ```
 Snug is up to date. To check everything is working: sudo snug doctor

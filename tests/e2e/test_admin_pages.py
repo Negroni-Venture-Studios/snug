@@ -415,6 +415,11 @@ def test_settings_shows_when_the_backups_last_reached_the_bucket(
     expect(section).to_be_in_viewport()
     expect(section.locator(".status")).to_have_text("Working")
     expect(section).to_contain_text("Last copied to the bucket 4\u00a0minutes ago.")
+    # As wide as the Privacy panel above it, not the whole page.
+    panel = section.locator(".backup-status").bounding_box()
+    above = page.locator("#privacy .panel").first.bounding_box()
+    assert panel is not None and above is not None
+    assert round(panel["width"]) == round(above["width"])
     guide = section.get_by_role("link", name="The backups guide")
     expect(guide).to_have_attribute("href", re.compile(r"/docs/backups\.md$"))
     expect(guide).to_have_attribute("target", "_blank")
