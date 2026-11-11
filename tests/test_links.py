@@ -109,6 +109,26 @@ def test_an_altered_browsers_half_shows_nothing(
     assert ISSUED not in client.session
 
 
+@pytest.mark.parametrize("change", ["no masked", "no link", "no emailed", "not a dict", "number"])
+def test_an_incomplete_session_half_shows_nothing(
+    client: Client, document: Document, change: str
+) -> None:
+    create(client, document)
+    session = client.session
+    issued = session[ISSUED]
+    if change == "not a dict":
+        issued = "junk"
+    elif change == "number":
+        issued["masked"] = 12345
+    else:
+        del issued[change.removeprefix("no ")]
+    session[ISSUED] = issued
+    session.save()
+    response = client.get("/admin/links/issued", secure=True)
+    assert response.status_code == 302 and response["Location"] == "/admin/links/"
+    assert ISSUED not in client.session
+
+
 def test_the_browsers_half_is_a_strict_short_lived_cookie(
     client: Client, document: Document
 ) -> None:

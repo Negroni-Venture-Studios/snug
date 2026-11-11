@@ -250,6 +250,10 @@ def _new_link(
 def link_issued(request: HttpRequest) -> HttpResponse:
     issued = request.session.pop(ISSUED, None)
     pad = request.COOKIES.get(ISSUED_COOKIE)
+    # Anything but the whole payload _show_once saved shows nothing.
+    complete = isinstance(issued, dict) and isinstance(issued.get("masked"), str)
+    if not (complete and "link" in issued and "emailed" in issued):
+        issued = None
     token = _unmask(issued["masked"], pad) if issued and pad else None
     response: HttpResponse
     if token is None:
