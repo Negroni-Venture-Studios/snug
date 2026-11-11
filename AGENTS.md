@@ -7,7 +7,7 @@ Instructions for AI coding agents working in this repository. People will find t
 A self-hosted data room for early-stage founders, published as MIT-licensed open source by Negroni Venture Studios. One instance serves one company, on the founder's own server.
 
 - **[DESIGN.md](DESIGN.md) is the source of truth.**
-- `docs/BRIEF.md` is the original brief. It was advisory, and DESIGN.md overrides it wherever they differ.
+- Planned work is in GitHub issues labelled `enhancement`. New work that is deferred becomes an issue, not a note in DESIGN.md.
 - If something you need is missing from DESIGN.md, or contradicts it, **ask rather than deciding silently.**
 
 ## Commands

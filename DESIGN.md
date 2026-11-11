@@ -1,6 +1,6 @@
 # Snug: design
 
-Snug is a self-hosted data room for early-stage founders, one instance per company on the founder's own server. [docs/architecture.md](docs/architecture.md) explains how the code works. The original brief is kept in [docs/BRIEF.md](docs/BRIEF.md); where the two disagree, follow this file.
+Snug is a self-hosted data room for early-stage founders, one instance per company on the founder's own server. [docs/architecture.md](docs/architecture.md) explains how the code works.
 
 Sections 1 to 3 describe Snug as built, except the features that section 4 lists as not built yet.
 

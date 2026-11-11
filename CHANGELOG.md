@@ -8,6 +8,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 The first release.
 
+### Removed
+
+- The original brief, `docs/BRIEF.md`. What it asked for and Snug does not do yet is in the [issues labelled enhancement](https://github.com/Negroni-Venture-Studios/snug/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
+
 ### Security
 
 External security audits found these.
@@ -193,7 +197,6 @@ External security audits found these.
 - Repository guard rails: CI for lint, type checking, tests on Python 3.12 and 3.14, secret scanning, dependency audit, licence checks and a software bill of materials; CodeQL; Dependabot; pre-commit hooks.
 - Project documents: README, contributing guide, security policy, code of conduct, trademarks note, and agent instructions.
 - DESIGN.md, recording the architecture, the agreed decisions and the front-end design, with clickable mockups and the Snug logo in `docs/design/`.
-- The original project brief, kept for the record in `docs/BRIEF.md`.
 
 [Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/Negroni-Venture-Studios/snug/releases/tag/v1.0.0

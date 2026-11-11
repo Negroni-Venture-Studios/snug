@@ -4,7 +4,7 @@ Thank you for helping. Snug holds founders' most sensitive documents, so correct
 
 ## Before you start
 
-- Read [docs/architecture.md](docs/architecture.md) for how the code works, and [DESIGN.md](DESIGN.md) for what Snug is and the decisions behind it. Where DESIGN.md and the original brief in `docs/BRIEF.md` differ, follow DESIGN.md.
+- Read [docs/architecture.md](docs/architecture.md) for how the code works, and [DESIGN.md](DESIGN.md) for what Snug is and the decisions behind it. Planned work is in the [issues labelled enhancement](https://github.com/Negroni-Venture-Studios/snug/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
 - For anything larger than a small fix, open an issue first so we can agree the approach.
 - Report security problems privately, as [SECURITY.md](SECURITY.md) describes, never in a public issue.
 
