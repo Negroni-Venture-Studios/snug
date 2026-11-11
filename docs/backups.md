@@ -85,7 +85,7 @@ sudo docker compose exec backup rclone lsf -R snug-backup:
 
 `snug restore` brings everything back from the bucket: the database, the uploaded documents and the branding images. Use it on the same server after a mistake, or on a new server if the old one is lost.
 
-On a new server, create it with cloud-init as [deployment.md](deployment.md) describes, and run `sudo snug setup`. After the domain and your company's name, it asks whether you are restoring Snug from an earlier server's backups. Type `yes`, then paste the backup settings saved in your password manager, from the first line, `# Snug's backups`, to the last, `password2 = …`. Setup checks the bucket holds backups and restores them. Then sign in to check, and run `sudo snug doctor`.
+On DigitalOcean, [Putting Snug on DigitalOcean](deploy-digitalocean.md#bringing-snug-back-on-a-new-server) goes through it step by step. On another provider, create the new server with cloud-init as [deployment.md](deployment.md) describes, and run `sudo snug setup`. After the domain and your company's name, it asks whether you are restoring Snug from an earlier server's backups. Type `yes`, then paste the backup settings saved in your password manager, from the first line, `# Snug's backups`, to the last, `password2 = …`. Setup checks the bucket holds backups and restores them. Then sign in to check, and run `sudo snug doctor`.
 
 The email settings come back with the database, including a Google Workspace connection, which goes on sending. If the new server has a different domain, add its redirect address to the Google client too, as [email-google.md](email-google.md) describes, so the mailbox can be connected again when it needs to be.
 
