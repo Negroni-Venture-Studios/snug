@@ -21,7 +21,7 @@ Snug then:
 
 ## Inviting another admin
 
-Go to **Settings**, enter the person's email address under **Invite an admin**, and enter a fresh code from your own authenticator app. Snug asks for the code so that nobody at an unlocked computer can add themselves.
+Go to **Settings**, enter the person's email address under **Invite an admin**, and enter a fresh code from your own authenticator app.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-dark.png">
@@ -67,8 +67,6 @@ Go to `/admin/` on your Snug domain. Enter your email address and password, then
   - 5 wrong codes after one correct password, which then takes you back to the password.
 
   Every attempt counts, right or wrong.
-
-  The account limit is generous, so that someone typing wrong passwords cannot easily lock you out.
 - **Changing your password or second factor signs you out in every other browser**, and in this one too for a second factor. It also stops any sign-in that is past the password and waiting for its code.
 
 ## Changing your password
@@ -85,9 +83,9 @@ In **Settings**, under **Your account**, enter your current password, the new on
 Use **Forgotten your password?** on the sign-in page and enter your email address. If it belongs to an admin, Snug emails a link to choose a new password.
 
 - **The link works once, for one hour.** Asking again replaces it.
-- **You also need a code from your authenticator app**, or one of your recovery codes, to set the new password. So someone who gets into your mailbox cannot change your password.
+- **You also need a code from your authenticator app**, or one of your recovery codes, to set the new password.
 - **Five wrong codes spend the link**, and you need to ask for a new one. Codes on this page have their own limit, so they never stop you signing in.
-- **The page never says whether an address belongs to an admin.** It gives the same reply, in the same time, either way.
+- **The page never says whether an address belongs to an admin.** It gives the same reply either way.
 - **Asking is limited** to 5 times from one IP address, and 3 times for one email address, in 15 minutes.
 - **Changing your password signs you out everywhere**, and Snug emails you to say it changed.
 
@@ -97,7 +95,7 @@ Without email, ask another admin to help, or run this on the server:
 sudo snug reset-password you@yourcompany.com
 ```
 
-It asks for the new password twice. Like the link, it signs you out everywhere and is written to the audit log; your authenticator keeps working. Django's own `changepassword` is disabled, because it writes nothing to the audit log.
+It asks for the new password twice. Like the link, it signs you out everywhere and is written to the audit log; your authenticator keeps working. Django's own `changepassword` is disabled.
 
 ## Replacing your authenticator
 

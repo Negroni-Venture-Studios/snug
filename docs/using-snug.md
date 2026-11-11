@@ -76,7 +76,7 @@ Each link is for one person. On a document's page, choose *New link*, and fill i
   <img alt="The form for a new link: email address, a note for yourself, a message for them, an expiry date, and boxes for verification, the NDA, UK only and downloads." src="images/screenshots/link-new-light.png">
 </picture>
 
-*Create and email* sends it; *Create and copy* shows the link once, to send yourself. Snug keeps only a fingerprint of it and cannot show it again, so if it is lost, send a new link.
+*Create and email* sends it; *Create and copy* shows the link once, to send yourself. If it is lost, send a new link.
 
 *Links* lists every link, newest first. *Revoke* stops a link at once, even for someone reading it at the time. *New link* replaces it with a fresh one for the same person, with the same settings and history.
 

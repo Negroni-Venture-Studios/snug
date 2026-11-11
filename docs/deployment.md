@@ -8,14 +8,14 @@ Snug runs on one Linux server as four containers under Docker Compose:
 
 ## What you need
 
-- A server running Ubuntu 24.04 LTS. A DigitalOcean droplet with 1 GB of memory is enough for one company. Its disk holds every upload. PDFs and workbooks need little room, but a video can be hundreds of megabytes, up to the limit `SNUG_MAX_VIDEO_MB` sets (1 GB unless set; see [configuration.md](configuration.md)). Choose a disk with room for the videos you mean to share.
+- A server running Ubuntu 24.04 LTS. A DigitalOcean droplet with 1 GB of memory is enough for one company. Its disk holds every upload. PDFs and workbooks need little room, but a video can be hundreds of megabytes, up to `SNUG_MAX_VIDEO_MB`, 1 GB by default. Choose a disk with room for the videos you mean to share.
 - A domain name, such as `room.example.com`, whose DNS `A` record points at the server, and its `AAAA` record too if the server has IPv6.
 - A way for Snug to send links and codes, set up in Settings once Snug is running: a Google Workspace mailbox, through the Gmail API ([email-google.md](email-google.md)), or an email provider's SMTP details ([email.md](email.md)).
 - A storage bucket for the backups, such as DigitalOcean Spaces, and a key for it. See [backups.md](backups.md).
 
 ## Setting it up
 
-1. On DigitalOcean, create a droplet running Ubuntu 24.04 LTS with IPv6 turned on, and paste the whole of [deploy/cloud-init.yaml](../deploy/cloud-init.yaml), which holds no secrets, into *User data* under *Advanced options*.
+1. On DigitalOcean, create a droplet running Ubuntu 24.04 LTS with IPv6 turned on, and paste the whole of [deploy/cloud-init.yaml](../deploy/cloud-init.yaml) into *User data* under *Advanced options*.
 2. Point the domain's `A` record at the server's address, and its `AAAA` record at its IPv6 address.
 3. Wait a few minutes for cloud-init to finish, then sign in with SSH and run:
 
@@ -25,7 +25,7 @@ Snug runs on one Linux server as four containers under Docker Compose:
 
 cloud-init installs Docker from Docker's own repository, Ubuntu's automatic security updates, a firewall that lets in only SSH, HTTP and HTTPS, a 1 GB swap file, and Snug's files in `/opt/snug`, with the `snug` command in `/usr/local/bin`. It does not start Snug.
 
-`snug setup` asks for the domain, the company's name and the backup bucket, typed on the server so that no secret is ever stored with DigitalOcean. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. Email is set up afterwards, in Settings, under Email: [email-google.md](email-google.md) for Google Workspace, [email.md](email.md) for any other provider.
+`snug setup` asks for the domain, the company's name and the backup bucket. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. Email is set up afterwards, in Settings, under Email: [email-google.md](email-google.md) for Google Workspace, [email.md](email.md) for any other provider.
 
 Run `sudo snug setup` again to change the domain or the company's name, or to add a backup bucket you skipped. On a server that already has Snug's data, it keeps the data, leaves the admins as they are and restarts Snug with the new answers.
 
@@ -48,9 +48,9 @@ Open ports 80 and 443 to the internet. Caddy needs port 80 to prove to Let's Enc
 
 ### The settings file
 
-`snug setup` writes Snug's settings to `/opt/snug/snug.env`, which [configuration.md](configuration.md) describes in full. To change one by hand, edit the file and run `sudo docker compose up --detach` in `/opt/snug`.
+`snug setup` writes Snug's [settings](configuration.md) to `/opt/snug/snug.env`. To change one by hand, edit the file and run `sudo docker compose up --detach` in `/opt/snug`.
 
-`.env` is a link to `snug.env`. Compose reads `.env` to fill in the domain for Caddy, and gives the whole of `snug.env` to Snug alone, so Caddy never sees the secret key or the SMTP password.
+`.env` is a link to `snug.env`. Compose reads `.env` to fill in the domain for Caddy, and gives the whole of `snug.env` to Snug alone.
 
 Compose treats `$` in `snug.env` as the start of a variable. Wrap any value containing `$`, such as some SMTP passwords, in single quotes: `SNUG_SMTP_PASSWORD='pa$$word'`.
 
@@ -60,8 +60,6 @@ Compose treats `$` in `snug.env` as the start of a variable. Wrap any value cont
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/overview-dark.svg">
   <img alt="Founders and investors reach Snug through Caddy. Inside the Snug container, the web workers serve requests and start a confined document worker for each file. Litestream and the backup container share the data volume and copy it, encrypted, to your bucket." src="images/diagrams/overview-light.svg">
 </picture>
-
-[How Snug works](architecture.md) explains each part.
 
 | | Snug | Caddy |
 |---|---|---|
@@ -95,7 +93,7 @@ sudo snug doctor --email you@example.com
 
 | Check | Fine when |
 |---|---|
-| Housekeeping | `snug housekeeping`, which Snug runs every hour to clear expired codes, sessions and old reading data, has completed in the last 3 hours |
+| Housekeeping | `snug housekeeping`, which runs every hour, has completed in the last 3 hours |
 | Backups | The last copy to the bucket succeeded, less than 15 minutes ago ([backups.md](backups.md)) |
 | Document worker | A fresh worker confines itself with Landlock ABI 4 or later and the socket filter, so it is allowed to read documents |
 | DNS | The domain resolves; the report lists the addresses it points to |
@@ -103,7 +101,7 @@ sudo snug doctor --email you@example.com
 | Email | Email is set up, through Google Workspace or SMTP; with `--email`, a code sent to that address is typed back |
 | GeoIP | When anything is UK-only: DB-IP's country data is this month's or last month's |
 
-The admin Overview shows the same problems, so a founder sees them without running a command. When there are none, it shows *Everything is working.*
+The admin Overview shows the same problems. When there are none, it shows *Everything is working.*
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/overview-dark.png">

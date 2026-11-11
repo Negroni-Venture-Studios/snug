@@ -61,7 +61,7 @@ An investor enters a code sent to their inbox, then reads, or downloads a workbo
   <img alt="A workbook shared with an investor: its description, its sheets, and a button to download it, with their details written into the copy." src="docs/images/screenshots/workbook-light.png" width="49%">
 </picture>
 
-[Using Snug](docs/using-snug.md) goes through every page, for you and for the investors you share with.
+[Using Snug](docs/using-snug.md) shows each admin page and what an investor sees.
 
 ## What Snug does not do
 
@@ -76,12 +76,10 @@ An investor enters a code sent to their inbox, then reads, or downloads a workbo
 
 Everything planned for version 1 is built and tested, and the container image is published as a test build, `ghcr.io/negroni-venture-studios/snug:edge`. The server setup is tested in CI but has not yet run on a real server.
 
-Still to come before the first release:
+Still to come before the first release, from the [order of work](DESIGN.md#4-order-of-work):
 
 - a full deployment to a DigitalOcean droplet, following the guide alone, and a restore onto a second one;
 - a step-by-step guide for a DigitalOcean droplet in London, and a guide to what Snug does and does not protect against.
-
-The order of work in [DESIGN.md](DESIGN.md) has the details.
 
 ## Trying it on your own computer
 
@@ -141,7 +139,7 @@ To remove it all: `docker rm --force snug && docker volume rm snug-data`, then d
 
 ## Running it on a server
 
-[The deployment guide](docs/deployment.md) covers a fresh Ubuntu server, such as a DigitalOcean droplet, set up with cloud-init and `sudo snug setup`, which asks for your domain and backup bucket on the server itself. Email is set up afterwards in Settings, through [Google Workspace](docs/email-google.md), starting from your first visit to Google Cloud, or [another provider](docs/email.md). What is backed up, how to check it and how to restore are in [the backups guide](docs/backups.md). None of these has yet been followed on a real server.
+[The deployment guide](docs/deployment.md) sets Snug up on a fresh Ubuntu server, such as a DigitalOcean droplet. Email is set up afterwards in Settings, through [Google Workspace](docs/email-google.md) or [another provider](docs/email.md). [The backups guide](docs/backups.md) covers checking the backups and restoring from them. None of these has yet been followed on a real server.
 
 ## How it is built
 

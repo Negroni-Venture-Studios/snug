@@ -30,7 +30,7 @@ Email is usually set up in Settings, under Email, through Google Workspace or an
 | `SNUG_SMTP_HOST` | No | | Your email provider's SMTP server. Unset, with nothing saved in Settings, email is off; on `localhost`, emails go to the outbox folder instead. On a server, Snug connects only to an SMTP server with public addresses. |
 | `SNUG_SMTP_PORT` | No | `587`, or `465` with `tls` | The SMTP port: 25, 465, 587, 2465, 2525 or 2587, as in Settings, or any port on `localhost`. DigitalOcean blocks 25, 465 and 587; most providers also take 2525, and Amazon SES 2587 or 2465. |
 | `SNUG_SMTP_USERNAME` | No | | The SMTP username. |
-| `SNUG_SMTP_PASSWORD` | No | | The SMTP password or API key. Never shown or logged. |
+| `SNUG_SMTP_PASSWORD` | No | | The SMTP password or API key. |
 | `SNUG_SMTP_SECURITY` | No | `starttls` | `starttls`, `tls` or, on `localhost` only, `none`. |
 
 [email.md](email.md) explains how to set these up, including the DNS records that keep Snug's emails out of spam. [email-google.md](email-google.md) covers Google Workspace, which is set up in Settings only.
