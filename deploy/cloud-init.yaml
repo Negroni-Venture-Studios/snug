@@ -61,7 +61,7 @@ runcmd:
     ref=main
     base="https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/$ref/deploy"
     cd /opt/snug
-    for file in compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh snug; do
+    for file in compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh update.sh snug; do
       curl -fsSL --retry 5 -o "$file" "$base/$file"
     done
     curl -fsSL --retry 5 -o snug.env "$base/snug.env.example"

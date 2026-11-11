@@ -267,6 +267,25 @@ It emails you a code to type back, and ends with `Everything is working.` when a
 
 To change your Snug address or company name later, run `sudo snug setup` again. It keeps your documents and accounts.
 
+## Keeping Snug up to date
+
+Ubuntu installs its security updates by itself. Updates to Snug you install yourself, whenever [the changelog](../CHANGELOG.md) lists something you want.
+
+1. Open the console, as in step 6.
+2. Type this, and press Return:
+
+   ```bash
+   sudo snug update
+   ```
+
+Snug downloads the new version and restarts, which takes a minute or two, and ends:
+
+```
+Snug is up to date. To check everything is working: sudo snug doctor
+```
+
+Your documents, links, accounts and settings are kept. Then type `sudo snug doctor` to check.
+
 ## Bringing Snug back on a new server
 
 If the server is lost, or you want to move Snug, the backups bring everything back on a new server: documents, links, admin accounts, reading data, the audit log and the email settings. It takes about twenty minutes, most of it the new server installing itself.

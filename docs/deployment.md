@@ -39,7 +39,7 @@ On any Linux server with Docker Engine and its Compose plugin, fetch the same fi
 
 ```bash
 sudo mkdir -p /opt/snug/backup && cd /opt/snug
-for file in compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh snug; do
+for file in compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh update.sh snug; do
   sudo curl -fsSLO "https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/main/deploy/$file"
 done
 sudo install -m 755 snug /usr/local/bin/snug
@@ -130,9 +130,9 @@ sudo snug doctor
 ## Updating
 
 ```bash
-cd /opt/snug
-sudo docker compose pull
-sudo docker compose up --detach
+sudo snug update
 ```
 
-Snug applies any database migrations when it starts.
+`snug update` downloads the latest versions of the files in `/opt/snug` from GitHub, as cloud-init does, and replaces them only once every one has arrived. `snug.env` and `backup/` are never touched. It then installs the new `snug` command, pulls the new images, and restarts the containers that changed. Snug applies any database migrations when it starts.
+
+`SNUG_REF` chooses the branch or tag to download from, `main` unless set.
