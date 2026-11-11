@@ -15,7 +15,9 @@ Snug runs on one Linux server as four containers under Docker Compose:
 
 ## Setting it up
 
-1. On DigitalOcean, create a droplet running Ubuntu 24.04 LTS with IPv6 turned on, and paste the whole of [deploy/cloud-init.yaml](../deploy/cloud-init.yaml) into *User data* under *Advanced options*.
+[Putting Snug on DigitalOcean](deploy-digitalocean.md) has every click and every answer, with screenshots.
+
+1. On DigitalOcean, create a droplet running Ubuntu 24.04 LTS with a public IPv6 address, and paste the whole of [deploy/cloud-init.yaml](../deploy/cloud-init.yaml) into *Startup scripts* under *Additional Options*.
 2. Point the domain's `A` record at the server's address, and its `AAAA` record at its IPv6 address.
 3. Wait a few minutes for cloud-init to finish, then sign in with SSH and run:
 
