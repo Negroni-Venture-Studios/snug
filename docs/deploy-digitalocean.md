@@ -150,7 +150,7 @@ In the console, type this, and press Return:
 sudo snug setup
 ```
 
-Snug asks one question at a time. Type each answer and press Return. To paste into the console, right-click inside it and choose **Paste**.
+Snug asks one question at a time. Type each answer and press Return. To paste into the console, press ⌘V on a Mac. On Windows, right-click inside it and choose **Paste**.
 
 | Snug asks | You type |
 |---|---|
