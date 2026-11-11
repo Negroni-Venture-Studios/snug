@@ -179,7 +179,7 @@ def test_revoking_a_link(client: Client, deck: Document, room: Room) -> None:
         anchor, section = saved(client, f"/admin/links/{link.ref}/revoke")
         assert anchor == "links"
         assert notice(section) == (
-            f"Revoked L-{link.ref}. It stopped working at once, for anyone already in too."
+            f"Revoked L-{link.ref}. It stopped working at once, including on pages already open."
         )
 
 

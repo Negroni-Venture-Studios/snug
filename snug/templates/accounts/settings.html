@@ -5,7 +5,7 @@
 {% block content %}
 <div class="title-row"><div><h1 class="page-title">Settings</h1></div></div>
 <div class="section" id="admins">
-<div class="section-head"><h2>Admins</h2><span class="head-side"><p>Every admin has the same rights, and every admin is emailed about any change.</p>{% include "accounts/partials/doc_link.html" with page="admin-accounts.md" label="The admin accounts guide" %}</span></div>
+<div class="section-head"><h2>Admins</h2><span class="head-side"><p>All admins have the same rights. Snug emails every admin when this list changes.</p>{% include "accounts/partials/doc_link.html" with page="admin-accounts.md" label="The admin accounts guide" %}</span></div>
 {% if done == "removed" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Removed. Every admin has been emailed.</span></div>{% elif done == "reset" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Second factor reset. They have been emailed a link to set it up again.</span></div>{% endif %}
 <div class="rows admin-rows">
   {% for row in admins %}
@@ -66,7 +66,7 @@
 </div>
 
 <section class="section" id="email">
-<div class="section-head stacked"><h2>Email</h2><p>How Snug sends investors their links and codes, and admins their invitations and alerts.</p>{% include "accounts/partials/doc_link.html" with page="email-google.md" label="The Google Workspace guide" provider="google" %}{% include "accounts/partials/doc_link.html" with page="email.md" label="The email guide" provider="smtp" %}</div>
+<div class="section-head stacked"><h2>Email</h2><p>How Snug sends email to investors and admins.</p>{% include "accounts/partials/doc_link.html" with page="email-google.md" label="The Google Workspace guide" provider="google" %}{% include "accounts/partials/doc_link.html" with page="email.md" label="The email guide" provider="smtp" %}</div>
 <div class="panel form settings-form email-choice">
   {% if saved == "email-cleared" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Cleared. {{ email.status }}</span></div>
   {% else %}<p class="email-status">{{ email.status }}</p>{% endif %}
@@ -130,7 +130,7 @@
   {% elif google_error %}<div class="notice notice-error" role="alert">{% icon "warning-circle" %}<span>{{ google_error }}</span></div>{% endif %}
   {% if email.google_pending %}<form class="form" id="google-confirm" method="post" action="{% url 'accounts:google_confirm' %}#google-mailbox" novalidate>
     {% csrf_token %}
-    <p class="hint">Connecting a mailbox needs its own code, separate from the one in step 1. Every admin is emailed.</p>
+    <p class="hint">Connecting a mailbox needs another code. Every admin is emailed.</p>
     <div class="field"><label for="google-code">Code from your authenticator app</label><input id="google-code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7"{% if email.errors.google_code %} aria-invalid="true" aria-describedby="google-code-error"{% endif %}>
       {% if email.errors.google_code %}<div class="error" id="google-code-error" role="alert">{% icon "warning-circle" %}{{ email.errors.google_code }}</div>{% endif %}</div>
     <button class="btn btn-primary" type="submit">Connect {{ email.google_pending }}</button>
@@ -140,7 +140,7 @@
     <div class="field"><label for="google-disconnect-code">Code from your authenticator app</label><input id="google-disconnect-code" name="code" class="code-field" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7"{% if email.errors.google_disconnect_code %} aria-invalid="true" aria-describedby="google-disconnect-code-error"{% endif %}>
       {% if email.errors.google_disconnect_code %}<div class="error" id="google-disconnect-code-error" role="alert">{% icon "warning-circle" %}{{ email.errors.google_disconnect_code }}</div>{% else %}<div class="hint">Disconnecting stops email until a mailbox is connected again. Every admin is emailed.</div>{% endif %}</div>
     <button class="btn" type="submit">Disconnect</button></form>
-  {% elif email.google_ready %}<p class="hint">Sign in to Google as the mailbox Snug should send from, such as rooms@ on your domain, and approve. Snug can only send email from it. Back here, enter a code from your authenticator app to finish.</p>
+  {% elif email.google_ready %}<p class="hint">Sign in to Google as the mailbox Snug should send from, such as rooms@ on your domain, and approve. Back here, enter a code from your authenticator app to finish.</p>
   <a class="btn btn-primary step-action" href="{% url 'accounts:google_connect' %}">Connect Google</a>
   {% else %}<p class="hint">Save your Google client first.</p>{% endif %}
 </li>
@@ -177,7 +177,7 @@
   <div class="field"><label for="logo">Logo</label>
     {% if logo_url %}<div class="logo-current"><img src="{{ logo_url }}" alt="Your logo, as investors see it"></div>{% endif %}
     <input id="logo" name="logo" type="file" accept="image/png,image/jpeg"{% if logo_error %} aria-invalid="true" aria-describedby="logo-error"{% endif %}>
-    {% if logo_error %}<div class="error" id="logo-error" role="alert">{% icon "warning-circle" %}{{ logo_error }}</div>{% else %}<div class="hint">PNG or JPEG, up to 2 MB. Shown at the top of investors' pages, on a light tile in dark mode. If it is roughly square, it is their tab icon too, unless you upload one below. Without one, they see your company name.</div>{% endif %}</div>
+    {% if logo_error %}<div class="error" id="logo-error" role="alert">{% icon "warning-circle" %}{{ logo_error }}</div>{% else %}<div class="hint">PNG or JPEG, up to 2 MB. Shown at the top of investors' pages, on a light tile in dark mode. If it is roughly square, it is their tab icon too, unless you upload one below. Without a logo, they see your company name.</div>{% endif %}</div>
   <div class="inline-form"><button class="btn btn-primary" type="submit">{% if logo_url %}Replace{% else %}Upload{% endif %}</button>{% if logo_url %}<button class="btn" type="submit" name="remove" value="1">Remove</button>{% endif %}</div>
 </form>
 <form class="panel form settings-form" id="branding-icon" method="post" action="{% url 'accounts:icon' %}#branding-icon" enctype="multipart/form-data" novalidate>

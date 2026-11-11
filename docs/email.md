@@ -4,16 +4,16 @@ Snug sends two kinds of email to investors: links to the people you share docume
 
 Email is the part of the setup most likely to go wrong.
 
-**Google Workspace.** If your company uses Workspace, Snug can send as a mailbox on your domain through the Gmail API, and [email-google.md](email-google.md) walks through it. The rest of this guide is for any other provider, over SMTP.
+**Google Workspace.** If your company uses Workspace, Snug can send as a mailbox on your domain through the Gmail API, set up as in [email-google.md](email-google.md). The rest of this guide is for any other provider, over SMTP.
 
 Snug sends each email by the first of these routes that is set up, so SMTP settings saved in Settings, or a connected Google mailbox, take the place of the ones in `snug.env`:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/email-dark.svg">
-  <img alt="Snug tries five routes in order and uses the first that applies: Google Workspace saved in Settings, SMTP saved in Settings, SMTP in snug.env, the outbox folder on localhost, or no email. Every SMTP send checks the server resolves only to public addresses and connects to the address it checked." src="images/diagrams/email-light.svg">
+  <img alt="Snug tries five routes in order and uses the first that applies: Google Workspace saved in Settings, SMTP saved in Settings, SMTP in snug.env, the outbox folder on localhost, or no email. For every SMTP send, Snug checks that the server resolves only to public addresses, then connects to the address it checked." src="images/diagrams/email-light.svg">
 </picture>
 
-Email sent from a new server, from a domain with no authentication records, goes to spam or is refused outright. The steps below add those records.
+Email sent from a new server, from a domain with no authentication records, goes to spam or is refused outright.
 
 ## What you need
 
@@ -26,7 +26,7 @@ Do not send through a personal Gmail or Outlook account. Their limits are low, a
 
 Choose the address Snug's emails come from, on your own domain, such as `rooms@example.com`. People will see it, so make it plain.
 
-Replies do not go to this address. Each link email is set to reply to the admin who sent it, so an investor who replies reaches a person. The sending address only needs to exist if your provider insists on it.
+Each link email is set to reply to the admin who sent it, so an investor who replies reaches a person. The sending address only needs to exist if your provider insists on it.
 
 ## Step 2: verify your domain with the provider
 
@@ -60,7 +60,7 @@ A DMARC record sets what receiving servers should do with mail that claims to be
 
     v=DMARC1; p=none; rua=mailto:dmarc@example.com
 
-`p=none` asks for reports without affecting delivery. Once the reports show that your real mail passes, which usually takes a couple of weeks, change it to `p=quarantine`. Gmail and Yahoo now expect every bulk sender to have a DMARC record, and messages from domains without one are treated with more suspicion.
+`p=none` asks for reports without affecting delivery. Once the reports show that your real mail passes, which usually takes a couple of weeks, change it to `p=quarantine`.
 
 If you already have a DMARC record, leave it as it is.
 
@@ -104,7 +104,7 @@ Sign in, open **Settings**, and under **Email** choose **Another provider (SMTP)
 - the encryption: STARTTLS for ports 587, 2525 and 2587, or TLS for ports 465 and 2465;
 - a code from your authenticator app.
 
-Every admin is emailed about the change. Snug sends only through public mail servers, on port 25, 465, 587, 2465, 2525 or 2587. It refuses a server whose name leads to a private or internal address.
+Every admin is emailed about the change. Snug refuses a server whose name leads to a private or internal address.
 
 Choose **Save**, and Snug uses the new settings at once, with no restart. The page moves on to step 2, **Send a test**. The password is never shown again. To change it, type a new one, or leave the box empty to keep it.
 

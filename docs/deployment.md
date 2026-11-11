@@ -15,7 +15,7 @@ Snug runs on one Linux server as four containers under Docker Compose:
 
 ## Setting it up
 
-[Putting Snug on DigitalOcean](deploy-digitalocean.md) has every click and every answer, with screenshots.
+[Putting Snug on DigitalOcean](deploy-digitalocean.md) has the same steps with screenshots.
 
 1. On DigitalOcean, create a droplet running Ubuntu 24.04 LTS with a public IPv6 address, and paste the whole of [deploy/cloud-init.yaml](../deploy/cloud-init.yaml) into *Startup scripts* under *Additional Options*.
 2. Point the domain's `A` record at the server's address, and its `AAAA` record at its IPv6 address.
@@ -125,7 +125,7 @@ sudo snug check
 sudo snug doctor
 ```
 
-`sudo snug restore` is the exception. It runs on the server itself, because it stops and starts the containers, as [backups.md](backups.md) explains.
+`sudo snug setup`, `sudo snug restore` and `sudo snug update` are the exceptions. They run on the server itself, because they stop and start the containers. [backups.md](backups.md) explains `snug restore`.
 
 ## Updating
 
@@ -135,4 +135,4 @@ sudo snug update
 
 `snug update` downloads the latest versions of the files in `/opt/snug` from GitHub, as cloud-init does, and replaces them only once every one has arrived. `snug.env` and `backup/` are never touched. It then installs the new `snug` command, pulls the new images, and restarts the containers that changed. Snug applies any database migrations when it starts.
 
-`SNUG_REF` chooses the branch or tag to download from, `main` unless set.
+To download from another branch or tag, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`. It is `main` unless set.

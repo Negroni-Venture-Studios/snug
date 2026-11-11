@@ -4,7 +4,7 @@ Admins are the people at your company who upload documents, issue links and read
 
 ## Creating the first admin
 
-The first admin is created on the server, from the command line:
+`sudo snug setup` creates the first admin as its last step. To create one yourself on the server:
 
 ```bash
 sudo snug createadmin --email you@yourcompany.com
@@ -35,7 +35,7 @@ Snug then:
 
 The link takes them to a page where they choose a password, scan a QR code with their authenticator app, enter a code from it, and see their recovery codes once. They can then sign in.
 
-Inviting needs email; without it, create each admin on the server with `sudo snug createadmin`, as above.
+Inviting needs email; without it, create each admin on the server with `sudo snug createadmin`.
 
 ## Removing an admin
 
@@ -47,7 +47,7 @@ You cannot remove yourself, and Snug never lets the last admin be removed. For a
 
 If another admin has lost their phone and their recovery codes, choose **Reset second factor** beside them in **Settings**, and enter a fresh code from your own authenticator. Their old authenticator and recovery codes stop working at once, and they are signed out everywhere. They are emailed a link, which works for 72 hours, to set up their authenticator again. Their password does not change, and every admin is emailed.
 
-To replace your own authenticator, use **Replace your authenticator** in **Settings**, as described below.
+To replace your own authenticator, see [Replacing your authenticator](#replacing-your-authenticator).
 
 ## Signing in
 
@@ -85,7 +85,7 @@ Use **Forgotten your password?** on the sign-in page and enter your email addres
 - **The link works once, for one hour.** Asking again replaces it.
 - **You also need a code from your authenticator app**, or one of your recovery codes, to set the new password.
 - **Five wrong codes spend the link**, and you need to ask for a new one. Codes on this page have their own limit, so they never stop you signing in.
-- **The page never says whether an address belongs to an admin.** It gives the same reply either way.
+- **The page gives the same reply whether or not the address belongs to an admin.**
 - **Asking is limited** to 5 times from one IP address, and 3 times for one email address, in 15 minutes.
 - **Changing your password signs you out everywhere**, and Snug emails you to say it changed.
 

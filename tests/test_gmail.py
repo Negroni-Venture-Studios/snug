@@ -285,7 +285,7 @@ def test_coming_back_from_google_asks_for_a_code(
     text = step(panel(client, "?saved=google-pending"), "google-mailbox")
     assert "Google approved rooms@fernlea.example. Enter a code to finish." in text
     assert "notice-ok" in text
-    assert "needs its own code, separate from the one in step 1" in text
+    assert "Connecting a mailbox needs another code." in text
     assert "rooms@fernlea.example" in text
     assert 'action="/admin/settings/email/google/confirm#google-mailbox"' in text
 

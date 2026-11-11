@@ -52,7 +52,7 @@ class Command(BaseCommand):
             "--email",
             metavar="ADDRESS",
             default="",
-            help="Send a test email to this address, and type back the code it holds.",
+            help="Send a test email to this address, then type back the code in it.",
         )
 
     def handle(self, *args: Any, **options: Any) -> None:

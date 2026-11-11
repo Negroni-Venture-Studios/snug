@@ -14,6 +14,7 @@ External security audits found all three.
 
 ### Fixed
 
+- The README's status says Snug has been set up and restored on a real server, the guides match the code again, and several messages are plainer, among them the revoked-link notice and the forgotten-password email.
 - A new server set up with `deploy/cloud-init.yaml` restarts once at the end of its installation if Ubuntu's updates need it, such as a new kernel. Ubuntu used to leave the server showing *System restart required*.
 - In light mode, the pale green behind status labels and notices is a little paler, so their green text reaches 4.5:1 on the page background, up from 4.46:1. A new test checks every text colour in the stylesheet, in both themes, against everything it is shown on.
 - `snug setup` can be run again on a server already running Snug, to change the domain or the company's name. It used to find the backups in the bucket and start restoring them over the live data, then stop at the restore's confirmation prompt. It also creates the data volume through Snug's own container, so that on a new server Snug's user owns it rather than root.
@@ -40,7 +41,7 @@ External security audits found all three.
 - In Settings, the admins' statuses and dates line up in columns. Your own row has no buttons, and it used to sit out of line with the others.
 - On a phone, the Overview's recent activity no longer pushes the page sideways: each visit shows who, then what. A browser test now checks every admin page at phone width.
 - Settings, the new-link form and the room page kept the shared admin script out when adding their own, so their tabs did not scroll to the current one on a narrow screen.
-- The README and guides describe Snug as it is: downloads are on by default, UK-only mode is still to come, and local emails can be read with one command. The design record lists the specified features not yet built. The container image now includes `THIRD_PARTY_LICENCES.md`, and pypdf is listed in it.
+- The README and guides describe Snug as it is: downloads are on by default, and local emails can be read with one command. The design record lists the specified features not yet built. The container image now includes `THIRD_PARTY_LICENCES.md`, and pypdf is listed in it.
 - Downloading a PDF that opens without a password but is encrypted against copying (common for published PDFs) failed with "could not be prepared for download". It is now stamped from an unencrypted copy. The confined worker also preloads every text codec it may need, since a PDF with UTF-16 metadata failed the same way.
 - Links from a Snug on your own computer now work: `SNUG_DOMAIN` can be `localhost` with a port, like `localhost:8000`, and every link and email includes it. The README's trial command uses it. A real domain still cannot include a port.
 - The admin and sign-in footers link to Negroni Venture Studios, and to the source on GitHub with GitHub's mark beside the repository name.
@@ -62,10 +63,10 @@ External security audits found all three.
 
 ### Added
 
-- Settings shows when the backups last reached the bucket, as *Working* or *Problem*, with the same sentence as `snug doctor` and the time the last copy finished, so you can check without the server's console. The section is as wide as the forms above it. A problem has a link to the backups guide beside it, and a server without backups says to run `sudo snug setup`, where it used to name a missing file. The Branding and Privacy sections link to new parts of [Using Snug](docs/using-snug.md), so every section in Settings links to its guide.
-- `sudo snug update` brings a server up to date: the latest server files from GitHub, replaced only once every one has arrived, then the new images. It never touches `snug.env` or the backup settings. The DigitalOcean guide and the deployment reference explain it. Updating used to pull new images only, leaving the server's own files as they were when it was made.
+- Settings shows when the backups last reached the bucket, as *Working* or *Problem*, with the same sentence as `snug doctor` and the time the last copy finished, so you can check without the server's console. The section is as wide as the forms above it. A problem has a link to the backups guide beside it, and a server without backups says to run `sudo snug setup`, where it used to say a file was missing. The Branding and Privacy sections link to new parts of [Using Snug](docs/using-snug.md), so every section in Settings links to its guide.
+- `sudo snug update` brings a server up to date: the latest server files from GitHub, replaced only once every one has arrived, then the new images. It never touches `snug.env` or the backup settings. Updating used to pull new images only, leaving the server's own files as they were when it was made.
 - On a new server, `snug setup` asks whether you are restoring Snug from an earlier server's backups. Answer `yes` and paste the backup settings from your password manager, and it checks the bucket and restores. You used to have to put the settings file in place with a text editor on the server first.
-- `docs/deploy-digitalocean.md` takes a founder from an empty DigitalOcean account to Snug running at their own address: every click, every answer `snug setup` asks for, and what to do when the console is not ready yet, with screenshots from a real deployment. Its last section brings Snug back from the backups on a new server, rehearsed the same way. The Google Workspace email guide has screenshots of each step too.
+- `docs/deploy-digitalocean.md` goes step by step from an empty DigitalOcean account to Snug at your own address, with screenshots from a real deployment. Its last section brings Snug back from the backups on a new server. The Google Workspace email guide has screenshots of each step too.
 - A step-by-step guide to trying Snug on your own Mac, `docs/deploy-localhost.md`, from installing Docker Desktop onwards. It replaces the README's shorter section, which assumed Docker and Python were installed.
 - [Using Snug](docs/using-snug.md), a guide to every page of the admin and what investors see, with screenshots. The deployment, backups, email, admin accounts and NDA guides have diagrams and screenshots too.
 - Screenshots in the README, in light and dark, taken from a demo company's data room in a real browser by `tests/e2e/test_screenshots.py`, so they can be retaken whenever a page changes.
@@ -84,7 +85,7 @@ External security audits found all three.
 - UK-only mode: a link to a document, or a whole room, can open only for visitors in the UK, Jersey, Guernsey and the Isle of Man. Anyone elsewhere, or anyone Snug cannot place, is turned away and sent no code, and the refusal is in the audit log. Countries come from DB-IP's free database, kept on the server; `snug doctor` and the Overview warn if it is missing or out of date.
 - Housekeeping downloads DB-IP's free country database once a month and keeps it in the data folder, for UK-only links. Lookups use that copy alone, so no visitor's address leaves the server.
 - The admin sign-in page shows the company's name under the heading, once a name is set in Settings or `SNUG_COMPANY_NAME`.
-- `deploy/cloud-init.yaml` prepares a fresh Ubuntu 24.04 droplet: Docker, automatic security updates, a firewall and Snug's files. Then `sudo snug setup` asks for the domain, the company's name and the backup bucket on the server, generates the backup's encryption passwords for you to keep, and starts Snug, or restores it when a saved backup configuration is already in place. [docs/deployment.md](docs/deployment.md) walks through it.
+- `deploy/cloud-init.yaml` prepares a fresh Ubuntu 24.04 droplet: Docker, automatic security updates, a firewall and Snug's files. Then `sudo snug setup` asks for the domain, the company's name and the backup bucket on the server, generates the backup's encryption passwords for you to keep, and starts Snug, or restores it from an earlier server's backups. [docs/deployment.md](docs/deployment.md) walks through it.
 - `sudo snug restore` brings Snug back from its backups, on the same server or a new one: the latest, or as it was at a moment in the last 7 days. Any data it replaces is moved aside and kept. A `snug` command on the server runs Snug's other commands in its container. The backup container refuses to copy into a bucket holding another Snug's backups, so a new server started before its restore cannot overwrite them.
 - The admin Overview has a status line: any problem `snug doctor` would report, such as a late backup, failing housekeeping, an expiring certificate or an email that could not be sent, or else that everything is working.
 - `snug doctor` checks housekeeping, the backups, the document worker's confinement, DNS, HTTPS and the certificate's expiry, and email, by sending a code you type back. It says what to fix, and exits with status 1 if anything is wrong. [docs/deployment.md](docs/deployment.md) lists the checks.
@@ -92,7 +93,7 @@ External security audits found all three.
 - A Docker Compose deployment: Snug behind Caddy, which gets and renews HTTPS certificates, with Snug's settings in `/opt/snug/snug.env`. [docs/deployment.md](docs/deployment.md) explains it. Both containers have read-only filesystems and no privileges they do not need, and Snug trusts a visitor's address only when it comes from Caddy, over IPv4 and IPv6.
 - Your logo on investors' pages, uploaded in Settings under Branding: at the top of every page, on a light tile in dark mode, and as the icon in their browser tab. PNG or JPEG, up to 2 MB. Snug redraws it in the same confined process that reads PDFs, so nothing in the file but the picture reaches investors.
 - Your accent colour on investors' pages, set in Settings under Branding with a picker and a live preview. Snug deepens or lightens the shade it uses for text and buttons where it needs to, so everything stays readable in light and dark mode, and says when it has.
-- Uploads show their progress as a bar, then "Checking the PDF" while Snug reads it, and the button cannot be pressed twice.
+- Uploads show their progress as a bar, then *Checking the file* while Snug reads it, and the button cannot be pressed twice.
 - A cover message on a link: an optional note of up to 1,000 characters, shown to the investor in the About this link panel and in the email with the link.
 - Replace your own authenticator in Settings, under Your account, for a new phone: your password and a code from the old app, or a recovery code. You go straight to setting up the new one, with new recovery codes, and the link is emailed in case you close the tab.
 - Change your own password in Settings, under Your account, with your current password and a code from your authenticator app. You stay signed in on that browser, everywhere else is signed out, and you are emailed.
@@ -100,7 +101,7 @@ External security audits found all three.
 - The People page shows how many times each person downloaded each document, and their total.
 - An eye at the right of every password box shows or hides what is typed, for phones and fiddly keyboards. Password boxes also turn off autocorrect and capitalisation.
 - "Forgotten your password?" on the sign-in page. It emails a link that works once, for one hour; setting the new password also needs a code from the authenticator app or a recovery code. The reply never says whether an address belongs to an admin. Without email, `snug reset-password EMAIL` does the same on the server, and is written to the audit log; Django's unaudited `changepassword` is disabled.
-- The Overview: how many documents, active links, people who have read and visits this week, then the ten latest visits, with a person's first open of a document marked New.
+- The Overview: how many documents, active links, people who have visited and visits this week, then the ten latest visits, with a person's first open of a document marked New.
 - A container image, `ghcr.io/negroni-venture-studios/snug`, for amd64 and arm64: `:edge` from `main`, and a version tag and `:latest` from each release. It runs as an unprivileged user, and its render worker is confined by Landlock.
 - Reading data is deleted automatically 12 months after its link is revoked or expires, a period you can change in Settings (from 1 to 120 months). `snug housekeeping`, which the server runs every hour, does it, and also clears expired codes, sessions, setup links and rate-limit counts.
 - An Audit log tab: every admin and viewer event, newest first, filtered by kind or by email address, 100 to a page, with a CSV export of the same selection. Cells a spreadsheet would run as a formula are defused, and every export is itself recorded.
@@ -133,7 +134,7 @@ External security audits found all three.
   - for links that do not, a single *Open* button, so an email scanner visiting the link starts nothing;
   - one page for unknown, expired and revoked links alike.
 
-  Code requests and checks are rate limited per address, per link and per inbox, and every step is recorded in the audit log. `SNUG_VIEWER_SESSION_DAYS` sets how long a viewer stays verified (7 days by default). The reader arrives in step 4.
+  Code requests and checks are rate limited per address, per link and per inbox, and every step is recorded in the audit log. `SNUG_VIEWER_SESSION_DAYS` sets how long a viewer stays verified (7 days by default).
 - Email through any SMTP provider, configured with `SNUG_COMPANY_NAME`, `SNUG_EMAIL_FROM` and the `SNUG_SMTP_*` settings. `docs/email.md` covers the provider, the SPF, DKIM and DMARC records, and DigitalOcean's blocked SMTP ports. On `localhost`, emails are written to an outbox folder instead.
 
 - A Documents section in the admin interface:
@@ -147,10 +148,10 @@ External security audits found all three.
 - Documents and versions, and the machinery behind them:
   - PDFs are checked, hashed and stored under generated names, never their uploaded names;
   - each upload becomes the document's next version;
-  - PDFs are read and rendered in a separate worker process, with no access to Snug's settings, with limits on memory, CPU time, output size and open files, and a timeout. The worker is handed an open file rather than a path, and on Linux confines itself with Landlock, so it can open no files except fonts and make no network connections;
+  - PDFs are read and rendered in a separate worker process, with no access to Snug's settings, with limits on memory, CPU time, output size and open files, and a timeout. The worker is handed an open file rather than a path, and on Linux confines itself with Landlock and a seccomp filter that refuses sockets, so it can open no files except fonts and make no network connections;
   - Snug's own processes are non-dumpable, so other processes of the same user cannot read their memory or environment;
   - rendered pages are cached as WebP, and the cache can be deleted at any time;
-  - `SNUG_MAX_UPLOAD_MB` sets the largest upload (100 MB by default).
+  - `SNUG_MAX_UPLOAD_MB` sets the largest PDF or workbook upload (100 MB by default).
 - `THIRD_PARTY_LICENCES.md`, listing the bundled PDFium components, fonts and icons.
 
 - Signing in to the admin interface:

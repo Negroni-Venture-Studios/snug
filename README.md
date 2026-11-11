@@ -19,7 +19,7 @@ Snug is a self-hosted data room for early-stage founders. You run it on your own
 
 Snug is open source, published by [Negroni Venture Studios](https://negroniventurestudios.com/). Your documents, and the record of who read them, stay on your server and in your own encrypted backups.
 
-> **Status: test builds only.** You can run Snug on your own computer today, and the server setup is written, but it has not yet been tested end to end on a real server. Please do not put real documents in it yet. See [Status](#status).
+> **Status: test builds only.** Snug has been set up on a real DigitalOcean server from its guide, and restored from its backups onto a second one, but there is no release yet. Please do not put real documents in it until there is. See [Status](#status).
 
 ## Who it is for
 
@@ -32,12 +32,12 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 - **Links.** One per person, to a document or a room, with an optional message from you. Email verification (on by default), optional expiry, downloads (on by default), and immediate revocation.
 - **UK-only mode.** A link, or a whole room, can open only for visitors in the UK, Jersey, Guernsey and the Isle of Man, judged by their internet address against a country database kept on your server.
 - **An NDA.** One click-through agreement for your instance, versioned, which you can require before a room or a single-document link opens. Snug records who accepted which text, and when.
-- **The reader.** Pages are rendered on your server and shown one at a time, watermarked with the reader's email address, the date and the link. A download is the original PDF, stamped with the same details, so its text stays searchable. A video plays in the browser with the same details drawn over it; a workbook's card lists its sheets, and the founder can add a description.
+- **The reader.** Pages are rendered on your server and shown one at a time, watermarked with the reader's email address, the date and the link. A download is the original PDF, stamped with the same details, so its text stays searchable. A video plays in the browser with the same details drawn over it; a workbook's card lists its sheets, and you can add a description.
 - **Analytics.** Who opened each document, how long they spent on each page (or on each 10 seconds of a video), and how often they downloaded it, on an Overview, each document's page and a People page. Every admin is emailed the first time each link is opened, unless they turn it off. Reading data is deleted 12 months after a link ends, or after a period you set. Snug does not phone home.
 - **An audit log** of every admin action and every viewer access, with the viewer's country, filterable and exportable as CSV.
-- **Email** through Google Workspace, as a mailbox on your domain over the Gmail API, or any provider over SMTP. It is set up in Settings in numbered steps, ending with a test email, and can be cleared there with one button. The admin, account, email and NDA sections of Settings each link to their guide.
+- **Email** through Google Workspace, as a mailbox on your domain over the Gmail API, or any provider over SMTP. It is set up in Settings in numbered steps, ending with a test email, and can be cleared there.
 - **Admin accounts** with a password and an authenticator app, recovery codes, invitations by email, and an email to every admin whenever the admins change.
-- **Running it.** Docker Compose with Caddy for HTTPS; continuous backups to a storage bucket of your own, encrypted on your server with a key only you hold; `snug doctor`, which checks the server and reports what to fix, and a status line on the Overview showing the same; and `snug restore`.
+- **Running it.** Docker Compose with Caddy for HTTPS; continuous backups to a storage bucket of your own, encrypted on your server with a key only you hold, with the last copy shown in Settings; `snug doctor`, which checks the server and reports what to fix, and a status line on the Overview showing the same; `snug update`, for the latest version; and `snug restore`.
 
 You see who opened what on the Overview, and each person's reading on People:
 
@@ -61,7 +61,7 @@ An investor enters a code sent to their inbox, then reads, or downloads a workbo
   <img alt="A workbook shared with an investor: its description, its sheets, and a button to download it, with their details written into the copy." src="docs/images/screenshots/workbook-light.png" width="49%">
 </picture>
 
-[Using Snug](docs/using-snug.md) shows each admin page and what an investor sees.
+More screenshots are in [Using Snug](docs/using-snug.md).
 
 ## What Snug does not do
 
@@ -74,17 +74,17 @@ An investor enters a code sent to their inbox, then reads, or downloads a workbo
 
 ## Status
 
-Everything planned for version 1 is built and tested, and the container image is published as a test build, `ghcr.io/negroni-venture-studios/snug:edge`. On 11 November 2026 it was set up on a DigitalOcean droplet by following the DigitalOcean guide alone, with email through Google Workspace, then restored from its backups onto a second droplet.
+Everything planned for version 1 is built and tested. The container image is published only as a test build, `ghcr.io/negroni-venture-studios/snug:edge`, and there is no release yet. On 11 November 2026 Snug was set up on a DigitalOcean droplet by following the DigitalOcean guide alone, with email through Google Workspace. The same day it was restored from its backups onto a second droplet, and the documents, links, reading data, audit log, admin account and email settings all came back.
 
 Still to come before the first release, from the [order of work](DESIGN.md#4-order-of-work), is a guide to what Snug does and does not protect against.
 
 ## Trying it on your own computer
 
-[Trying Snug on your own computer](docs/deploy-localhost.md) starts from installing Docker Desktop on a Mac, and has Snug running in about fifteen minutes.
+To try Snug on a Mac, follow [Trying Snug on your own computer](docs/deploy-localhost.md). It takes about fifteen minutes, starting with installing Docker Desktop.
 
 ## Running it on a server
 
-[Putting Snug on DigitalOcean](docs/deploy-digitalocean.md) starts from an empty DigitalOcean account and ends with Snug running at your own address, with a screenshot or the exact words to type at each step. [The deployment reference](docs/deployment.md) covers other servers. Email is set up afterwards in Settings, through [Google Workspace](docs/email-google.md) or [another provider](docs/email.md). [The backups guide](docs/backups.md) covers checking the backups and restoring from them.
+To put Snug on a server, follow [Putting Snug on DigitalOcean](docs/deploy-digitalocean.md), from an empty DigitalOcean account to Snug at your own address. [The deployment reference](docs/deployment.md) covers other servers. Email is set up afterwards in Settings, through [Google Workspace](docs/email-google.md) or [another provider](docs/email.md). [The backups guide](docs/backups.md) covers checking the backups and restoring from them.
 
 ## How it is built
 
@@ -96,7 +96,7 @@ UK-only mode uses [IP geolocation by DB-IP](https://db-ip.com), licensed CC BY 4
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) explains how to set up, test and propose changes.
 - Please report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md).
-- [AGENTS.md](AGENTS.md) holds the working rules for AI coding agents, and people will find it useful too.
+- [AGENTS.md](AGENTS.md) holds the working rules for AI coding agents.
 
 ## Licence
 

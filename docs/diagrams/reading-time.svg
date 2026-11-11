@@ -27,8 +27,8 @@
 <path class="line" d="M470,162 H796" marker-end="url(#tip)"/>
 <rect class="box" x="488" y="178" width="432" height="74" rx="8"/>
 <text class="small" x="502" y="200">A visit is the same link, session and document, seen in</text>
-<text class="small" x="502" y="218">the last 30 minutes. A new visit is audited, and a link's</text>
-<text class="small" x="502" y="236">Snug emails the admins.</text>
+<text class="small" x="502" y="218">the last 30 minutes. A new visit is audited. On a link's</text>
+<text class="small" x="502" y="236">first visit, Snug emails the admins.</text>
 <text class="label" x="300" y="270" text-anchor="middle">the page, and the visit's token</text>
 <path class="line" d="M470,278 H134" marker-end="url(#tip)"/>
 

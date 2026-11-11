@@ -36,8 +36,8 @@ while [ $# -gt 0 ]; do
 done
 
 if [ ! -s backup/rclone.conf ]; then
-	echo "snug restore: there is no backup/rclone.conf. Put the copy from your password" >&2
-	echo "manager there first, as docs/backups.md describes." >&2
+	echo "snug restore: there is no backup/rclone.conf. On a new server, run sudo snug setup" >&2
+	echo "and answer yes when it asks whether you are restoring." >&2
 	exit 1
 fi
 
