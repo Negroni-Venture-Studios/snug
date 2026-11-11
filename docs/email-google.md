@@ -27,16 +27,24 @@ A project holds everything you set up for Snug, kept apart from anything else in
 2. A banner offers a free trial with credit. Choose **Dismiss**. Snug needs no billing.
 3. Google may have made a project called *My First Project*. Leave it; it costs nothing. Click its name in the bar at the top, next to the Google Cloud logo. A box called *Select a resource* opens.
 4. Choose **New project**, at its top right.
-5. Name it **Snug**. Leave **Organisation** as it is. It is your Workspace organisation, named after your primary domain, which may not be the domain you send from. Leave **Location** as it is too. Google gives the project an ID, such as `snug-514212`, which you never need.
+
+   <img alt="Select a resource, with the New project button at its top right." src="images/google/project-picker.png">
+
+5. Google suggests a name such as *My Project 4064*, already selected. Type **Snug** over it. Leave **Organisation** and **Parent resource** as they are. They are your Workspace organisation, named after your primary domain, which may not be the domain you send from. Google gives the project an ID, such as `snug-123456`, which you never need.
+
+   <img alt="New Project, named Snug, with the organisation and parent resource left as they are." src="images/google/new-project.png">
+
 6. Choose **Create**. After a few seconds a notification appears under the bell icon.
-7. Click the project name at the top again and choose **Snug**. The welcome page should now say *You're working in* your organisation, then **Snug**.
+7. Click the bell icon, and in the *Create project Snug* notification choose **Select project**. The welcome page should now say *You're working in* your organisation, then **Snug**. If you have made a Snug project before, two projects share the name, and this way picks the new one.
 
 From here on, check that the bar at the top says **Snug** before each step. Google Cloud works in whichever project it shows.
 
 ## Step 2: turn on the Gmail API
 
-1. In the search box at the top, type **Gmail API** and choose it from the results. Or open [console.cloud.google.com/apis/library/gmail.googleapis.com](https://console.cloud.google.com/apis/library/gmail.googleapis.com) if you are signed in to one account only.
+1. In the search box at the top, type **Gmail API** and choose it from the results. It is the first, marked *Marketplace product*. Or open [console.cloud.google.com/apis/library/gmail.googleapis.com](https://console.cloud.google.com/apis/library/gmail.googleapis.com) if you are signed in to one account only.
 2. Check the bar at the top says **Snug**, and choose **Enable**.
+
+   <img alt="The Gmail API's page, with its Enable button." src="images/google/gmail-api.png">
 
 The page changes to *API/Service details*, with **Status: Enabled**. Ignore its **Create credentials** button; step 4 makes the client a more direct way.
 
@@ -44,10 +52,22 @@ The page changes to *API/Service details*, with **Status: Enabled**. Ignore its 
 
 This is the page Google shows when you approve Snug for the mailbox.
 
-1. In the left-hand sidebar, choose **OAuth consent screen**. Google opens *Google Auth Platform*, saying it is not configured yet. Choose **Get started**.
+1. The sidebar on the left shows only icons. Point at the fourth to see its name, **OAuth consent screen**, and click it. Google opens *Google Auth Platform*, saying it is not configured yet. Choose **Get started**.
+
+   <img alt="Google auth platform not configured yet, with the Get started button." src="images/google/auth-get-started.png" width="480">
+
 2. **App information.** Enter **Snug** as the app name, choose your own address as the user support email, and choose **Next**.
+
+   <img alt="App Information, with the app name Snug and a user support email chosen." src="images/google/app-information.png" width="480">
+
 3. **Audience.** Choose **Internal**, then **Next**. Only accounts in your Workspace organisation can then approve Snug, and Google does not need to review it.
-4. **Contact information.** Enter your own address, and choose **Next**.
+
+   <img alt="Audience, with Internal chosen." src="images/google/audience-internal.png" width="480">
+
+4. **Contact information.** Type your own address and press Return. It turns into a tag in the box. Choose **Next**.
+
+   <img alt="Contact Information, with an address added as a tag." src="images/google/contact-information.png" width="480">
+
 5. **Finish.** Tick the box agreeing to the *Google API Services: User Data Policy*, choose **Continue**, then **Create**.
 
 A message says *OAuth configuration created*, and the page shows *OAuth overview*.
@@ -57,15 +77,23 @@ A message says *OAuth configuration created*, and the page shows *OAuth overview
 The client is how Snug identifies itself to Google. It has a client ID and a client secret.
 
 1. On *OAuth overview*, choose **Create OAuth client**. Later, you can find it under **Clients** in the sidebar.
+
+   <img alt="OAuth overview, with the Create OAuth client button." src="images/google/oauth-overview.png">
+
 2. **Application type:** choose **Web application**.
-3. **Name:** **Snug**, which only you see.
+3. **Name:** delete the suggested *Web client 1* and type **Snug**, which only you see.
+
+   <img alt="Create OAuth client ID, with Web application chosen as the application type." src="images/google/web-application.png" width="480">
+
 4. **Authorised JavaScript origins:** leave empty.
 5. **Authorised redirect URIs:** choose **Add URI**, and paste the address Snug shows in Settings, under Email, in step 1 after you choose Google Workspace. On a server it looks like this:
 
         https://room.example.com/admin/settings/email/google/callback
 
+   <img alt="Authorised redirect URIs, with Snug's callback address added, and the AI-powered agent box unticked." src="images/google/redirect-uri.png" width="480">
+
    It must match exactly, with `https://`, your domain, and no slash at the end. If you also try Snug on your own computer, add its address as a second URI, such as `http://localhost:8000/admin/settings/email/google/callback`. Google allows plain `http` only for `localhost`.
-6. Choose **Create**.
+6. Leave **Use this client for an AI-powered agent** unticked, and choose **Create**.
 
 A box shows the **Client ID** and the **Client secret**. **Copy the secret before you close the box.** Google shows it only once. Save both in your password manager, as one entry. The box also offers **Download JSON**. If you use it, delete the file once the values are saved, since it holds the secret in plain text.
 

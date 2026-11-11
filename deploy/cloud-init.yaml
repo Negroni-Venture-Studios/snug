@@ -1,12 +1,11 @@
 #cloud-config
 # Snug on a fresh Ubuntu 24.04 LTS server, such as a DigitalOcean droplet.
 #
-# Paste this whole file into "User data" when creating the server. It holds
-# no secrets: once the server is up, sign in with SSH and run
+# Paste this whole file into the server's startup script, which DigitalOcean
+# calls "Startup scripts" and most other providers "User data". Once the
+# server is up, open its console and run
 #   sudo snug setup
-# which asks for the domain, the company's name and the backup settings on the
-# server itself. Email is set up afterwards, in Settings.
-# docs/deployment.md explains each step.
+# docs/deploy-digitalocean.md takes you through every step.
 
 package_update: true
 package_upgrade: true
@@ -69,3 +68,11 @@ runcmd:
     chmod 600 snug.env
     ln -sf snug.env .env
     install -m 755 snug /usr/local/bin/snug
+
+# Restart once at the end if the updates above need it, such as a new kernel,
+# so the server is up to date before Snug is set up.
+power_state:
+  mode: reboot
+  condition: test -f /var/run/reboot-required
+  message: Restarting to finish installing updates.
+  delay: now

@@ -74,12 +74,12 @@ An investor enters a code sent to their inbox, then reads, or downloads a workbo
 
 ## Status
 
-Everything planned for version 1 is built and tested, and the container image is published as a test build, `ghcr.io/negroni-venture-studios/snug:edge`. The server setup is tested in CI but has not yet run on a real server.
+Everything planned for version 1 is built and tested, and the container image is published as a test build, `ghcr.io/negroni-venture-studios/snug:edge`. On 11 November 2026 it was set up on a DigitalOcean droplet by following the DigitalOcean guide alone, with email through Google Workspace.
 
 Still to come before the first release, from the [order of work](DESIGN.md#4-order-of-work):
 
-- a full deployment to a DigitalOcean droplet, following the guide alone, and a restore onto a second one;
-- a step-by-step guide for a DigitalOcean droplet in London, and a guide to what Snug does and does not protect against.
+- a restore from the backups onto a second droplet;
+- a guide to what Snug does and does not protect against.
 
 ## Trying it on your own computer
 
@@ -87,7 +87,7 @@ Still to come before the first release, from the [order of work](DESIGN.md#4-ord
 
 ## Running it on a server
 
-[The deployment guide](docs/deployment.md) sets Snug up on a fresh Ubuntu server, such as a DigitalOcean droplet. Email is set up afterwards in Settings, through [Google Workspace](docs/email-google.md) or [another provider](docs/email.md). [The backups guide](docs/backups.md) covers checking the backups and restoring from them. None of these has yet been followed on a real server.
+[Putting Snug on DigitalOcean](docs/deploy-digitalocean.md) starts from an empty DigitalOcean account and ends with Snug running at your own address, with a screenshot or the exact words to type at each step. [The deployment reference](docs/deployment.md) covers other servers. Email is set up afterwards in Settings, through [Google Workspace](docs/email-google.md) or [another provider](docs/email.md). [The backups guide](docs/backups.md) covers checking the backups and restoring from them; restoring has not yet been rehearsed on a real server.
 
 ## How it is built
 

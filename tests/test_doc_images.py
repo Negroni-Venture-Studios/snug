@@ -10,6 +10,8 @@ import re
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SHOTS = ROOT / "docs" / "images" / "screenshots"
+# Screenshots of other services, taken by hand during a real deployment.
+CAPTURED = [ROOT / "docs" / "images" / "digitalocean", ROOT / "docs" / "images" / "google"]
 DOCUMENTS = [
     p for p in ROOT.glob("**/*.md") if ".venv" not in p.parts and "node_modules" not in p.parts
 ]
@@ -42,3 +44,14 @@ def test_every_screenshot_has_a_light_and_a_dark_copy() -> None:
             else name.replace("-dark.", "-light.")
         )
         assert other in names, name
+
+
+def test_every_captured_screenshot_is_shown_somewhere() -> None:
+    text = "".join(p.read_text() for p in DOCUMENTS)
+    unused = [
+        f"{folder.name}/{p.name}"
+        for folder in CAPTURED
+        for p in sorted(folder.glob("*.png"))
+        if f"images/{folder.name}/{p.name}" not in text
+    ]
+    assert not unused

@@ -14,6 +14,7 @@ External security audits found all three.
 
 ### Fixed
 
+- A new server set up with `deploy/cloud-init.yaml` restarts once at the end of its installation if Ubuntu's updates need it, such as a new kernel. Ubuntu used to leave the server showing *System restart required*.
 - In light mode, the pale green behind status labels and notices is a little paler, so their green text reaches 4.5:1 on the page background, up from 4.46:1. A new test checks every text colour in the stylesheet, in both themes, against everything it is shown on.
 - `snug setup` can be run again on a server already running Snug, to change the domain or the company's name. It used to find the backups in the bucket and start restoring them over the live data, then stop at the restore's confirmation prompt. It also creates the data volume through Snug's own container, so that on a new server Snug's user owns it rather than root.
 - The PDF reader and the video page show the *About this link* panel below the page or the video, with the link's message and what the founder will see. A message used to show only on the pages before the document opened.
@@ -61,6 +62,7 @@ External security audits found all three.
 
 ### Added
 
+- `docs/deploy-digitalocean.md` takes a founder from an empty DigitalOcean account to Snug running at their own address: every click, every answer `snug setup` asks for, and what to do when the console is not ready yet, with screenshots from a real deployment. The Google Workspace email guide has screenshots of each step too.
 - A step-by-step guide to trying Snug on your own Mac, `docs/deploy-localhost.md`, from installing Docker Desktop onwards. It replaces the README's shorter section, which assumed Docker and Python were installed.
 - [Using Snug](docs/using-snug.md), a guide to every page of the admin and what investors see, with screenshots. The deployment, backups, email, admin accounts and NDA guides have diagrams and screenshots too.
 - Screenshots in the README, in light and dark, taken from a demo company's data room in a real browser by `tests/e2e/test_screenshots.py`, so they can be retaken whenever a page changes.
