@@ -40,7 +40,36 @@ Snug needs a key to put files in the bucket.
 
 DigitalOcean shows two values: the **Access Key ID** and the **Secret Key**. The secret is shown only once. Copy both into the **Snug backups** item in your password manager before you leave the page.
 
-## 3. Create the server
+## 3. Choose how you will sign in to the server
+
+The server needs a way to know it is you. There are two, and either works with the rest of this guide.
+
+- **(A) A password.** Nothing to set up on your computer. The server accepts the password from anywhere on the internet, so it must be long and random, and kept in your password manager.
+- **(B) An SSH key.** A pair of files made on your computer; the server lets in only someone holding the private one. Safer, and lets you connect from Terminal as well as the browser, but it takes about ten minutes more.
+
+If you are not sure, choose A. You can add a key later.
+
+### (A) A password
+
+Ask your password manager to generate a password of at least 24 characters, and save it as a new item called **Snug server**. You will paste it in the next step.
+
+### (B) An SSH key
+
+On a Mac, open Terminal (press ⌘ Space, type `Terminal`, press Return), and type:
+
+```bash
+ssh-keygen -t ed25519 -C snug
+```
+
+Press Return when it asks where to save the key. When it asks for a passphrase, type a new one, save it in your password manager as **Snug server**, and type it again. Then copy the public half of the key:
+
+```bash
+pbcopy < ~/.ssh/id_ed25519.pub
+```
+
+You will paste it in the next step.
+
+## 4. Create the server
 
 DigitalOcean calls a server a droplet.
 
@@ -48,7 +77,9 @@ DigitalOcean calls a server a droplet.
 2. Under **Choose Region**, choose **London**.
 3. Under **Choose an image**, click **Ubuntu**, and in its version list choose **24.04 (LTS) x64**.
 4. Under **Choose Size**, choose **Basic**, then **Regular**, then the **$6/mo** option, with 1 GB of memory and a 25 GB disk. If you will share videos, choose a larger disk: each video can be hundreds of megabytes.
-5. Under **Choose Authentication Method**, choose **Password**. Ask your password manager to generate a long password, save it as a new item called **Snug server**, and paste it into **Create root password**.
+5. Under **Choose Authentication Method**:
+   - **(A)** choose **Password**, and paste the password from your password manager into **Create root password**;
+   - **(B)** choose **SSH Key**, click **New SSH Key**, paste the key into **SSH key content**, type `My computer` under **Name**, and click **Add SSH Key**.
 6. Click **Advanced Options** to open it, and tick **Enable IPv6**.
 7. Tick **Add Initialization scripts**. Open [Snug's setup script](https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/main/deploy/cloud-init.yaml) in a new tab, select all of it (⌘A on a Mac, Ctrl+A on Windows), copy it, and paste it into the box.
 8. Under **Hostname**, type `snug`.
@@ -56,7 +87,7 @@ DigitalOcean calls a server a droplet.
 
 The server takes a minute to start, then about five more minutes to install what Snug needs. Carry on with the next step meanwhile.
 
-## 4. Point your Snug address at the server
+## 5. Point your Snug address at the server
 
 1. Click **Droplets** in the menu on the left, then **snug**.
 2. At the top of its page are two addresses. **ipv4** looks like `203.0.113.25`. **ipv6** is longer, and looks like `2a03:b0c0:1:d0::1a2b:3001`. Click each one to copy it.
@@ -70,7 +101,7 @@ Now go to the website of the company you bought your domain from, and find its *
 
 Leave any **TTL** setting as it is. The change can take from a few minutes to an hour to reach everyone.
 
-## 5. Open the server's console
+## 6. Open the server's console
 
 The console is a window onto the server, inside your browser.
 
@@ -80,7 +111,9 @@ The console is a window onto the server, inside your browser.
 
 To paste into the console, use the menu that appears when you right-click inside it, or press Ctrl+Shift+V.
 
-## 6. Set Snug up
+With an SSH key, you can also connect from Terminal instead: type `ssh root@` followed by the server's ipv4 address, such as `ssh root@203.0.113.25`, and press Return. The first time, type `yes` when it asks whether to continue connecting, then your key's passphrase.
+
+## 7. Set Snug up
 
 In the console, type this, and press Return:
 
@@ -101,13 +134,13 @@ Snug asks one question at a time. Type each answer and press Return.
 
 Nothing appears as you type or paste the secret key. Press Return once you have pasted it.
 
-If Snug says your domain `points to nowhere yet`, the DNS records from step 4 have not arrived yet. Carry on: Snug keeps trying.
+If Snug says your domain `points to nowhere yet`, the DNS records from step 5 have not arrived yet. Carry on: Snug keeps trying.
 
 Snug then shows its backup settings between two lines of dashes. **Copy everything between the lines into the Snug backups item in your password manager.** Without it, nobody can read the backups, including you. Then type `saved` and press Return.
 
 Snug checks its settings and starts. The first time, this takes a few minutes.
 
-## 7. Create your admin account
+## 8. Create your admin account
 
 Snug asks for the first admin:
 
@@ -129,21 +162,21 @@ Snug shows ten recovery codes. **Copy them into the Snug admin item in your pass
 
 When Snug says `Snug is running`, setup is finished. You can close the console.
 
-## 8. Sign in
+## 9. Sign in
 
 1. In your browser, go to your Snug address followed by `/admin/`, such as `https://room.yourcompany.com/admin/`.
 2. Type your email address and password, then the six-digit code from your app.
 
 If the browser says the site cannot be reached, or that the connection is not private, the DNS records have not arrived yet. Wait ten minutes and try again.
 
-## 9. Set up email
+## 10. Set up email
 
 Snug emails each investor their link and the codes that prove they own their inbox, so set up email before you share anything. Follow one of these:
 
 - [Email through Google Workspace](email-google.md), if your company's email is Gmail on your own domain;
 - [Email through another provider](email.md), for anything else.
 
-## 10. Check everything works
+## 11. Check everything works
 
 Click **Overview** at the top of the admin pages. The line at the top says **Everything is working**, or what needs fixing.
 
