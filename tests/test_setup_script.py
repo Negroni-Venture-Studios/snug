@@ -50,7 +50,14 @@ def server(tmp_path: Path) -> Path:
     return here
 
 
-def run_setup(server: Path, *, has_database: bool, bucket_has_backups: bool) -> list[str]:
+def run_setup(
+    server: Path,
+    *,
+    has_database: bool,
+    bucket_has_backups: bool,
+    answers: str = "",
+    succeeds: bool = True,
+) -> list[str]:
     log = server.parent / "log"
     log.touch()
     env = {
@@ -60,16 +67,16 @@ def run_setup(server: Path, *, has_database: bool, bucket_has_backups: bool) -> 
         "HAS_DATABASE": "yes" if has_database else "no",
         "BUCKET_HAS_BACKUPS": "yes" if bucket_has_backups else "no",
     }
-    # Enter for the domain, then the company's name.
+    # Enter for the domain, then the company's name, then any later answers.
     result = subprocess.run(
         ["/bin/sh", str(server / "setup.sh")],
-        input="\nFernlea Robotics\n",
+        input="\nFernlea Robotics\n" + answers,
         capture_output=True,
         text=True,
         env=env,
         check=False,
     )
-    assert result.returncode == 0, result.stdout + result.stderr
+    assert (result.returncode == 0) == succeeds, result.stdout + result.stderr
     return log.read_text().splitlines()
 
 
@@ -98,3 +105,84 @@ def test_snug_creates_the_data_volume_before_the_backup_container_mounts_it(
     calls = run_setup(server, has_database=False, bucket_has_backups=True)
     mounts = [call for call in calls if call.startswith("docker compose run")]
     assert "--entrypoint true snug" in mounts[0]
+
+
+# The settings block setup prints for the password manager, as pasted back.
+SAVED_SETTINGS = """# Snug's backups: the bucket, and the key that encrypts everything in it.
+# Keep a copy of this whole file in your password manager. Without it,
+# nobody can read the backups, including you.
+
+[bucket]
+type = s3
+provider = DigitalOcean
+access_key_id = DO00FERNLEA
+secret_access_key = fernlea-secret
+endpoint = lon1.digitaloceanspaces.com
+acl = private
+no_check_bucket = true
+
+[snug-backup]
+type = crypt
+remote = bucket:fernlea-backups/snug
+password = fernlea-password
+password2 = fernlea-salt
+"""
+
+
+def test_a_new_server_restores_from_pasted_backup_settings(server: Path) -> None:
+    (server / "backup" / "rclone.conf").unlink()
+    calls = run_setup(
+        server,
+        has_database=False,
+        bucket_has_backups=True,
+        answers="yes\n" + SAVED_SETTINGS + "ignored after the last line\n",
+    )
+    assert "restore.sh " in calls
+    assert (server / "backup" / "rclone.conf").read_text() == SAVED_SETTINGS
+    assert stat.S_IMODE((server / "backup" / "rclone.conf").stat().st_mode) == 0o600
+
+
+def test_pasted_settings_with_windows_line_endings_are_cleaned(server: Path) -> None:
+    (server / "backup" / "rclone.conf").unlink()
+    pasted = SAVED_SETTINGS.replace("\n", "\r\n")
+    run_setup(server, has_database=False, bucket_has_backups=True, answers="yes\n" + pasted)
+    assert (server / "backup" / "rclone.conf").read_text() == SAVED_SETTINGS
+
+
+def test_pasted_settings_without_backups_stop_setup(server: Path) -> None:
+    (server / "backup" / "rclone.conf").unlink()
+    calls = run_setup(
+        server,
+        has_database=False,
+        bucket_has_backups=False,
+        answers="yes\n" + SAVED_SETTINGS,
+        succeeds=False,
+    )
+    assert not any(call.startswith("restore.sh") for call in calls)
+    assert not any("up --detach" in call for call in calls)
+    assert not (server / "backup" / "rclone.conf").exists()
+
+
+def test_an_incomplete_paste_stops_setup(server: Path) -> None:
+    (server / "backup" / "rclone.conf").unlink()
+    cut = SAVED_SETTINGS.split("password =")[0]
+    calls = run_setup(
+        server, has_database=False, bucket_has_backups=True, answers="yes\n" + cut, succeeds=False
+    )
+    assert not any(call.startswith("restore.sh") for call in calls)
+    assert not (server / "backup" / "rclone.conf").exists()
+
+
+def test_answering_no_asks_for_a_new_bucket(server: Path) -> None:
+    (server / "backup" / "rclone.conf").unlink()
+    # No, then the region, bucket, access key and secret key, then saved.
+    calls = run_setup(
+        server,
+        has_database=False,
+        bucket_has_backups=False,
+        answers="no\nams3\nfernlea-backups\nDO00FERNLEA\nfernlea-secret\nsaved\n",
+    )
+    assert not any(call.startswith("restore.sh") for call in calls)
+    settings = (server / "backup" / "rclone.conf").read_text()
+    assert "endpoint = ams3.digitaloceanspaces.com" in settings
+    assert "remote = bucket:fernlea-backups/snug" in settings

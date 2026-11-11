@@ -8,9 +8,10 @@
 # the hosting provider. Email is set up afterwards, in Settings.
 # docs/deployment.md explains it.
 #
-# If backup/rclone.conf is already here, copied from a password manager, and
-# its bucket holds backups, setup restores them instead of starting afresh,
-# unless this server already has a database. Running it again on a working
+# On a new server it asks whether this is a restore. If so, it takes the
+# backup settings pasted from a password manager, and restores the backups in
+# their bucket instead of starting afresh. It does the same if
+# backup/rclone.conf is already here, unless this server already has a database. Running it again on a working
 # server changes the answers and restarts Snug, keeping its data.
 
 set -eu
@@ -114,6 +115,39 @@ if [ -s backup/rclone.conf ]; then
 		restoring=yes
 		say "Its bucket holds a Snug's backups: setup will restore them."
 	fi
+elif [ "$existing" = no ] && ask "Are you restoring Snug from an earlier server's backups? Type yes or no" "no" && [ "$reply" = yes ]; then
+	say "Paste the backup settings from your password manager: everything from the"
+	say "first line, # Snug's backups, to the last, password2 = ..."
+	umask 077
+	: > backup/rclone.conf
+	whole=no
+	while IFS= read -r line; do
+		line=$(printf '%s' "$line" | tr -d '\r')
+		printf '%s\n' "$line" >> backup/rclone.conf
+		case "$line" in password2*=*)
+			whole=yes
+			break
+			;;
+		esac
+	done
+	umask 022
+	# Readable by the backup container's user alone, which reads it next.
+	chown 10001:10001 backup/rclone.conf
+	chmod 600 backup/rclone.conf
+	if [ "$whole" = no ]; then
+		rm -f backup/rclone.conf
+		say "That is not the whole of the backup settings: the last line starts password2."
+		say "Copy all of it from your password manager, and run sudo snug setup again."
+		exit 1
+	fi
+	if [ -z "$(rclone lsf snug-backup:database 2> /dev/null || true)" ]; then
+		rm -f backup/rclone.conf
+		say "Snug found no backups with these settings. Check they are the ones saved"
+		say "for this Snug, that the bucket and its key still exist, and run sudo snug setup again."
+		exit 1
+	fi
+	restoring=yes
+	say "Found the backups: setup will restore them."
 else
 	say "Backups go to a storage bucket of your own, encrypted on this server first."
 	say "docs/backups.md explains how to create a DigitalOcean Spaces bucket and a key."
