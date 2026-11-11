@@ -12,9 +12,19 @@ Revoking a link, or letting it expire, stops it at once, including on pages alre
 
 Snug cannot tell who is at the keyboard. Someone the investor lets use their inbox, or their open browser, can read what the investor can.
 
+## Guessed codes and passwords
+
+An investor's code is six digits, works once, for ten minutes, and five wrong tries use it up. Asking for codes is limited for each link, email address and internet address, so someone holding a forwarded link cannot keep guessing.
+
+Signing in to the admin pages takes a password and a code from an authenticator app. After 20 wrong passwords from one address, 30 against one account, or 10 wrong codes, signing in pauses for 15 minutes ([every limit](admin-accounts.md#signing-in)).
+
+## Uploaded files
+
+Snug reads every uploaded PDF, workbook and video in a separate worker process, confined so that it cannot open other files, connect to the network or reach Snug's other processes, with a time and a memory limit. If the worker cannot confine itself, Snug refuses to read the file. A file made to attack the PDF reader would run inside that confinement.
+
 ## Watermarks and stamps
 
-Every page an investor reads in the browser shows their email address and the date, repeated diagonally across the page, and a line at the foot with the link's reference. Each download is stamped for its reader too, and the audit log records it with a hash of the exact file sent.
+Every page an investor reads in the browser shows their email address and the date, repeated diagonally across the page, and a line at the foot with the link's reference. A PDF or workbook download is stamped for its reader too, and the audit log records every download with a hash of the exact file sent.
 
 | What they get | How it is marked | What the mark cannot stop |
 |---|---|---|
@@ -42,15 +52,17 @@ A VPN gets round it, and so does any visitor using a computer in the UK. It chec
 
 ## Your server and your backups
 
-Your documents, the database and the record of who read them stay on your server, and in your own bucket, encrypted on the server before they leave it. The backup settings in your password manager are the only way to read the backups, so whoever holds them can read everything in them.
+Your documents, the database and the record of who read them stay on your server. With backups set up, as `snug setup` asks, they are also copied to your own bucket, encrypted on the server before they leave it. Without them, losing the server loses everything. The backup settings in your password manager are the only way to read the backups, so whoever holds them can read everything in them.
+
+Snug is served only over HTTPS, with a certificate from Let's Encrypt that Caddy renews, and tells browsers to use nothing else for a year.
 
 Anyone with root on the server can read everything on it, including the documents, the database, and the email password or Google permission saved in Settings. So can your hosting provider, as with any server. Keep the server's root password, and the console it opens, to the people who run Snug.
 
-Every admin has the same rights, and signs in with a password and a code from an authenticator app. Adding or removing an admin, or changing how email is sent, needs a fresh code, and Snug emails every admin about it.
+Every admin has the same rights, and signs in with a password and a code from an authenticator app. Adding or removing an admin, or changing how email is sent, needs a fresh code, and once email is set up, Snug emails every admin about it.
 
 ## What Snug records about investors
 
-Snug records each visitor's email address, IP address and country, and how long they spent on each page. Investors are told this beside every document. The reading data is deleted a set time after their link ends, 12 months unless you change it in Settings; the audit log is kept.
+Snug records each visitor's email address, IP address and country, and how long they spent on each page. Beside every document, investors are told that you will see when they open it and how long they spend on each page; the NDA page also tells them their IP address is recorded. The reading data is deleted a set time after their link ends, 12 months unless you change it in Settings; the audit log is kept.
 
 ## Reporting a security problem
 

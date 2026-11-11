@@ -491,5 +491,20 @@ def test_the_overview_shows_the_version_under_the_status(
     assert line_box["y"] > status_box["y"] + status_box["height"] - 1
     guide = line.get_by_role("link", name="Updating Snug")
     expect(guide).to_have_attribute("target", "_blank")
+    # The version and the guide link sit level, at the line's own size.
+    middles = page.evaluate(
+        """() => {
+            const line = document.querySelector('.system-version');
+            const text = document.createRange();
+            text.selectNodeContents(line.firstChild);
+            const words = text.getBoundingClientRect();
+            const link = line.querySelector('.doc-link').getBoundingClientRect();
+            const size = (el) => getComputedStyle(el).fontSize;
+            return [words.top + words.height / 2, link.top + link.height / 2,
+                    size(line), size(line.querySelector('.doc-link'))];
+        }"""
+    )
+    assert abs(middles[0] - middles[1]) <= 1, middles
+    assert middles[2] == middles[3], middles
     if shots := os.environ.get("SNUG_SHOT_DIR"):
         page.locator("main").screenshot(path=f"{shots}/overview-version.png")

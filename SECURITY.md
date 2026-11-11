@@ -32,7 +32,7 @@ Out of scope:
 
 ## Supported versions
 
-Snug has not been released yet. Security fixes go into `main`, and so into the `:edge` test image. After the first release, they go into the latest release.
+Security fixes go into the next release, and only the latest release is supported. To update a server, run `sudo snug update`. The `:edge` image, built from `main`, has fixes as soon as they merge.
 
 ## How changes are checked
 

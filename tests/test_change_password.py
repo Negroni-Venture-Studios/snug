@@ -1,7 +1,6 @@
 """Changing your own password while signed in, from Settings.
 
-Before version 1 (DESIGN.md section 4): until now the only way was the
-forgotten-password link. It asks for the current password and a code from
+It asks for the current password and a code from
 the authenticator, as every other change to an admin account does. This
 browser stays signed in; every other session ends.
 """

@@ -35,8 +35,8 @@ def _email_test(address: str) -> Finding:
         return Finding(
             label,
             "problem",
-            f"The email to {address} could not be sent. Snug's log says why: "
-            "docker compose logs snug.",
+            f"The email to {address} could not be sent. The reason is in Snug's log: "
+            "sudo docker compose logs snug, in /opt/snug.",
         )
     typed = input("Type the code from the email: ").strip()
     if not hmac.compare_digest(typed.encode(), code.encode()):
@@ -45,7 +45,7 @@ def _email_test(address: str) -> Finding:
 
 
 class Command(BaseCommand):
-    help = "Check housekeeping, backups, the document worker, DNS, HTTPS and email."
+    help = "Check housekeeping, backups, the document worker, DNS, HTTPS, email and GeoIP data."
 
     def add_arguments(self, parser: ArgumentParser) -> None:
         parser.add_argument(
@@ -68,7 +68,7 @@ class Command(BaseCommand):
                     Finding(
                         "Email test",
                         "skipped",
-                        "Run snug doctor --email you@example.com to send a test email.",
+                        "Run sudo snug doctor --email you@example.com to send a test email.",
                     )
                 )
 

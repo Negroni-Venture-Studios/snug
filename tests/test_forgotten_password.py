@@ -149,7 +149,7 @@ def test_asking_is_rate_limited_per_email_and_per_ip(client: Client, admin: Admi
 def test_without_email_the_page_says_what_to_do_instead(client: Client) -> None:
     page = client.get("/admin/login/forgot", secure=True).content.decode()
     assert "Email is not set up" in page
-    assert "snug reset-password" in page
+    assert "sudo snug reset-password" in page
     assert 'name="email"' not in page
     assert ask(client).status_code == 404
 
@@ -386,7 +386,7 @@ def test_snug_reset_password_needs_a_real_admin() -> None:
 
 
 def test_django_changepassword_points_to_the_audited_command() -> None:
-    with pytest.raises(CommandError, match="snug reset-password"):
+    with pytest.raises(CommandError, match="sudo snug reset-password"):
         call_command("changepassword", EMAIL)
 
 

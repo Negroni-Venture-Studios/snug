@@ -4,23 +4,38 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-11
+
+The first release.
+
+### Changed
+
+- The design document is now [docs/design.md](docs/design.md), beside the architecture guide, and describes Snug as built. How to release is in [CONTRIBUTING.md](CONTRIBUTING.md#releasing).
+
+### Removed
+
+- The original brief, `docs/BRIEF.md`. What it asked for and Snug does not do yet is in the [issues labelled enhancement](https://github.com/Negroni-Venture-Studios/snug/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
+
 ### Security
 
 External security audits found these.
 
-- New servers and `snug update` download the server's files from the newest release, not from the `main` branch, so a server runs only what has been released.
+- New servers and `snug update` download the server's files from the newest release, not from the `main` branch, and stop if they cannot find it, so a server runs only what has been released.
 - The document worker refuses to read a file if it cannot set its memory limit, and its seccomp filter refuses to trace, signal, re-prioritise or change the limits of other processes, or read their memory. The watermark's drawing is capped whatever the page's shape, so a PDF page of extreme shape no longer stops its download being stamped.
 - Snug believes the `X-Forwarded-Proto` header only from a trusted proxy, so a request over plain HTTP can no longer pass for HTTPS if Snug's port is ever reached without Caddy.
 - A refused upload replaces only the main part of the admin page, and nothing in the reply runs.
 - The content security policy no longer allows `data:` images.
 - `snug setup` clears the screen and the terminal's scrollback once you type `saved`, where the backup settings used to stay visible.
 - New servers swap only under memory pressure (`vm.swappiness` 10), so less of Snug's memory, including its secret key, is written to the swap file.
-- The PDF worker refuses to read a file unless it has confined itself: Landlock ABI 4 (Linux 6.7) or later, and a new seccomp filter that refuses to create any socket. It used to carry on unconfined if Landlock failed, and Landlock alone let it send UDP. `SNUG_UNSAFE_UNCONFINED_RENDERING` allows unconfined reading for development only.
+- The document worker refuses to read a file unless it has confined itself: Landlock ABI 4 (Linux 6.7) or later, and a new seccomp filter that refuses to create any socket. It used to carry on unconfined if Landlock failed, and Landlock alone let it send UDP. `SNUG_UNSAFE_UNCONFINED_RENDERING` allows unconfined reading for development only.
 - Signing in goes back to the password step if the password or authenticator changes between the password and the code. Someone who knew the old password could otherwise finish signing in, within five minutes, with a code from the app or a recovery code.
 - Snug refuses a POST over 64 KB, enough for a form's fields, unless a signed-in admin sent it, and refuses it before reading the body. A visitor who was not signed in could send the upload forms a body as large as the video limit, 1 GB by default, and Snug wrote it to disk before turning them away.
 
 ### Fixed
 
+- A backup status file that is not readable text no longer breaks Settings and the Overview.
+- [What Snug protects against](docs/security.md) no longer overstates four things: admins are alerted only once email is set up, investors' notice beside a document does not mention their IP address, video downloads are not stamped, and backups need a bucket. It now also covers guessed codes and passwords, the confined worker that reads uploads, and HTTPS.
+- A new server's startup script includes Docker's signing key, instead of fetching it from Ubuntu's keyserver. When the keyserver failed, the server was left without Docker and said nothing; `snug setup` and the login message now say if Docker is missing.
 - Uploading a new document no longer holds up every other change to the database while Snug checks the file.
 - If Snug cannot find a free link reference, the link form says so instead of showing a server error. Snug tries 50 references, up from 5.
 - Six digits in a script other than ASCII are tried as a recovery code, not as a code from the authenticator app.
@@ -44,7 +59,7 @@ External security audits found these.
 - On the Links page, a revoked link's status and details line up with the active links above and below it. A document's versions and a room's documents share their columns the same way.
 - Hints and notices now say only what happens or what to do, and the first-open email says *Not known* for an unplaced country.
 - A workbook's page in the admin no longer fails with a server error once an investor has opened it. It tried to draw a page-by-page reading chart for a document with no pages.
-- Every viewer event in the audit log records the visitor's country, whether or not the link is UK-only, and the audit log shows it beside the address. The country column had been left empty, though the brief asked for it.
+- Every viewer event in the audit log records the visitor's country, whether or not the link is UK-only, and the audit log shows it beside the address. The country column had been left empty.
 - The Google Workspace guide now starts from a first visit to Google Cloud and covers every screen, SPF, DKIM and DMARC for each sending domain, user alias domains, awkward DNS hosts, and being signed in to more than one Google account.
 - A saved Google client secret or SMTP password shows as dots, so the field no longer looks empty. The value itself is still never sent to the browser.
 - Before you leave for Google, the mailbox step has a note that one more authenticator code is needed on your return, and on your return a green notice shows the approved mailbox.
@@ -53,7 +68,7 @@ External security audits found these.
 - In Settings, the admins' statuses and dates line up in columns. Your own row has no buttons, and it used to sit out of line with the others.
 - On a phone, the Overview's recent activity no longer pushes the page sideways: each visit shows who, then what. A browser test now checks every admin page at phone width.
 - Settings, the new-link form and the room page kept the shared admin script out when adding their own, so their tabs did not scroll to the current one on a narrow screen.
-- The README and guides describe Snug as it is: downloads are on by default, and local emails can be read with one command. The design record lists the specified features not yet built. The container image now includes `THIRD_PARTY_LICENCES.md`, and pypdf is listed in it.
+- The README and guides describe Snug as it is: downloads are on by default, and local emails can be read with one command. The container image now includes `THIRD_PARTY_LICENCES.md`, and pypdf is listed in it.
 - Downloading a PDF that opens without a password but is encrypted against copying (common for published PDFs) failed with "could not be prepared for download". It is now stamped from an unencrypted copy. The confined worker also preloads every text codec it may need, since a PDF with UTF-16 metadata failed the same way.
 - Links from a Snug on your own computer now work: `SNUG_DOMAIN` can be `localhost` with a port, like `localhost:8000`, and every link and email includes it. The README's trial command uses it. A real domain still cannot include a port.
 - The admin and sign-in footers link to Negroni Venture Studios, and to the source on GitHub with GitHub's mark beside the repository name.
@@ -75,10 +90,10 @@ External security audits found these.
 
 ### Added
 
-- The Overview shows which Snug is running, under the status line: a release's version, or the commit of a test build, with a link to the guide on updating. Settings links each section to the guides for the running release.
+- The Overview shows which Snug is running, under the status line: a release's version, or the commit of an edge build from `main`, with a link to the guide on updating. Settings links each section to the guides for the running release.
 - [What Snug protects against](docs/security.md), including what its watermarks, download stamps, NDA record and UK-only mode cannot stop.
 - Settings shows when the backups last reached the bucket, as *Working* or *Problem*, with the same sentence as `snug doctor` and the time the last copy finished, so you can check without the server's console. The section is as wide as the forms above it. A problem has a link to the backups guide beside it, and a server without backups says to run `sudo snug setup`, where it used to say a file was missing. The Branding and Privacy sections link to new parts of [Using Snug](docs/using-snug.md), so every section in Settings links to its guide.
-- `sudo snug update` brings a server up to date: the latest server files from GitHub, replaced only once every one has arrived, then the new images. It never touches `snug.env` or the backup settings. Updating used to pull new images only, leaving the server's own files as they were when it was made.
+- `sudo snug update` brings a server up to date: the newest release's server files from GitHub, replaced only once every one has arrived, then the new images. It never touches `snug.env` or the backup settings. Updating used to pull new images only, leaving the server's own files as they were when it was made.
 - On a new server, `snug setup` asks whether you are restoring Snug from an earlier server's backups. Answer `yes` and paste the backup settings from your password manager, and it checks the bucket and restores. You used to have to put the settings file in place with a text editor on the server first.
 - `docs/deploy-digitalocean.md` goes step by step from an empty DigitalOcean account to Snug at your own address, with screenshots from a real deployment. Its last section brings Snug back from the backups on a new server. The Google Workspace email guide has screenshots of each step too.
 - A step-by-step guide to trying Snug on your own Mac, `docs/deploy-localhost.md`, from installing Docker Desktop onwards. It replaces the README's shorter section, which assumed Docker and Python were installed.
@@ -115,7 +130,7 @@ External security audits found these.
 - The People page shows how many times each person downloaded each document, and their total.
 - An eye at the right of every password box shows or hides what is typed, for phones and fiddly keyboards. Password boxes also turn off autocorrect and capitalisation.
 - "Forgotten your password?" on the sign-in page. It emails a link that works once, for one hour; setting the new password also needs a code from the authenticator app or a recovery code. The reply never says whether an address belongs to an admin. Without email, `snug reset-password EMAIL` does the same on the server, and is written to the audit log; Django's unaudited `changepassword` is disabled.
-- The Overview: how many documents, active links, people who have visited and visits this week, then the ten latest visits, with a person's first open of a document marked New.
+- The Overview: how many documents, active links, people who have visited and visits in the last 7 days, then the ten latest visits, with a person's first open of a document marked New.
 - A container image, `ghcr.io/negroni-venture-studios/snug`, for amd64 and arm64: `:edge` from `main`, and a version tag and `:latest` from each release. It runs as an unprivileged user, and its render worker is confined by Landlock.
 - Reading data is deleted automatically 12 months after its link is revoked or expires, a period you can change in Settings (from 1 to 120 months). `snug housekeeping`, which the server runs every hour, does it, and also clears expired codes, sessions, setup links and rate-limit counts.
 - An Audit log tab: every admin and viewer event, newest first, filtered by kind or by email address, 100 to a page, with a CSV export of the same selection. Cells a spreadsheet would run as a formula are defused, and every export is itself recorded.
@@ -189,6 +204,6 @@ External security audits found these.
 - Repository guard rails: CI for lint, type checking, tests on Python 3.12 and 3.14, secret scanning, dependency audit, licence checks and a software bill of materials; CodeQL; Dependabot; pre-commit hooks.
 - Project documents: README, contributing guide, security policy, code of conduct, trademarks note, and agent instructions.
 - DESIGN.md, recording the architecture, the agreed decisions and the front-end design, with clickable mockups and the Snug logo in `docs/design/`.
-- The original project brief, kept for the record in `docs/BRIEF.md`.
 
-[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/commits/main
+[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/Negroni-Venture-Studios/snug/releases/tag/v1.0.0

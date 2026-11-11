@@ -28,7 +28,7 @@
   <div class="field invite-wide">{% if invite_error %}<div class="error" id="invite-email-error" role="alert">{% icon "warning-circle" %}{{ invite_error }}</div>{% endif %}{% if code_error %}<div class="error" id="code-error" role="alert">{% icon "warning-circle" %}{{ code_error }}</div>{% endif %}{% if not invite_error and not code_error %}<div class="hint">Every change to the admins needs a code from your authenticator app.</div>{% endif %}</div>
 </form>
 {% else %}
-<p class="admin-invite-off">Inviting needs email. See <code>docs/email.md</code>, or create admins on the server with <code>snug createadmin</code>.</p>
+<p class="admin-invite-off">Inviting needs email. See <code>docs/email.md</code>, or create admins on the server with <code>sudo snug createadmin</code>.</p>
 {% endif %}
 </div>
 

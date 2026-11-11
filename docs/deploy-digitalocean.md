@@ -155,7 +155,9 @@ Snug asks one question at a time. Type each answer and press Return. To paste in
 | Snug asks | You type |
 |---|---|
 | `The domain investors will use, like room.example.com` | your Snug address, such as `room.yourcompany.com`, without `https://` |
-| `Your company's name, as investors know it` | your company's name, such as `Fernlea Robotics` |
+| `Your company's name, as investors know it (you can change it later in Settings)` | your company's name, such as `Fernlea Robotics` |
+
+If Snug says your domain `points to nowhere yet`, the DNS records from step 5 have not arrived. Carry on: Snug keeps trying. If it names an address that is not the server's, check the records.
 
 Snug then downloads itself. The first time, this takes a minute or two. Then it asks about the backups:
 
@@ -166,8 +168,6 @@ Snug then downloads itself. The first time, this takes a minute or two. Then it 
 | `Bucket name` | the bucket's name, from **Snug backups** |
 | `Access key` | the Access Key ID, from **Snug backups** |
 | `Secret key` | the Secret Key, from **Snug backups**. Nothing appears as you paste it. Press Return. |
-
-If Snug says your domain `points to nowhere yet`, the DNS records from step 5 have not arrived. Carry on: Snug keeps trying.
 
 Snug then shows its backup settings between two lines of dashes, like this, with different values:
 
@@ -221,6 +221,8 @@ Setup ends with:
 
 ```
 Snug is running at https://room.yourcompany.com. Sign in at https://room.yourcompany.com/admin/
+Then set up email in Settings, under Email: docs/email.md explains how.
+Run sudo snug doctor at any time to check everything is working.
 ```
 
 ## 9. Sign in
@@ -260,6 +262,8 @@ It emails you a code to type back, and ends with `Everything is working.` when a
 | The console says `droplet-agent is not running` | The server is still installing. Wait five minutes and click **Reload**. |
 | The console is black and does not respond | It has disconnected. Close it and click **Web Console** again. |
 | The console says `snug: command not found` | The server is still installing. Close the console, wait five minutes, and open it again. |
+| The console says `Snug is still installing` | Close the console, wait five minutes, and open it again. |
+| The console's welcome message, or `snug setup`, says `Snug's installation did not finish` | The installation stopped part-way, usually because a download failed. Destroy the server (on its page, **Settings**, then **Destroy**) and create a new one, as in step 3. |
 | Snug says a value `contains ' (a single quote)` | Choose a value without a `'`, and run `sudo snug setup` again. |
 | The browser cannot reach your Snug address | Check the DNS records in step 5. |
 | The Overview shows a backup problem | **Settings**, under **Backups**, shows the reason. Check the bucket's name and key in **Snug backups** against steps 1 and 2. |
@@ -284,7 +288,7 @@ Snug downloads the new version and restarts, which takes under a minute, and end
 Snug is up to date. To check everything is working: sudo snug doctor
 ```
 
-Your documents, links, accounts and settings are kept.
+Your documents, links, accounts and settings are kept. The Overview shows the new version under the line at the top.
 
 ## Bringing Snug back on a new server
 
@@ -301,10 +305,10 @@ You need the backup settings you saved in your password manager in step 7. Witho
    | Snug asks | You type |
    |---|---|
    | `The domain investors will use, like room.example.com` | the same Snug address as before |
-   | `Your company's name, as investors know it` | your company's name |
+   | `Your company's name, as investors know it (you can change it later in Settings)` | your company's name |
    | `Are you restoring Snug from an earlier server's backups? Type yes or no [no]` | `yes` |
 
-   Snug asks you to paste the backup settings. Copy the whole of them from your password manager, from the first line, `# Snug's backups`, to the last, `password2 = ...`, and paste them into the console. Snug says `Found the backups: setup will restore them`, fetches them, and ends:
+   Snug asks you to paste the backup settings. Copy the whole of them from your password manager, from the first line, `# Snug's backups`, to the last, `password2 = ...`, and paste them into the console. Snug says `Found the backups: setup will restore them`, fetches them, and says:
 
    ```
    Snug is restored at https://room.yourcompany.com. Sign in as before.

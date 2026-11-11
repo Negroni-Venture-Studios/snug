@@ -1,8 +1,8 @@
 """A cover message on a link: a short note from the founder, shown before the document.
 
-Before version 1 (DESIGN.md section 4). Plain text, up to 1,000 characters,
+Plain text, up to 1,000 characters,
 with line breaks kept and nothing rendered as HTML. It appears in the viewer's
-About this link panel and in the email that carries the link.
+About this link panel and in the email with the link.
 """
 
 import time

@@ -16,16 +16,16 @@ never given a path. `inspect` prints one line of JSON. `render` writes the
 WebP image to standard output. `stamp` reads a rendered page (as FD) and a
 font, and writes the page with the viewer's watermark: a page rendered from
 an untrusted PDF is never decoded outside a confined worker. `stamp-pdf`
-writes the original PDF with a line naming the viewer on every page, and the
-same details in its document properties. `inspect-xlsx` and `stamp-xlsx` do
-the same for an Excel workbook (see snug.rendering.workbook): the sheet
-names, and the workbook with its properties naming the reader. `inspect-mp4`
-checks an MP4 video's boxes, reading them in pieces from the descriptor
-rather than whole (see snug.rendering.video), and prints its length and
-size; the video itself is never decoded. `logo` and `icon` redraw a branding
-image as a PNG. `confinement` reads nothing: it confines itself and reports
-how, for snug doctor. Errors print
-{"error": ...} and exit with 3.
+writes the original PDF with the viewer's diagonal mark and a footer line on
+every page, and the same details in its document properties. `inspect-xlsx`
+and `stamp-xlsx` do the same for an Excel workbook (see
+snug.rendering.workbook): the sheet names, and the workbook with the reader's
+details in its properties. `inspect-mp4` checks an MP4 video's boxes,
+reading them in pieces from the descriptor rather than whole (see
+snug.rendering.video), and prints its length and size; the video itself is
+never decoded. `logo` and `icon` redraw a branding image as a PNG.
+`confinement` reads nothing: it confines itself and reports how, for
+`snug doctor`. Errors print {"error": ...} and exit with 3.
 
 Before it parses the file, the worker
   - limits its own memory, CPU time, output, open files and processes,
@@ -34,9 +34,9 @@ Before it parses the file, the worker
     in pieces), and
   - confines itself with Landlock, so it cannot open any file except system
     fonts (read-only) or make TCP connections, and a seccomp filter that
-    refuses to create any socket, or to trace, signal, re-prioritise or
-    change the limits of another process. Without both, or without its
-    memory limit, it refuses to parse anything.
+    refuses to create any socket, or to reach into another process: to
+    trace it, signal it, read its memory, or change its priority or limits.
+    Without both, or without its memory limit, it refuses to parse anything.
 It imports no Django and no Snug settings, and its environment is empty of
 secrets, so even a file that took over the code reading it would find nothing to take.
 """

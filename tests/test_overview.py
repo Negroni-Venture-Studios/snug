@@ -1,6 +1,6 @@
 """The Overview: a stat strip and recent activity, first opens marked New.
 
-DESIGN.md section 3.7. The status line is in test_overview_status.py.
+docs/design.md section 3.7. The status line is in test_overview_status.py.
 """
 
 import time

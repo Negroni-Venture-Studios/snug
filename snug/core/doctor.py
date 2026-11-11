@@ -87,7 +87,8 @@ def _read_time(text: str) -> datetime | None:
 
 def last_backup() -> datetime | None:
     """When the backup container last finished a complete copy to the bucket."""
-    with contextlib.suppress(OSError):
+    # A file that is not text is treated as missing (audit, 11 November 2026).
+    with contextlib.suppress(OSError, UnicodeDecodeError):
         path = settings.CONFIG.data_dir / "backup" / "last-success"
         return _read_time(path.read_text(encoding="utf-8"))
     return None
@@ -99,7 +100,7 @@ def backups(now: datetime) -> Finding:
     folder = settings.CONFIG.data_dir / "backup"
     success = last_backup()
     problem = ""
-    with contextlib.suppress(OSError):
+    with contextlib.suppress(OSError, UnicodeDecodeError):
         problem = (folder / "problem").read_text(encoding="utf-8").strip()[:200]
     if problem:
         if success is not None:
@@ -126,7 +127,8 @@ def confinement() -> Finding:
     return _problem(
         label,
         f"The document worker cannot confine itself ({how}), so Snug will not read documents. "
-        f"It needs Linux {_LINUX_FOR_ABI[MIN_LANDLOCK_ABI]} or later.",
+        f"It needs Linux {_LINUX_FOR_ABI[MIN_LANDLOCK_ABI]} or later, with Landlock, seccomp "
+        "and a memory limit.",
     )
 
 

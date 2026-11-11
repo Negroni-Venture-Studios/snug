@@ -35,12 +35,14 @@ On a new server, `snug setup` asks whether you are restoring Snug from an earlie
 
 ### On another server
 
-On any Linux server with Docker Engine and its Compose plugin, fetch the same files and run `snug setup`:
+On any Linux server with Docker Engine and its Compose plugin, fetch the newest release's files and run `snug setup`:
 
 ```bash
 sudo mkdir -p /opt/snug/backup && cd /opt/snug
+release=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/Negroni-Venture-Studios/snug/releases/latest)
+release=${release##*/}
 for file in compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh update.sh snug; do
-  sudo curl -fsSLO "https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/main/deploy/$file"
+  sudo curl -fsSLO "https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/$release/deploy/$file"
 done
 sudo install -m 755 snug /usr/local/bin/snug
 sudo snug setup
@@ -65,7 +67,7 @@ Compose treats `$` in `snug.env` as the start of a variable. Wrap any value cont
 
 | | Snug | Caddy |
 |---|---|---|
-| Image | `ghcr.io/negroni-venture-studios/snug:edge`, a test build of the latest code; set `SNUG_IMAGE` in `.env` to use another | `caddy`, pinned by digest |
+| Image | `ghcr.io/negroni-venture-studios/snug` at the release's version, such as `:1.0.0`; set `SNUG_IMAGE` in `.env` to use another, such as `:edge`, a build of the latest code on `main` | `caddy`, pinned by digest |
 | Data | The `snug-data` volume, mounted at `/var/lib/snug` | The `caddy-data` volume, holding its certificates |
 | Ports | None on the server; only Caddy can reach it | 80 and 443, with 443 over UDP for HTTP/3 |
 | Filesystem | Read-only, apart from the data folder and `/tmp` | Read-only, apart from its volumes and `/tmp` |
@@ -83,7 +85,7 @@ Otherwise Snug connects out only to send email: to Google, when it sends through
 
 ### Client addresses
 
-Rate limits and the audit log depend on knowing each visitor's real address. Caddy has fixed addresses on the Compose network, `172.30.83.2` and `fd53:6e75:6700::2`, and Snug trusts `X-Forwarded-For` only from those. The Compose file sets `SNUG_TRUSTED_PROXIES` itself, overriding any value in `snug.env`. Caddy ignores any `X-Forwarded-For` a visitor sends, and passes on the address the connection really came from.
+Rate limits and the audit log depend on knowing each visitor's real address. Caddy has fixed addresses on the Compose network, `172.30.83.2` and `fd53:6e75:6700::2`, and Snug trusts `X-Forwarded-For` and `X-Forwarded-Proto` only from those. The Compose file sets `SNUG_TRUSTED_PROXIES` itself, overriding any value in `snug.env`. Caddy ignores any `X-Forwarded-For` a visitor sends, and passes on the address the connection really came from.
 
 IPv6 is turned on for the Compose network. Without it, Docker would relay visitors arriving over IPv6 through a proxy of its own, and they would all reach Caddy from one address and share one set of rate limits.
 
@@ -99,7 +101,7 @@ sudo snug doctor --email you@example.com
 |---|---|
 | Housekeeping | `snug housekeeping`, which runs every hour, has completed in the last 3 hours |
 | Backups | The last copy to the bucket succeeded, less than 15 minutes ago ([backups.md](backups.md)) |
-| Document worker | A fresh worker confines itself with Landlock ABI 4 or later and the seccomp filter, which refuses sockets and refuses to trace, signal, re-prioritise or change the limits of another process, so it is allowed to read documents |
+| Document worker | A fresh worker confines itself with Landlock ABI 4 or later and the seccomp filter, which refuses sockets and any reach into another process: tracing it, reading or writing its memory, signalling it, re-prioritising it or changing its limits. Only then may it read documents |
 | DNS | The domain resolves; the report lists the addresses it points to |
 | HTTPS | The domain answers Snug's health check over HTTPS, with a valid certificate that has more than 14 days left |
 | Email | Email is set up, through Google Workspace or SMTP; with `--email`, a code sent to that address is typed back |
@@ -109,7 +111,7 @@ The admin Overview shows the same problems. When there are none, it shows *Every
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/overview-dark.png">
-  <img alt="The admin Overview, with the status line Everything is working above its numbers and the latest visits." src="images/screenshots/overview-light.png">
+  <img alt="The admin Overview, with the status line Everything is working, the running version, Snug 1.0.0, and a link to Updating Snug above its numbers and the latest visits." src="images/screenshots/overview-light.png">
 </picture>
 
 It checks housekeeping, the backups, the email settings and the GeoIP data on each visit; housekeeping runs the document worker, DNS and HTTPS checks every hour, and Snug records a failed email as it happens.
@@ -135,7 +137,7 @@ sudo snug doctor
 sudo snug update
 ```
 
-`snug update` downloads the files in `/opt/snug` from the newest release on GitHub, or from `main` before the first release, as cloud-init does, and replaces them only once every one has arrived. `snug.env` and `backup/` are never touched. It then installs the new `snug` command, pulls the new images, and restarts the containers that changed. Snug applies any database migrations when it starts.
+`snug update` downloads the files in `/opt/snug` from the newest release on GitHub, as cloud-init does, and replaces them only once every one has arrived. `snug.env` and `backup/` are never touched. It then installs the new `snug` command, pulls the new images, and restarts the containers that changed. Snug applies any database migrations when it starts.
 
 To download from another branch or tag, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`.
 

@@ -193,7 +193,7 @@ def test_a_page_that_cannot_be_rendered_says_so(
 
 
 def test_the_reader_shows_the_about_panel_with_the_message(document: Document) -> None:
-    """DESIGN.md: the cover message is in the About this link panel on every page."""
+    """docs/design.md: the cover message is in the About this link panel on every page."""
     issued = issue(document, message="Ahead of Thursday's call.\nPage 5 is the one.")
     page = get(opened(issued), f"/v/{issued.token}").content.decode()
     assert 'aria-label="About this link"' in page

@@ -1,6 +1,6 @@
 """The theme toggle's icons are Phosphor's, like every other icon in Snug.
 
-DESIGN.md section 3: one icon set, vendored from phosphor-icons/core v2.0.8
+docs/design.md section 3: one icon set, vendored from phosphor-icons/core v2.0.8
 under its MIT licence. The toggle once drew its own sun and moon, copied from
 Feather and Lucide, which would each need their own credit.
 """

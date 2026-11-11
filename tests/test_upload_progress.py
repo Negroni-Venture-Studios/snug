@@ -1,6 +1,6 @@
 """Uploads show their progress, and every admin page keeps the shared script.
 
-Before version 1 (DESIGN.md section 4): a large PDF takes a while, and a page
+A large PDF takes a while, and a page
 that seems to do nothing gets clicked again or abandoned. admin.js sends an
 upload form itself, to show a progress bar and disable the button; without
 script, the form posts as before.

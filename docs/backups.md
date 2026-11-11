@@ -39,13 +39,13 @@ Only the backup container sees the bucket's keys and the encryption passwords, i
 `snug setup` asks for the bucket and its key, generates the encryption passwords, and shows you the finished settings to keep, as [deployment.md](deployment.md) describes. Before running it, create the bucket and the key. On DigitalOcean:
 
 1. In the control panel, create a Spaces bucket in the region nearest your server. Keep it private, with no CDN.
-2. Under *Spaces Object Storage*, *Access Keys*, create a key limited to that bucket, with read and write access. Note the access key and its secret.
+2. Under *Spaces Object Storage*, *Access Keys*, create a key limited to that bucket, with *Read/Write/Delete* access. Note the access key and its secret.
 
 **Copy the settings `snug setup` shows you into your password manager.** They are in `/opt/snug/backup/rclone.conf`, and hold the bucket's key and the two encryption passwords. The passwords are the only way to read the backups.
 
 ### By hand
 
-For a bucket elsewhere, write `rclone.conf` yourself from [deploy/rclone.conf.example](../deploy/rclone.conf.example) before running `snug setup`, which then uses it as it is. rclone supports most S3-compatible stores. Each of the two encryption passwords comes from:
+For a bucket elsewhere, write `rclone.conf` yourself from [deploy/rclone.conf.example](../deploy/rclone.conf.example) before running `snug setup`, which then uses it as it is. rclone supports most S3-compatible stores. Each of the two encryption passwords comes from this command, run in `/opt/snug` like the other `docker compose` commands here:
 
 ```bash
 sudo docker compose run --rm --no-deps --entrypoint rclone backup obscure "$(openssl rand -base64 32)"
@@ -85,7 +85,7 @@ sudo docker compose exec backup rclone lsf -R snug-backup:
 
 `snug restore` brings everything back from the bucket: the database, the uploaded documents and the branding images. Use it on the same server after a mistake, or on a new server if the old one is lost.
 
-On DigitalOcean, [Putting Snug on DigitalOcean](deploy-digitalocean.md#bringing-snug-back-on-a-new-server) goes through it step by step. On another provider, create the new server with cloud-init as [deployment.md](deployment.md) describes, and run `sudo snug setup`. After the domain and your company's name, it asks whether you are restoring Snug from an earlier server's backups. Type `yes`, then paste the backup settings saved in your password manager, from the first line, `# Snug's backups`, to the last, `password2 = …`. Setup checks the bucket holds backups and restores them. Then sign in to check, and run `sudo snug doctor`.
+On DigitalOcean, [Putting Snug on DigitalOcean](deploy-digitalocean.md#bringing-snug-back-on-a-new-server) goes through it step by step. On another provider, create the new server with cloud-init as [deployment.md](deployment.md) describes, and run `sudo snug setup`. After the domain and your company's name, it asks whether you are restoring Snug from an earlier server's backups. Type `yes`, then paste the backup settings saved in your password manager, from the first line, `# Snug's backups`, to the last, `password2 = ...`. Setup checks the bucket holds backups and restores them. Then sign in to check, and run `sudo snug doctor`.
 
 The email settings come back with the database, including a Google Workspace connection, which goes on sending. If the new server has a different domain, add its redirect address to the Google client too, as [email-google.md](email-google.md) describes, so the mailbox can be connected again when it needs to be.
 

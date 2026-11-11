@@ -20,6 +20,7 @@ DEPLOY = Path(__file__).resolve().parent.parent / "deploy"
 DOCKER = """#!/bin/sh
 echo "docker $*" >> "$LOG"
 case "$*" in
+	"compose version") [ "$NO_DOCKER" != yes ] ;;
 	*"--entrypoint test snug -e /var/lib/snug/snug.sqlite3"*) [ "$HAS_DATABASE" = yes ] ;;
 	*"--entrypoint rclone backup lsf snug-backup:database"*)
 		[ "$BUCKET_HAS_BACKUPS" = yes ] && echo 0001.ltx ;;
@@ -60,6 +61,7 @@ def run_setup(
     answers: str = "",
     succeeds: bool = True,
     terminal: bool = False,
+    no_docker: bool = False,
 ) -> list[str]:
     """Run setup.sh; what it printed is left in `screen`, beside the server folder.
 
@@ -73,6 +75,7 @@ def run_setup(
         "LOG": str(log),
         "HAS_DATABASE": "yes" if has_database else "no",
         "BUCKET_HAS_BACKUPS": "yes" if bucket_has_backups else "no",
+        "NO_DOCKER": "yes" if no_docker else "no",
     }
     # Enter for the domain, then the company's name, then any later answers.
     typed = "\nFernlea Robotics\n" + answers
@@ -252,3 +255,15 @@ def test_without_a_terminal_nothing_is_cleared(server: Path) -> None:
     screen = (server.parent / "screen").read_text()
     assert "secret_access_key = fernlea-secret" in screen
     assert "\033[" not in screen
+
+
+def test_without_docker_setup_says_the_installation_did_not_finish(server: Path) -> None:
+    # Found on 11 November 2026: a keyserver failure left a new server without
+    # Docker, and setup stopped at "docker: not found" after two questions.
+    calls = run_setup(
+        server, has_database=False, bucket_has_backups=False, succeeds=False, no_docker=True
+    )
+    assert calls == ["docker compose version"]
+    screen = (server.parent / "screen").read_text()
+    assert "Docker is missing" in screen
+    assert "The domain investors will use" not in screen

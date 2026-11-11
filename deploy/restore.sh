@@ -23,13 +23,13 @@ while [ $# -gt 0 ]; do
 			shift 2
 			;;
 		-h | --help)
-			echo "Usage: snug restore [--at TIME]"
+			echo "Usage: sudo snug restore [--at TIME]"
 			echo "Restores Snug from its backups: the latest, or as it was at TIME (UTC, like"
 			echo "2026-11-05T14:00:00Z), within the last 7 days."
 			exit 0
 			;;
 		*)
-			echo "snug restore: unknown option $1. Try snug restore --help." >&2
+			echo "snug restore: unknown option $1. Try sudo snug restore --help." >&2
 			exit 2
 			;;
 	esac

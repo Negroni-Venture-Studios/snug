@@ -4,9 +4,9 @@
 # Run on the server as sudo snug update. It downloads the deploy files of
 # the newest release from GitHub, as cloud-init did when the server was
 # made, replacing them only once every one has arrived. snug.env and
-# backup/, with the settings and the backup key, are never touched. Then it pulls the new
-# images and restarts what changed. Snug applies any database migrations as
-# it starts. docs/deployment.md explains it.
+# backup/, with the settings and the backup key, are never touched. Then it
+# pulls the new images and restarts what changed. Snug applies any database
+# migrations as it starts. docs/deployment.md explains it.
 
 set -eu
 cd "$(dirname "$0")"
@@ -17,13 +17,18 @@ if [ "$(id -u)" != 0 ]; then
 fi
 
 # The newest release, from where GitHub redirects its latest release, unless
-# SNUG_REF names a branch or tag. Before the first release there is none, so main.
+# SNUG_REF is set to a branch or tag. If the lookup fails, stop: never fall back
+# to main, which holds code that has not been released.
 ref="${SNUG_REF:-}"
 if [ -z "$ref" ]; then
 	latest=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/Negroni-Venture-Studios/snug/releases/latest || true)
 	case "$latest" in
 		*/releases/tag/*) ref="${latest##*/}" ;;
-		*) ref=main ;;
+		*)
+			echo "snug update: could not find Snug's newest release on GitHub. Nothing has changed." >&2
+			echo "Try again in a few minutes." >&2
+			exit 1
+			;;
 	esac
 fi
 echo "Updating to $ref."

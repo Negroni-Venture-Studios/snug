@@ -2,7 +2,7 @@
 
 You can run Snug on your own Mac to see how it works before you set up a server. It runs at an address only your computer can open, so investors cannot reach it.
 
-The steps are for a Mac. On Linux, install [Docker Engine](https://docs.docker.com/engine/install/) and type the same commands. Windows is not covered yet.
+The steps are for a Mac. On Linux, install [Docker Engine](https://docs.docker.com/engine/install/) and type the same commands. Windows is not covered.
 
 ## 1. Install Docker Desktop
 
@@ -32,7 +32,7 @@ mkdir -p ~/snug && cd ~/snug
 Make the secret key Snug needs. The first time, Docker downloads Snug, which takes a minute or two:
 
 ```bash
-docker run --rm ghcr.io/negroni-venture-studios/snug:edge python -c 'import secrets; print("SNUG_SECRET_KEY=" + secrets.token_urlsafe(64))' > snug.env
+docker run --rm ghcr.io/negroni-venture-studios/snug:latest python -c 'import secrets; print("SNUG_SECRET_KEY=" + secrets.token_urlsafe(64))' > snug.env
 ```
 
 Keep the file this makes, `snug.env`, in the `snug` folder in your home folder. If it is lost, you will have to sign in again.
@@ -43,7 +43,7 @@ Keep the file this makes, `snug.env`, in the `snug` folder in your home folder. 
 docker run --detach --name snug --publish 127.0.0.1:8000:8000 \
   --env-file snug.env --env SNUG_DOMAIN=localhost:8000 --env SNUG_HTTPS=false \
   --volume snug-data:/var/lib/snug \
-  ghcr.io/negroni-venture-studios/snug:edge
+  ghcr.io/negroni-venture-studios/snug:latest
 ```
 
 Docker prints a long string of letters and numbers. That means Snug has started.
@@ -105,7 +105,7 @@ Your documents and accounts are kept in between.
 
 ```bash
 cd ~/snug
-docker pull ghcr.io/negroni-venture-studios/snug:edge
+docker pull ghcr.io/negroni-venture-studios/snug:latest
 docker rm --force snug
 ```
 

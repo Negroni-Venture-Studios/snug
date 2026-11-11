@@ -183,7 +183,7 @@ def send(
             ok=False,
             message=(
                 f"An email could not be sent ({type(error).__name__}). "
-                "Run snug doctor --email you@example.com to test."
+                "Run sudo snug doctor --email you@example.com to test."
             ),
         )
         return False

@@ -4,7 +4,7 @@ Thank you for helping. Snug holds founders' most sensitive documents, so correct
 
 ## Before you start
 
-- Read [docs/architecture.md](docs/architecture.md) for how the code works, and [DESIGN.md](DESIGN.md) for what Snug is and the decisions behind it. Where DESIGN.md and the original brief in `docs/BRIEF.md` differ, follow DESIGN.md.
+- Read [docs/architecture.md](docs/architecture.md) for how the code works, and [docs/design.md](docs/design.md) for what Snug is and the decisions behind it. Planned work is in the [issues labelled enhancement](https://github.com/Negroni-Venture-Studios/snug/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
 - For anything larger than a small fix, open an issue first so we can agree the approach.
 - Report security problems privately, as [SECURITY.md](SECURITY.md) describes, never in a public issue.
 
@@ -81,6 +81,13 @@ Snug keeps its dependencies few and well maintained.
 - **Ask before adding one.** Open an issue or say so in the pull request, with the reason and its licence.
 - Every dependency, direct or transitive, must have a licence compatible with distributing Snug as MIT. `scripts/check_licences.py` enforces this in CI. GPL and AGPL are ruled out, which is why Snug uses pypdfium2 rather than PyMuPDF, Ghostscript or Poppler.
 - Pin new tools and actions to releases at least two weeks old. The exception is a security release from an upstream we already depend on, which we take at once.
+
+## Releasing
+
+1. On a branch, set the version in `pyproject.toml` (then run `uv lock`), name that version's image in `deploy/compose.yaml`, and date its section in `CHANGELOG.md`. `tests/test_release.py` checks the three agree.
+2. Check that `docs/deploy-localhost.md` and `docs/deploy-digitalocean.md` describe the release.
+3. Tag a release candidate, `vX.Y.Z-rc.N`, on the branch. Its image is published as `:X.Y.Z-rc.N`, and `:latest` does not move. Set up a fresh server by following the DigitalOcean guide, with the startup script changed to download the candidate's tag and run its image.
+4. Merge the pull request, tag `vX.Y.Z` on the merge commit, and publish a GitHub release for the tag. New servers and `snug update` use the newest published release, so they stay on the previous one until this one is published.
 
 ## Code of conduct
 

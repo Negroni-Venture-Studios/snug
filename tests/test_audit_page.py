@@ -165,3 +165,12 @@ def test_a_viewers_country_shows_beside_their_address_and_in_the_export(client: 
         )
     )
     assert [row["country"] for row in rows if row["action"] == "viewer.opened"] == ["JE"]
+
+
+def test_every_link_encodes_the_filter() -> None:
+    # Audit of 11 November 2026: the export link encoded `kind`, the page links did not.
+    from pathlib import Path
+
+    template = (Path(__file__).parent.parent / "snug/templates/audit/list.html").read_text()
+    assert "kind={{ kind }}" not in template
+    assert template.count("kind={{ kind|urlencode }}") == 3

@@ -99,3 +99,15 @@ def test_working_backups_need_no_second_link(client: Client, data_folder: Path) 
     section = backups_section(client)
     panel = section[section.index('class="panel backup-status"') :]
     assert 'docs/backups.md"' not in panel
+
+
+@pytest.mark.parametrize("name", ["last-success", "problem"])
+def test_an_unreadable_backup_file_does_not_break_the_page(
+    client: Client, data_folder: Path, name: str
+) -> None:
+    # Found in the audit of 11 November 2026: invalid UTF-8 raised past the
+    # check, and Settings and the Overview failed until the file was removed.
+    (data_folder / "backup").mkdir()
+    (data_folder / "backup" / name).write_bytes(b"\xff\xfe not text \x80")
+    assert client.get("/admin/settings/", secure=True).status_code == 200
+    assert client.get("/admin/", secure=True).status_code == 200

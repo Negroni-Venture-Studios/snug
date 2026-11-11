@@ -8,7 +8,7 @@ Closes #
 
 ## Security
 
-Does this touch authorisation, file handling, sessions, tokens, uploads or anything a viewer can reach? If so, say which rules in DESIGN.md and the security requirements apply, and which tests prove them.
+Does this touch authorisation, file handling, sessions, tokens, uploads or anything a viewer can reach? If so, say which rules in docs/design.md and the security requirements apply, and which tests prove them.
 
 ## Checklist
 

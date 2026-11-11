@@ -184,7 +184,7 @@ def test_anything_less_is_a_problem(how: str, monkeypatch: pytest.MonkeyPatch) -
     assert found.status == "problem"
     assert found.message == (
         f"The document worker cannot confine itself ({how}), so Snug will not read documents. "
-        "It needs Linux 6.7 or later."
+        "It needs Linux 6.7 or later, with Landlock, seccomp and a memory limit."
     )
 
 
@@ -383,7 +383,7 @@ def test_without_an_address_the_send_is_skipped(monkeypatch: pytest.MonkeyPatch)
     report, status = run_doctor()
     assert not django_mail.outbox
     assert "skipped   Email test" in report
-    assert "Run snug doctor --email you@example.com to send a test email." in report
+    assert "Run sudo snug doctor --email you@example.com to send a test email." in report
     assert status == 0
 
 

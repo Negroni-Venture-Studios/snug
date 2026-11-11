@@ -11,8 +11,9 @@
 # On a new server it asks whether this is a restore. If so, it takes the
 # backup settings pasted from a password manager, and restores the backups in
 # their bucket instead of starting afresh. It does the same if
-# backup/rclone.conf is already here, unless this server already has a database. Running it again on a working
-# server changes the answers and restarts Snug, keeping its data.
+# backup/rclone.conf is already here, unless this server already has a
+# database. Running it again on a working server changes the answers and
+# restarts Snug, keeping its data.
 
 set -eu
 cd "$(dirname "$0")"
@@ -23,6 +24,15 @@ if [ "$(id -u)" != 0 ]; then
 fi
 
 say() { printf '%s\n' "$*"; }
+
+# cloud-init installs Docker; if a download failed, it is missing, and
+# nothing here can work.
+if ! docker compose version > /dev/null 2>&1; then
+	say "Snug's installation did not finish: Docker is missing. Destroy this server"
+	say "and create a new one, as described at"
+	say "https://github.com/Negroni-Venture-Studios/snug/blob/main/docs/deploy-digitalocean.md#if-something-goes-wrong"
+	exit 1
+fi
 
 # ask PROMPT [DEFAULT]: the answer, or the default, in $reply.
 ask() {
@@ -113,7 +123,7 @@ if [ -s backup/rclone.conf ]; then
 		say "backups instead, run sudo snug restore."
 	elif [ -n "$(rclone lsf snug-backup:database 2> /dev/null || true)" ]; then
 		restoring=yes
-		say "Its bucket holds a Snug's backups: setup will restore them."
+		say "Found backups in its bucket: setup will restore them."
 	fi
 elif [ "$existing" = no ] && ask "Are you restoring Snug from an earlier server's backups? Type yes or no" "no" && [ "$reply" = yes ]; then
 	say "Paste the backup settings from your password manager: everything from the"
