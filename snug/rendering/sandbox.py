@@ -129,8 +129,8 @@ def run(
         code = _error_code(output)
         if code == "unconfined":
             log.error(
-                "The document worker could not confine itself (Landlock ABI %s or later and a "
-                "seccomp filter are needed), so it refused to read the file.",
+                "The document worker could not confine itself (Landlock ABI %s or later, a "
+                "seccomp filter and its memory limit are needed), so it refused to read the file.",
                 MIN_LANDLOCK_ABI,
             )
         raise WorkerError(code)

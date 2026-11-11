@@ -8,6 +8,7 @@ audited with a hash of the exact file sent.
 
 import hashlib
 import io
+import math
 from pathlib import Path
 from typing import Any
 
@@ -128,6 +129,47 @@ def test_the_document_properties_name_the_viewer(deck: Path) -> None:
     assert info is not None
     assert INVESTOR in str(info.get("/Subject")) and "7Q2K" in str(info.get("/Subject"))
     assert info.get("/SnugLink") == "7Q2K"
+
+
+# Width and height in points: a sliver a billion points long, and an ordinary page.
+SLIVER, A4 = (1e9, 0.001), (595.0, 842.0)
+
+
+@pytest.mark.parametrize("size", [SLIVER, SLIVER[::-1], (1e6, 1e6), A4])
+def test_the_mark_is_drawn_on_a_bounded_square(
+    size: tuple[float, float], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Security audit, 10 November 2026: the mark is drawn on a square as wide
+    # as the page's diagonal, and only the page's area was capped, so a page
+    # a billion points long asked for a square of 1.5 billion pixels a side.
+    from PIL import Image
+
+    drawn: list[tuple[int, int]] = []
+
+    def mark_layer(width: int, height: int, *args: Any) -> Image.Image:
+        side = math.isqrt(width * width + height * height) + 1
+        assert side * side * 4 < 64 * 1024 * 1024, (width, height)  # RGBA, under 64 MiB
+        drawn.append((width, height))
+        return Image.new("RGBA", (width, height))
+
+    monkeypatch.setattr(worker, "_mark_layer", mark_layer)
+    worker._overlay_pdf(*size, None, INVESTOR, "5 Nov 2026")
+    if size == A4:  # an ordinary page keeps the full density
+        assert drawn == [(round(595 * worker.OVERLAY_DENSITY), round(842 * worker.OVERLAY_DENSITY))]
+
+
+def test_a_page_of_extreme_shape_is_still_stamped(tmp_path: Path) -> None:
+    from pypdf import PdfWriter
+    from pypdf.generic import RectangleObject
+
+    writer = PdfWriter()
+    page = writer.add_blank_page(width=72, height=72)
+    page.mediabox = page.cropbox = RectangleObject([0, 0, *SLIVER])
+    sliver = tmp_path / "sliver.pdf"
+    with sliver.open("wb") as out:
+        writer.write(out)
+    reader = PdfReader(io.BytesIO(stamp_pdf(sliver)))
+    assert f"Shared with {INVESTOR}" in reader.pages[0].extract_text()
 
 
 # A PDF with no cross-reference table: PDFium shows it, pypdf alone cannot read it.

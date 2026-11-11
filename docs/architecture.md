@@ -178,8 +178,8 @@ The worker then:
 1. limits itself to 1 GiB of memory, 60 seconds of CPU, 64 MB written to any file and 32 open files, with no core dumps and no new processes;
 2. loads PDFium and Pillow, and runs pypdf and the workbook reader once on tiny files, so nothing has to load later;
 3. reads its input, except a video, which it reads in pieces once it is confined;
-4. confines itself: no new privileges, then a Landlock ruleset that allows nothing but reading the system's fonts and refuses TCP, then a seccomp filter that refuses to create any socket;
-5. refuses to go on unless Landlock ABI 4 or later (Linux 6.7) and the filter are both in place;
+4. confines itself: no new privileges, then a Landlock ruleset that allows nothing but reading the system's fonts and refuses TCP, then a seccomp filter that refuses to create any socket, to trace another process or read its memory, or to signal any process but the worker;
+5. refuses to go on unless Landlock ABI 4 or later (Linux 6.7), the filter and the memory limit are all in place;
 6. does its job and writes the answer to the pipe: a line of JSON, or the image or file it made.
 
 Snug reads the pipe in 64 KiB pieces up to 64 MB (more for a stamped download, which can be as large as the file), against a deadline: 60 seconds to check an upload or stamp a download, 30 seconds to draw a page. Past either limit it kills the worker's whole process group. An error comes back as a short code, such as `password` or `macros`, which `sandbox` turns into the message shown to the admin.

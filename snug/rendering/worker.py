@@ -34,7 +34,8 @@ Before it parses the file, the worker
     in pieces), and
   - confines itself with Landlock, so it cannot open any file except system
     fonts (read-only) or make TCP connections, and a seccomp filter that
-    refuses to create any socket. Without both it refuses to parse anything.
+    refuses to create any socket, trace another process or signal one.
+    Without both, or without its memory limit, it refuses to parse anything.
 It imports no Django and no Snug settings, and its environment is empty of
 secrets, so even a file that took over the code reading it would find nothing to take.
 """
@@ -97,7 +98,14 @@ def _is_linux() -> bool:
     return sys.platform == "linux"
 
 
-def apply_limits() -> None:
+def apply_limits() -> bool:
+    """Limit the worker's resources. False if, on Linux, the memory limit could not be set.
+
+    Without it main() refuses to read anything, as it does unconfined, unless
+    the operator allowed that. macOS does not enforce an address-space limit,
+    and setting one may fail there; the worker cannot confine itself there
+    either, so it reads nothing without the operator's opt-in anyway.
+    """
     import resource
 
     limits = [
@@ -107,16 +115,14 @@ def apply_limits() -> None:
         (resource.RLIMIT_CORE, 0),
         # No new processes or threads: a hijacked worker cannot leave children behind.
         (resource.RLIMIT_NPROC, 0),
-        # macOS does not enforce an address-space limit; Linux, where Snug
-        # runs, does. Setting it may fail on macOS, which is fine there.
-        (resource.RLIMIT_AS, MEMORY_BYTES),
     ]
     for kind, value in limits:
-        try:
-            resource.setrlimit(kind, (value, value))
-        except (ValueError, OSError):
-            if kind != resource.RLIMIT_AS:
-                raise
+        resource.setrlimit(kind, (value, value))
+    try:
+        resource.setrlimit(resource.RLIMIT_AS, (MEMORY_BYTES, MEMORY_BYTES))
+    except (ValueError, OSError):
+        return not _is_linux()
+    return True
 
 
 def preload() -> None:
@@ -169,49 +175,88 @@ def _warm_up_pypdf() -> None:
 
 
 def fully_confined(how: str) -> bool:
-    """True if `confine` reported Landlock at the minimum ABI and the socket filter."""
+    """True if `confine` reported Landlock at the minimum ABI and the seccomp filter."""
     found = _FULLY_CONFINED.match(how)
     return found is not None and int(found.group(1)) >= MIN_LANDLOCK_ABI
 
 
-# Seccomp: architecture audit value, then the socket and io_uring_setup syscall
-# numbers. io_uring can open sockets without calling socket(), so it goes too.
-_SECCOMP_ARCHES = {"x86_64": (0xC000003E, 41, 425), "aarch64": (0xC00000B7, 198, 425)}
+def _may_read(*, limited: bool, allow_unconfined: bool) -> bool:
+    """Confine the worker, then say whether it may read the file.
+
+    Fail closed: a hostile file is never parsed outside the confinement, or
+    without the memory limit, unless the operator asked for that on a
+    development machine.
+    """
+    return (fully_confined(confine()) and limited) or allow_unconfined
 
 
-def _socket_filter(machine: str) -> bytes | None:
-    """A seccomp program refusing socket() and io_uring_setup() with EPERM.
+# Seccomp, for each architecture: its audit value, the syscalls refused
+# outright, and the syscalls that send a signal, allowed only to the worker
+# itself. io_uring can open sockets without calling socket(), so it goes too.
+_SECCOMP_ARCHES = {
+    "x86_64": (
+        0xC000003E,
+        # socket, io_uring_setup, ptrace, process_vm_readv, process_vm_writev,
+        # pidfd_send_signal, pidfd_open, pidfd_getfd
+        (41, 425, 101, 310, 311, 424, 434, 438),
+        (62, 200, 234, 129, 297),  # kill, tkill, tgkill, rt_sigqueueinfo, rt_tgsigqueueinfo
+    ),
+    "aarch64": (
+        0xC00000B7,
+        (198, 425, 117, 270, 271, 424, 434, 438),
+        (129, 130, 131, 138, 240),
+    ),
+}
 
-    Landlock's network rules cover TCP only, so without this a compromised
-    worker could still send UDP. Any other architecture or ABI (32-bit
-    compatibility calls, x32) is killed outright rather than filtered.
+
+def _seccomp_filter(machine: str, pid: int) -> bytes | None:
+    """A seccomp program for the worker, whose process ID is `pid`. Refused calls get EPERM.
+
+    It refuses to create sockets: Landlock's network rules cover TCP only, so
+    without this a compromised worker could still send UDP. It refuses
+    ptrace, reading or writing another process's memory, and pidfds, and lets
+    the worker send a signal only to itself (abort() does), never to another
+    process or process group. Landlock scopes signals only from ABI 6. Any
+    other architecture or ABI (32-bit compatibility calls, x32) is killed
+    outright rather than filtered.
     """
     if machine not in _SECCOMP_ARCHES:
         return None
-    arch, socket_nr, io_uring_nr = _SECCOMP_ARCHES[machine]
+    arch, refused, signalling = _SECCOMP_ARCHES[machine]
     load, jump_eq, jump_ge, ret = 0x20, 0x15, 0x35, 0x06  # BPF_LD|W|ABS, JEQ, JGE, RET
+    allow, eperm = 0x7FFF0000, 0x00050000 | 1
 
     def op(code: int, jt: int, jf: int, k: int) -> bytes:
         return struct.pack("HBBI", code, jt, jf, k)
 
-    refuse = [(jump_eq, socket_nr), (jump_eq, io_uring_nr)]
+    # Each check jumps, if it matches, to one of the instructions after the
+    # last check: the signal target test (1 on) or the EPERM (4 on).
+    checks = [(jump_eq, number, 4) for number in refused]
+    checks += [(jump_eq, number, 1) for number in signalling]
     if machine == "x86_64":
-        refuse.insert(0, (jump_ge, 0x40000000))  # x32 calls carry this bit
+        checks.insert(0, (jump_ge, 0x40000000, 4))  # x32 calls carry this bit
     program = [op(load, 0, 0, 4), op(jump_eq, 1, 0, arch), op(ret, 0, 0, 0x80000000)]
     program.append(op(load, 0, 0, 0))  # the syscall number
-    for index, (code, value) in enumerate(refuse):
-        program.append(op(code, len(refuse) - index, 0, value))  # to the EPERM below
-    program.append(op(ret, 0, 0, 0x7FFF0000))  # allow
-    program.append(op(ret, 0, 0, 0x00050000 | 1))  # EPERM
+    for index, (code, value, to) in enumerate(checks):
+        program.append(op(code, len(checks) - index - 1 + to, 0, value))
+    program += [
+        op(ret, 0, 0, allow),  # no check matched
+        # The target: the low 32 bits of the first argument, all of a pid_t.
+        op(load, 0, 0, 16),
+        op(jump_eq, 0, 1, pid),
+        op(ret, 0, 0, allow),  # the worker itself
+        op(ret, 0, 0, eperm),
+    ]
     return b"".join(program)
 
 
 def confine() -> str:  # pragma: no cover - runs only inside the worker process
     """Drop all filesystem and network access, except reading fonts (Linux Landlock).
 
-    Then a seccomp filter refuses to create sockets of any kind. Returns how
-    the worker is confined, for the caller (which refuses to go on unless
-    `fully_confined` says so), tests and `snug doctor`. Coverage cannot see
+    Then a seccomp filter refuses to create sockets of any kind, or to reach
+    into another process (see _seccomp_filter). Returns how the worker is
+    confined, for the caller (which refuses to go on unless `fully_confined`
+    says so), tests and `snug doctor`. Coverage cannot see
     into the worker process; tests/test_render_worker.py proves the
     confinement on Linux, where CI runs.
     """
@@ -267,7 +312,7 @@ def confine() -> str:  # pragma: no cover - runs only inside the worker process
             os.close(fd)
 
     # Built before Landlock applies: afterwards not even Python's own files open.
-    program = _socket_filter(os.uname().machine)
+    program = _seccomp_filter(os.uname().machine, os.getpid())
 
     class SockFprog(ctypes.Structure):
         _fields_ = (("len", ctypes.c_ushort), ("filter", ctypes.c_void_p))
@@ -479,7 +524,11 @@ def _overlay_pdf(
     """
     import zlib
 
-    scale = min(OVERLAY_DENSITY, (MAX_PIXELS / max(width_pt * height_pt, 1)) ** 0.5)
+    # _mark_layer draws on a square as wide as the page's diagonal, so the
+    # diagonal is what is capped: that square holds no more than twice
+    # MAX_PIXELS, and so the page no more than MAX_PIXELS, whatever its shape.
+    diagonal_squared = max(width_pt * width_pt + height_pt * height_pt, 1)
+    scale = min(OVERLAY_DENSITY, (2 * MAX_PIXELS / diagonal_squared) ** 0.5)
     w, h = max(1, round(width_pt * scale)), max(1, round(height_pt * scale))
     alpha = _mark_layer(w, h, font, email, date).getchannel("A").tobytes()
     grey = bytes([MARK_COLOUR[0]]) * (w * h)
@@ -611,11 +660,11 @@ def stamp_pdf(data: bytes, font: bytes, email: str, date: str, ref: str) -> byte
         return _stamp_pdf_pages(_resaved(data), font, email, date, ref)
 
 
-def _inspect_mp4(descriptor: int, *, confined: bool, allow_unconfined: bool) -> int:
+def _inspect_mp4(descriptor: int, *, confined: bool, limited: bool, allow_unconfined: bool) -> int:
     """A video, checked from its descriptor in pieces: it may be larger than our memory."""
     with os.fdopen(descriptor, "rb") as source:
         size = os.fstat(source.fileno()).st_size
-        if confined and not fully_confined(confine()) and not allow_unconfined:
+        if confined and not _may_read(limited=limited, allow_unconfined=allow_unconfined):
             return _fail("unconfined")
         try:
             facts = video.inspect(source, size)
@@ -633,18 +682,23 @@ def main(argv: list[str], *, confined: bool = True) -> int:
     allow_unconfined = bool(argv) and argv[0] == ALLOW_UNCONFINED
     if allow_unconfined:
         argv = argv[1:]
-    if confined:
-        apply_limits()
+    limited = apply_limits() if confined else True
     if argv == ["confinement"]:
         # For `snug doctor`: confine, say how, and read nothing.
-        sys.stdout.write((confine() if confined else "unconfined: not asked") + "\n")
+        how = confine() if confined else "unconfined: not asked"
+        sys.stdout.write((how if limited else "unconfined: memory limit refused") + "\n")
         return 0
     preload()
     try:
         page = width = 0
         font = b""
         if len(argv) == 2 and argv[0] == "inspect-mp4":
-            return _inspect_mp4(int(argv[1]), confined=confined, allow_unconfined=allow_unconfined)
+            return _inspect_mp4(
+                int(argv[1]),
+                confined=confined,
+                limited=limited,
+                allow_unconfined=allow_unconfined,
+            )
         if len(argv) == 2 and argv[0] in ("inspect", "logo", "icon", "inspect-xlsx"):
             mode = argv[0]
         elif len(argv) == 5 and argv[0] == "stamp-xlsx":
@@ -663,9 +717,7 @@ def main(argv: list[str], *, confined: bool = True) -> int:
             return _fail("usage")
         with os.fdopen(int(argv[1]), "rb") as source:
             data = source.read()
-        # Fail closed: a hostile PDF is never parsed outside the confinement,
-        # unless the operator asked for that on a development machine.
-        if confined and not fully_confined(confine()) and not allow_unconfined:
+        if confined and not _may_read(limited=limited, allow_unconfined=allow_unconfined):
             return _fail("unconfined")
         if mode == "inspect":
             sys.stdout.write(json.dumps(inspect(data)) + "\n")

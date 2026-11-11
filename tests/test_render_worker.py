@@ -1,8 +1,11 @@
 """The document worker runs apart from Snug: limited, confined and given nothing secret."""
 
+import errno
 import io
 import json
 import os
+import signal
+import struct
 import subprocess
 import sys
 import time
@@ -283,6 +286,187 @@ def test_what_counts_as_confined(how: str, full: bool) -> None:
     assert worker.fully_confined(how) is full
 
 
+# ---------------------------------------------------------------- the seccomp filter, on any OS
+
+# What a seccomp program can return, from linux/seccomp.h.
+SECCOMP_ALLOW, SECCOMP_EPERM, SECCOMP_KILL = 0x7FFF0000, 0x00050001, 0x80000000
+# The calls the filter names, from each architecture's syscall table.
+SYSCALLS = {
+    "x86_64": (
+        0xC000003E,
+        {
+            "read": 0,
+            "write": 1,
+            "mmap": 9,
+            "getpid": 39,
+            "socket": 41,
+            "kill": 62,
+            "ptrace": 101,
+            "rt_sigqueueinfo": 129,
+            "tkill": 200,
+            "tgkill": 234,
+            "rt_tgsigqueueinfo": 297,
+            "process_vm_readv": 310,
+            "process_vm_writev": 311,
+            "pidfd_send_signal": 424,
+            "io_uring_setup": 425,
+            "pidfd_open": 434,
+            "pidfd_getfd": 438,
+        },
+    ),
+    "aarch64": (
+        0xC00000B7,
+        {
+            "read": 63,
+            "write": 64,
+            "mmap": 222,
+            "getpid": 172,
+            "socket": 198,
+            "kill": 129,
+            "ptrace": 117,
+            "rt_sigqueueinfo": 138,
+            "tkill": 130,
+            "tgkill": 131,
+            "rt_tgsigqueueinfo": 240,
+            "process_vm_readv": 270,
+            "process_vm_writev": 271,
+            "pidfd_send_signal": 424,
+            "io_uring_setup": 425,
+            "pidfd_open": 434,
+            "pidfd_getfd": 438,
+        },
+    ),
+}
+WORKER_PID = 4242
+SIGNALLING = ("kill", "tkill", "tgkill", "rt_sigqueueinfo", "rt_tgsigqueueinfo")
+
+
+def _seccomp(program: bytes, arch: int, nr: int, *args: int) -> int:
+    """What the kernel would do with one call: a small interpreter for the BPF the filter uses."""
+    words = [(arg & 0xFFFF_FFFF_FFFF_FFFF) for arg in (*args, 0, 0, 0, 0, 0, 0)[:6]]
+    data = struct.pack("<iIQ6Q", nr, arch, 0, *words)  # struct seccomp_data
+    ops = [struct.unpack("HBBI", program[i : i + 8]) for i in range(0, len(program), 8)]
+    accumulator = position = 0
+    while True:
+        code, jump_true, jump_false, k = ops[position]
+        position += 1
+        if code == 0x20:  # BPF_LD | BPF_W | BPF_ABS
+            accumulator = struct.unpack_from("<I", data, k)[0]
+        elif code == 0x15:  # BPF_JMP | BPF_JEQ | BPF_K
+            position += jump_true if accumulator == k else jump_false
+        elif code == 0x35:  # BPF_JMP | BPF_JGE | BPF_K
+            position += jump_true if accumulator >= k else jump_false
+        elif code == 0x06:  # BPF_RET | BPF_K
+            return int(k)
+        else:
+            pytest.fail(f"unexpected BPF instruction {code:#x}")
+
+
+@pytest.mark.parametrize("machine", sorted(SYSCALLS))
+def test_the_filter_refuses_sockets_and_reaching_into_other_processes(machine: str) -> None:
+    # Security audit, 10 November 2026: below Landlock ABI 6 nothing stopped a
+    # compromised worker tracing or reading the memory of Snug's own processes.
+    arch, numbers = SYSCALLS[machine]
+    program = worker._seccomp_filter(machine, WORKER_PID)
+    assert program is not None
+    for name in (
+        "socket",
+        "io_uring_setup",
+        "ptrace",
+        "process_vm_readv",
+        "process_vm_writev",
+        "pidfd_open",
+        "pidfd_getfd",
+        "pidfd_send_signal",
+    ):
+        for target in (WORKER_PID, WORKER_PID + 1, 1):
+            assert _seccomp(program, arch, numbers[name], target) == SECCOMP_EPERM, name
+
+
+@pytest.mark.parametrize("machine", sorted(SYSCALLS))
+def test_the_filter_lets_the_worker_signal_only_itself(machine: str) -> None:
+    arch, numbers = SYSCALLS[machine]
+    program = worker._seccomp_filter(machine, WORKER_PID)
+    assert program is not None
+    for name in SIGNALLING:
+        # abort() is tgkill(own pid, own thread, SIGABRT): the worker may signal itself.
+        assert _seccomp(program, arch, numbers[name], WORKER_PID, WORKER_PID, 6) == SECCOMP_ALLOW
+        # Another process, its own group (0), every process (-1) or another group.
+        for target in (WORKER_PID + 1, 1, 0, -1, -WORKER_PID, -(WORKER_PID + 1)):
+            assert _seccomp(program, arch, numbers[name], target, 9) == SECCOMP_EPERM, (
+                name,
+                target,
+            )
+
+
+@pytest.mark.parametrize("machine", sorted(SYSCALLS))
+def test_the_filter_allows_everything_else(machine: str) -> None:
+    arch, numbers = SYSCALLS[machine]
+    program = worker._seccomp_filter(machine, WORKER_PID)
+    assert program is not None
+    for name in ("read", "write", "mmap", "getpid"):
+        assert _seccomp(program, arch, numbers[name], WORKER_PID + 1) == SECCOMP_ALLOW, name
+
+
+def test_the_filter_kills_calls_from_any_other_architecture() -> None:
+    program = worker._seccomp_filter("x86_64", WORKER_PID)
+    assert program is not None
+    assert _seccomp(program, 0x40000003, 3) == SECCOMP_KILL  # 32-bit x86, read
+    assert _seccomp(program, 0xC000003E, 0x40000000 | 0) == SECCOMP_EPERM  # x32, read
+    arm = worker._seccomp_filter("aarch64", WORKER_PID)
+    assert arm is not None
+    assert _seccomp(arm, 0x40000028, 3) == SECCOMP_KILL  # 32-bit Arm, read
+
+
+def test_there_is_no_filter_for_an_unknown_architecture() -> None:
+    assert worker._seccomp_filter("riscv64", WORKER_PID) is None
+
+
+@linux_only
+def test_a_confined_worker_can_signal_only_itself(tmp_path: Path) -> None:
+    script = (
+        "def attempt(pid):\n"
+        "    try:\n"
+        "        os.kill(pid, 0)\n"
+        "        return 'sent'\n"
+        "    except PermissionError:\n"
+        "        return 'refused'\n"
+        "    except ProcessLookupError:\n"
+        "        return 'no such process'\n"
+        "print(attempt(os.getpid()), attempt(os.getppid()), attempt(0), attempt(-1))\n"
+        "signal.signal(signal.SIGUSR1, lambda *_: print('caught'))\n"
+        "signal.raise_signal(signal.SIGUSR1)\n"
+    )
+    result = _confined(script, tmp_path, setup="import os, signal")
+    lines = result.stdout.splitlines()
+    assert lines[0].endswith(", no sockets"), result.stdout + result.stderr
+    assert lines[1:] == ["sent refused refused refused", "caught"], result.stdout + result.stderr
+
+
+@linux_only
+def test_a_confined_worker_can_still_abort(tmp_path: Path) -> None:
+    # glibc's abort() signals the worker itself; refused, it would die another way.
+    setup = "import os, resource, sys; resource.setrlimit(resource.RLIMIT_CORE, (0, 0))"
+    result = _confined("sys.stdout.flush(); os.abort()", tmp_path, setup=setup)
+    assert result.stdout.startswith("landlock v"), result.stdout + result.stderr
+    assert result.returncode == -signal.SIGABRT
+
+
+@linux_only
+def test_a_confined_worker_cannot_trace_or_read_processes(tmp_path: Path) -> None:
+    # Each call would succeed unconfined: tracing by its parent, and reading
+    # nothing from its own memory. Confined, both are refused before they start.
+    script = (
+        "libc = ctypes.CDLL(None, use_errno=True)\n"
+        "print(libc.process_vm_readv(os.getpid(), None, 0, None, 0, 0), ctypes.get_errno())\n"
+        "print(libc.ptrace(0, 0, None, None), ctypes.get_errno())  # PTRACE_TRACEME\n"
+    )
+    result = _confined(script, tmp_path, setup="import ctypes, os")
+    lines = result.stdout.splitlines()
+    assert lines[0].endswith(", no sockets"), result.stdout + result.stderr
+    assert lines[1:] == [f"-1 {errno.EPERM}"] * 2, result.stdout + result.stderr
+
+
 # ---------------------------------------------------------------- failing closed
 
 
@@ -295,9 +479,68 @@ def no_limits(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         parsed.append("parsed")
         return {"pages": 1}
 
-    monkeypatch.setattr(worker, "apply_limits", lambda: None)
+    monkeypatch.setattr(worker, "apply_limits", lambda: True)
     monkeypatch.setattr(worker, "inspect", inspect)
     return parsed
+
+
+def test_the_worker_says_when_its_memory_limit_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    import resource
+
+    applied: list[int] = []
+
+    def setrlimit(kind: int, limits: tuple[int, int]) -> None:
+        if kind == resource.RLIMIT_AS:
+            raise ValueError("not here")
+        applied.append(kind)
+
+    monkeypatch.setattr(resource, "setrlimit", setrlimit)
+    monkeypatch.setattr(worker, "_is_linux", lambda: True)
+    assert worker.apply_limits() is False
+    assert resource.RLIMIT_NPROC in applied  # the others are still set
+    # macOS does not enforce the limit, and the worker cannot confine itself there.
+    monkeypatch.setattr(worker, "_is_linux", lambda: False)
+    assert worker.apply_limits() is True
+    monkeypatch.setattr(resource, "setrlimit", lambda kind, limits: None)
+    monkeypatch.setattr(worker, "_is_linux", lambda: True)
+    assert worker.apply_limits() is True
+
+
+@pytest.mark.parametrize("mode", ["inspect", "inspect-mp4"])
+def test_the_worker_refuses_to_read_without_its_memory_limit(
+    deck: Path,
+    mode: str,
+    no_limits: list[str],
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Security audit, 10 November 2026: the worker carried on without a memory
+    # limit if setting it failed, even fully confined on Linux.
+    monkeypatch.setattr(worker, "apply_limits", lambda: False)
+    monkeypatch.setattr(worker, "confine", lambda: "landlock v6, no sockets")
+    assert worker.main([mode, _fd(deck)]) == 3
+    assert json.loads(capsys.readouterr().out) == {"error": "unconfined"}
+    assert no_limits == []
+
+
+def test_without_a_memory_limit_only_the_operator_opt_in_reads(
+    deck: Path, no_limits: list[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(worker, "apply_limits", lambda: False)
+    monkeypatch.setattr(worker, "confine", lambda: "unconfined: not Linux")
+    assert worker.main([worker.ALLOW_UNCONFINED, "inspect", _fd(deck)]) == 0
+    assert no_limits == ["parsed"]
+
+
+def test_doctor_hears_when_the_memory_limit_fails(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(worker, "apply_limits", lambda: False)
+    monkeypatch.setattr(worker, "confine", lambda: "landlock v6, no sockets")
+    assert worker.main(["confinement"]) == 0
+    how = capsys.readouterr().out.strip()
+    assert how == "unconfined: memory limit refused"
+    assert not worker.fully_confined(how)
 
 
 @pytest.mark.parametrize(
