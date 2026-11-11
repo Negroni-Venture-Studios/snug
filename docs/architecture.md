@@ -65,7 +65,7 @@ Caddy passes each request to `snug:8000` and adds the visitor's address in `X-Fo
 The middleware runs in this order:
 
 1. `forwarded_proto` drops the `X-Forwarded-Proto` header unless the request came from a trusted proxy, as for `X-Forwarded-For`, so a visitor cannot pass a plain HTTP request off as HTTPS.
-2. Django's `SecurityMiddleware`, then its content security policy, then `X-Frame-Options`. The policy allows only Snug's own address, and `data:` for images, so no inline script or style can run.
+2. Django's `SecurityMiddleware`, then its content security policy, then `X-Frame-Options`. The policy allows only Snug's own address, so no inline script or style can run.
 3. `extra_security_headers`: `Permissions-Policy` and `Cross-Origin-Resource-Policy`.
 4. `health_check` answers `/healthz` for Docker's health check, before the host check.
 5. WhiteNoise serves `/static/`.

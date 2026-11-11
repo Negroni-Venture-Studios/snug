@@ -187,7 +187,7 @@ SECURE_CSP = {
     "default-src": [CSP.NONE],
     "script-src": [CSP.SELF],
     "style-src": [CSP.SELF],
-    "img-src": [CSP.SELF, "data:"],
+    "img-src": [CSP.SELF],
     # Videos stream from Snug itself, through the same authorisation as pages.
     "media-src": [CSP.SELF],
     "font-src": [CSP.SELF],

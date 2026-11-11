@@ -5,7 +5,7 @@ from django.conf import settings
 from django.test import Client
 
 EXPECTED_CSP = (
-    "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+    "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; "
     "media-src 'self'; font-src 'self'; connect-src 'self'; manifest-src 'self'; "
     "form-action 'self'; "
     "frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
