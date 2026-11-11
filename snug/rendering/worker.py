@@ -61,6 +61,9 @@ MAX_PAGES = 2000
 # however odd its shape. (WebP cannot exceed 16,383 pixels a side.)
 MAX_PIXELS = 1600 * 4000
 MAX_SIDE = 8000
+# The watermark is drawn on a square as wide as the page's diagonal, which
+# holds no more than this many pixels however long and thin the page.
+MAX_MARK_PIXELS = 2 * MAX_PIXELS
 FONT_DIRS = ("/usr/share/fonts", "/usr/local/share/fonts", "/etc/fonts")
 # Every text codec pypdf names. Python loads a codec's module the first time
 # it is used, and once the worker is confined it cannot open that file, so
@@ -398,10 +401,15 @@ def _mark_layer(width: int, height: int, font: bytes | None, email: str, date: s
     """The diagonal mark: rows of "email  date", tiled and rotated, on a clear layer.
 
     Drawn on a square big enough to cover the page at any angle, rotated, then
-    cut to the page. `font` None uses Pillow's built-in font (for the warm-up).
+    cut to the page. A page whose square would hold more than MAX_MARK_PIXELS
+    has its mark drawn smaller, then enlarged to the page. `font` None uses
+    Pillow's built-in font (for the warm-up).
     """
     from PIL import Image, ImageDraw, ImageFont
 
+    page = (width, height)
+    shrink = min(1.0, (MAX_MARK_PIXELS / max(width * width + height * height, 1)) ** 0.5)
+    width, height = max(1, round(width * shrink)), max(1, round(height * shrink))
     size = max(14, round(width * 0.018))
     mark_font = ImageFont.truetype(io.BytesIO(font), size) if font else ImageFont.load_default(size)
     side = int((width**2 + height**2) ** 0.5) + 1
@@ -415,7 +423,8 @@ def _mark_layer(width: int, height: int, font: bytes | None, email: str, date: s
             draw.text((x, y), text, font=mark_font, fill=MARK_COLOUR)
     layer = layer.rotate(MARK_ANGLE, resample=Image.Resampling.BICUBIC)
     left, top = (side - width) // 2, (side - height) // 2
-    return layer.crop((left, top, left + width, top + height))
+    layer = layer.crop((left, top, left + width, top + height))
+    return layer if layer.size == page else layer.resize(page, Image.Resampling.BICUBIC)
 
 
 def stamp(data: bytes, font: bytes, email: str, date: str, ref: str) -> bytes:
@@ -524,11 +533,10 @@ def _overlay_pdf(
     """
     import zlib
 
-    # _mark_layer draws on a square as wide as the page's diagonal, so the
-    # diagonal is what is capped: that square holds no more than twice
-    # MAX_PIXELS, and so the page no more than MAX_PIXELS, whatever its shape.
+    # The diagonal is what is capped, as in _mark_layer, so the overlay holds
+    # no more than MAX_PIXELS whatever the page's shape, and is never enlarged.
     diagonal_squared = max(width_pt * width_pt + height_pt * height_pt, 1)
-    scale = min(OVERLAY_DENSITY, (2 * MAX_PIXELS / diagonal_squared) ** 0.5)
+    scale = min(OVERLAY_DENSITY, (MAX_MARK_PIXELS / diagonal_squared) ** 0.5)
     w, h = max(1, round(width_pt * scale)), max(1, round(height_pt * scale))
     alpha = _mark_layer(w, h, font, email, date).getchannel("A").tobytes()
     grey = bytes([MARK_COLOUR[0]]) * (w * h)
