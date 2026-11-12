@@ -1,14 +1,15 @@
 # Deployment
 
-Snug runs on one Linux server as four containers under Docker Compose:
+Snug runs on one Linux server as four containers under Docker Compose, and a fifth if you choose:
 
 - Snug itself;
 - [Caddy](https://caddyserver.com), which gets HTTPS certificates from Let's Encrypt, renews them, and passes every request to Snug;
-- Litestream and rclone, which back Snug up, encrypted, to a storage bucket of your own, as [backups.md](backups.md) describes.
+- Litestream and rclone, which back Snug up, encrypted, to a storage bucket of your own, as [backups.md](backups.md) describes;
+- if you choose, the LibreOffice converter, which shows Word, PowerPoint and Excel files in the browser ([office.md](office.md)).
 
 ## What you need
 
-- A server running Ubuntu 24.04 LTS. A DigitalOcean droplet with 1 GB of memory is enough for one company. Its disk holds every upload. PDFs and Office files need little room, but a video can be hundreds of megabytes, up to `SNUG_MAX_VIDEO_MB`, 1 GB by default. Choose a disk with room for the videos you mean to share.
+- A server running Ubuntu 24.04 LTS. A DigitalOcean droplet with 1 GB of memory is enough for one company, or 2 GB with LibreOffice. Its disk holds every upload. PDFs and Office files need little room, but a video can be hundreds of megabytes, up to `SNUG_MAX_VIDEO_MB`, 1 GB by default. Choose a disk with room for the videos you mean to share.
 - A domain name, such as `room.example.com`, whose DNS `A` record points at the server, and its `AAAA` record too if the server has IPv6.
 - A way for Snug to send links and codes, set up in Settings once Snug is running: a Google Workspace mailbox, through the Gmail API ([email-google.md](email-google.md)), or an email provider's SMTP details ([email.md](email.md)).
 - A storage bucket for the backups, such as DigitalOcean Spaces, and a key for it. See [backups.md](backups.md).
@@ -27,7 +28,7 @@ Snug runs on one Linux server as four containers under Docker Compose:
 
 cloud-init installs Docker from Docker's own repository, Ubuntu's automatic security updates, a firewall that lets in only SSH, HTTP and HTTPS, a 1 GB swap file, used only under memory pressure, and Snug's files in `/opt/snug`, with the `snug` command in `/usr/local/bin`. It does not start Snug.
 
-`snug setup` asks for the domain, the company's name and the backup bucket. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. Email is set up afterwards, in Settings, under Email: [email-google.md](email-google.md) for Google Workspace, [email.md](email.md) for any other provider.
+`snug setup` asks for the domain, the company's name, whether to show Office files in the browser, and the backup bucket. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. Email is set up afterwards, in Settings, under Email: [email-google.md](email-google.md) for Google Workspace, [email.md](email.md) for any other provider.
 
 Run `sudo snug setup` again to change the domain or the company's name, or to add a backup bucket you skipped. On a server that already has Snug's data, it keeps the data, leaves the admins as they are and restarts Snug with the new answers.
 
@@ -79,6 +80,8 @@ The database in the `snug-data` volume holds the SMTP password and Google's clie
 
 Caddy writes no access log, because the token is in the URL of every investor's link.
 
+The LibreOffice converter, if installed, runs under gVisor with no network, a read-only filesystem, no Linux capabilities, its own user and 1 GB of memory, converting one file per container, as [office.md](office.md) describes. It shares only two folders with Snug: one it reads jobs from, and one it writes its answers to.
+
 Once a month, housekeeping downloads [DB-IP](https://db-ip.com)'s free country database, about 5 MB, for UK-only links. It is the only download Snug makes by itself. Snug looks addresses up in its own copy, so nothing about your visitors goes to DB-IP.
 
 Otherwise Snug connects out only to send email: to Google, when it sends through Google Workspace, or to your SMTP provider. If the server reaches the internet through a proxy, set `HTTPS_PROXY` in `snug.env`. Snug's calls to Google and DB-IP use it; SMTP connects directly.
@@ -106,6 +109,7 @@ sudo snug doctor --email you@example.com
 | HTTPS | The domain answers Snug's health check over HTTPS, with a valid certificate that has more than 14 days left |
 | Email | Email is set up, through Google Workspace or SMTP; with `--email`, a code sent to that address is typed back |
 | GeoIP | When anything is UK-only: DB-IP's country data is this month's or last month's |
+| Office converter | When LibreOffice is installed: the converter has reported in the last five minutes, and its image was built in the last 14 days ([office.md](office.md)) |
 
 The admin Overview shows the same problems. When there are none, it shows *Everything is working.*
 
@@ -140,5 +144,7 @@ sudo snug update
 `snug update` downloads the files in `/opt/snug` from the newest release on GitHub, as cloud-init does, and replaces them only once every one has arrived. `snug.env` and `backup/` are never touched. It then installs the new `snug` command, pulls the new images, and restarts the containers that changed. Snug applies any database migrations when it starts.
 
 To download from another branch or tag, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`.
+
+`sudo snug update --with-office` also installs LibreOffice, and `sudo snug update --without-office` removes it, as [office.md](office.md) explains. With LibreOffice installed, every `snug update` also pulls the converter's newest image, rebuilt every Monday with LibreOffice's security fixes.
 
 The Overview shows which Snug is running, under its status line: a release's version, or `edge` and the commit for a build of `main`.

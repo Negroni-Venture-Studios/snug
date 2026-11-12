@@ -66,7 +66,7 @@ DigitalOcean calls a server a droplet.
 
    <img alt="The Basic plan, with Regular CPU and the $6.00 a month plan chosen; the summary says $6.00 a month." src="images/digitalocean/droplet-plan.png">
 
-   Each video you share can be hundreds of megabytes. If you will share several, choose the $12.00/mo plan, with a 50 GB disk.
+   Each video you share can be hundreds of megabytes. If you will share several, choose the $12.00/mo plan, with 2 GB of memory and a 50 GB disk. Choose it too if you want investors to read Word, PowerPoint and Excel files in the browser, which needs LibreOffice and 2 GB of memory ([office.md](office.md)).
 
 5. Leave **Backups** unticked. Snug makes its own.
 6. Under **Authentication**, click **Password**. Ask your password manager to generate a password, save it as a new item called **Snug server**, and paste it into **Root password**. DigitalOcean ticks each rule it meets:
@@ -156,6 +156,7 @@ Snug asks one question at a time. Type each answer and press Return. To paste in
 |---|---|
 | `The domain investors will use, like room.example.com` | your Snug address, such as `room.yourcompany.com`, without `https://` |
 | `Your company's name, as investors know it (you can change it later in Settings)` | your company's name, such as `Fernlea Robotics` |
+| `Show Office files in the browser? Type yes or no [no]` | `yes` on the $12.00/mo plan, if you want investors to read Word, PowerPoint and Excel files in the browser, or press Return for no ([office.md](office.md)) |
 
 If Snug says your domain `points to nowhere yet`, the DNS records from step 5 have not arrived. Carry on: Snug keeps trying. If it names an address that is not the server's, check the records.
 

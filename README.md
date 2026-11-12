@@ -25,7 +25,7 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 
 ## What Snug does
 
-- **Documents.** PDFs, read page by page; Word documents, PowerPoint presentations and Excel workbooks (.docx, .pptx and .xlsx), shared for download so investors get the working file; and MP4 videos, watched in the browser with the viewer's watermark over them. Upload new versions; links always show the latest.
+- **Documents.** PDFs, read page by page; Word documents, PowerPoint presentations and Excel workbooks (.docx, .pptx and .xlsx), shared for download so investors get the working file, and read in the browser too if you install LibreOffice ([docs/office.md](docs/office.md)); and MP4 videos, watched in the browser with the viewer's watermark over them. Upload new versions; links always show the latest.
 - **Rooms.** Collections of documents, with one level of folders. A document can be in any number of rooms.
 - **Links.** One per person, to a document or a room, with an optional message from you. Email verification (on by default), optional expiry, downloads (on by default), and immediate revocation.
 - **UK-only mode.** A link, or a whole room, can open only for visitors in the UK, Jersey, Guernsey and the Isle of Man, judged by their internet address against a country database kept on your server.
@@ -63,7 +63,7 @@ More screenshots are in [Using Snug](docs/using-snug.md).
 
 ## What Snug does not do
 
-- **No preview of Word, PowerPoint or Excel files.** Investors download them to read them.
+- **No preview of Word, PowerPoint or Excel files without LibreOffice.** It is optional, in a container of its own ([docs/office.md](docs/office.md)); without it, investors download them to read them.
 - **No older Office formats or image files.** Save .doc, .ppt and .xls files in the newer formats, and export images to PDF. Video must be MP4 with H.264.
 - **No way to stop screen capture.** Anyone can photograph a screen or record a video as it plays, and a downloaded video has no watermark.
 - **No e-signatures.** The NDA is a click-through agreement, and Snug records who accepted it.

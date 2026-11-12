@@ -45,7 +45,7 @@ A document's page has its numbers at the top: viewers, visits, the median readin
   <img alt="The seed deck's page: six viewers, fourteen visits, a median reading time of 8 minutes 10 seconds, a bar chart of the average time on each of 18 pages, and a strip of shaded cells for each investor." src="images/screenshots/document-light.png">
 </picture>
 
-A Word, PowerPoint or Excel file has no pages to show, so its page has a description for investors. A workbook's page also lists its sheets. A video's page has a player, and its chart counts time in parts of 10 seconds.
+A Word, PowerPoint or Excel file has a description for investors, and a workbook's page also lists its sheets. With LibreOffice installed, its page also shows the preview being made, then its first page and how it was read, as a PDF's does ([office.md](office.md)). A video's page has a player, and its chart counts time in parts of 10 seconds.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/workbook-admin-dark.png">
@@ -119,7 +119,7 @@ A PDF is shown a page at a time, with their email address and the date across it
   <img alt="Page 5 of the seed deck in the reader, with the investor's email address and the date written across it, a footer with the link, and buttons for the previous and next pages." src="images/screenshots/reader-light.png">
 </picture>
 
-A Word, PowerPoint or Excel file is shown as a card with your description and a button to download it, and a workbook's card lists its sheets. Each copy has their email address, the date and the link written into its document properties.
+A Word, PowerPoint or Excel file is shown as a card with your description and a button to download it, and a workbook's card lists its sheets. With LibreOffice installed, it opens in the reader instead, page by page, and its download button gives the file itself. Each copy has their email address, the date and the link written into its document properties.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/workbook-dark.png">

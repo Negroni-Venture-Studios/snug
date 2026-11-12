@@ -22,6 +22,8 @@ Signing in to the admin pages takes a password and a code from an authenticator 
 
 Snug reads every uploaded PDF, Office file and video in a separate worker process, confined so that it cannot open other files, connect to the network or reach Snug's other processes, with a time and a memory limit. If the worker cannot confine itself, Snug refuses to read the file. A file made to attack the PDF reader would run inside that confinement.
 
+The worker refuses a Word, PowerPoint or Excel file with macros, ActiveX controls or embedded objects, one that fetches a template, picture or object from another computer when it opens, a Word field that does the same or starts another program, and a workbook linked to another program. If you install LibreOffice to show Office files in the browser, it runs in a container of its own under gVisor, with no network; [Showing Office files in the browser](office.md) sets out what it costs and how it is confined.
+
 ## Watermarks and stamps
 
 Every page an investor reads in the browser shows their email address and the date, repeated diagonally across the page, and a line at the foot with the link's reference. A PDF or Office file download is stamped for its reader too, and the audit log records every download with a hash of the exact file sent.

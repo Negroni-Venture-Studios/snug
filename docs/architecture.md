@@ -189,6 +189,16 @@ The worker's modes are `inspect`, `render` and `stamp` for PDFs, `stamp-pdf` for
 
 On a Mac, which has no Landlock, `SNUG_UNSAFE_UNCONFINED_RENDERING=true` lets the worker run unconfined for development. `snug check` warns whenever it is on.
 
+## The LibreOffice converter
+
+With `SNUG_OFFICE` set, each Word, PowerPoint or Excel upload is queued for a preview, as `pending` on its version ([office.md](office.md) is the operator's guide).
+
+1. `snug.office.previews.pump` moves the queue on one step: it collects the converter's answer for the file in hand, then copies the next file into the converter's inbox under a random token, renamed into place all at once. A lock file keeps two processes from pumping together. An upload starts a thread that pumps for up to 15 minutes, the document page's panel pumps each time it asks for its state, and housekeeping pumps every hour. Each pump also queues the current version of any Office document without a preview, such as one uploaded before the converter was installed.
+2. The converter's container (`converter/Dockerfile`, under gVisor, with no network) runs `snug.office.supervisor`, which converts one file and exits; Docker starts a fresh container for the next. The supervisor copies the file into its own temporary folder and runs `soffice.bin` with the import filter for the kind, a fresh profile from `converter/registrymodifications.xcu`, an empty environment, limits and the seccomp filter from `snug.rendering.seccomp` with Unix sockets allowed. It writes `<token>.pdf`, or `<token>.error`, to the outbox, and its status to `status.json`.
+3. The next pump reads the answer without following links, deletes the job and the answer, and has the document worker inspect the PDF. A good PDF is kept as `previews/<version id>.pdf`, and its page count and sizes become the version's, so the reader, analytics and page rendering treat it as a PDF (`DocumentVersion.reads_as_pages`). The download is still the stamped original.
+
+A new version of a document is `preparing` until its preview is ready or has failed, so `latest_version` keeps returning the one before. The document page's Preview panel (`documents/partials/preview_panel.html`) is drawn by the server; `admin.js` asks `preview_status` for it every 2 seconds while it waits.
+
 ## Showing a document
 
 **A PDF** is shown one page at a time. The page image, `/v/<token>/pages/<page>-<width>.webp`, is drawn by a worker at 800 or 1,600 pixels wide and kept in `renders/`. A second worker stamps that investor's watermark on every request: their email address and the date across the page, and a footer band with their address, the date and the link's reference. The browser picks the width from a `srcset` and fetches the next page ahead.

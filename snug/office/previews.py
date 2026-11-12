@@ -161,7 +161,7 @@ def pump(*, now: datetime | None = None) -> None:
 def _queue_unconverted() -> None:
     """Queue Office files uploaded before the converter was installed.
 
-    Only the version links show: an earlier one is never read, so it is not
+    Only the current version: an earlier one is never read, so it is not
     worth converting. A preview that failed is not queued again by itself;
     the document's page offers Try again.
     """
