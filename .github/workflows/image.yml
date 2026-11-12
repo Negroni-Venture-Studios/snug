@@ -281,26 +281,6 @@ jobs:
           )
           open('samples/sample.linked', 'wb').write(make_docx(body=field))
           "
-      - name: LibreOffice converts on its own, without the supervisor or its filter
-        # For diagnosis: tells a LibreOffice problem from a confinement one.
-        continue-on-error: true
-        run: |
-          docker run --rm --runtime=runsc --network=none --read-only \
-            --tmpfs /tmp:size=768m,mode=1777 --cap-drop=ALL --security-opt=no-new-privileges \
-            -v "$PWD/samples:/samples:ro" -e HOME=/tmp/home -e SAL_USE_VCLPLUGIN=svp \
-            --entrypoint sh snug-office:smoke -c '
-              mkdir -p /tmp/home /tmp/out /tmp/profile/user
-              cp /opt/snug-office/profile/registrymodifications.xcu /tmp/profile/user/
-              cp /samples/sample.docx /tmp/in.docx
-              /usr/lib/libreoffice/program/soffice.bin --headless --invisible --nologo --norestore \
-                --nolockcheck --nodefault --nofirststartwizard -env:UserInstallation=file:///tmp/profile \
-                "--infilter=MS Word 2007 XML" --convert-to pdf:writer_pdf_Export --outdir /tmp/out /tmp/in.docx
-              echo "soffice.bin exit $?"
-              ls -la /tmp/out
-              /usr/lib/libreoffice/program/soffice --headless --convert-to pdf --outdir /tmp/out2 /tmp/in.docx
-              echo "soffice (the launcher) exit $?"
-              ls -la /tmp/out2
-            '
       - name: Convert each in a fresh gVisor container
         run: |
           mkdir -p exchange/inbox exchange/outbox
