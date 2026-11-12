@@ -80,7 +80,7 @@ in_backup '
 	set -eu
 	cd /var/lib/snug
 	kept="previous-$(date -u +%Y%m%dT%H%M%SZ)"
-	for name in snug.sqlite3 snug.sqlite3-wal snug.sqlite3-shm .snug.sqlite3-litestream originals branding backup renders; do
+	for name in snug.sqlite3 snug.sqlite3-wal snug.sqlite3-shm .snug.sqlite3-litestream originals branding backup renders stamped; do
 		if [ -e "$name" ]; then
 			mkdir -p "$kept"
 			mv "$name" "$kept/"

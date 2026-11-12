@@ -14,6 +14,7 @@ from snug.analytics import retention
 from snug.audit.models import AuditEvent, record
 from snug.core import doctor, geoip, ratelimit
 from snug.core.models import SiteSettings, SystemCheck
+from snug.documents import storage
 from snug.office import previews
 from snug.viewer.models import VerificationCode, ViewerSession
 
@@ -37,6 +38,8 @@ class Command(BaseCommand):
         viewer_sessions, _ = ViewerSession.objects.filter(expires_at__lte=now).delete()
         setups, _ = AdminSetup.objects.filter(expires_at__lte=now).delete()
         windows = ratelimit.purge_expired()
+        # Pages stamped on other days: each carries its day's date.
+        stamped = storage.clear_stamped(keep=timezone.localdate())
         # Recorded only when everything above worked: `snug doctor` and the
         # Overview warn when this falls more than three hours behind.
         SystemCheck.objects.update_or_create(
@@ -61,5 +64,5 @@ class Command(BaseCommand):
         self.stdout.write(
             f"Housekeeping: reading data: {visits} visit{'s' if visits != 1 else ''}; "
             f"codes: {codes}; viewer sessions: {viewer_sessions}; setup links: {setups}; "
-            f"rate-limit windows: {windows}."
+            f"rate-limit windows: {windows}; days of stamped pages: {stamped}."
         )

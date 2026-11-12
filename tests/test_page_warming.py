@@ -7,7 +7,6 @@ investor saw a blank page meanwhile (12 November 2026).
 
 import threading
 import time
-from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +26,9 @@ from tests.office_files import make_pptx
 from tests.pdfs import chunks, make_pdf
 
 pytestmark = pytest.mark.django_db
+
+# Taken before conftest.py replaces it for each test.
+REAL_IN_BACKGROUND = pages._in_background
 
 DECK = make_pdf((960, 540), (960, 540))
 
@@ -75,14 +77,20 @@ def test_a_page_that_cannot_be_rendered_is_left_for_the_viewer(
     assert "Could not render the first page" in caplog.text
 
 
-def test_the_background_thread_renders_the_first_page(
-    data_folder: Path, real_warm_in_background: Callable[[DocumentVersion], threading.Thread | None]
-) -> None:
+@pytest.mark.usefixtures("background_now")
+def test_the_background_task_renders_the_first_page(data_folder: Path) -> None:
     version = upload()
-    thread = real_warm_in_background(version)
-    assert thread is not None
-    thread.join(timeout=60)
+    pages.warm_in_background(version)
     assert first_page(version).exists()
+
+
+def test_background_work_runs_in_a_thread_of_its_own() -> None:
+    # Every test but this one stops the threads (conftest.py): they would outlive it.
+    ran: list[str] = []
+    thread = REAL_IN_BACKGROUND(lambda: ran.append(threading.current_thread().name))
+    assert thread is not None
+    thread.join(timeout=10)
+    assert ran and ran[0] != threading.current_thread().name
 
 
 def test_a_file_that_has_gone_is_left_for_the_viewer(

@@ -192,6 +192,10 @@ def _gate_page(
     status: int = 200,
 ) -> HttpResponse:
     """The landing page for a browser with no session for this link."""
+    if status == 200:
+        # While the investor opens the link, or fetches their code, the first
+        # pages are stamped for them (snug.rendering.pages.stamp_ahead).
+        rendering.stamp_ahead(link)
     template = "viewer/verify.html" if link.require_verification else "viewer/open.html"
     context = _context(link, token, error=error, typed=typed)
     return render(request, template, context, status=status)
@@ -457,7 +461,7 @@ def entry(request: HttpRequest, access: Access, token: str) -> HttpResponse:
 def page_image(
     request: HttpRequest, access: Access, token: str, page: int, width: int
 ) -> HttpResponse:
-    """One page, stamped for this viewer on every request."""
+    """One page, stamped for this viewer: kept for the day, and authorised on every request."""
     if access.document is None:
         raise Http404
     version = access.document.latest_version()
@@ -465,15 +469,14 @@ def page_image(
         raise Http404
     if not 1 <= page <= version.page_count:
         raise Http404
-    today = timezone.localdate()
     try:
         data = rendering.stamped_page(
             version,
             page,
             width,
+            link=access.link,
             email=access.session.email,
-            date=f"{today.day} {today:%b %Y}",
-            ref=access.link.ref,
+            day=timezone.localdate(),
         )
     except WorkerError:
         return HttpResponse("This page could not be shown.", status=503, content_type="text/plain")

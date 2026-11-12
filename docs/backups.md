@@ -10,7 +10,7 @@ The standard deployment backs Snug up continuously to a storage bucket of your o
 | Uploaded documents (`originals/`): PDFs, Office files and videos | Every 5 minutes | A deleted or replaced file is kept for 30 days |
 | Your logo and tab icon (`branding/`) | Every 5 minutes | As documents |
 
-The page images Snug renders, Office files' previews, the files it keeps while uploading, and DB-IP's country data are not backed up, since Snug rebuilds or fetches them again as needed.
+The page images Snug renders and stamps, Office files' previews, the files it keeps while uploading, and DB-IP's country data are not backed up, since Snug rebuilds or fetches them again as needed.
 
 Videos are usually the largest files, often hundreds of megabytes each, so they account for most of the bucket's growth. A replaced or deleted video stays in the bucket for 30 days too.
 

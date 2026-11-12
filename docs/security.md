@@ -38,6 +38,8 @@ Every page an investor reads in the browser shows their email address and the da
 
 The hash in the audit log matches only an unchanged copy. Once a file has been edited, Snug cannot tell whose it was.
 
+Pages stamped for an investor are kept on the server until the end of the day, so a page they return to is not stamped again, and the first pages are stamped while they open the link. Every request for one is authorised first, revoking the link deletes them, and they are not backed up.
+
 Turning off downloads on a link stops the download button. The investor can still screenshot what they can see, and save a video as it plays.
 
 ## The NDA record

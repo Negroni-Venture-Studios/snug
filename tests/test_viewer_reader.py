@@ -182,11 +182,11 @@ def test_the_watermark_carries_todays_date(
 ) -> None:
     seen: dict[str, str] = {}
 
-    def capture(version: Any, page: int, width: int, **stamp: str) -> bytes:
+    def capture(page: Any, font: Any, **stamp: str) -> bytes:
         seen.update(stamp)
         return b"RIFF\x00\x00\x00\x00WEBPVP8 "
 
-    monkeypatch.setattr("snug.rendering.pages.stamped_page", capture)
+    monkeypatch.setattr("snug.rendering.sandbox.stamp", capture)
     get(opened(issued), image_url(issued))
     today = timezone.localdate()
     assert seen == {"email": INVESTOR, "date": f"{today.day} {today:%b %Y}", "ref": issued.link.ref}

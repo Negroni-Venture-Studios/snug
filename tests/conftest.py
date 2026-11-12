@@ -11,12 +11,10 @@ import pytest
 from django.conf import settings
 
 if TYPE_CHECKING:
-    import threading
     from collections.abc import Callable
 
     from django.test import Client
 
-    from snug.documents.models import DocumentVersion
     from tests.fake_converter import Converter
 
 # The end-to-end tests need a browser and their own settings: see tests/e2e_settings.py.
@@ -58,23 +56,27 @@ def no_network_downloads(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(outbound, "urlopen", refuse)
 
 
-@pytest.fixture(scope="session")
-def real_warm_in_background() -> "Callable[[DocumentVersion], threading.Thread | None]":
-    """The real background render, for the test of it: every other test stops it."""
-    from snug.rendering import pages
-
-    return pages.warm_in_background
-
-
 @pytest.fixture(autouse=True)
 def no_background_rendering(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Page 1 is rendered in a thread once a version can be read; in tests, it is not.
+    """Pages are rendered and stamped ahead in threads; in tests, they are not.
 
-    The thread would outlive its test and render into a data folder that is gone.
+    A thread would outlive its test and write into a data folder that is gone.
+    Tests of the work itself ask for `background_now`.
     """
     from snug.rendering import pages
 
-    monkeypatch.setattr(pages, "warm_in_background", lambda version: None)
+    monkeypatch.setattr(pages, "_in_background", lambda task: None)
+
+
+@pytest.fixture
+def background_now(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run what pages would do in a thread at once, on the test's own thread."""
+    from snug.rendering import pages
+
+    def now(task: "Callable[[], None]") -> None:
+        task()
+
+    monkeypatch.setattr(pages, "_in_background", now)
 
 
 @pytest.fixture(autouse=True)

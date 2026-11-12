@@ -133,6 +133,7 @@ Files live in the data folder, `SNUG_DATA_DIR`:
 ├── snug.sqlite3          the database, with its -wal and -shm files
 ├── originals/            uploads, under random names: <32 hex>.pdf, .docx, .pptx, .xlsx or .mp4
 ├── renders/              page images, a cache: <version id>/<page>-<width>.webp
+├── stamped/              pages stamped for a link, kept for the day: <day>/<link id>/…
 ├── tmp/                  uploads in progress
 ├── branding/             the logo and icon
 ├── geoip/                DB-IP's country data, fetched monthly
@@ -201,7 +202,7 @@ A new version of a document is `preparing` until its preview is ready or has fai
 
 ## Showing a document
 
-**A PDF** is shown one page at a time. The page image, `/v/<token>/pages/<page>-<width>.webp`, is drawn by a worker at 800 or 1,600 pixels wide and kept in `renders/`. A second worker stamps that investor's watermark on every request: their email address and the date across the page, and a footer band with their address, the date and the link's reference. The browser picks the width from a `srcset`, and `viewer.js` fetches the next page once the current one has arrived. Page 1 is rendered in a background thread when a PDF is uploaded or an Office file's preview is ready (`pages.warm_in_background`), so the first investor waits only for the watermark.
+**A PDF** is shown one page at a time. The page image, `/v/<token>/pages/<page>-<width>.webp`, is drawn by a worker at 800 or 1,600 pixels wide and kept in `renders/`. A second worker stamps that investor's watermark: their email address and the date across the page, and a footer band with their address, the date and the link's reference. The stamped page is kept in `stamped/` until the day ends (`pages.stamped_page`), and the first pages are stamped while the investor is on the landing page (`pages.stamp_ahead`). The browser picks the width from a `srcset`, and `viewer.js` fetches the next page once the current one has arrived. Page 1 is rendered in a background thread when a PDF is uploaded or an Office file's preview is ready (`pages.warm_in_background`), so the first investor waits only for the watermark.
 
 **A download** is made for each request, in a worker. A PDF keeps its text and gets a faint diagonal mark on every page, a line at the foot of each page and the same details in its properties. A Word, PowerPoint or Excel file gets the details in its document properties, with everything else left as uploaded. A video is the original file. The audit log records each download with a hash of the exact file sent.
 
