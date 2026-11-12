@@ -170,7 +170,13 @@ def convert(
             "SAL_USE_VCLPLUGIN": "svp",  # draw to memory: there is no display
             "TMPDIR": str(work),
         }
-        errors = (work / "errors.log").open("wb")
+        # Held open from before LibreOffice runs and read from this handle, never
+        # reopened by name: LibreOffice could swap the name for a link or a pipe.
+        errors = os.open(
+            work / "errors.log",
+            os.O_RDWR | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+            0o600,
+        )
         try:
             process = subprocess.Popen(  # noqa: S603 - a fixed program, with the job's paths only
                 argv,
@@ -184,37 +190,42 @@ def convert(
             )
         except subprocess.SubprocessError:
             # The child could not apply its limits or filter: fail closed.
+            os.close(errors)
             return "unconfined"
-        finally:
-            errors.close()
         try:
-            code = process.wait(timeout=deadline)
-        except subprocess.TimeoutExpired:
-            _kill(process)
-            return "timeout"
-        _kill(process)  # anything it left in its group
-        result = _read_output(out) if code == 0 else "unreadable"
-        if isinstance(result, str):
-            _report(job, code, work / "errors.log")
-        return result
+            try:
+                code = process.wait(timeout=deadline)
+            except subprocess.TimeoutExpired:
+                _kill(process)
+                return "timeout"
+            _kill(process)  # anything it left in its group
+            result = _read_output(out) if code == 0 else "unreadable"
+            if isinstance(result, str):
+                _report(job, code, errors)
+            return result
+        finally:
+            os.close(errors)
     except OSError:
         return "unreadable"
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
 
-def _report(job: Job, code: int, errors: Path) -> None:
+def _report(job: Job, code: int, errors: int) -> None:
     """Say on the container's log why a conversion failed, with the end of LibreOffice's own errors.
 
-    The log holds no document content: LibreOffice writes its warnings
-    there, not the file's text.
+    `errors` is the descriptor LibreOffice wrote its errors to. The log holds
+    no document content: LibreOffice writes its warnings there, not the
+    file's text.
     """
+    tail = ""
     try:
-        with errors.open("rb") as handle:
-            handle.seek(max(0, errors.stat().st_size - 4096))
-            tail = handle.read().decode("utf-8", errors="replace").strip()
+        facts = os.fstat(errors)
+        if stat.S_ISREG(facts.st_mode):
+            os.lseek(errors, max(0, facts.st_size - 4096), os.SEEK_SET)
+            tail = os.read(errors, 4096).decode("utf-8", errors="replace").strip()
     except OSError:
-        tail = ""
+        pass
     sys.stderr.write(f"{job.kind} conversion failed, LibreOffice exit {code}\n{tail}\n")
 
 

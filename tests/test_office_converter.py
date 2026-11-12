@@ -69,6 +69,14 @@ if data == b"slow":
     time.sleep(60)
 if data == b"fail":
     sys.exit(1)
+if data == b"swaplog":
+    log = os.path.join(os.getcwd(), "errors.log")
+    secret = os.path.join(os.path.dirname(out), "secret.txt")
+    open(secret, "w").write("SECRET-FROM-ELSEWHERE")
+    os.unlink(log)
+    os.symlink(secret, log)
+    sys.stderr.write("the real error\\n")
+    sys.exit(1)
 made = os.path.join(out, "input.pdf")
 if data == b"symlink":
     elsewhere = os.path.join(os.path.dirname(out), "elsewhere.pdf")
@@ -309,3 +317,21 @@ def test_an_output_over_the_limit_is_refused_without_reading_it_all(
         job, work_root=work, template=template, soffice=soffice, confine=None
     )
     assert result == "too_large"
+
+
+def test_a_failure_is_reported_from_libreoffices_own_errors_only(
+    exchange: tuple[Path, ...], soffice: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The log is read from the handle opened before LibreOffice ran, never reopened by name."""
+    inbox, outbox, work, template = exchange
+    put_job(inbox, TOKEN, "docx", b"swaplog")
+    job = supervisor.next_job(inbox, outbox)
+    assert job is not None
+    result = supervisor.convert(
+        job, work_root=work, template=template, soffice=soffice, confine=None
+    )
+    assert result == "unreadable"
+    said = capsys.readouterr().err
+    assert "docx conversion failed, LibreOffice exit 1" in said
+    assert "the real error" in said
+    assert "SECRET-FROM-ELSEWHERE" not in said
