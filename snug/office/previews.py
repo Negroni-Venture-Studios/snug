@@ -50,6 +50,47 @@ STATUS = "status.json"
 DRIVE_FOR = timedelta(minutes=15)
 
 
+# What the admin sees when a preview could not be made. The file is shared as a download either way.
+MESSAGES = {
+    "timeout": "LibreOffice took longer than two minutes with this file.",
+    "unreadable": "LibreOffice could not read this file.",
+    "too_large": "The PDF LibreOffice made is larger than Snug allows.",
+    "unconfined": (
+        "The converter could not confine LibreOffice, so it did not open the file. "
+        "Run sudo snug doctor on the server."
+    ),
+    "no_answer": (
+        "The converter did not answer within five minutes. Run sudo snug doctor on the server."
+    ),
+}
+WORKER_FAILED = "Snug could not read the PDF LibreOffice made of this file."
+
+
+def message(code: str) -> str:
+    return MESSAGES.get(code, WORKER_FAILED)
+
+
+def ahead(version: DocumentVersion) -> int:
+    """How many files the converter will take before this one."""
+    earlier = DocumentVersion.objects.filter(preview=Preview.PENDING).filter(
+        uploaded_at__lt=version.uploaded_at
+    ) | DocumentVersion.objects.filter(
+        preview=Preview.PENDING, uploaded_at=version.uploaded_at, pk__lt=version.pk
+    )
+    converting = DocumentVersion.objects.filter(preview=Preview.CONVERTING).exclude(pk=version.pk)
+    return earlier.count() + converting.count()
+
+
+def stage(version: DocumentVersion) -> str:
+    """Where a waiting preview has got to, in words for the Preview panel."""
+    if version.preview == Preview.CONVERTING:
+        return "Converting in LibreOffice"
+    waiting = ahead(version)
+    if waiting:
+        return f"Waiting for the converter, {waiting} file{'' if waiting == 1 else 's'} ahead"
+    return "Waiting for the converter"
+
+
 def enabled() -> bool:
     return bool(settings.CONFIG.office)
 

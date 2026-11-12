@@ -559,3 +559,68 @@ def test_the_overview_shows_the_version_under_the_status(
     assert middles[2] == middles[3], middles
     if shots := os.environ.get("SNUG_SHOT_DIR"):
         page.locator("main").screenshot(path=f"{shots}/overview-version.png")
+
+
+def test_an_office_preview_arrives_while_the_founder_writes_its_description(
+    live_server: Any, page: Page, data_folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Asked for 12 November 2026: configure the document while it converts, with real clicks.
+
+    A stand-in converter answers each job after a few seconds. The panel
+    moves through its stages by itself, and the description being typed
+    is still there when the first page arrives.
+    """
+    import dataclasses
+    import threading
+    import time
+
+    from django.conf import settings
+
+    from tests.office_files import make_pptx
+    from tests.pdfs import make_pdf
+
+    office = data_folder / "office"
+    inbox, outbox = office / "inbox", office / "outbox"
+    inbox.mkdir(parents=True)
+    outbox.mkdir()
+    monkeypatch.setattr(
+        settings, "CONFIG", dataclasses.replace(settings.CONFIG, office=True, office_dir=office)
+    )
+    stop = threading.Event()
+
+    def converter() -> None:
+        while not stop.is_set():
+            for job in inbox.iterdir():
+                if job.name.startswith(".") or (outbox / f"{job.name}.pdf").exists():
+                    continue
+                time.sleep(4)  # long enough to see it converting
+                (outbox / f"{job.name}.pdf").write_bytes(make_pdf(*[(720, 540)] * 3))
+            time.sleep(0.2)
+
+    thread = threading.Thread(target=converter, daemon=True)
+    thread.start()
+    try:
+        sign_in(live_server, page)
+        page.goto(f"{live_server.url}/admin/documents/new")
+        page.get_by_label("Title").fill("Board deck")
+        page.get_by_label("File").set_input_files(
+            files=FilePayload(
+                name="Board deck.pptx",
+                mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                buffer=make_pptx(3),
+            )
+        )
+        page.get_by_role("button", name="Upload").click()
+        expect(page.locator(".notice-ok")).to_contain_text(
+            "Its preview is being made.", timeout=15000
+        )
+        stage = page.locator("[data-preview-stage]")
+        expect(stage).to_contain_text("Converting in LibreOffice", timeout=10000)
+        typing = page.get_by_label("What investors should know")
+        typing.fill("Start at slide 3.")
+        expect(page.locator("#preview img")).to_be_visible(timeout=30000)
+        expect(page.locator("#preview")).to_contain_text("Ready, 3 pages.")
+        expect(typing).to_have_value("Start at slide 3.")  # left alone while the panel changed
+    finally:
+        stop.set()
+        thread.join(timeout=5)

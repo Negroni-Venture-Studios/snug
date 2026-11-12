@@ -11,7 +11,6 @@ to a download card; the first version of a new document is shared at once.
 import dataclasses
 import fcntl
 import json
-import time
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
@@ -21,13 +20,12 @@ from django.conf import settings
 from django.test import Client
 from django.utils import timezone
 
-from snug.accounts import sessions
-from snug.accounts.models import Admin
 from snug.analytics import summary
 from snug.documents.ingest import ingest
 from snug.documents.models import OFFICE, Document, DocumentVersion
 from snug.links import service
 from snug.office import previews
+from tests.fake_converter import Converter
 from tests.office_files import make_docx, make_pptx
 from tests.pdfs import chunks, make_pdf
 from tests.test_ooxml import custom_properties
@@ -35,38 +33,6 @@ from tests.test_ooxml import custom_properties
 pytestmark = pytest.mark.django_db
 
 Preview = DocumentVersion.Preview
-
-
-class Converter:
-    """A stand-in for the converter's container: it answers whatever job is in the inbox."""
-
-    def __init__(self, root: Path) -> None:
-        self.inbox, self.outbox = root / "inbox", root / "outbox"
-        self.inbox.mkdir(parents=True)
-        self.outbox.mkdir(parents=True)
-
-    def jobs(self) -> list[Path]:
-        return sorted(p for p in self.inbox.iterdir() if not p.name.startswith("."))
-
-    def answer(self, pdf: bytes | None = None, *, error: str | None = None) -> str:
-        (job,) = self.jobs()
-        if error is not None:
-            (self.outbox / f"{job.name}.error").write_text(json.dumps({"error": error}))
-        else:
-            (self.outbox / f"{job.name}.pdf").write_bytes(pdf or make_pdf(*[(720, 540)] * 3))
-        return job.name
-
-
-@pytest.fixture
-def converter(data_folder: Path, monkeypatch: pytest.MonkeyPatch) -> Converter:
-    office = data_folder / "office"
-    fake = Converter(office)
-    monkeypatch.setattr(
-        settings,
-        "CONFIG",
-        dataclasses.replace(settings.CONFIG, office=True, office_dir=office),
-    )
-    return fake
 
 
 def upload(document: Document, data: bytes, name: str = "Board deck.pptx") -> DocumentVersion:
@@ -352,17 +318,6 @@ def test_the_founders_description_is_shown_beside_a_previewed_deck(converter: Co
     page = opened(issued).get(f"/v/{issued.token}", secure=True).content.decode()
     about = page[page.index('<aside class="about"') :]
     assert "Start at slide 3." in about
-
-
-@pytest.fixture
-def admin_browser() -> Client:
-    admin = Admin.objects.create(email="ruth@fernlea.example", is_active=True)
-    browser = Client()
-    browser.force_login(admin)
-    session = browser.session
-    session[sessions.LOGIN_AT] = session[sessions.LAST_ACTIVITY] = time.time()
-    session.save()
-    return browser
 
 
 def test_the_admin_sees_a_previewed_decks_first_page_and_reading(

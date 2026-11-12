@@ -70,6 +70,7 @@
     <div class="video-frame"><video src="{% url 'documents:video_preview' document.token latest.number %}" width="{{ latest.page_sizes.0.0 }}" height="{{ latest.page_sizes.0.1 }}" controls playsinline preload="metadata"></video></div>
     <p class="chart-note">Viewers also see their own watermark over the video.</p>
   </section>
+  {% elif panel %}{% include "documents/partials/preview_panel.html" %}
   {% elif not latest.is_office or latest.reads_as_pages %}<section class="section">
     <div class="section-head"><h2>First page</h2></div>
     {% if latest and preview %}
@@ -99,7 +100,7 @@
         {% for version in versions %}
         <div class="item">
           <div class="who"><span class="email">Version {{ version.number }}</span><span class="note">{{ version.original_filename }}</span></div>
-          <span class="muted num">{{ version.describe }}, {{ version.size_bytes|filesizeformat }}</span>
+          <span class="muted num">{{ version.describe }}, {{ version.size_bytes|filesizeformat }}{% if version.status == "preparing" %}, being prepared{% endif %}</span>
           <span class="r muted num">{{ version.uploaded_at|date:"j M Y, H:i" }}{% if version.uploaded_by %}<br>{{ version.uploaded_by.email }}{% endif %}</span>
         </div>
         {% endfor %}

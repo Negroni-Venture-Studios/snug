@@ -12,7 +12,7 @@
   <div class="item">
     <div class="who"><a class="email" href="{% url 'documents:detail' document.token %}">{{ document.title }}</a><span class="note">{{ latest.original_filename|default:"No readable version" }}</span></div>
     <span class="muted num">{% if latest %}Version {{ latest.number }}{% endif %}</span>
-    <span class="muted num">{% if latest %}{{ latest.describe }}{% endif %}</span>
+    <span class="muted num">{% if latest %}{{ latest.describe }}{% endif %}{% if document.pk in making %} <span class="status status-off">Preview being made</span>{% elif latest.preview == "failed" %} <span class="status status-warn">Preview failed</span>{% endif %}</span>
     <span class="r muted num">{% if latest %}{{ latest.uploaded_at|date:"j M Y" }}{% endif %}</span>
   </div>
   {% endfor %}

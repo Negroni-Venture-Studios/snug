@@ -1,0 +1,20 @@
+{% load snug %}{% if panel %}<section class="section preview-panel" id="preview"{% if panel.waiting %} data-preview-poll="{{ panel.poll_url }}"{% endif %}>
+  <div class="section-head stacked"><h2>{% if panel.ready %}First page{% else %}Preview{% endif %}</h2>{% if panel.preparing %}<p>Version {{ panel.version.number }} is being prepared. Links show version {{ panel.showing.number }} until it is ready.</p>{% endif %}</div>
+  {% include "snug/partials/saved.html" with here="preview" %}
+  {% if panel.waiting %}
+  <div class="panel preview-progress">
+    <progress></progress>
+    <p role="status" aria-live="polite" data-preview-stage>{{ panel.stage }}</p>
+    <p class="hint">You can write the description and create links while it is made. Until then, investors see a card with a download button.</p>
+  </div>
+  {% elif panel.failed %}
+  <div class="panel preview-progress">
+    <div class="error" role="alert">{% icon "warning-circle" %}No preview. {{ panel.message }}</div>
+    <p class="hint">Investors can still download it.</p>
+    <form method="post" action="{{ panel.retry_url }}#preview">{% csrf_token %}<button class="btn" type="submit">Try again</button></form>
+  </div>
+  {% elif panel.ready %}
+  <div class="preview-frame"><img src="{% url 'documents:preview' document.token panel.version.number 1 %}"{% if panel.size %} width="{{ panel.size.width }}" height="{{ panel.size.height }}"{% endif %} alt="Page 1 of {{ document.title }}, version {{ panel.version.number }}"></div>
+  <p class="chart-note">Ready, {{ panel.version.page_count }} page{{ panel.version.page_count|pluralize }}. Made by LibreOffice on your server; viewers also see their own watermark.</p>
+  {% endif %}
+</section>{% else %}<section id="preview" hidden></section>{% endif %}
