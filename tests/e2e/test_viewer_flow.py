@@ -153,3 +153,23 @@ def test_the_next_page_is_fetched_once_this_one_has_arrived(
     page.wait_for_function("() => document.querySelector('link[rel=prefetch]') !== null")
     page.wait_for_timeout(500)
     assert events[:2] == ["page 1 arrived", "page 2 asked for"], events
+
+
+def test_the_loading_note_is_in_view_on_a_tall_page(
+    live_server: Any, page: Page, data_folder: Any
+) -> None:
+    # On a portrait page the frame is taller than the window, and a note at its
+    # middle was out of sight (12 November 2026).
+    tall = Document.objects.create(title="Board pack")
+    ingest.ingest(tall, chunks(make_pdf((595, 842))), filename="b.pdf", uploaded_by=None)
+    issued = issue(tall, verify=False)
+    page.set_viewport_size({"width": 1280, "height": 700})
+    page.goto(f"{live_server.url}/v/{issued.token}")
+    page.get_by_role("button", name="Open Board pack").click()
+    expect_page(page, 1, 1)
+    image = page.get_by_role("img", name="Page 1 of 1")
+    image.evaluate("img => { img.style.visibility = 'hidden' }")  # as before it arrives
+    note = page.locator(".page-loading")
+    expect(note).to_have_text("Loading page 1")
+    box = note.bounding_box()
+    assert box is not None and box["y"] + box["height"] < 700, box
