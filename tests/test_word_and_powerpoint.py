@@ -562,7 +562,7 @@ def nested(before: str, inner: str, after: str) -> str:
     ("body", "code"),
     [
         # The address comes from a nested field, so the outer field cannot be checked.
-        (nested(' INCLUDEPICTURE "', ' QUOTE "https://tracker.example/p.png" ', '" '), "external"),
+        (nested(' INCLUDEPICTURE "', ' QUOTE "https://tracker.example/p.png" ', '" '), "field"),
         # The keyword itself is built by a nested field.
         (nested(" ", ' QUOTE "INCLUDEPICTURE" ', ' "https://tracker.example/p.png" '), "field"),
         (nested(" INCLUDE", ' QUOTE "PICTURE" ', ' "https://tracker.example/p.png" '), "field"),
@@ -616,3 +616,36 @@ def test_a_hyperlink_cannot_be_borrowed_through_another_namespace() -> None:
         "</p:blipFill></p:pic></p:spTree>"
     )
     assert refusal(make_pptx(slide_rels=(link,), slide_body=picture)) == "external"
+
+
+@pytest.mark.parametrize(
+    "before",
+    [
+        ' "INCLUDEPICTURE" ',  # quoted, which a deny-list read the other way missed
+        " SYMBOL ",  # not one of the few fields that may hold another in its instruction
+    ],
+)
+def test_only_known_fields_may_hold_another_in_their_instruction(before: str) -> None:
+    body = nested(before, ' QUOTE "https://tracker.example/p.png" ', "")
+    assert refusal(make_docx(body=body)) == "field"
+
+
+def test_a_part_declared_as_something_else_is_still_read_if_it_is_xml() -> None:
+    """A header typed as plain bytes is still XML, and still read for fields."""
+    header = (
+        f'<?xml version="1.0"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/'
+        f'wordprocessingml/2006/main">{field(" DDEAUTO cmd /c calc ")}</w:hdr>'
+    ).encode()
+    data = make_docx(extra={"word/header9.bin": header})
+    assert refusal(data) == "dde"
+
+
+def test_an_svg_picture_with_a_doctype_is_fine() -> None:
+    """Illustration tools often write a DOCTYPE into an SVG; a picture is not read for fields."""
+    svg = (
+        b'<?xml version="1.0"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" '
+        b'"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg xmlns="http://www.w3.org/2000/svg"/>'
+    )
+    types = '<Default Extension="svg" ContentType="image/svg+xml"/>'
+    data = make_docx(extra={"word/media/logo.svg": svg}, extra_types=(types,))
+    assert ooxml.inspect(data) == {"format": "docx"}

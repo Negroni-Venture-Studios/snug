@@ -58,6 +58,11 @@ HYPERLINK_ELEMENTS = frozenset({"hyperlink", "hlinkClick", "hlinkHover", "hlinkM
 # Word fields that fetch content when they update, and the ones that start another program.
 FETCHING_FIELDS = frozenset({"INCLUDEPICTURE", "INCLUDETEXT", "INCLUDE", "LINK", "IMPORT"})
 DDE_FIELDS = frozenset({"DDE", "DDEAUTO"})
+# The only fields that may hold another field in their instruction: they
+# compare, calculate or set text, and never fetch it. A mail merge uses them.
+NESTING_FIELDS = frozenset(
+    {"IF", "COMPARE", "=", "QUOTE", "SET", "ASK", "FILLIN", "SKIPIF", "NEXTIF"}
+)
 # Excel's links to another program, in an external link part.
 DDE_ELEMENTS = frozenset({"ddeLink", "oleLink"})
 CORE_TYPE = "application/vnd.openxmlformats-package.core-properties+xml"
@@ -237,15 +242,26 @@ def _main_part(package: zipfile.ZipFile) -> tuple[str, str]:
     )
     if found is None or main not in folded:
         raise Refused("not_office")
-    xml_parts = [
-        name
-        for name, folded_name in zip(names, folded, strict=True)
-        if not folded_name.endswith(".rels")
-        and name != CONTENT_TYPES
-        and "xml" in overrides.get(folded_name, defaults.get(folded_name.rpartition(".")[2], ""))
-    ]
+    xml_parts = []
+    for name, folded_name in zip(names, folded, strict=True):
+        if folded_name.endswith((".rels", "/")) or name == CONTENT_TYPES:
+            continue
+        kind = overrides.get(folded_name, defaults.get(folded_name.rpartition(".")[2], ""))
+        # A picture is never read for fields; an SVG often has a DOCTYPE, which _stream refuses.
+        # Anything else is read if it is typed as XML or looks like it, whatever it claims.
+        if not kind.startswith("image/") and ("xml" in kind or _looks_like_xml(package, name)):
+            xml_parts.append(name)
     _check_content(package, xml_parts, hyperlinks)
     return names[folded.index(main)], found
+
+
+def _looks_like_xml(package: zipfile.ZipFile, name: str) -> bool:
+    """True if a part starts as XML does, after any byte-order mark and white space."""
+    with package.open(name) as source:
+        head = source.read(64)
+    if head.startswith((b"\xff\xfe", b"\xfe\xff")):  # UTF-16
+        return True
+    return head.removeprefix(b"\xef\xbb\xbf").lstrip().startswith(b"<")
 
 
 def _source_of(rels: str) -> str:
@@ -303,12 +319,7 @@ _FIELD_WORDS = re.compile(r'"([^"]*)"|(\S+)')
 # else starting with a backslash, such as \\server\share, is an argument.
 _SWITCH = re.compile(r"^\\[A-Za-z*#@!]$")
 # A keyword already written in full, before any nested field: " IF ", not " INCLUDE".
-_KEYWORD = re.compile(r"\s*(\S+)\s")
-
-
-def _check_keyword(keyword: str) -> None:
-    if keyword.upper() in DDE_FIELDS:
-        raise Refused("dde")
+_KEYWORD = re.compile(r'\s*([^\s"]+)\s')
 
 
 def _check_field(instruction: str) -> None:
@@ -317,7 +328,8 @@ def _check_field(instruction: str) -> None:
     if not words:
         return
     keyword = "".join(words[0]).upper()
-    _check_keyword(keyword)
+    if keyword in DDE_FIELDS:
+        raise Refused("dde")
     arguments = [quoted or bare for quoted, bare in words[1:] if quoted or not _SWITCH.match(bare)]
     if keyword in FETCHING_FIELDS and any(_remote(argument) for argument in arguments):
         raise Refused("external")
@@ -338,17 +350,15 @@ def _open_field(fields: list[_Field]) -> None:
     { INCLUDEPICTURE "{ QUOTE "http://..." }" } builds its address from a
     nested field, and { { QUOTE "INCLUDE" }PICTURE ... } its keyword, so
     neither can be read. A field with something nested in its instruction is
-    allowed only if its keyword is already written in full and is one that
-    never fetches or starts anything, such as IF in a mail merge.
+    allowed only if its keyword is already written in full, unquoted, and is
+    one of NESTING_FIELDS, which never fetch or start anything, such as IF in
+    a mail merge. An allowlist, so a keyword spelt in a way this checker reads
+    differently from Word is refused rather than missed.
     """
     if fields and fields[-1].reading:
         written = _KEYWORD.match("".join(fields[-1].instruction))
-        if written is None:
+        if written is None or written.group(1).upper() not in NESTING_FIELDS:
             raise Refused("field")
-        keyword = written.group(1).upper()
-        _check_keyword(keyword)
-        if keyword in FETCHING_FIELDS:
-            raise Refused("external")
         fields[-1].nested = True
     fields.append(_Field())
 

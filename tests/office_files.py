@@ -61,11 +61,13 @@ def make_docx(
     document_rels: tuple[str, ...] = (),
     extra: dict[str, bytes] | None = None,
     body: str = "<w:p><w:r><w:t>Board memo, November 2026</w:t></w:r></w:p>",
+    extra_types: tuple[str, ...] = (),
 ) -> bytes:
     """A Word document with this body, and relationships on its settings or body if given."""
     types = [
         f'<Override PartName="/word/document.xml" ContentType="{main}"/>',
         f'<Override PartName="/word/settings.xml" ContentType="{SETTINGS}"/>',
+        *extra_types,
     ]
     parts = {
         "word/document.xml": (
