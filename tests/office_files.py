@@ -86,32 +86,116 @@ def make_docx(
     return _zip(types, rels, parts)
 
 
+PRESENTATIONML = "application/vnd.openxmlformats-officedocument.presentationml"
+REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+GROUP = '<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>'
+THEME = (
+    f'{XML_HEAD}<a:theme xmlns:a="{NS_A}" name="Snug"><a:themeElements>'
+    '<a:clrScheme name="Snug">'
+    '<a:dk1><a:srgbClr val="000000"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1>'
+    '<a:dk2><a:srgbClr val="1A0B00"/></a:dk2><a:lt2><a:srgbClr val="FFE2CE"/></a:lt2>'
+    + "".join(f'<a:accent{n}><a:srgbClr val="FF6200"/></a:accent{n}>' for n in range(1, 7))
+    + '<a:hlink><a:srgbClr val="169C59"/></a:hlink><a:folHlink><a:srgbClr val="127D47"/>'
+    "</a:folHlink></a:clrScheme>"
+    '<a:fontScheme name="Snug">'
+    + "".join(
+        f'<a:{kind}><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:{kind}>'
+        for kind in ("majorFont", "minorFont")
+    )
+    + '</a:fontScheme><a:fmtScheme name="Snug">'
+    + "<a:fillStyleLst>"
+    + '<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>' * 3
+    + "</a:fillStyleLst><a:lnStyleLst>"
+    + '<a:ln w="9525"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>' * 3
+    + "</a:lnStyleLst><a:effectStyleLst>"
+    + "<a:effectStyle><a:effectLst/></a:effectStyle>" * 3
+    + "</a:effectStyleLst><a:bgFillStyleLst>"
+    + '<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>' * 3
+    + "</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>"
+)
+
+
+def _title(number: int) -> str:
+    """A slide's spTree with one text box, as PowerPoint writes a title."""
+    return (
+        f'<p:spTree>{GROUP}<p:sp><p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr/>'
+        '<p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="457200" y="457200"/>'
+        '<a:ext cx="8229600" cy="1143000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/>'
+        "</a:prstGeom></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r>"
+        f'<a:rPr lang="en-GB" sz="3200"/><a:t>Slide {number}</a:t></a:r></a:p></p:txBody>'
+        "</p:sp></p:spTree>"
+    )
+
+
 def make_pptx(
     slides: int = 3,
     *,
     main: str = PPTX_MAIN,
     slide_rels: tuple[str, ...] = (),
-    slide_body: str = "<p:spTree/>",
+    slide_body: str | None = None,
 ) -> bytes:
-    """A presentation with this many slides; the first has these relationships and shapes."""
-    types = [f'<Override PartName="/ppt/presentation.xml" ContentType="{main}"/>']
-    ids, links, parts = [], [], {}
+    """A presentation as PowerPoint writes one: a master, a layout, a theme and titled slides.
+
+    The first slide has `slide_rels` beside its layout, and `slide_body` in
+    place of its title, if given.
+    """
+    names = f'xmlns:a="{NS_A}" xmlns:r="{NS_R}" xmlns:p="{NS_P}"'
+    types = [
+        f'<Override PartName="/ppt/presentation.xml" ContentType="{main}"/>',
+        '<Override PartName="/ppt/slideMasters/slideMaster1.xml" '
+        f'ContentType="{PRESENTATIONML}.slideMaster+xml"/>',
+        '<Override PartName="/ppt/slideLayouts/slideLayout1.xml" '
+        f'ContentType="{PRESENTATIONML}.slideLayout+xml"/>',
+        '<Override PartName="/ppt/theme/theme1.xml" '
+        'ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>',
+    ]
+    layout = relationship("rIdLayout", f"{REL}/slideLayout", "../slideLayouts/slideLayout1.xml")
+    ids, links = (
+        [],
+        [
+            relationship("rIdMaster", f"{REL}/slideMaster", "slideMasters/slideMaster1.xml"),
+            relationship("rIdTheme", f"{REL}/theme", "theme/theme1.xml"),
+        ],
+    )
+    parts: dict[str, bytes] = {}
     for number in range(1, slides + 1):
         types.append(f'<Override PartName="/ppt/slides/slide{number}.xml" ContentType="{SLIDE}"/>')
         ids.append(f'<p:sldId id="{255 + number}" r:id="rId{number}"/>')
         links.append(relationship(f"rId{number}", REL_SLIDE, f"slides/slide{number}.xml"))
-        shapes = slide_body if number == 1 else "<p:spTree/>"
+        shapes = slide_body if number == 1 and slide_body is not None else _title(number)
         parts[f"ppt/slides/slide{number}.xml"] = (
-            f'{XML_HEAD}<p:sld xmlns:p="{NS_P}" xmlns:a="{NS_A}" xmlns:r="{NS_R}">'
-            f"<p:cSld>{shapes}</p:cSld></p:sld>"
+            f"{XML_HEAD}<p:sld {names}><p:cSld>{shapes}</p:cSld>"
+            "<p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>"
         ).encode()
-    if slide_rels:
-        parts["ppt/slides/_rels/slide1.xml.rels"] = rels_part(*slide_rels)
+        extra = slide_rels if number == 1 else ()
+        parts[f"ppt/slides/_rels/slide{number}.xml.rels"] = rels_part(layout, *extra)
     parts["ppt/presentation.xml"] = (
-        f'{XML_HEAD}<p:presentation xmlns:p="{NS_P}" xmlns:r="{NS_R}">'
-        f"<p:sldIdLst>{''.join(ids)}</p:sldIdLst></p:presentation>"
+        f"{XML_HEAD}<p:presentation {names}><p:sldMasterIdLst>"
+        '<p:sldMasterId id="2147483648" r:id="rIdMaster"/></p:sldMasterIdLst>'
+        f"<p:sldIdLst>{''.join(ids)}</p:sldIdLst>"
+        '<p:sldSz cx="9144000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/>'
+        "</p:presentation>"
     ).encode()
     parts["ppt/_rels/presentation.xml.rels"] = rels_part(*links)
+    parts["ppt/slideMasters/slideMaster1.xml"] = (
+        f"{XML_HEAD}<p:sldMaster {names}><p:cSld><p:spTree>{GROUP}</p:spTree></p:cSld>"
+        '<p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" '
+        'accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" '
+        'folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rIdLayout"/>'
+        "</p:sldLayoutIdLst></p:sldMaster>"
+    ).encode()
+    parts["ppt/slideMasters/_rels/slideMaster1.xml.rels"] = rels_part(
+        relationship("rIdLayout", f"{REL}/slideLayout", "../slideLayouts/slideLayout1.xml"),
+        relationship("rIdTheme", f"{REL}/theme", "../theme/theme1.xml"),
+    )
+    parts["ppt/slideLayouts/slideLayout1.xml"] = (
+        f'{XML_HEAD}<p:sldLayout {names} type="blank"><p:cSld name="Blank"><p:spTree>{GROUP}'
+        "</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>"
+    ).encode()
+    parts["ppt/slideLayouts/_rels/slideLayout1.xml.rels"] = rels_part(
+        relationship("rIdMaster", f"{REL}/slideMaster", "../slideMasters/slideMaster1.xml")
+    )
+    parts["ppt/theme/theme1.xml"] = THEME.encode()
     rels = [relationship("rId1", REL_DOC, "ppt/presentation.xml")]
     return _zip(types, rels, parts)
 
