@@ -419,7 +419,7 @@ def entry(request: HttpRequest, access: Access, token: str) -> HttpResponse:
     number = _page_number(request.GET.get("page", ""), count)
     sizes = version.page_sizes
     # Every upload records its page sizes; a 16:9 page if one is somehow missing.
-    page_width, page_height = sizes[number - 1] if len(sizes) >= number else (16, 9)
+    page_width, page_height = version.shown_size(number) if len(sizes) >= number else (16, 9)
     big = max(RENDER_WIDTHS)
 
     image = urls.image

@@ -24,7 +24,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from snug.documents import storage
-from snug.documents.models import DocumentVersion
+from snug.documents.models import SHEET_WIDTH, DocumentVersion
 from snug.rendering import sandbox
 
 if TYPE_CHECKING:
@@ -48,7 +48,8 @@ def page_image(version: DocumentVersion, page: int, width: int = DEFAULT_WIDTH) 
     target = storage.render_path(version, page, width)
     if target.exists():
         return target
-    _write(target, sandbox.render(storage.pdf_path(version), page, width))
+    at_least = SHEET_WIDTH if version.is_workbook else 0
+    _write(target, sandbox.render(storage.pdf_path(version), page, width, at_least=at_least))
     return target
 
 

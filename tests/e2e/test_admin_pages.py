@@ -1,7 +1,11 @@
 """Admin pages in a real browser: what only a click can prove under the CSP."""
 
+import contextlib
 import os
 import re
+import threading
+import time
+from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -561,22 +565,13 @@ def test_the_overview_shows_the_version_under_the_status(
         page.locator("main").screenshot(path=f"{shots}/overview-version.png")
 
 
-def test_an_office_preview_arrives_while_the_founder_writes_its_description(
-    live_server: Any, page: Page, data_folder: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Asked for 12 November 2026: configure the document while it converts, with real clicks.
-
-    A stand-in converter answers each job after a few seconds. The panel
-    moves through its stages by itself, and the description being typed
-    is still there when the first page arrives.
-    """
+@contextlib.contextmanager
+def stand_in_converter(data_folder: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """A converter that answers each job with a three-page PDF after a few seconds."""
     import dataclasses
-    import threading
-    import time
 
     from django.conf import settings
 
-    from tests.office_files import make_pptx
     from tests.pdfs import make_pdf
 
     office = data_folder / "office"
@@ -600,20 +595,40 @@ def test_an_office_preview_arrives_while_the_founder_writes_its_description(
     thread = threading.Thread(target=converter, daemon=True)
     thread.start()
     try:
-        sign_in(live_server, page)
-        page.goto(f"{live_server.url}/admin/documents/new")
-        page.get_by_label("Title").fill("Board deck")
-        page.get_by_label("File").set_input_files(
-            files=FilePayload(
-                name="Board deck.pptx",
-                mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                buffer=make_pptx(3),
-            )
+        yield
+    finally:
+        stop.set()
+        thread.join(timeout=5)
+
+
+def upload_deck(live_server: Any, page: Page) -> None:
+    from tests.office_files import make_pptx
+
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/documents/new")
+    page.get_by_label("Title").fill("Board deck")
+    page.get_by_label("File").set_input_files(
+        files=FilePayload(
+            name="Board deck.pptx",
+            mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            buffer=make_pptx(3),
         )
-        page.get_by_role("button", name="Upload").click()
-        expect(page.locator(".notice-ok")).to_contain_text(
-            "Its preview is being made.", timeout=15000
-        )
+    )
+    page.get_by_role("button", name="Upload").click()
+    expect(page.locator(".notice-ok")).to_contain_text("Its preview is being made.", timeout=15000)
+
+
+def test_an_office_preview_arrives_while_the_founder_writes_its_description(
+    live_server: Any, page: Page, data_folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Asked for 12 November 2026: configure the document while it converts, with real clicks.
+
+    The panel moves through its stages by itself, and the description being
+    typed is still there when the first page arrives, with a note to save it
+    and reload for the rest of the page.
+    """
+    with stand_in_converter(data_folder, monkeypatch):
+        upload_deck(live_server, page)
         stage = page.locator("[data-preview-stage]")
         expect(stage).to_contain_text("Converting in LibreOffice", timeout=10000)
         typing = page.get_by_label("What investors should know")
@@ -621,9 +636,22 @@ def test_an_office_preview_arrives_while_the_founder_writes_its_description(
         expect(page.locator("#preview img")).to_be_visible(timeout=30000)
         expect(page.locator("#preview")).to_contain_text("Ready, 3 pages.")
         expect(typing).to_have_value("Start at slide 3.")  # left alone while the panel changed
-    finally:
-        stop.set()
-        thread.join(timeout=5)
+        expect(page.locator("[data-preview-reload]")).to_be_visible()
+        expect(page.locator("[data-preview-reload]")).to_contain_text("Save the description")
+
+
+def test_the_whole_page_catches_up_when_a_preview_arrives(
+    live_server: Any, page: Page, data_folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Found on the rc.3 server, 12 November 2026: only the panel changed, and
+    # the rest of the page still described a download until it was reloaded.
+    with stand_in_converter(data_folder, monkeypatch):
+        upload_deck(live_server, page)
+        description = page.locator("#description .section-head")
+        expect(description).to_contain_text("above the download button")
+        expect(page.locator("#preview")).to_contain_text("Ready, 3 pages.", timeout=30000)
+        expect(description).to_contain_text("beside the pages", timeout=10000)
+        expect(page.locator("[data-preview-reload]")).to_be_hidden()
 
 
 def test_office_previews_are_turned_off_in_settings_with_a_click(

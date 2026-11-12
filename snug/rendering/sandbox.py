@@ -286,9 +286,13 @@ def inspect(pdf: os.PathLike[str] | str) -> dict[str, Any]:
     return facts
 
 
-def render(pdf: os.PathLike[str] | str, page: int, width: int) -> bytes:
-    """The page as WebP bytes. Only the container format is checked; nothing is decoded."""
-    image = run(pdf, "render", str(page), str(width), timeout=RENDER_TIMEOUT)
+def render(pdf: os.PathLike[str] | str, page: int, width: int, *, at_least: int = 0) -> bytes:
+    """The page as WebP bytes. Only the container format is checked; nothing is decoded.
+
+    A page narrower than `at_least` points is drawn on a white page that wide.
+    """
+    extra = (str(at_least),) if at_least else ()
+    image = run(pdf, "render", str(page), str(width), *extra, timeout=RENDER_TIMEOUT)
     if len(image) > OUTPUT_BYTES or image[:4] != b"RIFF" or image[8:12] != b"WEBP":
         raise WorkerError("unreadable")
     return image

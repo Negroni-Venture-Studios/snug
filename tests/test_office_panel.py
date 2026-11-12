@@ -152,3 +152,38 @@ def test_without_the_converter_there_is_no_panel(
     deck = Document.objects.create(title="Board deck")
     upload(deck, make_pptx(3))
     assert 'id="preview"' not in detail(admin_browser, deck)
+
+
+# ---------------------------------------------------------------- the upload page
+
+
+NEW = "/admin/documents/new"
+PAGE_BY_PAGE = "Investors read a PDF, Word, PowerPoint or Excel file page by page"
+DOWNLOADED = "download a Word, PowerPoint or Excel file to open in its own app"
+
+
+def test_with_previews_the_upload_page_says_office_files_are_read_page_by_page(
+    converter: Converter, admin_browser: Client
+) -> None:
+    # Found on the rc.3 server, 12 November 2026: it said they were downloaded.
+    page = admin_browser.get(NEW, secure=True).content.decode()
+    assert PAGE_BY_PAGE in page and DOWNLOADED not in page
+
+
+def test_with_previews_off_the_upload_page_says_office_files_are_downloaded(
+    converter: Converter, admin_browser: Client
+) -> None:
+    from snug.core.models import SiteSettings
+
+    site = SiteSettings.load()
+    site.office_previews = False
+    site.save()
+    page = admin_browser.get(NEW, secure=True).content.decode()
+    assert DOWNLOADED in page and PAGE_BY_PAGE not in page
+
+
+def test_without_the_converter_the_upload_page_says_office_files_are_downloaded(
+    data_folder: object, admin_browser: Client
+) -> None:
+    page = admin_browser.get(NEW, secure=True).content.decode()
+    assert DOWNLOADED in page and PAGE_BY_PAGE not in page

@@ -6,7 +6,7 @@ LibreOffice is optional, and runs in a container of its own under gVisor, with n
 
 ## What investors see
 
-A presentation, document or workbook opens in the reader, one page at a time. Each slide is a page. Each sheet of a workbook is one page, sized to the sheet, so its columns are never split across pages; a long or wide sheet is shown smaller. The *Download* button gives the file itself, with the investor's email address, the date and the link written into its document properties.
+A presentation, document or workbook opens in the reader, one page at a time. Each slide is a page. Each sheet of a workbook is one page, sized to the sheet, so its columns are never split across pages; a long or wide sheet is shown smaller, and a small one at its own size, on a page as wide as A4. The *Download* button gives the file itself, with the investor's email address, the date and the link written into its document properties.
 
 Until a file's preview is ready, or if one could not be made, investors see the file's card, with your description and a download button.
 

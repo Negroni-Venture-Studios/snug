@@ -98,6 +98,13 @@ def enabled() -> bool:
     return bool(settings.CONFIG.office)
 
 
+def shown() -> bool:
+    """Whether investors read Office files page by page: installed, and on in Settings."""
+    from snug.core.models import SiteSettings
+
+    return enabled() and SiteSettings.load().office_previews
+
+
 def wanted(kind: str) -> bool:
     """Whether a new version of this kind is queued for a preview."""
     return enabled() and kind in OFFICE

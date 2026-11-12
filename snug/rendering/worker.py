@@ -329,17 +329,34 @@ def inspect(data: bytes) -> dict[str, Any]:
     return {"pages": count, "sizes": sizes}
 
 
-def render(data: bytes, page: int, width: int) -> bytes:
+# The widest page a minimum may ask for, in points: A0 is 2,384.
+MAX_AT_LEAST = 2400
+
+
+def render(data: bytes, page: int, width: int, at_least: int = 0) -> bytes:
+    """The page as WebP, `width` pixels wide.
+
+    A page narrower than `at_least` points is drawn at the scale of one that
+    wide, at the top left of a white page: a workbook's small sheet stays at
+    its own size instead of filling the reader.
+    """
     pdf = _open(data)
     if not 1 <= page <= len(pdf):
         raise _Refused("no_such_page")
     pdf_page = pdf[page - 1]
     page_width, page_height = pdf_page.get_size()
-    scale = width / page_width
-    if (page_width * scale) * (page_height * scale) > MAX_PIXELS:
-        scale = (MAX_PIXELS / (page_width * page_height)) ** 0.5
-    scale = min(scale, MAX_SIDE / max(page_width, page_height))
+    shown_width = max(page_width, at_least)
+    scale = width / shown_width
+    if (shown_width * scale) * (page_height * scale) > MAX_PIXELS:
+        scale = (MAX_PIXELS / (shown_width * page_height)) ** 0.5
+    scale = min(scale, MAX_SIDE / max(shown_width, page_height))
     image = pdf_page.render(scale=scale, may_draw_forms=True).to_pil().convert("RGB")
+    if shown_width > page_width:
+        from PIL import Image
+
+        page_image = Image.new("RGB", (round(shown_width * scale), image.height), "white")
+        page_image.paste(image, (0, 0))
+        image = page_image
     out = io.BytesIO()
     image.save(out, "WEBP", quality=85, method=4)
     return out.getvalue()
@@ -673,7 +690,7 @@ def main(argv: list[str], *, confined: bool = True) -> int:
         return 0
     preload(argv[0] if argv else "")
     try:
-        page = width = 0
+        page = width = at_least = 0
         font = b""
         if len(argv) == 2 and argv[0] == "inspect-mp4":
             return _inspect_mp4(
@@ -686,8 +703,11 @@ def main(argv: list[str], *, confined: bool = True) -> int:
             mode = argv[0]
         elif len(argv) == 5 and argv[0] == "stamp-office":
             mode = "stamp-office"
-        elif len(argv) == 4 and argv[0] == "render":
+        elif len(argv) in (4, 5) and argv[0] == "render":
             mode, page, width = "render", int(argv[2]), int(argv[3])
+            at_least = int(argv[4]) if len(argv) == 5 else 0
+            if not 0 <= at_least <= MAX_AT_LEAST:
+                return _fail("usage")
         elif len(argv) == 6 and argv[0] == "stamp":
             mode = "stamp"
             with os.fdopen(int(argv[2]), "rb") as font_file:
@@ -711,7 +731,7 @@ def main(argv: list[str], *, confined: bool = True) -> int:
                 email, date, ref = _stamp_text(argv[2], argv[3], argv[4])
                 output = ooxml.stamp(data, email=email, date=date, ref=ref)
             elif mode == "render":
-                output = render(data, page, width)
+                output = render(data, page, width, at_least)
             elif mode == "stamp":
                 output = stamp(data, font, argv[3], argv[4], argv[5])
             elif mode == "logo":

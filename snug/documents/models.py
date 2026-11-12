@@ -30,6 +30,10 @@ def new_stored_name(extension: str = "pdf") -> str:
 MAX_DESCRIPTION = 1000
 # A video is counted in parts of this many seconds, each treated as a page.
 PART_SECONDS = 10
+# The narrowest a workbook's page is shown, in points: an A4 page's width.
+# LibreOffice sizes each sheet's page to its cells, so a small sheet would
+# otherwise be drawn as wide as the reader (snug.rendering.worker.render).
+SHEET_WIDTH = 595
 
 
 @dataclass(frozen=True)
@@ -181,6 +185,11 @@ class DocumentVersion(models.Model):
         from snug.core.models import SiteSettings
 
         return SiteSettings.load().office_previews
+
+    def shown_size(self, page: int) -> tuple[float, float]:
+        """A page's size as it is drawn, in points: a workbook's sheets at least A4-wide."""
+        width, height = self.page_sizes[page - 1]
+        return (max(width, SHEET_WIDTH), height) if self.is_workbook else (width, height)
 
     @property
     def is_workbook(self) -> bool:

@@ -142,10 +142,29 @@
           current.replaceWith(fresh);
           wire(fresh);
           if (!fresh.hasAttribute('data-preview-poll')) window.clearInterval(timer);
+          // Ready: the rest of the page describes a download until it is drawn
+          // again, so reload it, unless that would lose something unsaved.
+          if (fresh.hasAttribute('data-preview-ready')) {
+            var note = fresh.querySelector('[data-preview-reload]');
+            if (unsaved()) { if (note) note.hidden = false; } else { window.location.reload(); }
+          }
         })
         .catch(function () { /* try again on the next tick */ })
         .then(function () { asking = false; });
     }, 2000);
+  }
+
+  // Typed or chosen on this page and not yet sent.
+  function unsaved() {
+    var fields = document.querySelectorAll('main textarea, main input');
+    for (var i = 0; i < fields.length; i++) {
+      var field = fields[i];
+      if (field.type === 'file' ? field.files && field.files.length : field.type !== 'hidden' &&
+          field.type !== 'checkbox' && field.type !== 'radio' && field.value !== field.defaultValue) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function wire(root) {

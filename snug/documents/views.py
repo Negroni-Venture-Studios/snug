@@ -140,6 +140,7 @@ def document_new(request: HttpRequest) -> HttpResponse:
         "limit_mb": _limit_mb(),
         "video_mb": settings.MAX_VIDEO_BYTES // (1024 * 1024),
         "title": "",
+        "office_pages": previews.shown(),
     }
     if request.method == "GET":
         return render(request, "documents/new.html", context)
@@ -244,7 +245,7 @@ def _preview_panel(request: HttpRequest, document: Document) -> dict[str, Any] |
         ),
     }
     if panel["ready"] and subject.page_sizes:
-        width, height = subject.page_sizes[0]
+        width, height = subject.shown_size(1)
         panel["size"] = {"width": PREVIEW_WIDTH, "height": round(PREVIEW_WIDTH * height / width)}
     return panel
 
@@ -256,7 +257,7 @@ def _detail_context(request: HttpRequest, document: Document) -> dict[str, Any]:
     latest = document.latest_version()
     preview: dict[str, Any] | None = None
     if latest and latest.page_sizes:
-        width, height = latest.page_sizes[0]
+        width, height = latest.shown_size(1)
         preview = {"width": PREVIEW_WIDTH, "height": round(PREVIEW_WIDTH * height / width)}
     return {
         "tab": "documents",
