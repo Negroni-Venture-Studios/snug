@@ -162,8 +162,10 @@ jobs:
           echo "$report"
           echo "$report" | grep -q '^ok        Housekeeping'
           echo "$report" | grep -q '^ok        Backups'
-          echo "$report" | grep -q '^ok        Document worker  Documents are read in a confined worker (landlock v'
+          # Columns are padded to the longest label, so any run of spaces separates them.
+          echo "$report" | grep -Eq '^ok +Document worker +Documents are read in a confined worker \(landlock v'
           echo "$report" | grep -q '^skipped   HTTPS'
+          echo "$report" | grep -Eq '^skipped +Office converter +Not installed'
           # On localhost without SMTP, emails go to the outbox folder.
           echo "$report" | grep -q '^ok        Email'
           echo "$report" | grep -q '^Everything is working.$'
