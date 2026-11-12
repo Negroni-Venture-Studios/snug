@@ -237,7 +237,14 @@ def _main_part(package: zipfile.ZipFile) -> tuple[str, str]:
     )
     if found is None or main not in folded:
         raise Refused("not_office")
-    _check_content(package, found, hyperlinks)
+    xml_parts = [
+        name
+        for name, folded_name in zip(names, folded, strict=True)
+        if not folded_name.endswith(".rels")
+        and name != CONTENT_TYPES
+        and "xml" in overrides.get(folded_name, defaults.get(folded_name.rpartition(".")[2], ""))
+    ]
+    _check_content(package, xml_parts, hyperlinks)
     return names[folded.index(main)], found
 
 
@@ -292,6 +299,16 @@ def _local(name: str) -> str:
 
 
 _FIELD_WORDS = re.compile(r'"([^"]*)"|(\S+)')
+# A field switch is a backslash and one character, such as \d or \*; anything
+# else starting with a backslash, such as \\server\share, is an argument.
+_SWITCH = re.compile(r"^\\[A-Za-z*#@!]$")
+# A keyword already written in full, before any nested field: " IF ", not " INCLUDE".
+_KEYWORD = re.compile(r"\s*(\S+)\s")
+
+
+def _check_keyword(keyword: str) -> None:
+    if keyword.upper() in DDE_FIELDS:
+        raise Refused("dde")
 
 
 def _check_field(instruction: str) -> None:
@@ -300,23 +317,68 @@ def _check_field(instruction: str) -> None:
     if not words:
         return
     keyword = "".join(words[0]).upper()
-    if keyword in DDE_FIELDS:
-        raise Refused("dde")
-    # A switch such as \d is bare; a quoted argument is a path or URL, whatever it starts with.
-    arguments = [
-        quoted or bare for quoted, bare in words[1:] if quoted or not bare.startswith("\\")
-    ]
+    _check_keyword(keyword)
+    arguments = [quoted or bare for quoted, bare in words[1:] if quoted or not _SWITCH.match(bare)]
     if keyword in FETCHING_FIELDS and any(_remote(argument) for argument in arguments):
         raise Refused("external")
 
 
-def _check_fields(package: zipfile.ZipFile, name: str) -> None:
-    """Every field in one Word part, simple or written across runs between fldChar marks."""
-    fields: list[tuple[list[str], list[bool]]] = []  # (instruction so far, still open)
+class _Field:
+    """One Word field while it is read: its instruction so far, and what is known of it."""
+
+    def __init__(self) -> None:
+        self.instruction: list[str] = []
+        self.reading = True  # still in its instruction, before its separate mark
+        self.nested = False  # its instruction holds another field, so its words are not final
+
+
+def _open_field(fields: list[_Field]) -> None:
+    """A field begins. Inside another field's instruction, that field's keyword must be settled.
+
+    { INCLUDEPICTURE "{ QUOTE "http://..." }" } builds its address from a
+    nested field, and { { QUOTE "INCLUDE" }PICTURE ... } its keyword, so
+    neither can be read. A field with something nested in its instruction is
+    allowed only if its keyword is already written in full and is one that
+    never fetches or starts anything, such as IF in a mail merge.
+    """
+    if fields and fields[-1].reading:
+        written = _KEYWORD.match("".join(fields[-1].instruction))
+        if written is None:
+            raise Refused("field")
+        keyword = written.group(1).upper()
+        _check_keyword(keyword)
+        if keyword in FETCHING_FIELDS:
+            raise Refused("external")
+        fields[-1].nested = True
+    fields.append(_Field())
+
+
+def _close_instruction(field: _Field) -> None:
+    if field.reading:
+        field.reading = False
+        if not field.nested:  # a nested field's outer keyword was checked when it opened
+            _check_field("".join(field.instruction))
+
+
+def _check_part(package: zipfile.ZipFile, name: str, ids: set[str]) -> None:
+    """One XML part, read once in a stream, for everything its relationships cannot show.
+
+    - Word fields, simple or written across runs between fldChar marks.
+    - Excel's DDE and OLE links, which start or reach another program.
+    - Any use of a relationship typed as a hyperlink (`ids`) by something
+      other than a hyperlink, in an attribute of any namespace.
+    """
+    fields: list[_Field] = []
     in_instruction = [False]
 
     def start(tag: str, attributes: dict[str, str]) -> None:
         local = _local(tag)
+        if local not in HYPERLINK_ELEMENTS and ids and not ids.isdisjoint(attributes.values()):
+            raise Refused("external")
+        if local in DDE_ELEMENTS:
+            raise Refused("dde")
+        if not tag.startswith(f"{NS_W}}}"):
+            return
         if local == "fldSimple":
             _check_field(attributes.get(f"{NS_W}}}instr", ""))
         elif local == "instrText":
@@ -324,64 +386,32 @@ def _check_fields(package: zipfile.ZipFile, name: str) -> None:
         elif local == "fldChar":
             kind = attributes.get(f"{NS_W}}}fldCharType", "")
             if kind == "begin":
-                fields.append(([], [True]))
+                _open_field(fields)
             elif kind in ("separate", "end") and fields:
-                instruction, still_open = fields[-1]
-                if still_open[0]:
-                    _check_field("".join(instruction))
-                    still_open[0] = False
+                _close_instruction(fields[-1])
                 if kind == "end":
                     fields.pop()
 
     def end(tag: str) -> None:
-        if _local(tag) == "instrText":
+        if tag == f"{NS_W}}}instrText":
             in_instruction[0] = False
 
     def text(data: str) -> None:
-        if in_instruction[0] and fields and fields[-1][1][0]:
-            fields[-1][0].append(data)
+        if in_instruction[0] and fields and fields[-1].reading:
+            fields[-1].instruction.append(data)
 
     _stream(package, name, start, end=end, text=text)
-    for instruction, still_open in fields:  # a field never closed is still checked
-        if still_open[0]:
-            _check_field("".join(instruction))
+    for field in fields:  # a field never closed is still checked
+        _close_instruction(field)
 
 
-def _check_hyperlink_users(package: zipfile.ZipFile, name: str, ids: set[str]) -> None:
-    """Only a hyperlink element may use a relationship typed as a hyperlink."""
-
-    def start(tag: str, attributes: dict[str, str]) -> None:
-        if _local(tag) in HYPERLINK_ELEMENTS:
-            return
-        for key, value in attributes.items():
-            if key.startswith(f"{NS_R}}}") and value in ids:
-                raise Refused("external")
-
-    _stream(package, name, start)
-
-
-def _check_external_links(package: zipfile.ZipFile, name: str) -> None:
-    """A workbook's DDE or OLE link starts or reaches another program when it opens."""
-
-    def start(tag: str, attributes: dict[str, str]) -> None:
-        if _local(tag) in DDE_ELEMENTS:
-            raise Refused("dde")
-
-    _stream(package, name, start)
-
-
-def _check_content(package: zipfile.ZipFile, found: str, hyperlinks: dict[str, set[str]]) -> None:
-    """What the relationships cannot show: fields, DDE links, and borrowed hyperlinks."""
-    by_folded = {name.casefold(): name for name in package.namelist()}
-    for source, ids in hyperlinks.items():
-        name = by_folded.get(source.casefold())
-        if name is not None:
-            _check_hyperlink_users(package, name, ids)
-    for folded, name in by_folded.items():
-        if found == "docx" and folded.startswith("word/") and folded.endswith(".xml"):
-            _check_fields(package, name)
-        elif found == "xlsx" and folded.startswith("xl/externallinks/") and folded.endswith(".xml"):
-            _check_external_links(package, name)
+def _check_content(
+    package: zipfile.ZipFile, xml_parts: list[str], hyperlinks: dict[str, set[str]]
+) -> None:
+    """Every XML part, whatever its folder: Office finds parts by relationship, not by path."""
+    by_folded = {source.casefold(): ids for source, ids in hyperlinks.items()}
+    for name in xml_parts:
+        _check_part(package, name, by_folded.get(name.casefold(), set()))
 
 
 def inspect(data: bytes) -> dict[str, object]:

@@ -538,3 +538,81 @@ def test_a_workbook_linked_to_another_program_is_refused(element: str) -> None:
         "</externalLink>"
     ).encode()
     assert refusal(make_xlsx(extra={"xl/externalLinks/externalLink1.xml": link})) == "dde"
+
+
+# ---------------------------------------------------------------- ways round those checks
+
+
+def nested(before: str, inner: str, after: str) -> str:
+    """A field whose instruction has another field inside it, as Word writes { A { B } C }."""
+    return (
+        '<w:p><w:r><w:fldChar w:fldCharType="begin"/></w:r>'
+        f'<w:r><w:instrText xml:space="preserve">{before}</w:instrText></w:r>'
+        '<w:r><w:fldChar w:fldCharType="begin"/></w:r>'
+        f'<w:r><w:instrText xml:space="preserve">{inner}</w:instrText></w:r>'
+        '<w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>x</w:t></w:r>'
+        '<w:r><w:fldChar w:fldCharType="end"/></w:r>'
+        f'<w:r><w:instrText xml:space="preserve">{after}</w:instrText></w:r>'
+        '<w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>y</w:t></w:r>'
+        '<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>'
+    )
+
+
+@pytest.mark.parametrize(
+    ("body", "code"),
+    [
+        # The address comes from a nested field, so the outer field cannot be checked.
+        (nested(' INCLUDEPICTURE "', ' QUOTE "https://tracker.example/p.png" ', '" '), "external"),
+        # The keyword itself is built by a nested field.
+        (nested(" ", ' QUOTE "INCLUDEPICTURE" ', ' "https://tracker.example/p.png" '), "field"),
+        (nested(" INCLUDE", ' QUOTE "PICTURE" ', ' "https://tracker.example/p.png" '), "field"),
+    ],
+)
+def test_a_field_built_from_other_fields_cannot_hide_what_it_does(body: str, code: str) -> None:
+    assert refusal(make_docx(body=body)) == code
+
+
+def test_a_mail_merge_if_field_is_fine() -> None:
+    body = nested(" IF ", " MERGEFIELD Name ", ' = "Ruth" "Dear Ruth" "Dear investor" ')
+    assert ooxml.inspect(make_docx(body=body)) == {"format": "docx"}
+
+
+def test_an_unquoted_network_path_is_not_mistaken_for_a_switch() -> None:
+    body = field(" INCLUDEPICTURE \\\\\\\\fileserver\\\\share\\\\p.png \\d ")
+    assert refusal(make_docx(body=body)) == "external"
+
+
+def test_fields_are_found_in_any_part_whatever_its_folder() -> None:
+    """Office finds parts by relationship, not folder, so every XML part is read."""
+    header = (
+        f'<?xml version="1.0"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/'
+        f'wordprocessingml/2006/main">{field(" DDEAUTO cmd /c calc ")}</w:hdr>'
+    ).encode()
+    data = make_docx(
+        document_rels=(
+            relationship(
+                "rId9",
+                "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header",
+                "../elsewhere/header.xml",
+            ),
+        ),
+        extra={"elsewhere/header.xml": header},
+    )
+    assert refusal(data) == "dde"
+
+
+def test_an_excel_link_to_another_program_is_found_wherever_it_is() -> None:
+    link = (
+        b'<?xml version="1.0"?><externalLink xmlns="http://schemas.openxmlformats.org/'
+        b'spreadsheetml/2006/main"><ddeLink ddeService="cmd" ddeTopic="/c calc"/></externalLink>'
+    )
+    assert refusal(make_xlsx(extra={"xl/elsewhere/link.xml": link})) == "dde"
+
+
+def test_a_hyperlink_cannot_be_borrowed_through_another_namespace() -> None:
+    link = relationship("rId7", REL_HYPERLINK, "https://tracker.example/pixel.png", external=True)
+    picture = (
+        '<p:spTree><p:pic><p:blipFill><a:blip xmlns:x="urn:example" x:link="rId7"/>'
+        "</p:blipFill></p:pic></p:spTree>"
+    )
+    assert refusal(make_pptx(slide_rels=(link,), slide_body=picture)) == "external"

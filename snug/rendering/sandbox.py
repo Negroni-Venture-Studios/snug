@@ -63,6 +63,10 @@ OFFICE_MESSAGES = {
         "This file asks Office to start another program when it is opened, through a DDE "
         "field or link. Remove it, then upload the file again."
     ),
+    "field": (
+        "This document has a field built from other fields, which Snug cannot check. Select "
+        "everything in Word and unlink its fields, so they become plain text, then upload it again."
+    ),
     "no_sheets": "This workbook has no visible sheets.",
     "no_slides": "This presentation has no slides.",
     "too_large": "This file unpacks to more than Snug allows.",
