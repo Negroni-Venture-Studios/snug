@@ -30,6 +30,7 @@ import re
 import resource
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -189,17 +190,50 @@ def convert(
             _kill(process)
             return "timeout"
         _kill(process)  # anything it left in its group
-        made = out / "input.pdf"
-        if code != 0 or not made.is_file():
+        if code != 0:
             return "unreadable"
-        if made.stat().st_size > MAX_PDF:
-            return "too_large"
-        data = made.read_bytes()
-        return data if data.startswith(b"%PDF-") else "unreadable"
+        return _read_output(out)
     except OSError:
         return "unreadable"
     finally:
         shutil.rmtree(work, ignore_errors=True)
+
+
+def _read_output(out: Path) -> bytes | str:
+    """The PDF LibreOffice wrote, read without following anything it could have planted.
+
+    LibreOffice runs as the supervisor's own user, so a hostile file could
+    swap the output folder or the PDF for a link, or leave a pipe that would
+    block a read. The folder and the file are opened without following
+    links, the file must be a regular one, and no more than MAX_PDF is read.
+    """
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    try:
+        folder = os.open(out, os.O_RDONLY | os.O_DIRECTORY | nofollow)
+    except OSError:
+        return "unreadable"
+    try:
+        handle = os.open("input.pdf", os.O_RDONLY | nofollow | os.O_NONBLOCK, dir_fd=folder)
+    except OSError:
+        return "unreadable"
+    finally:
+        os.close(folder)
+    try:
+        facts = os.fstat(handle)
+        if not stat.S_ISREG(facts.st_mode):
+            return "unreadable"
+        if facts.st_size > MAX_PDF:
+            return "too_large"
+        chunks, total = [], 0
+        while chunk := os.read(handle, 1024 * 1024):
+            total += len(chunk)
+            if total > MAX_PDF:
+                return "too_large"
+            chunks.append(chunk)
+    finally:
+        os.close(handle)
+    data = b"".join(chunks)
+    return data if data.startswith(b"%PDF-") else "unreadable"
 
 
 def _kill(process: subprocess.Popen[bytes]) -> None:

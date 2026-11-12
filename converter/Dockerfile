@@ -43,7 +43,7 @@ RUN touch /usr/local/lib/python3.14/site-packages/snug/__init__.py \
  && useradd --system --uid 10002 --gid office --home-dir /nonexistent --shell /usr/sbin/nologin office \
  # Mount points owned as Snug's are, whichever container first fills a new volume.
  && install --directory --owner 10001 --group 10001 --mode 0755 /exchange/inbox \
- && install --directory --owner 10001 --group 10001 --mode 0733 /exchange/outbox
+ && install --directory --owner 10001 --group 10001 --mode 1733 /exchange/outbox
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 USER office

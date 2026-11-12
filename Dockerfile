@@ -53,7 +53,7 @@ RUN groupadd --system --gid 10001 snug \
  # writes jobs to the inbox, which the converter only reads, and the converter
  # writes PDFs to the outbox, which it cannot list (docs/office.md).
  && install --directory --owner snug --group snug --mode 0755 /var/lib/snug-office/inbox \
- && install --directory --owner snug --group snug --mode 0733 /var/lib/snug-office/outbox
+ && install --directory --owner snug --group snug --mode 1733 /var/lib/snug-office/outbox
 
 COPY --from=build --chown=root:root /app /app
 

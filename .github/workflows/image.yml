@@ -272,31 +272,41 @@ jobs:
           open('samples/sample.docx', 'wb').write(make_docx())
           open('samples/sample.pptx', 'wb').write(make_pptx(12))
           open('samples/sample.xlsx', 'wb').write(make_xlsx((('Summary', 'visible'), ('Detail', 'visible'))))
+          # A field that would pull in a file on the converter's own disk, if links were updated.
+          field = (
+              '<w:p><w:r><w:fldChar w:fldCharType=\"begin\"/></w:r>'
+              '<w:r><w:instrText xml:space=\"preserve\"> INCLUDETEXT \"/etc/snug-office.json\" </w:instrText></w:r>'
+              '<w:r><w:fldChar w:fldCharType=\"separate\"/></w:r><w:r><w:t>placeholder</w:t></w:r>'
+              '<w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>'
+          )
+          open('samples/sample.linked', 'wb').write(make_docx(body=field))
           "
       - name: Convert each in a fresh gVisor container
         run: |
           mkdir -p exchange/inbox exchange/outbox
           chmod 0755 exchange/inbox
-          chmod 0733 exchange/outbox
-          for kind in docx pptx xlsx; do
-            token="smoke${kind}000000000000"
+          chmod 1733 exchange/outbox
+          for sample in docx pptx xlsx linked; do
+            kind=$sample
+            if [ "$sample" = linked ]; then kind=docx; fi
+            token="smoke${sample}000000000000"
             mkdir "exchange/inbox/$token"
-            cp "samples/sample.$kind" "exchange/inbox/$token/input.$kind"
+            cp "samples/sample.$sample" "exchange/inbox/$token/input.$kind"
             printf '{"kind": "%s"}' "$kind" > "exchange/inbox/$token/job.json"
             began=$(date +%s)
-            docker run --detach --name "office-$kind" --runtime=runsc --network=none --read-only \
+            docker run --detach --name "office-$sample" --runtime=runsc --network=none --read-only \
               --tmpfs /tmp:size=768m,mode=1777 --cap-drop=ALL --security-opt=no-new-privileges \
               --memory=1g --memory-swap=1g --pids-limit=256 --cpus=1 \
               -v "$PWD/exchange/inbox:/exchange/inbox:ro" -v "$PWD/exchange/outbox:/exchange/outbox" \
               snug-office:smoke
-            while [ "$(docker inspect -f '{{.State.Running}}' "office-$kind")" = true ]; do
-              used=$(docker stats --no-stream --format '{{.MemUsage}}' "office-$kind" | cut -d/ -f1)
-              echo "$kind: $used"
+            while [ "$(docker inspect -f '{{.State.Running}}' "office-$sample")" = true ]; do
+              used=$(docker stats --no-stream --format '{{.MemUsage}}' "office-$sample" | cut -d/ -f1)
+              echo "$sample: $used"
               sleep 1
             done
-            echo "$kind: container lived $(( $(date +%s) - began )) s, exit $(docker inspect -f '{{.State.ExitCode}}' "office-$kind")"
-            docker logs "office-$kind"
-            docker rm "office-$kind" > /dev/null
+            echo "$sample: container lived $(( $(date +%s) - began )) s, exit $(docker inspect -f '{{.State.ExitCode}}' "office-$sample")"
+            docker logs "office-$sample"
+            docker rm "office-$sample" > /dev/null
             if [ -f "exchange/outbox/$token.error" ]; then cat "exchange/outbox/$token.error"; exit 1; fi
             head -c 5 "exchange/outbox/$token.pdf" | grep -q '%PDF-'
             pdfinfo "exchange/outbox/$token.pdf" | grep -E '^(Pages|Page size)'
@@ -310,6 +320,10 @@ jobs:
           print('LibreOffice', status['libreoffice'], 'built', status['built'], 'kernel', status['kernel'])
           "
           test "$(pdfinfo exchange/outbox/smokepptx000000000000.pdf | awk '/^Pages/ {print $2}')" = 12
+          # Links are never updated: the field shows its placeholder, not the file.
+          pdftotext exchange/outbox/smokelinked000000000000.pdf - | tee linked.txt
+          grep -q placeholder linked.txt
+          if grep -q libreoffice linked.txt; then echo "the linked file was pulled into the PDF"; exit 1; fi
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e  # v10.3.2
       - name: Snug's confined worker reads each PDF
         run: |

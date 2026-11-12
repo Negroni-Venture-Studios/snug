@@ -69,6 +69,23 @@ if data == b"slow":
     time.sleep(60)
 if data == b"fail":
     sys.exit(1)
+made = os.path.join(out, "input.pdf")
+if data == b"symlink":
+    elsewhere = os.path.join(os.path.dirname(out), "elsewhere.pdf")
+    open(elsewhere, "wb").write(b"%PDF-1.7 a file outside the output folder")
+    os.symlink(elsewhere, made)
+    sys.exit(0)
+if data == b"fifo":
+    os.mkfifo(made)
+    sys.exit(0)
+if data == b"dirlink":
+    os.rename(out, out + ".real")
+    os.symlink(out + ".real", out)
+    open(os.path.join(out + ".real", "input.pdf"), "wb").write(b"%PDF-1.7 via a link")
+    sys.exit(0)
+if data == b"big":
+    open(made, "wb").write(b"%PDF-1.7\\n" + b"x" * 4096)
+    sys.exit(0)
 body = b"junk" if data == b"junk" else b"%PDF-1.7\\n"
 record = {"args": args, "env": dict(os.environ), "cwd": os.getcwd()}
 with open(os.path.join(out, "input.pdf"), "wb") as made:
@@ -258,3 +275,37 @@ def test_if_libreoffice_cannot_be_confined_the_file_is_not_converted(
         job, work_root=work, template=template, soffice=soffice, confine=refuse
     )
     assert result == "unconfined"
+
+
+@pytest.mark.parametrize(
+    ("data", "code"),
+    [(b"symlink", "unreadable"), (b"fifo", "unreadable"), (b"dirlink", "unreadable")],
+)
+def test_the_output_must_be_a_plain_file_in_the_folder_given(
+    exchange: tuple[Path, ...], soffice: str, data: bytes, code: str
+) -> None:
+    """LibreOffice runs as the same user, so a hostile file could leave a link or a pipe instead."""
+    inbox, outbox, work, template = exchange
+    put_job(inbox, TOKEN, "docx", data)
+    job = supervisor.next_job(inbox, outbox)
+    assert job is not None
+    began = time.monotonic()
+    result = supervisor.convert(
+        job, work_root=work, template=template, soffice=soffice, confine=None
+    )
+    assert result == code
+    assert time.monotonic() - began < 15  # a pipe never stalls the supervisor
+
+
+def test_an_output_over_the_limit_is_refused_without_reading_it_all(
+    exchange: tuple[Path, ...], soffice: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(supervisor, "MAX_PDF", 1024)
+    inbox, outbox, work, template = exchange
+    put_job(inbox, TOKEN, "docx", b"big")
+    job = supervisor.next_job(inbox, outbox)
+    assert job is not None
+    result = supervisor.convert(
+        job, work_root=work, template=template, soffice=soffice, confine=None
+    )
+    assert result == "too_large"
