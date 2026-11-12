@@ -59,6 +59,15 @@ def preview_path(version: DocumentVersion) -> Path:
     return _inside(previews_dir(), previews_dir() / f"{int(version.pk)}.pdf")
 
 
+def pdf_path(version: DocumentVersion) -> Path:
+    """The PDF a version's pages are rendered from: the upload, or an Office file's preview."""
+    return (
+        original_path(version)
+        if version.kind == DocumentVersion.Kind.PDF
+        else preview_path(version)
+    )
+
+
 def render_path(version: DocumentVersion, page: int, width: int) -> Path:
     if version.pk is None:
         raise ValueError("Version is not saved.")

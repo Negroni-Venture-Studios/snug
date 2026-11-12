@@ -170,6 +170,8 @@ def _context(link: Link, token: str, **extra: Any) -> dict[str, Any]:
         "room": link.room,
         "pages": version.page_count if version else None,
         "office": version.office if version else None,
+        # An Office file shown as pages, from its preview: read like a PDF, downloaded as itself.
+        "previewed": bool(version and version.is_office and version.reads_as_pages),
         "video": bool(version and version.is_video),
         "length": version.length if version and version.is_video else "",
         "room_documents": link.room.entries.count() if link.room is not None else None,
@@ -405,7 +407,7 @@ def entry(request: HttpRequest, access: Access, token: str) -> HttpResponse:
     version = access.document.latest_version()
     if version is None:
         return render(request, "viewer/reader.html", context)
-    if version.is_office:
+    if version.is_office and not version.reads_as_pages:
         return _office_card(request, access, token, version, context)
     if version.is_video:
         return _video_player(request, access, token, version, context)
@@ -459,7 +461,7 @@ def page_image(
     if access.document is None:
         raise Http404
     version = access.document.latest_version()
-    if version is None or version.kind != DocumentVersion.Kind.PDF or width not in RENDER_WIDTHS:
+    if version is None or not version.reads_as_pages or width not in RENDER_WIDTHS:
         raise Http404
     if not 1 <= page <= version.page_count:
         raise Http404

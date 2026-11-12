@@ -195,7 +195,7 @@ def test_a_workbook_link_shows_a_card_with_its_sheets(model: Document) -> None:
     assert "Summary" in page and "P&amp;L" in page and "Workings" not in page
     assert f'href="/v/{issued.token}/download"' in page
     assert "the date and this link are written into your copy's document properties" in page
-    assert "/page/" not in page  # no page images
+    assert "/pages/" not in page  # no page images
     # The panel beside it describes a workbook, not pages and watermarks.
     assert "Financial model, an Excel workbook" in page
     assert "<dt>Access</dt><dd>Download</dd>" in page
@@ -219,7 +219,7 @@ def test_opening_a_workbook_is_counted_once_per_visit(model: Document) -> None:
 def test_a_workbook_has_no_pages_to_fetch(model: Document) -> None:
     issued = issue(model)
     browser = opened(issued)
-    assert browser.get(f"/v/{issued.token}/page/1/800", secure=True).status_code == 404
+    assert browser.get(f"/v/{issued.token}/pages/1-800.webp", secure=True).status_code == 404
 
 
 def test_the_download_is_the_workbook_stamped_for_its_reader(model: Document) -> None:

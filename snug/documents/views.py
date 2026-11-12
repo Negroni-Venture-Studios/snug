@@ -217,7 +217,7 @@ def _detail_context(request: HttpRequest, document: Document) -> dict[str, Any]:
         "document": document,
         # An Office file is downloaded, not read page by page: it has no reading chart.
         "reading": None
-        if latest and latest.is_office
+        if latest and not latest.reads_as_pages and latest.is_office
         else _reading(document, video=bool(latest and latest.is_video)),
         "links": document.links.all(),
         "versions": versions,
@@ -293,7 +293,13 @@ def description(request: HttpRequest, token: str) -> HttpResponse:
         document=document.token,
         characters=len(text),
     )
-    where = "above the list of sheets" if latest.is_workbook else "above the download button"
+    where = (
+        "beside the pages"
+        if latest.reads_as_pages
+        else "above the list of sheets"
+        if latest.is_workbook
+        else "above the download button"
+    )
     said = f"Description saved. Investors see it {where}." if text else "Description removed."
     return notices.saved(
         request, reverse("documents:detail", kwargs={"token": document.token}), "description", said
@@ -327,8 +333,9 @@ def page_preview(
         document__token=token,
         number=number,
         status=DocumentVersion.Status.READY,
-        kind=DocumentVersion.Kind.PDF,
     )
+    if not version.reads_as_pages:
+        raise Http404
     try:
         path = pages.page_image(version, page, width=PREVIEW_WIDTH)
     except ValueError as error:

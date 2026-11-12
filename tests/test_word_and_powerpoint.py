@@ -406,7 +406,7 @@ def test_a_presentation_link_shows_a_card_and_downloads_the_stamped_file(deck: D
     assert "A PowerPoint presentation of 12 slides" in page
     assert "Start at slide 3." in page
     assert "Download the presentation" in page
-    assert "Sheets" not in page and "/page/" not in page
+    assert "Sheets" not in page and "/pages/" not in page
     assert "Board deck, a PowerPoint presentation" in page
     assert "when you open this presentation, how long its page is open" in page
     response = browser.get(f"/v/{issued.token}/download", secure=True)

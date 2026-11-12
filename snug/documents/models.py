@@ -167,6 +167,17 @@ class DocumentVersion(models.Model):
         return self.kind in OFFICE
 
     @property
+    def reads_as_pages(self) -> bool:
+        """Read page by page: a PDF, or an Office file whose preview is ready.
+
+        An Office file's preview is shown only while the converter is
+        installed; without it, the file is a download card again.
+        """
+        if self.kind == self.Kind.PDF:
+            return True
+        return self.is_office and self.preview == self.Preview.READY and settings.CONFIG.office
+
+    @property
     def is_workbook(self) -> bool:
         return self.kind == self.Kind.XLSX
 

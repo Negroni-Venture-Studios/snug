@@ -153,7 +153,7 @@ def for_people() -> list[Person]:
             page_counts[visit.document_id] = latest.page_count if latest else 0
             if latest is not None and latest.is_video:
                 videos.add(visit.document_id)
-            if latest is not None and latest.office is not None:
+            if latest is not None and latest.office is not None and not latest.reads_as_pages:
                 # Its card is its one page; visits from before that was counted have none.
                 cards[visit.document_id] = latest.office.short
                 page_counts[visit.document_id] = 1

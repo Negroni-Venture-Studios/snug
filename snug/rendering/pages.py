@@ -27,7 +27,7 @@ def page_image(version: DocumentVersion, page: int, width: int = DEFAULT_WIDTH) 
     target = storage.render_path(version, page, width)
     if target.exists():
         return target
-    image = sandbox.render(storage.original_path(version), page, width)
+    image = sandbox.render(storage.pdf_path(version), page, width)
     target.parent.mkdir(parents=True, exist_ok=True)
     # Write beside the target, then rename, so a reader never sees half a file.
     handle, partial = tempfile.mkstemp(dir=target.parent, prefix=".", suffix=".part")

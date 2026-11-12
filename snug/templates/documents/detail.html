@@ -12,7 +12,7 @@
 
 {% if latest and latest.is_office %}
 <section class="section" id="description">
-  <div class="section-head stacked"><h2>Description</h2><p>Optional. Investors see it {% if latest.is_workbook %}above the list of sheets{% else %}above the download button{% endif %}, on every link and in every room.</p></div>
+  <div class="section-head stacked"><h2>Description</h2><p>Optional. Investors see it {% if latest.reads_as_pages %}beside the pages{% elif latest.is_workbook %}above the list of sheets{% else %}above the download button{% endif %}, on every link and in every room.</p></div>
   {% include "snug/partials/saved.html" with here="description" %}
   <form class="panel form settings-form" method="post" action="{% url 'documents:description' document.token %}#description" novalidate>
     {% csrf_token %}
@@ -21,6 +21,8 @@
     <button class="btn btn-primary" type="submit">Save description</button>
   </form>
 </section>
+{% endif %}
+{% if latest and latest.is_office and not latest.reads_as_pages %}
 {% if latest.is_workbook %}<section class="section">
   <div class="section-head stacked"><h2>Sheets</h2><p>Shared for download only. See who opened and downloaded it on the People page and in the audit log.</p></div>
   <ul class="sheet-list">{% for name in latest.sheets %}<li>{{ name }}</li>{% endfor %}</ul>
@@ -68,7 +70,7 @@
     <div class="video-frame"><video src="{% url 'documents:video_preview' document.token latest.number %}" width="{{ latest.page_sizes.0.0 }}" height="{{ latest.page_sizes.0.1 }}" controls playsinline preload="metadata"></video></div>
     <p class="chart-note">Viewers also see their own watermark over the video.</p>
   </section>
-  {% elif not latest.is_office %}<section class="section">
+  {% elif not latest.is_office or latest.reads_as_pages %}<section class="section">
     <div class="section-head"><h2>First page</h2></div>
     {% if latest and preview %}
     <div class="preview-frame"><img src="{% url 'documents:preview' document.token latest.number 1 %}" width="{{ preview.width }}" height="{{ preview.height }}" alt="Page 1 of {{ document.title }}, version {{ latest.number }}"></div>

@@ -11,18 +11,26 @@ to a download card; the first version of a new document is shared at once.
 import dataclasses
 import fcntl
 import json
+import time
 from datetime import timedelta
 from pathlib import Path
+from typing import Any
 
 import pytest
 from django.conf import settings
+from django.test import Client
 from django.utils import timezone
 
+from snug.accounts import sessions
+from snug.accounts.models import Admin
+from snug.analytics import summary
 from snug.documents.ingest import ingest
-from snug.documents.models import Document, DocumentVersion
+from snug.documents.models import OFFICE, Document, DocumentVersion
+from snug.links import service
 from snug.office import previews
 from tests.office_files import make_docx, make_pptx
 from tests.pdfs import chunks, make_pdf
+from tests.test_ooxml import custom_properties
 
 pytestmark = pytest.mark.django_db
 
@@ -245,3 +253,128 @@ def test_if_the_converter_is_removed_waiting_versions_are_shown(
     assert (second.preview, second.status) == (Preview.NONE, DocumentVersion.Status.READY)
     assert deck.latest_version() == second
     assert list(converter.inbox.iterdir()) == []
+
+
+# ---------------------------------------------------------------- read as pages
+
+INVESTOR = "priya@northfield.example"
+
+
+def previewed(converter: Converter, pages: int = 4) -> Document:
+    deck = Document.objects.create(title="Board deck")
+    upload(deck, make_pptx(pages))
+    previews.pump()
+    converter.answer(make_pdf(*[(720, 540)] * pages))
+    previews.pump()
+    return deck
+
+
+def link_to(document: Document, **options: Any) -> service.Issued:
+    fields: dict[str, Any] = {
+        "email": INVESTOR,
+        "note": "",
+        "expires_at": None,
+        "require_verification": False,
+        "allow_download": True,
+        "created_by": None,
+    }
+    fields.update(options)
+    return service.create(document=document, **fields)
+
+
+def opened(issued: service.Issued) -> Client:
+    browser = Client()
+    browser.post(f"/v/{issued.token}/open", secure=True)
+    return browser
+
+
+def test_a_previewed_deck_is_read_page_by_page(converter: Converter) -> None:
+    deck = previewed(converter, pages=4)
+    issued = link_to(deck)
+    browser = opened(issued)
+    page = browser.get(f"/v/{issued.token}", secure=True).content.decode()
+    assert "1 of 4" in page or "of 4" in page
+    assert f"/v/{issued.token}/pages/1-" in page
+    assert "Board deck, a PowerPoint presentation, 4 pages" in page
+    assert "<dt>Access</dt><dd>View in the browser, or download</dd>" in page
+    assert "Download the presentation to read it with a screen reader." in page
+    image = browser.get(f"/v/{issued.token}/pages/2-800.webp", secure=True)
+    assert image.status_code == 200 and image["Content-Type"] == "image/webp"
+
+
+def test_the_download_of_a_previewed_deck_is_still_the_stamped_original(
+    converter: Converter,
+) -> None:
+    deck = previewed(converter)
+    issued = link_to(deck)
+    response = opened(issued).get(f"/v/{issued.token}/download", secure=True)
+    assert response["Content-Type"] == OFFICE["pptx"].content_type
+    assert 'filename="Board deck.pptx"' in response["Content-Disposition"]
+    assert custom_properties(response.content)["Shared with"] == INVESTOR
+
+
+def test_until_its_preview_is_ready_a_deck_shows_its_card(converter: Converter) -> None:
+    deck = Document.objects.create(title="Board deck")
+    upload(deck, make_pptx(3))
+    issued = link_to(deck)
+    browser = opened(issued)
+    page = browser.get(f"/v/{issued.token}", secure=True).content.decode()
+    assert "Download the presentation" in page and "/pages/1-" not in page
+    assert browser.get(f"/v/{issued.token}/pages/1-800.webp", secure=True).status_code == 404
+
+
+def test_without_the_converter_a_previewed_deck_shows_its_card_again(
+    converter: Converter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    deck = previewed(converter)
+    monkeypatch.setattr(settings, "CONFIG", dataclasses.replace(settings.CONFIG, office=False))
+    issued = link_to(deck)
+    browser = opened(issued)
+    page = browser.get(f"/v/{issued.token}", secure=True).content.decode()
+    assert "Download the presentation" in page and "/pages/1-" not in page
+    assert browser.get(f"/v/{issued.token}/pages/1-800.webp", secure=True).status_code == 404
+
+
+def test_reading_a_previewed_deck_is_counted_page_by_page(converter: Converter) -> None:
+    deck = previewed(converter, pages=4)
+    issued = link_to(deck)
+    opened(issued).get(f"/v/{issued.token}?page=3", secure=True)
+    (person,) = summary.for_people()
+    (read,) = person.documents
+    assert read.card == "" and read.pages == 4
+
+
+def test_the_founders_description_is_shown_beside_a_previewed_deck(converter: Converter) -> None:
+    deck = previewed(converter)
+    deck.description = "Start at slide 3."
+    deck.save()
+    issued = link_to(deck)
+    page = opened(issued).get(f"/v/{issued.token}", secure=True).content.decode()
+    about = page[page.index('<aside class="about"') :]
+    assert "Start at slide 3." in about
+
+
+@pytest.fixture
+def admin_browser() -> Client:
+    admin = Admin.objects.create(email="ruth@fernlea.example", is_active=True)
+    browser = Client()
+    browser.force_login(admin)
+    session = browser.session
+    session[sessions.LOGIN_AT] = session[sessions.LAST_ACTIVITY] = time.time()
+    session.save()
+    return browser
+
+
+def test_the_admin_sees_a_previewed_decks_first_page_and_reading(
+    converter: Converter, admin_browser: Client
+) -> None:
+    deck = previewed(converter, pages=4)
+    version = deck.latest_version()
+    assert version is not None
+    first = f"/admin/documents/{deck.token}/v{version.number}/page-1.webp"
+    page = admin_browser.get(f"/admin/documents/{deck.token}", secure=True).content.decode()
+    assert first in page
+    assert "Nobody has opened this document yet. Reading time appears here" in page
+    response = admin_browser.get(first, secure=True)
+    response.close()  # a file response: closed, so its file is too
+    assert (response.status_code, response["Content-Type"]) == (200, "image/webp")
