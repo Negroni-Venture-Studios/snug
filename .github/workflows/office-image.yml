@@ -1,0 +1,88 @@
+name: Office image
+
+# The LibreOffice converter's image (docs/office.md), published beside Snug's.
+# A version tag publishes :1.1.0 and :latest, and main publishes :edge. Every
+# Monday the newest release's image is built again, with Debian's latest
+# LibreOffice security fixes, and published under the same tags, which
+# snug update then pulls. Pull requests test it in the Image workflow.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  schedule:
+    - cron: "0 5 * * 1"  # Mondays, 05:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+env:
+  IMAGE: ghcr.io/negroni-venture-studios/snug-office
+
+jobs:
+  publish:
+    name: publish the converter image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Which source to build, and its tags
+        id: which
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$EVENT" = schedule ] || [ "$EVENT" = workflow_dispatch ]; then
+            tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName)
+            echo "ref=refs/tags/$tag" >> "$GITHUB_OUTPUT"
+            echo "tags=$IMAGE:${tag#v},$IMAGE:latest" >> "$GITHUB_OUTPUT"
+          elif [ "$REF" = refs/heads/main ]; then
+            echo "ref=$REF" >> "$GITHUB_OUTPUT"
+            echo "tags=$IMAGE:edge" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=$REF" >> "$GITHUB_OUTPUT"
+            case "$REF_NAME" in
+              *-*) echo "tags=$IMAGE:${REF_NAME#v}" >> "$GITHUB_OUTPUT" ;;  # a release candidate
+              *) echo "tags=$IMAGE:${REF_NAME#v},$IMAGE:latest" >> "$GITHUB_OUTPUT" ;;
+            esac
+          fi
+          echo "built=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ steps.which.outputs.ref }}
+          persist-credentials: false
+      - name: A release from before the converter has nothing to build
+        id: present
+        run: |
+          if [ -f converter/Dockerfile ]; then echo "build=yes" >> "$GITHUB_OUTPUT"; else echo "build=no" >> "$GITHUB_OUTPUT"; fi
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1  # v4.4.0
+        if: steps.present.outputs.build == 'yes'
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
+        if: steps.present.outputs.build == 'yes'
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6  # v4.7.0
+        if: steps.present.outputs.build == 'yes'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
+        if: steps.present.outputs.build == 'yes'
+        with:
+          context: .
+          file: converter/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          pull: true  # the base image's newest patches
+          no-cache: true  # and Debian's newest LibreOffice
+          tags: ${{ steps.which.outputs.tags }}
+          build-args: |
+            SNUG_OFFICE_BUILT=${{ steps.which.outputs.built }}
+          provenance: true
+          sbom: true

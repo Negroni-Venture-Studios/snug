@@ -8,6 +8,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 - Word documents (.docx) and PowerPoint presentations (.pptx) can be uploaded and shared for download, as Excel workbooks are. Each download has the investor's email address, the date and the link in its document properties, and the founder can add a description. A presentation's card shows its slide count.
 - An optional LibreOffice converter shows Word, PowerPoint and Excel files in the browser, as watermarked pages with time per page, while the download stays the original file. It runs in a container of its own under gVisor, with no network, one file per container. A document's page shows the preview's progress as it is made, and a new version waits for its preview before links show it.
+- `snug setup` asks whether to show Office files in the browser, and `sudo snug update --with-office` or `--without-office` adds or removes the converter later. Settings has an Office files panel, between Branding and NDA, with its LibreOffice version, whether an update is waiting, and a toggle for showing previews; `snug doctor` checks the converter.
 
 ### Changed
 

@@ -50,7 +50,19 @@ def server(tmp_path: Path) -> Path:
     tool(bin_dir, "hostname", "#!/bin/sh\necho 203.0.113.5\n")
     tool(bin_dir, "getent", "#!/bin/sh\necho 203.0.113.5 STREAM room.fernlea.example\n")
     tool(bin_dir, "chown", "#!/bin/sh\nexit 0\n")
+    for name in ("apt-get", "gpg", "systemctl"):
+        tool(bin_dir, name, f'#!/bin/sh\necho "{name} $*" >> "$LOG"\ncat > /dev/null\n')
+    tool(bin_dir, "dpkg", "#!/bin/sh\necho amd64\n")
+    tool(bin_dir, "runsc", '#!/bin/sh\necho "runsc $*" >> "$LOG"\nexit 0\n')
+    for folder in ("etc/apt/sources.list.d", "usr/share/keyrings"):
+        (tmp_path / "root" / folder).mkdir(parents=True)
     return here
+
+
+def meminfo(server: Path, megabytes: int) -> Path:
+    path = server.parent / "meminfo"
+    path.write_text(f"MemTotal:       {megabytes * 1024} kB\nMemFree:        1024 kB\n")
+    return path
 
 
 def run_setup(
@@ -62,6 +74,8 @@ def run_setup(
     succeeds: bool = True,
     terminal: bool = False,
     no_docker: bool = False,
+    office: str = "\n",
+    memory_mb: int = 2048,
 ) -> list[str]:
     """Run setup.sh; what it printed is left in `screen`, beside the server folder.
 
@@ -76,9 +90,12 @@ def run_setup(
         "HAS_DATABASE": "yes" if has_database else "no",
         "BUCKET_HAS_BACKUPS": "yes" if bucket_has_backups else "no",
         "NO_DOCKER": "yes" if no_docker else "no",
+        "OFFICE_MEMINFO": str(meminfo(server, memory_mb)),
+        "OFFICE_ROOT": str(server.parent / "root"),
     }
-    # Enter for the domain, then the company's name, then any later answers.
-    typed = "\nFernlea Robotics\n" + answers
+    # Enter for the domain, then the company's name, Enter for no LibreOffice,
+    # then any later answers.
+    typed = "\nFernlea Robotics\n" + office + answers
     if terminal:
         returncode, printed = on_a_terminal(["/bin/sh", str(server / "setup.sh")], typed, env)
     else:
@@ -267,3 +284,46 @@ def test_without_docker_setup_says_the_installation_did_not_finish(server: Path)
     screen = (server.parent / "screen").read_text()
     assert "Docker is missing" in screen
     assert "The domain investors will use" not in screen
+
+
+# ---------------------------------------------------------------- the LibreOffice converter
+
+
+def test_answering_yes_installs_gvisor_and_turns_the_converter_on(server: Path) -> None:
+    log = run_setup(server, has_database=True, bucket_has_backups=True, office="yes\n")
+    env = (server / "snug.env").read_text()
+    assert "SNUG_OFFICE='true'" in env and "COMPOSE_PROFILES='office'" in env
+    assert "apt-get install --yes -qq runsc" in log
+    assert log.index("runsc install") < log.index("docker compose up --detach --wait")
+
+
+def test_on_a_small_server_it_asks_again_and_no_is_the_default(server: Path) -> None:
+    log = run_setup(
+        server, has_database=True, bucket_has_backups=True, office="yes\n\n", memory_mb=961
+    )
+    printed = (server.parent / "screen").read_text()
+    assert "This server has 961 MB of memory. With LibreOffice, Snug needs 2 GB" in printed
+    assert "Install LibreOffice anyway? Type yes or no [no]" in printed
+    assert "SNUG_OFFICE" not in (server / "snug.env").read_text()
+    assert not any(line.startswith("apt-get") for line in log)
+
+
+def test_run_again_it_suggests_keeping_the_converter(server: Path) -> None:
+    (server / "snug.env").write_text(
+        "SNUG_SECRET_KEY='kept'\nSNUG_DOMAIN='room.fernlea.example'\n"
+        "SNUG_OFFICE='true'\nCOMPOSE_PROFILES='office'\n"
+    )
+    run_setup(server, has_database=True, bucket_has_backups=True)
+    printed = (server.parent / "screen").read_text()
+    assert "Show Office files in the browser? Type yes or no [yes]" in printed
+    assert "SNUG_OFFICE='true'" in (server / "snug.env").read_text()
+
+
+def test_answering_no_on_a_server_with_the_converter_removes_it(server: Path) -> None:
+    (server / "snug.env").write_text(
+        "SNUG_SECRET_KEY='kept'\nSNUG_DOMAIN='room.fernlea.example'\n"
+        "SNUG_OFFICE='true'\nCOMPOSE_PROFILES='office'\n"
+    )
+    log = run_setup(server, has_database=True, bucket_has_backups=True, office="no\n")
+    assert "SNUG_OFFICE='false'" in (server / "snug.env").read_text()
+    assert "docker compose --profile office rm --stop --force office" in log

@@ -103,6 +103,29 @@ fi
 ask "Your company's name, as investors know it (you can change it later in Settings)" ""
 [ -z "$reply" ] || set_env SNUG_COMPANY_NAME "$reply"
 
+# ---------------------------------------------------------------- Office files
+# shellcheck source=deploy/office.sh
+. ./office.sh
+say
+say "Word, PowerPoint and Excel files are shared as downloads. Snug can also show them"
+say "in the browser, page by page, with LibreOffice in a container of its own under"
+say "gVisor. It needs 2 GB of memory. docs/office.md explains what it changes."
+if office_is_on; then office_default=yes; else office_default=no; fi
+ask "Show Office files in the browser? Type yes or no" "$office_default"
+office_wanted=no
+case "$reply" in [Yy]*) office_wanted=yes ;; esac
+if [ "$office_wanted" = yes ] && ! office_memory_ok; then
+	say "This server has $(office_memory_mb) MB of memory. With LibreOffice, Snug needs 2 GB:"
+	say "resize the droplet first, or Snug may be stopped for want of memory."
+	ask "Install LibreOffice anyway? Type yes or no" "no"
+	case "$reply" in [Yy]*) ;; *) office_wanted=no ;; esac
+fi
+if [ "$office_wanted" = yes ]; then
+	office_on
+elif office_is_on; then
+	office_off
+fi
+
 # The first container to mount the data volume creates it. Through Snug's own
 # container it belongs to Snug's user; through the backup container's rclone,
 # whose image has no /var/lib/snug, it would belong to root. Compose needs

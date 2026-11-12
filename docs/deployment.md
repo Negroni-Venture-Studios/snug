@@ -41,7 +41,7 @@ On any Linux server with Docker Engine and its Compose plugin, fetch the newest 
 sudo mkdir -p /opt/snug/backup && cd /opt/snug
 release=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/Negroni-Venture-Studios/snug/releases/latest)
 release=${release##*/}
-for file in compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh update.sh snug; do
+for file in compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh update.sh office.sh snug; do
   sudo curl -fsSLO "https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/$release/deploy/$file"
 done
 sudo install -m 755 snug /usr/local/bin/snug

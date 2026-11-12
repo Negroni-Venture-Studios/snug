@@ -11,6 +11,22 @@
 set -eu
 cd "$(dirname "$0")"
 
+usage() {
+	echo "Usage: sudo snug update [--with-office | --without-office]" >&2
+	exit 2
+}
+
+# --with-office adds the LibreOffice converter, --without-office removes it (docs/office.md).
+office=""
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--with-office) office=on ;;
+		--without-office) office=off ;;
+		*) usage ;;
+	esac
+	shift
+done
+
 if [ "$(id -u)" != 0 ]; then
 	echo "snug update must run as root: sudo snug update" >&2
 	exit 1
@@ -33,7 +49,7 @@ if [ -z "$ref" ]; then
 fi
 echo "Updating to $ref."
 base="https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/$ref/deploy"
-files="compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh update.sh snug"
+files="compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh update.sh office.sh snug"
 
 echo "Downloading Snug's server files..."
 fresh=".update-$$"
@@ -52,9 +68,26 @@ done
 rm -rf "$fresh"
 install -m 755 "$(pwd)/snug" /usr/local/bin/snug
 
+# shellcheck source=deploy/office.sh
+. ./office.sh
+if [ "$office" = on ]; then
+	if ! office_memory_ok; then
+		echo "This server has $(office_memory_mb) MB of memory. With LibreOffice, Snug needs 2 GB:"
+		echo "resize the droplet, or Snug may be stopped for want of memory."
+	fi
+	office_on
+elif [ "$office" = off ]; then
+	office_off
+elif office_is_on; then
+	office_install_gvisor  # a newer pinned release, if this one moved it
+fi
+
 echo "Downloading the latest images..."
 docker compose pull
 echo "Restarting Snug..."
 docker compose up --detach --wait
 echo
 echo "Snug is up to date. To check everything is working: sudo snug doctor"
+if ! office_is_on && [ "$office" != off ]; then
+	echo "To show Word, PowerPoint and Excel files in the browser: sudo snug update --with-office"
+fi
