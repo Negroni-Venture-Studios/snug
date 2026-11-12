@@ -17,7 +17,7 @@ Word and PowerPoint files, and an optional LibreOffice converter that shows Offi
 ### Changed
 
 - Snug refuses a Word, PowerPoint or Excel file that fetches a template, picture or object from another computer when it is opened, including through a Word field such as INCLUDEPICTURE. A template on the author's own computer is allowed.
-- Snug refuses a Word document with a DDE field, or a workbook with a DDE or OLE link, which start another program when the file is opened.
+- Snug refuses a Word document with a DDE field, or a workbook with a DDE or OLE link, which start another program when the file is opened, and a Word document that carries another, such as a web page, for Word to import when it opens.
 - An older .doc, .ppt or .xls file is refused with one message for all three, saying to save it as .docx, .pptx or .xlsx.
 - A presentation or document with a chart is taken. The chart's data is a workbook inside the file, and Snug checks it as it checks an upload.
 - The README and guides state facts plainly, without hedges such as "at the time of writing" or notes on how Snug was tested before its release.

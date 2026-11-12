@@ -174,3 +174,50 @@ def test_how_many_files_may_be_embedded_is_capped(monkeypatch: pytest.MonkeyPatc
         with_chart(make_pptx(), make_xlsx()), {"ppt/embeddings/second.xlsx": make_xlsx()}
     )
     assert code_of(deck) == "too_large"
+
+
+# Second security review, 12 November 2026.
+
+
+def test_a_relationships_target_is_read_as_office_reads_it() -> None:
+    # Office decodes a target's percent escapes, so the checker must too.
+    target = "../embeddings/Microsoft%20Excel%20Worksheet.xlsx"
+    resolved = ooxml._resolve("ppt/charts/chart1.xml", target)
+    assert resolved == "ppt/embeddings/microsoft excel worksheet.xlsx"
+
+
+def test_a_part_too_big_to_check_that_holds_a_zip_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(ooxml, "MAX_EMBEDDED", 100)
+    deck = with_parts(
+        make_pptx(),
+        {"ppt/media/clip.bin": b"\x00" * 200 + linked_workbook()},
+        ('<Default Extension="bin" ContentType="application/octet-stream"/>',),
+    )
+    assert code_of(deck) == "too_large"
+
+
+def test_a_part_too_big_to_check_that_holds_no_zip_is_taken(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(ooxml, "MAX_EMBEDDED", 100)
+    deck = with_parts(
+        make_pptx(),
+        {"ppt/media/clip.bin": bytes(range(256)) * 4},
+        ('<Default Extension="bin" ContentType="application/octet-stream"/>',),
+    )
+    assert ooxml.inspect(deck)["format"] == "pptx"
+
+
+def test_a_document_carrying_another_to_import_is_refused() -> None:
+    chunk = (
+        '<Relationship Id="rIdChunk" Type="http://schemas.openxmlformats.org/officeDocument/'
+        '2006/relationships/aFChunk" Target="chunk.html"/>'
+    )
+    memo = make_docx(
+        document_rels=(chunk,),
+        extra={"word/chunk.html": b'<html><img src="https://files.example/p.png"></html>'},
+        extra_types=('<Default Extension="html" ContentType="text/html"/>',),
+    )
+    assert code_of(memo) == "macros"

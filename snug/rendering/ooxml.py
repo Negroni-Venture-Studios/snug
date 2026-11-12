@@ -19,6 +19,7 @@ import io
 import posixpath
 import re
 import shutil
+import urllib.parse
 import zipfile
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -55,8 +56,18 @@ PPTX_MAIN = "application/vnd.openxmlformats-officedocument.presentationml.presen
 FORMATS = {MAIN: "xlsx", DOCX_MAIN: "docx", PPTX_MAIN: "pptx"}
 # A content type or relationship naming any of these is code Office could run:
 # VBA projects, Excel 4.0 macro sheets (and their international form),
-# ActiveX controls, and embedded OLE objects. A real file needs none of them.
-CODE_WORDS = ("macroenabled", "vbaproject", "vbadata", "macrosheet", "activex", "oleobject")
+# ActiveX controls, embedded OLE objects, and Word's alternative format chunks
+# (aFChunk), another document, such as HTML or RTF, imported when the file
+# opens. A real file needs none of them.
+CODE_WORDS = (
+    "macroenabled",
+    "vbaproject",
+    "vbadata",
+    "macrosheet",
+    "activex",
+    "oleobject",
+    "afchunk",
+)
 REL_DOC = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
 # Only a hyperlink may point at another computer: it is followed when clicked,
 # never when the file opens. Anything else external (a template, a frame, a
@@ -319,17 +330,36 @@ def _unpacked(package: zipfile.ZipFile) -> int:
 
 
 def _resolve(source: str, target: str) -> str:
-    """A relationship's target as a part name, folded: relative to its source's folder."""
+    """A relationship's target as a part name, folded: relative to its source's folder.
+
+    A target is a URI, so its percent escapes are decoded, as Office does.
+    """
+    target = urllib.parse.unquote(target)
     if target.startswith("/"):
         return posixpath.normpath(target.lstrip("/")).casefold()
     return posixpath.normpath(posixpath.join(posixpath.dirname(source), target)).casefold()
 
 
+# A zip's index is in its last 22 bytes, after a comment of up to 65,535.
+ZIP_TAIL = 22 + 65_535
+
+
 def _hides_zip(package: zipfile.ZipFile, name: str) -> bool:
+    """Whether the part is a zip behind other bytes, found from its end as Office finds one.
+
+    A part too big to check is read through for its end alone; if a zip ends
+    it, the upload is refused, so the check never fails open.
+    """
     info = package.getinfo(name)
-    if info.file_size > MAX_EMBEDDED:
-        return False  # too big to be checked; Office opens one only through a package relationship
-    return zipfile.is_zipfile(io.BytesIO(package.read(info)))
+    if info.file_size <= MAX_EMBEDDED:
+        return zipfile.is_zipfile(io.BytesIO(package.read(info)))
+    tail = b""
+    with package.open(info) as source:
+        while chunk := source.read(1024 * 1024):
+            tail = (tail + chunk)[-ZIP_TAIL:]
+    if zipfile.is_zipfile(io.BytesIO(tail)):
+        raise Refused("too_large")
+    return False
 
 
 def _check_embedded(
