@@ -63,12 +63,13 @@ More screenshots are in [Using Snug](docs/using-snug.md).
 
 ## What Snug does not do
 
-- **It shows PDFs and videos, and shares Excel workbooks.** Export anything else, such as Word or PowerPoint files, to PDF first, and video to MP4 with H.264. A workbook is not previewed in the browser. Investors download it, and Snug writes their email address, the date and the link into each copy's document properties. A video's watermark is drawn over the player, so a downloaded copy has no mark, and someone determined can save a video they are watching even with downloads turned off.
-- **Watermarks deter casual leaks; they cannot stop one.** Anyone can photograph a screen.
-- **NDA acceptance is a record, not a signature.**
-- **UK-only mode is not export control.** It goes by the visitor's internet address, so a VPN gets round it.
-- It is not a hosted service, and one instance serves one company.
-- No Office or image rendering, comments, e-signatures, single sign-on, investor updates or AI features.
+- **No Word, PowerPoint or image files.** Export them to PDF before uploading. Video must be MP4 with H.264.
+- **No workbook preview.** Investors download Excel workbooks to read them.
+- **No way to stop screen capture.** Anyone can photograph a screen or record a video as it plays, and a downloaded video has no watermark.
+- **No e-signatures.** The NDA is a click-through agreement, and Snug records who accepted it.
+- **No export control.** UK-only mode goes by internet address, and a VPN gets round it.
+- **No hosted version.** You run Snug on your own server, and one installation serves one company.
+- **No comments, single sign-on, investor updates or AI features.**
 
 ## Status
 

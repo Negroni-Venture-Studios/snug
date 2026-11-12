@@ -7,6 +7,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 ### Changed
 
 - The README and guides state facts plainly, without hedges such as "at the time of writing" or notes on how Snug was tested before its release.
+- "What Snug does not do" in the README lists what Snug leaves out, each item starting with "No".
 
 ## [1.0.0] - 2026-11-11
 
