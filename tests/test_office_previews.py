@@ -333,3 +333,36 @@ def test_the_admin_sees_a_previewed_decks_first_page_and_reading(
     response = admin_browser.get(first, secure=True)
     response.close()  # a file response: closed, so its file is too
     assert (response.status_code, response["Content-Type"]) == (200, "image/webp")
+
+
+# ---------------------------------------------------------------- files from before the converter
+
+
+def test_office_files_from_before_the_converter_are_queued_once_it_is_installed(
+    data_folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    deck = Document.objects.create(title="Board deck")
+    old = upload(deck, make_pptx(3), "Deck v1.pptx")
+    current = upload(deck, make_pptx(4), "Deck v2.pptx")
+    assert current.preview == Preview.NONE  # uploaded before LibreOffice was installed
+    office = data_folder / "office"
+    fake = Converter(office)
+    monkeypatch.setattr(
+        settings, "CONFIG", dataclasses.replace(settings.CONFIG, office=True, office_dir=office)
+    )
+    previews.pump()
+    assert fresh(current).preview == Preview.CONVERTING  # the version links show
+    assert fresh(old).preview == Preview.NONE  # an earlier one is not worth converting
+    fake.answer(make_pdf(*[(720, 540)] * 4))
+    previews.pump()
+    assert fresh(current).preview == Preview.READY
+
+
+def test_a_failed_preview_is_not_queued_again_by_itself(converter: Converter) -> None:
+    version = upload(Document.objects.create(title="Board deck"), make_pptx(3))
+    previews.pump()
+    converter.answer(error="unreadable")
+    previews.pump()
+    previews.pump()
+    assert fresh(version).preview == Preview.FAILED
+    assert converter.jobs() == []

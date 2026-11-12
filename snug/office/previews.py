@@ -32,6 +32,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.db import connections, transaction
+from django.db.models import Exists, OuterRef
 from django.utils import timezone
 
 from snug.documents import storage
@@ -150,10 +151,27 @@ def pump(*, now: datetime | None = None) -> None:
                     _finish(current, "no_answer")
                 return
             _finish(current, answer)
+        _queue_unconverted()
         waiting = DocumentVersion.objects.filter(preview=Preview.PENDING)
         following = waiting.order_by("uploaded_at", "pk").first()
         if following is not None:
             _submit(following, now)
+
+
+def _queue_unconverted() -> None:
+    """Queue Office files uploaded before the converter was installed.
+
+    Only the version links show: an earlier one is never read, so it is not
+    worth converting. A preview that failed is not queued again by itself;
+    the document's page offers Try again.
+    """
+    ready = DocumentVersion.Status.READY
+    newer = DocumentVersion.objects.filter(
+        document=OuterRef("document"), status=ready, number__gt=OuterRef("number")
+    )
+    DocumentVersion.objects.filter(
+        kind__in=list(OFFICE), preview=Preview.NONE, status=ready
+    ).exclude(Exists(newer)).update(preview=Preview.PENDING)
 
 
 def busy() -> bool:
