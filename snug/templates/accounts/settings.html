@@ -191,6 +191,27 @@
 </form>
 </div>
 
+<div class="section" id="office">
+<div class="section-head stacked"><h2>Office files</h2><p>Word, PowerPoint and Excel files are shared as downloads. With LibreOffice installed on this server, investors can also read them in the browser, page by page.</p>{% include "accounts/partials/doc_link.html" with page="office.md" label="Showing Office files in the browser" %}</div>
+{% if not office.installed %}
+<div class="panel office-status">
+  <p><span class="status status-off">Not installed</span> LibreOffice is not installed, so Word, PowerPoint and Excel files are shared as downloads only.</p>
+  <p class="hint">To install it in a container of its own, run <code>sudo snug update --with-office</code> on the server. It needs 2 GB of memory.</p>
+</div>
+{% else %}
+<div class="panel office-status">
+  <p>{% if office.problem %}<span class="status status-warn">Problem</span> {{ office.problem }} Run <code>sudo snug doctor</code> on the server.{% else %}<span class="status status-ok">Working</span> LibreOffice {{ office.status.version }}, in an image built on {{ office.status.built|date:"j F Y" }}.{% endif %}</p>
+  {% if office.out_of_date %}<p class="hint">An update is waiting: the image is rebuilt every week with LibreOffice's security fixes. Run <code>sudo snug update</code> on the server.</p>{% elif not office.problem %}<p class="hint">The image is rebuilt every week with LibreOffice's security fixes. <code>sudo snug update</code> installs the newest.</p>{% endif %}
+</div>
+<form class="panel form settings-form" method="post" action="{% url 'accounts:office' %}#office" novalidate>
+  {% csrf_token %}
+  {% if saved == "office" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if office_previews %}Saved. Word, PowerPoint and Excel files are shown in the browser once their previews are made.{% else %}Saved. Word, PowerPoint and Excel files are shared as downloads only.{% endif %}</span></div>{% endif %}
+  <label class="check"><input type="checkbox" name="show"{% if office_previews %} checked{% endif %}><span>Show Office files in the browser<span class="hint">Investors read them page by page, watermarked, and can still download the file itself. Off, they see a card with a download button.</span></span></label>
+  <button class="btn btn-primary" type="submit">Save</button>
+</form>
+{% endif %}
+</div>
+
 <div class="section" id="nda">
 <div class="section-head stacked"><h2>NDA</h2><p>One agreement for every room and link that asks for it. {% if nda %}Version {{ nda.number }}, {{ nda.created_at|date:"j M Y" }}.{% else %}None yet.{% endif %}</p>{% include "accounts/partials/doc_link.html" with page="nda.md" label="The NDA guide" %}</div>
 <form class="panel form settings-form" method="post" action="{% url 'accounts:nda' %}#nda" novalidate>

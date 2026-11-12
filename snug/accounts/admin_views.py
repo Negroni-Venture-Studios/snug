@@ -28,6 +28,7 @@ from snug.core.client import client_ip, user_agent
 from snug.core.models import EmailSettings, SiteSettings, company_name
 from snug.nda import terms as nda_terms
 from snug.nda.models import NdaVersion
+from snug.office import previews
 from snug.rendering import sandbox
 
 SETUP_SESSION = "snug.setup"
@@ -76,6 +77,8 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
         "retention_months": SiteSettings.load().reading_retention_months,
         "backup": doctor.backups(now),
         "backup_at": doctor.last_backup(),
+        "office": previews.state(now),
+        "office_previews": SiteSettings.load().office_previews,
         "nda": nda_terms.current(),
         "nda_history": NdaVersion.objects.select_related("created_by")[:10],
         "values": {"email": ""},
@@ -926,6 +929,20 @@ def nda_view(request: HttpRequest) -> HttpResponse:
             sha256=version.sha256,
         )
     return redirect("/admin/settings/?saved=nda#nda")
+
+
+@never_cache
+@login_required
+@require_POST
+def office_view(request: HttpRequest) -> HttpResponse:
+    """Whether Word, PowerPoint and Excel files are shown in the browser, from their previews."""
+    site = SiteSettings.load()
+    show = request.POST.get("show") == "on"
+    if site.office_previews != show:
+        site.office_previews = show
+        site.save(update_fields=["office_previews"])
+        _audit(request, "settings.office_previews_changed", _admin(request).email, "", show=show)
+    return redirect("/admin/settings/?saved=office#office")
 
 
 # ---------------------------------------------------------------- removing and resetting

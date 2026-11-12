@@ -171,11 +171,16 @@ class DocumentVersion(models.Model):
         """Read page by page: a PDF, or an Office file whose preview is ready.
 
         An Office file's preview is shown only while the converter is
-        installed; without it, the file is a download card again.
+        installed and previews are on in Settings; otherwise the file is a
+        download card again.
         """
         if self.kind == self.Kind.PDF:
             return True
-        return self.is_office and self.preview == self.Preview.READY and settings.CONFIG.office
+        if not (self.is_office and self.preview == self.Preview.READY and settings.CONFIG.office):
+            return False
+        from snug.core.models import SiteSettings
+
+        return SiteSettings.load().office_previews
 
     @property
     def is_workbook(self) -> bool:

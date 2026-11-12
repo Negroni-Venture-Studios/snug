@@ -624,3 +624,41 @@ def test_an_office_preview_arrives_while_the_founder_writes_its_description(
     finally:
         stop.set()
         thread.join(timeout=5)
+
+
+def test_office_previews_are_turned_off_in_settings_with_a_click(
+    live_server: Any, page: Page, data_folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import dataclasses
+    import json
+
+    from django.conf import settings
+    from django.utils import timezone
+
+    from snug.core.models import SiteSettings
+
+    office = data_folder / "office"
+    (office / "outbox").mkdir(parents=True)
+    (office / "inbox").mkdir()
+    now = timezone.now()
+    (office / "outbox" / "status.json").write_text(
+        json.dumps(
+            {
+                "libreoffice": "4:25.2.3-2+deb13u9",
+                "built": now.date().isoformat(),
+                "heartbeat": now.isoformat(),
+            }
+        )
+    )
+    monkeypatch.setattr(
+        settings, "CONFIG", dataclasses.replace(settings.CONFIG, office=True, office_dir=office)
+    )
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/settings/#office")
+    section = page.locator("#office")
+    expect(section).to_contain_text("LibreOffice 25.2.3")
+    section.get_by_label("Show Office files in the browser").uncheck()
+    section.get_by_role("button", name="Save").click()
+    expect(page.locator("#office .notice-ok")).to_contain_text("shared as downloads only")
+    expect(page).to_have_url(re.compile(r"#office$"))
+    assert SiteSettings.load().office_previews is False

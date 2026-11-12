@@ -19,13 +19,15 @@ import fcntl
 import json
 import logging
 import os
+import re
 import secrets
 import shutil
 import stat
 import threading
 import time
 from collections.abc import Iterator
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from django.conf import settings
@@ -305,6 +307,81 @@ def _clear_strays(keep: str) -> None:
                     shutil.rmtree(entry, ignore_errors=True)
                 else:
                     entry.unlink(missing_ok=True)
+
+
+# The converter rewrites its status every 30 seconds while it waits, and on each fresh start.
+QUIET = timedelta(minutes=5)
+# Its image is rebuilt every week with LibreOffice's security fixes.
+OUT_OF_DATE = timedelta(days=14)
+_VERSION = re.compile(r"^(?:\d+:)?(\d+(?:\.\d+)*)")
+
+
+@dataclass(frozen=True)
+class ConverterStatus:
+    """What the converter last said about itself. It reads hostile files, so this is untrusted."""
+
+    libreoffice: str  # the Debian package's version, such as 4:25.2.3-2+deb13u9
+    built: date | None
+    heartbeat: datetime | None
+
+    @property
+    def version(self) -> str:
+        """LibreOffice's own version: 25.2.3."""
+        found = _VERSION.match(self.libreoffice)
+        return found.group(1) if found else ""
+
+
+def _text(value: object) -> str:
+    return value if isinstance(value, str) and len(value) <= 64 and value.isprintable() else ""
+
+
+def converter_status() -> ConverterStatus | None:
+    """The converter's status file, read without following links, or None if there is none."""
+    raw = _read_answer(STATUS, 4096)
+    if not raw:
+        return None
+    try:
+        facts = json.loads(raw)
+    except ValueError:
+        return None
+    if not isinstance(facts, dict):
+        return None
+    try:
+        built = date.fromisoformat(_text(facts.get("built")))
+    except ValueError:
+        built = None
+    try:
+        heartbeat = datetime.fromisoformat(_text(facts.get("heartbeat")))
+    except ValueError:
+        heartbeat = None
+    if heartbeat is not None and heartbeat.tzinfo is None:
+        heartbeat = None
+    return ConverterStatus(_text(facts.get("libreoffice")), built, heartbeat)
+
+
+@dataclass(frozen=True)
+class ConverterState:
+    """How the converter is, for Settings and snug doctor."""
+
+    installed: bool
+    status: ConverterStatus | None = None
+    problem: str = ""
+    out_of_date: bool = False
+
+
+def state(now: datetime) -> ConverterState:
+    if not enabled():
+        return ConverterState(installed=False)
+    status = converter_status()
+    if status is None or status.heartbeat is None:
+        return ConverterState(True, status, "The converter has not started.")
+    quiet = now - status.heartbeat
+    if quiet > QUIET:
+        minutes = int(quiet.total_seconds() // 60)
+        said = f"The converter has not reported for {minutes} minutes."
+        return ConverterState(True, status, said)
+    old = status.built is None or now.date() - status.built > OUT_OF_DATE
+    return ConverterState(True, status, out_of_date=old)
 
 
 def _release_all() -> None:

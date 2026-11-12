@@ -41,6 +41,9 @@ class SiteSettings(models.Model):
     show_name_with_logo = models.BooleanField(default=True)
     # The tab icon, as re-encoded by Snug (snug.core.logo), or "" to choose one.
     icon_name = models.CharField(max_length=40, blank=True)
+    # Whether Word, PowerPoint and Excel files are shown in the browser, from
+    # their previews, when the LibreOffice converter is installed.
+    office_previews = models.BooleanField(default=True)
 
     class Meta:
         verbose_name_plural = "site settings"

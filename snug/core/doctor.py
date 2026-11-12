@@ -19,6 +19,7 @@ from django.utils.timesince import timesince
 
 from snug.core import geoip, mail
 from snug.core.models import SystemCheck
+from snug.office import previews
 from snug.rendering import sandbox
 from snug.rendering.worker import MIN_LANDLOCK_ABI, fully_confined
 
@@ -253,6 +254,26 @@ def geoip_data(now: datetime) -> Finding:
     return _ok(label, f"DB-IP's country data from {held}, for UK-only links.")
 
 
+def office(now: datetime) -> Finding:
+    """The LibreOffice converter, if it is installed: running, and its image not out of date."""
+    label = "Office converter"
+    found = previews.state(now)
+    if not found.installed:
+        return Finding(label, "skipped", "Not installed. sudo snug update --with-office adds it.")
+    if found.problem:
+        return _problem(label, f"{found.problem} Check it with sudo docker compose logs office.")
+    status = found.status
+    assert status is not None  # noqa: S101 - a running converter has reported
+    built = f"{status.built.day} {status.built:%B %Y}" if status.built else "an unknown date"
+    if found.out_of_date:
+        return _problem(
+            label,
+            f"LibreOffice {status.version}, in an image built on {built}. A newer image, with "
+            "LibreOffice's latest security fixes, is waiting: run sudo snug update.",
+        )
+    return _ok(label, f"LibreOffice {status.version}, in an image built on {built}.")
+
+
 def everything(now: datetime) -> list[Finding]:
     """Every check except the email test, which needs someone to type a code."""
     return [
@@ -263,6 +284,7 @@ def everything(now: datetime) -> list[Finding]:
         https(now),
         email_setup(),
         geoip_data(now),
+        office(now),
     ]
 
 
@@ -296,7 +318,7 @@ def refresh(now: datetime) -> None:
 
 def problems(now: datetime) -> list[Finding]:
     """What the Overview shows: live cheap checks, then the stored slower ones."""
-    live = [housekeeping(now), backups(now), email_setup(), geoip_data(now)]
+    live = [housekeeping(now), backups(now), email_setup(), geoip_data(now), office(now)]
     found = [f for f in live if f.problem]
     stored = SystemCheck.objects.filter(name__in=_STORED, ok=False).order_by("name")
     found += [_problem(_STORED[row.name], row.message) for row in stored]
