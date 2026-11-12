@@ -19,6 +19,7 @@ Word and PowerPoint files, and an optional LibreOffice converter that shows Offi
 - Snug refuses a Word, PowerPoint or Excel file that fetches a template, picture or object from another computer when it is opened, including through a Word field such as INCLUDEPICTURE. A template on the author's own computer is allowed.
 - Snug refuses a Word document with a DDE field, or a workbook with a DDE or OLE link, which start another program when the file is opened.
 - An older .doc, .ppt or .xls file is refused with one message for all three, saying to save it as .docx, .pptx or .xlsx.
+- A presentation or document with a chart is taken. The chart's data is a workbook inside the file, and Snug checks it as it checks an upload.
 - The README and guides state facts plainly, without hedges such as "at the time of writing" or notes on how Snug was tested before its release.
 - "What Snug does not do" in the README lists what Snug leaves out, each item starting with "No".
 - Pages appear sooner. On a one-CPU server the first page of a document took up to 11 seconds to appear, blank meanwhile. Page 1 is now rendered when the file is uploaded or its preview is ready, the next page is fetched only once the current one has arrived, the watermark is drawn about twenty times faster, and the confined worker no longer compiles Python's code each time it starts. A page says "Loading page 1" until it arrives.

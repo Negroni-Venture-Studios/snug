@@ -31,6 +31,10 @@ MAX_UNPACKED = 1024 * 1024 * 1024
 # The XML parts Snug parses are small; anything bigger is not a real Office file.
 MAX_PARSED_PART = 16 * 1024 * 1024
 MAX_SLIDES = 10_000
+# An Office file inside another, such as a chart's data: checked as an upload
+# is, one level deep, read whole into memory, so kept small.
+MAX_EMBEDDED = 64 * 1024 * 1024
+ZIP_MAGIC = b"PK\x03\x04"
 
 CONTENT_TYPES = "[Content_Types].xml"
 ROOT_RELS = "_rels/.rels"
@@ -178,7 +182,7 @@ def _remote(target: str) -> bool:
     return (rest.startswith("//") and not rest.startswith("///")) or rest.startswith("////")
 
 
-def _main_part(package: zipfile.ZipFile) -> tuple[str, str]:
+def _main_part(package: zipfile.ZipFile, *, embedded: bool = False) -> tuple[str, str]:
     """The part Office would open, and its format, refusing macros, ActiveX and remote content.
 
     An allowlist, read the way Office reads a package: the root relationship
@@ -190,6 +194,10 @@ def _main_part(package: zipfile.ZipFile) -> tuple[str, str]:
     differ only in case, since two readers could each pick a different one.
     So is any relationship other than a hyperlink that points at another
     computer: Office would fetch it when the file opens.
+
+    An Office file inside this one, such as the workbook that holds a chart's
+    data, is checked the same way, since it opens in Excel when the chart's
+    data is edited. A package inside an embedded one is refused.
     """
     names = package.namelist()
     folded = [name.casefold() for name in names]
@@ -248,20 +256,45 @@ def _main_part(package: zipfile.ZipFile) -> tuple[str, str]:
             continue
         kind = overrides.get(folded_name, defaults.get(folded_name.rpartition(".")[2], ""))
         # A picture is never read for fields; an SVG often has a DOCTYPE, which _stream refuses.
-        # Anything else is read if it is typed as XML or looks like it, whatever it claims.
-        if not kind.startswith("image/") and ("xml" in kind or _looks_like_xml(package, name)):
+        if kind.startswith("image/"):
+            continue
+        # Anything else is read if it is typed as XML or looks like it, whatever it
+        # claims, and checked as a file of its own if it is a zip. Every Office type
+        # says "openxmlformats", so a type is XML only if it says so at its end.
+        head = _head(package, name)
+        if _typed_as_xml(kind) or _starts_as_xml(head):
             xml_parts.append(name)
+        elif head.startswith(ZIP_MAGIC):
+            _check_embedded(package, name, embedded=embedded)
     _check_content(package, xml_parts, hyperlinks)
     return names[folded.index(main)], found
 
 
-def _looks_like_xml(package: zipfile.ZipFile, name: str) -> bool:
-    """True if a part starts as XML does, after any byte-order mark and white space."""
+def _head(package: zipfile.ZipFile, name: str) -> bytes:
     with package.open(name) as source:
-        head = source.read(64)
+        return source.read(64)
+
+
+def _typed_as_xml(kind: str) -> bool:
+    return kind in ("application/xml", "text/xml") or kind.endswith("+xml")
+
+
+def _starts_as_xml(head: bytes) -> bool:
+    """True if a part starts as XML does, after any byte-order mark and white space."""
     if head.startswith((b"\xff\xfe", b"\xfe\xff")):  # UTF-16
         return True
     return head.removeprefix(b"\xef\xbb\xbf").lstrip().startswith(b"<")
+
+
+def _check_embedded(package: zipfile.ZipFile, name: str, *, embedded: bool) -> None:
+    """An Office file inside this one, checked as an upload is."""
+    if embedded:
+        raise Refused("not_office")
+    info = package.getinfo(name)
+    if info.file_size > MAX_EMBEDDED:
+        raise Refused("too_large")
+    with _package(package.read(info)) as inner:
+        _main_part(inner, embedded=True)
 
 
 def _source_of(rels: str) -> str:

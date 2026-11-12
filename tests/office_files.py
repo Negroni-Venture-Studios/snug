@@ -313,3 +313,71 @@ def make_xlsx(
 def parts_of(data: bytes) -> dict[str, bytes]:
     with zipfile.ZipFile(io.BytesIO(data)) as package:
         return {name: package.read(name) for name in package.namelist()}
+
+
+CHART = "application/vnd.openxmlformats-officedocument.drawingml.chart+xml"
+WORKBOOK = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+REL_PACKAGE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package"
+REL_EXTERNAL_LINK_PATH = (
+    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/externalLinkPath"
+)
+
+
+def with_parts(package: bytes, parts: dict[str, bytes], types: tuple[str, ...] = ()) -> bytes:
+    """The package with more parts, typed by `types` in its content types."""
+    source = zipfile.ZipFile(io.BytesIO(package))
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as target:
+        for info in source.infolist():
+            data = source.read(info)
+            if info.filename == "[Content_Types].xml":
+                data = data.replace(b"</Types>", "".join(types).encode() + b"</Types>")
+            target.writestr(info.filename, data)
+        for name, data in parts.items():
+            # PowerPoint stores an embedded workbook as it is, without compressing it again.
+            target.writestr(name, data, compress_type=zipfile.ZIP_STORED)
+    return out.getvalue()
+
+
+def with_chart(
+    package: bytes,
+    data: bytes,
+    *,
+    folder: str = "ppt",
+    name: str = "embeddings/Microsoft_Excel_Worksheet.xlsx",
+    typed: str = WORKBOOK,
+) -> bytes:
+    """A chart, as PowerPoint and Word write one: its data is a workbook inside the file."""
+    chart = (
+        f"{XML_HEAD}<c:chartSpace "
+        'xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" '
+        f'xmlns:r="{NS_R}"><c:externalData r:id="rId1"/></c:chartSpace>'
+    ).encode()
+    extension = name.rpartition(".")[2]
+    return with_parts(
+        package,
+        {
+            f"{folder}/charts/chart1.xml": chart,
+            f"{folder}/charts/_rels/chart1.xml.rels": rels_part(
+                relationship("rId1", REL_PACKAGE, f"../{name}")
+            ),
+            f"{folder}/{name}": data,
+        },
+        (
+            f'<Override PartName="/{folder}/charts/chart1.xml" ContentType="{CHART}"/>',
+            f'<Default Extension="{extension}" ContentType="{typed}"/>',
+        ),
+    )
+
+
+def linked_workbook() -> bytes:
+    """A workbook that fetches another from a web address when it opens."""
+    return make_xlsx(
+        extra={
+            "xl/externalLinks/_rels/externalLink1.xml.rels": rels_part(
+                relationship(
+                    "rId1", REL_EXTERNAL_LINK_PATH, "https://files.example/book.xlsx", external=True
+                )
+            )
+        }
+    )
