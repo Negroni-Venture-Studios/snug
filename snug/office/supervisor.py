@@ -62,6 +62,9 @@ DEADLINE = 120  # seconds of wall clock for one conversion
 CPU_SECONDS = 120
 WRITTEN_BYTES = 512 * 1024 * 1024  # the most any file LibreOffice writes may hold
 MAX_PDF = 512 * 1024 * 1024
+# soffice.bin exits with this to ask to be started again, after setting up a new profile.
+RESTART = 81
+STARTS = 3
 # Docker doubles its restart delay for a container that ran less than 10 s.
 MIN_LIFETIME = 11
 POLL = 0.5
@@ -178,27 +181,15 @@ def convert(
             0o600,
         )
         try:
-            process = subprocess.Popen(  # noqa: S603 - a fixed program, with the job's paths only
-                argv,
-                cwd=work,
-                env=environment,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=errors,
-                start_new_session=True,
-                preexec_fn=confine,  # the supervisor runs no threads, so this is safe
-            )
-        except subprocess.SubprocessError:
-            # The child could not apply its limits or filter: fail closed.
-            os.close(errors)
-            return "unconfined"
-        try:
-            try:
-                code = process.wait(timeout=deadline)
-            except subprocess.TimeoutExpired:
-                _kill(process)
-                return "timeout"
-            _kill(process)  # anything it left in its group
+            due = time.monotonic() + deadline
+            # soffice.bin's first run with a fresh profile sets it up, exits with
+            # RESTART, and expects to be started again, as its launcher would.
+            for _ in range(STARTS):
+                code = _run(argv, work, environment, errors, confine, due - time.monotonic())
+                if code != RESTART:
+                    break
+            if isinstance(code, str):
+                return code
             result = _read_output(out) if code == 0 else "unreadable"
             if isinstance(result, str):
                 _report(job, code, errors)
@@ -209,6 +200,39 @@ def convert(
         return "unreadable"
     finally:
         shutil.rmtree(work, ignore_errors=True)
+
+
+def _run(
+    argv: list[str],
+    work: Path,
+    environment: dict[str, str],
+    errors: int,
+    confine: Callable[[], None] | None,
+    timeout: float,
+) -> int | str:
+    """Run LibreOffice once: its exit code, or "timeout" or "unconfined"."""
+    if timeout <= 0:
+        return "timeout"
+    try:
+        process = subprocess.Popen(  # noqa: S603 - a fixed program, with the job's paths only
+            argv,
+            cwd=work,
+            env=environment,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=errors,
+            start_new_session=True,
+            preexec_fn=confine,  # the supervisor runs no threads, so this is safe
+        )
+    except subprocess.SubprocessError:
+        return "unconfined"  # the child could not apply its limits or filter: fail closed
+    try:
+        code = process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        _kill(process)
+        return "timeout"
+    _kill(process)  # anything it left in its group
+    return code
 
 
 def _report(job: Job, code: int, errors: int) -> None:

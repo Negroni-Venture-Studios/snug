@@ -69,6 +69,13 @@ if data == b"slow":
     time.sleep(60)
 if data == b"fail":
     sys.exit(1)
+# LibreOffice's first run with a fresh profile sets the profile up and asks to be restarted.
+profile = next(a for a in args if a.startswith("-env:UserInstallation=file://"))
+marker = os.path.join(profile.removeprefix("-env:UserInstallation=file://"), "user", "ready")
+first_run = not os.path.exists(marker)
+if data == b"always-restart" or (data == b"restart" and first_run):
+    open(marker, "w").write("set up")
+    sys.exit(81)
 if data == b"swaplog":
     log = os.path.join(os.getcwd(), "errors.log")
     secret = os.path.join(os.path.dirname(out), "secret.txt")
@@ -338,3 +345,27 @@ def test_a_failure_is_reported_from_libreoffices_own_errors_only(
     assert (report["kind"], report["exit"]) == ("docx", 1)
     assert "the real error" in report["errors"]
     assert "SECRET-FROM-ELSEWHERE" not in said
+
+
+def test_libreoffice_is_started_again_after_setting_up_its_profile(
+    exchange: tuple[Path, ...], soffice: str
+) -> None:
+    """A fresh profile makes soffice.bin exit 81 once, asking to be started again."""
+    inbox, outbox, work, template = exchange
+    put_job(inbox, TOKEN, "pptx", b"restart")
+    job = supervisor.next_job(inbox, outbox)
+    assert job is not None
+    made_by(
+        supervisor.convert(job, work_root=work, template=template, soffice=soffice, confine=None)
+    )
+
+
+def test_libreoffice_is_not_restarted_for_ever(exchange: tuple[Path, ...], soffice: str) -> None:
+    inbox, outbox, work, template = exchange
+    put_job(inbox, TOKEN, "pptx", b"always-restart")
+    job = supervisor.next_job(inbox, outbox)
+    assert job is not None
+    result = supervisor.convert(
+        job, work_root=work, template=template, soffice=soffice, confine=None
+    )
+    assert result == "unreadable"
