@@ -87,9 +87,22 @@ def test_odd_page_numbers_show_the_first_page(issued: service.Issued, asked: str
     assert 'alt="Page 1 of 3"' in page
 
 
-def test_the_reader_prefetches_the_next_page(issued: service.Issued) -> None:
+def test_the_reader_fetches_the_next_page_after_this_one(issued: service.Issued) -> None:
+    # viewer.js fetches it once this page has loaded, so on a one-CPU server the
+    # two never share the server's time (page 1 took 11 s, 12 November 2026).
     page = get(opened(issued), f"/v/{issued.token}").content.decode()
-    assert f'<link rel="prefetch" href="{image_url(issued, 2, 1600)}"' in page
+    assert f'data-next="{image_url(issued, 2, 1600)}"' in page
+    assert 'rel="prefetch"' not in page
+
+
+def test_the_last_page_fetches_nothing_more(issued: service.Issued) -> None:
+    page = get(opened(issued), f"/v/{issued.token}?page=3").content.decode()
+    assert "data-next" not in page
+
+
+def test_the_page_says_it_is_loading_until_it_arrives(issued: service.Issued) -> None:
+    page = get(opened(issued), f"/v/{issued.token}?page=2").content.decode()
+    assert '<span class="page-loading" aria-hidden="true">Loading page 2</span>' in page
 
 
 def test_the_reader_explains_images_and_screen_readers(issued: service.Issued) -> None:

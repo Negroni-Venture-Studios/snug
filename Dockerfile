@@ -21,7 +21,11 @@ WORKDIR /app
 COPY pyproject.toml uv.lock README.md LICENSE THIRD_PARTY_LICENCES.md ./
 RUN uv sync --locked --no-dev --no-install-project
 COPY snug ./snug
-RUN uv sync --locked --no-dev
+# uv compiles the dependencies; Snug itself is installed from /app/snug, so it is
+# compiled here. The root file system is read-only, so without this every worker,
+# one for each page shown, compiled Snug's code again.
+RUN uv sync --locked --no-dev \
+ && /app/.venv/bin/python -m compileall -q --invalidation-mode unchecked-hash /app/snug
 
 # Static files are collected into the image. These settings exist only for
 # this step: Snug refuses to start without a real key and domain.

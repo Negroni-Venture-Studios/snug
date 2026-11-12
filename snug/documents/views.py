@@ -68,6 +68,8 @@ def _store(
     version = store(document, checked, filename=upload.name or "", uploaded_by=_admin(request))
     if version.preview == DocumentVersion.Preview.PENDING:
         transaction.on_commit(previews.drive_in_background)
+    else:
+        transaction.on_commit(lambda: pages.warm_in_background(version))
     _audit(
         request,
         "document.version_uploaded",

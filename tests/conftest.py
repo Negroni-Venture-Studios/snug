@@ -11,8 +11,12 @@ import pytest
 from django.conf import settings
 
 if TYPE_CHECKING:
+    import threading
+    from collections.abc import Callable
+
     from django.test import Client
 
+    from snug.documents.models import DocumentVersion
     from tests.fake_converter import Converter
 
 # The end-to-end tests need a browser and their own settings: see tests/e2e_settings.py.
@@ -52,6 +56,25 @@ def no_network_downloads(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(urllib.request, "urlopen", refuse)
     monkeypatch.setattr(outbound, "urlopen", refuse)
+
+
+@pytest.fixture(scope="session")
+def real_warm_in_background() -> "Callable[[DocumentVersion], threading.Thread | None]":
+    """The real background render, for the test of it: every other test stops it."""
+    from snug.rendering import pages
+
+    return pages.warm_in_background
+
+
+@pytest.fixture(autouse=True)
+def no_background_rendering(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Page 1 is rendered in a thread once a version can be read; in tests, it is not.
+
+    The thread would outlive its test and render into a data folder that is gone.
+    """
+    from snug.rendering import pages
+
+    monkeypatch.setattr(pages, "warm_in_background", lambda version: None)
 
 
 @pytest.fixture(autouse=True)

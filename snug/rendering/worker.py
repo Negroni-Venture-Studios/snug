@@ -130,22 +130,35 @@ def apply_limits() -> bool:
     return True
 
 
-def preload() -> None:
-    """Import now everything rendering needs: after confine(), nothing can be loaded."""
-    import PIL.Image
-    import PIL.ImageDraw
-    import PIL.ImageFont
-    import PIL.ImageOps
-    import PIL.WebPImagePlugin
-    import pypdfium2
-    import pypdfium2.raw
+# What each mode loads before confine(). Pages are rendered and stamped on
+# every view, so those modes load only what they use: a worker took 1.6 s to
+# start on a one-CPU server (12 November 2026). Every other mode loads it all.
+EVERYTHING = ("pil", "pdfium", "pypdf", "office")
+PRELOADS = {"render": ("pil", "pdfium"), "stamp": ("pil",)}
 
-    PIL.Image.init()
-    del pypdfium2
+
+def preload(mode: str = "") -> None:
+    """Import now everything the mode needs: after confine(), nothing can be loaded."""
+    needs = PRELOADS.get(mode, EVERYTHING)
     for name in PDF_CODECS:
         codecs.lookup(name)
-    _warm_up_pypdf()
-    _warm_up_office()
+    if "pil" in needs:
+        import PIL.Image
+        import PIL.ImageDraw
+        import PIL.ImageFont
+        import PIL.ImageOps
+        import PIL.WebPImagePlugin
+
+        PIL.Image.init()
+    if "pdfium" in needs:
+        import pypdfium2
+        import pypdfium2.raw
+
+        del pypdfium2
+    if "pypdf" in needs:
+        _warm_up_pypdf()
+    if "office" in needs:
+        _warm_up_office()
 
 
 def _warm_up_office() -> None:
@@ -639,7 +652,7 @@ def main(argv: list[str], *, confined: bool = True) -> int:
         how = confine() if confined else "unconfined: not asked"
         sys.stdout.write((how if limited else "unconfined: memory limit refused") + "\n")
         return 0
-    preload()
+    preload(argv[0] if argv else "")
     try:
         page = width = 0
         font = b""

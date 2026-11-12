@@ -5,8 +5,10 @@ stamped on each request, so one cached page serves every viewer.
 The worker returns the image through a pipe; Snug writes the cache file.
 """
 
+import logging
 import os
 import tempfile
+import threading
 from pathlib import Path
 
 from django.conf import settings
@@ -14,6 +16,8 @@ from django.conf import settings
 from snug.documents import storage
 from snug.documents.models import DocumentVersion
 from snug.rendering import sandbox
+
+log = logging.getLogger(__name__)
 
 DEFAULT_WIDTH = 1600
 # Geist Mono, vendored with the interface fonts (SIL OFL 1.1).
@@ -39,6 +43,35 @@ def page_image(version: DocumentVersion, page: int, width: int = DEFAULT_WIDTH) 
         Path(partial).unlink(missing_ok=True)
         raise
     return target
+
+
+def warm(version: DocumentVersion) -> None:
+    """Render page 1 now, so the first investor to open it waits only for the watermark."""
+    if version.reads_as_pages and version.page_count >= 1:
+        _render_first(version)
+
+
+def warm_in_background(version: DocumentVersion) -> threading.Thread | None:
+    """Warm the version without making the request wait.
+
+    Whether it has pages is decided here, so the thread renders and touches
+    no database.
+    """
+    if not (version.reads_as_pages and version.page_count >= 1):
+        return None
+    thread = threading.Thread(target=_render_first, args=(version,), daemon=True)
+    thread.start()
+    return thread
+
+
+def _render_first(version: DocumentVersion) -> None:
+    try:
+        page_image(version, 1, DEFAULT_WIDTH)
+    except (sandbox.WorkerError, OSError) as error:
+        # Left for the first viewer, whose request renders it or shows the error.
+        # OSError: a new version replaced an Office file's preview meanwhile.
+        code = error.code if isinstance(error, sandbox.WorkerError) else type(error).__name__
+        log.warning("Could not render the first page of version %s: %s", version.pk, code)
 
 
 def stamped_page(

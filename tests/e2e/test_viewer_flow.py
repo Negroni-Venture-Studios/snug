@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 from django.core import mail as django_mail
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page, Request, expect
 
 from snug.documents import ingest
 from snug.documents.models import Document
@@ -128,3 +128,28 @@ def test_reading_time_reaches_the_server(live_server: Any, page: Page, document:
     response = sent.value.response()
     assert response is not None and response.status == 204
     assert PageView.objects.get(page=1).seconds > 0
+
+
+def test_the_next_page_is_fetched_once_this_one_has_arrived(
+    live_server: Any, page: Page, document: Document
+) -> None:
+    # On a one-CPU server, fetching both at once made page 1 take 11 s (12 November 2026).
+    issued = issue(document, verify=False)
+    events: list[str] = []
+
+    def arrived(request: Request) -> None:
+        if "/pages/1-" in request.url:
+            events.append("page 1 arrived")
+
+    def asked(request: Request) -> None:
+        if "/pages/2-" in request.url:
+            events.append("page 2 asked for")
+
+    page.on("requestfinished", arrived)
+    page.on("request", asked)
+    page.goto(f"{live_server.url}/v/{issued.token}")
+    page.get_by_role("button", name="Open Seed deck").click()
+    expect_page(page, 1, 3)
+    page.wait_for_function("() => document.querySelector('link[rel=prefetch]') !== null")
+    page.wait_for_timeout(500)
+    assert events[:2] == ["page 1 arrived", "page 2 asked for"], events

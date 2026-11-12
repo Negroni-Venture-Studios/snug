@@ -263,6 +263,59 @@ def test_preload_loads_every_text_codec_pypdf_uses() -> None:
         assert f"encodings.{module}" in loaded, module
 
 
+# What a page view starts with: pages are rendered and stamped on every view,
+# so those modes load only what they use (12 November 2026: a worker took 1.6 s
+# to start on a one-CPU server). Once confined, nothing more can be loaded.
+PAGE_MODE = """
+import sys
+from snug.rendering import worker
+worker.preload({mode!r})
+before = set(sys.modules)
+pdf = open({pdf!r}, 'rb').read()
+webp = open({webp!r}, 'rb').read()
+font = open({font!r}, 'rb').read()
+if {mode!r} == 'render':
+    worker.render(pdf, 1, 800)
+else:
+    worker.stamp(webp, font, 'priya@northfield.example', '12 Nov 2026', 'RZFQ')
+print(' '.join(sorted(set(sys.modules) - before)) or '-')
+print(' '.join(sorted(m for m in before if m.split('.')[0] in ('pypdf', 'pypdfium2'))) or '-')
+"""
+
+
+@pytest.mark.parametrize(
+    ("mode", "unneeded"),
+    [("render", {"pypdf"}), ("stamp", {"pypdf", "pypdfium2"})],
+)
+def test_a_page_mode_preloads_what_it_uses_and_no_more(
+    mode: str, unneeded: set[str], deck: Path, tmp_path: Path
+) -> None:
+    from snug.rendering import pages
+
+    webp = tmp_path / "page.webp"
+    webp.write_bytes(sandbox.render(deck, 1, 800))
+    font = str(pages.WATERMARK_FONT)
+    code = PAGE_MODE.format(mode=mode, pdf=str(deck), webp=str(webp), font=font)
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", code], capture_output=True, text=True, timeout=60, check=False
+    )
+    assert result.returncode == 0, result.stderr
+    loaded_late, heavy = result.stdout.splitlines()
+    assert loaded_late == "-", f"{mode} imported {loaded_late} after its preload"
+    assert not {name.split(".")[0] for name in heavy.split() if name != "-"} & unneeded, heavy
+
+
+def test_other_modes_still_preload_everything() -> None:
+    code = (
+        "import sys; from snug.rendering import worker; worker.preload('stamp-pdf'); "
+        "print('pypdf' in sys.modules, 'pypdfium2' in sys.modules, 'PIL.Image' in sys.modules)"
+    )
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", code], capture_output=True, text=True, timeout=60, check=True
+    )
+    assert result.stdout.split() == ["True", "True", "True"]
+
+
 def test_confine_reports_when_unavailable() -> None:
     if sys.platform != "linux":
         assert worker.confine() == "unconfined: not Linux"

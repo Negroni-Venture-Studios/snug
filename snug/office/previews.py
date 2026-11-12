@@ -37,7 +37,7 @@ from django.utils import timezone
 
 from snug.documents import storage
 from snug.documents.models import OFFICE, DocumentVersion
-from snug.rendering import sandbox
+from snug.rendering import pages, sandbox
 
 log = logging.getLogger(__name__)
 
@@ -293,6 +293,8 @@ def _finish(version: DocumentVersion, answer: bytes | str) -> None:
         if version.status == DocumentVersion.Status.PREPARING:
             version.status = DocumentVersion.Status.READY
         version.save()
+    if not isinstance(outcome, str):
+        pages.warm_in_background(version)
 
 
 def _keep(version: DocumentVersion, pdf: bytes) -> tuple[int, list[list[float]]] | str:
