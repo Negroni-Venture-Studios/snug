@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from snug.rendering import sandbox, worker
+from snug.rendering import sandbox, seccomp, worker
 from tests.pdfs import make_pdf
 
 linux_only = pytest.mark.skipif(sys.platform != "linux", reason="Landlock and prctl are Linux")
@@ -391,7 +391,7 @@ def test_the_filter_refuses_sockets_and_reaching_into_other_processes(machine: s
     # Security audit, 10 November 2026: below Landlock ABI 6 nothing stopped a
     # compromised worker tracing or reading the memory of Snug's own processes.
     arch, numbers = SYSCALLS[machine]
-    program = worker._seccomp_filter(machine, WORKER_PID)
+    program = seccomp.seccomp_filter(machine, WORKER_PID)
     assert program is not None
     for name in (
         "socket",
@@ -424,7 +424,7 @@ def test_the_filter_refuses_sockets_and_reaching_into_other_processes(machine: s
 def test_the_filter_lets_the_worker_change_only_its_own_limits(machine: str) -> None:
     # glibc's getrlimit and setrlimit call prlimit64 with 0, meaning the caller.
     arch, numbers = SYSCALLS[machine]
-    program = worker._seccomp_filter(machine, WORKER_PID)
+    program = seccomp.seccomp_filter(machine, WORKER_PID)
     assert program is not None
     for target in (0, WORKER_PID):
         assert _seccomp(program, arch, numbers["prlimit64"], target, 7) == SECCOMP_ALLOW
@@ -435,7 +435,7 @@ def test_the_filter_lets_the_worker_change_only_its_own_limits(machine: str) -> 
 @pytest.mark.parametrize("machine", sorted(SYSCALLS))
 def test_the_filter_lets_the_worker_signal_only_itself(machine: str) -> None:
     arch, numbers = SYSCALLS[machine]
-    program = worker._seccomp_filter(machine, WORKER_PID)
+    program = seccomp.seccomp_filter(machine, WORKER_PID)
     assert program is not None
     for name in SIGNALLING:
         # abort() is tgkill(own pid, own thread, SIGABRT): the worker may signal itself.
@@ -451,24 +451,24 @@ def test_the_filter_lets_the_worker_signal_only_itself(machine: str) -> None:
 @pytest.mark.parametrize("machine", sorted(SYSCALLS))
 def test_the_filter_allows_everything_else(machine: str) -> None:
     arch, numbers = SYSCALLS[machine]
-    program = worker._seccomp_filter(machine, WORKER_PID)
+    program = seccomp.seccomp_filter(machine, WORKER_PID)
     assert program is not None
     for name in ("read", "write", "mmap", "getpid"):
         assert _seccomp(program, arch, numbers[name], WORKER_PID + 1) == SECCOMP_ALLOW, name
 
 
 def test_the_filter_kills_calls_from_any_other_architecture() -> None:
-    program = worker._seccomp_filter("x86_64", WORKER_PID)
+    program = seccomp.seccomp_filter("x86_64", WORKER_PID)
     assert program is not None
     assert _seccomp(program, 0x40000003, 3) == SECCOMP_KILL  # 32-bit x86, read
     assert _seccomp(program, 0xC000003E, 0x40000000 | 0) == SECCOMP_EPERM  # x32, read
-    arm = worker._seccomp_filter("aarch64", WORKER_PID)
+    arm = seccomp.seccomp_filter("aarch64", WORKER_PID)
     assert arm is not None
     assert _seccomp(arm, 0x40000028, 3) == SECCOMP_KILL  # 32-bit Arm, read
 
 
 def test_there_is_no_filter_for_an_unknown_architecture() -> None:
-    assert worker._seccomp_filter("riscv64", WORKER_PID) is None
+    assert seccomp.seccomp_filter("riscv64", WORKER_PID) is None
 
 
 @linux_only
