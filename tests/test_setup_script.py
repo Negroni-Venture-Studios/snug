@@ -327,3 +327,11 @@ def test_answering_no_on_a_server_with_the_converter_removes_it(server: Path) ->
     log = run_setup(server, has_database=True, bucket_has_backups=True, office="no\n")
     assert "SNUG_OFFICE='false'" in (server / "snug.env").read_text()
     assert "docker compose --profile office rm --stop --force office" in log
+
+
+def test_an_answer_that_is_neither_yes_nor_no_is_asked_again(server: Path) -> None:
+    """Found on the release candidate's server: a stray word was taken for no."""
+    run_setup(server, has_database=True, bucket_has_backups=True, office="Negroni\nyes\n")
+    printed = (server.parent / "screen").read_text()
+    assert "Type yes or no." in printed
+    assert "SNUG_OFFICE='true'" in (server / "snug.env").read_text()

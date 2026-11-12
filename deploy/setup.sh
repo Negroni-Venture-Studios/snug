@@ -41,6 +41,20 @@ ask() {
 	[ -n "$reply" ] || reply="${2:-}"
 }
 
+# yes_or_no PROMPT DEFAULT: ask until the answer is yes or no (or y or n, in
+# any case); $reply is then yes or no. Anything else is asked again, not
+# taken for no.
+yes_or_no() {
+	while :; do
+		ask "$1 Type yes or no" "$2"
+		case "$reply" in
+			[Yy] | [Yy][Ee][Ss]) reply=yes; return 0 ;;
+			[Nn] | [Nn][Oo]) reply=no; return 0 ;;
+		esac
+		say "Type yes or no."
+	done
+}
+
 # secret PROMPT: like ask, without showing what is typed.
 secret() {
 	printf '%s: ' "$1"
@@ -111,14 +125,13 @@ say "Word, PowerPoint and Excel files are shared as downloads. Snug can also sho
 say "in the browser, page by page, with LibreOffice in a container of its own under"
 say "gVisor. It needs 2 GB of memory. docs/office.md explains what it changes."
 if office_is_on; then office_default=yes; else office_default=no; fi
-ask "Show Office files in the browser? Type yes or no" "$office_default"
-office_wanted=no
-case "$reply" in [Yy]*) office_wanted=yes ;; esac
+yes_or_no "Show Office files in the browser?" "$office_default"
+office_wanted=$reply
 if [ "$office_wanted" = yes ] && ! office_memory_ok; then
 	say "This server has $(office_memory_mb) MB of memory. With LibreOffice, Snug needs 2 GB:"
 	say "resize the droplet first, or Snug may be stopped for want of memory."
-	ask "Install LibreOffice anyway? Type yes or no" "no"
-	case "$reply" in [Yy]*) ;; *) office_wanted=no ;; esac
+	yes_or_no "Install LibreOffice anyway?" "no"
+	office_wanted=$reply
 fi
 if [ "$office_wanted" = yes ]; then
 	office_on
@@ -148,7 +161,7 @@ if [ -s backup/rclone.conf ]; then
 		restoring=yes
 		say "Found backups in its bucket: setup will restore them."
 	fi
-elif [ "$existing" = no ] && ask "Are you restoring Snug from an earlier server's backups? Type yes or no" "no" && [ "$reply" = yes ]; then
+elif [ "$existing" = no ] && yes_or_no "Are you restoring Snug from an earlier server's backups?" "no" && [ "$reply" = yes ]; then
 	say "Paste the backup settings from your password manager: everything from the"
 	say "first line, # Snug's backups, to the last, password2 = ..."
 	umask 077

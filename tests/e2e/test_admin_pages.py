@@ -654,9 +654,17 @@ def test_office_previews_are_turned_off_in_settings_with_a_click(
         settings, "CONFIG", dataclasses.replace(settings.CONFIG, office=True, office_dir=office)
     )
     sign_in(live_server, page)
+    page.set_viewport_size({"width": 1440, "height": 900})
     page.goto(f"{live_server.url}/admin/settings/#office")
     section = page.locator("#office")
     expect(section).to_contain_text("LibreOffice 25.2.3")
+    # Found on the release candidate's server: the status box spanned the page and
+    # touched the form. It is as wide as the form under it, with a gap between.
+    status = section.locator(".office-status").bounding_box()
+    form = section.locator("form").bounding_box()
+    assert status is not None and form is not None
+    assert round(status["width"]) == round(form["width"])
+    assert form["y"] - (status["y"] + status["height"]) >= 12
     section.get_by_label("Show Office files in the browser").uncheck()
     section.get_by_role("button", name="Save").click()
     expect(page.locator("#office .notice-ok")).to_contain_text("shared as downloads only")
