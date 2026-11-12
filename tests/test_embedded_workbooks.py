@@ -111,3 +111,66 @@ def test_a_stamped_deck_keeps_its_chart_byte_for_byte() -> None:
     stamped = ooxml.stamp(deck, email="priya@northfield.example", date="12 Nov 2026", ref="RZFQ")
     with zipfile.ZipFile(io.BytesIO(stamped)) as package:
         assert package.read("ppt/embeddings/Microsoft_Excel_Worksheet.xlsx") == workbook
+
+
+# ---------------------------------------------------------------- however it is hidden
+# Security review of the change above, 12 November 2026.
+
+
+def code_of(data: bytes) -> str:
+    with pytest.raises(ooxml.Refused) as refused:
+        ooxml.inspect(data)
+    return refused.value.code
+
+
+def test_a_workbook_typed_as_a_picture_is_checked() -> None:
+    deck = with_chart(make_pptx(), linked_workbook(), name="media/image9.png", typed="image/png")
+    assert code_of(deck) == "external"
+
+
+def test_a_workbook_behind_other_bytes_is_checked() -> None:
+    # zipfile, like Office, finds a zip from its end, whatever comes first.
+    hidden = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64 + linked_workbook()
+    deck = with_parts(
+        make_pptx(),
+        {"ppt/media/blob.bin": hidden},
+        ('<Default Extension="bin" ContentType="application/octet-stream"/>',),
+    )
+    assert code_of(deck) == "external"
+
+
+def test_what_a_chart_names_as_its_workbook_must_be_one() -> None:
+    assert code_of(with_chart(make_pptx(), b"not a workbook at all")) == "not_office"
+
+
+def test_an_old_compound_file_is_refused() -> None:
+    ole = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 504
+    deck = with_parts(
+        make_pptx(),
+        {"ppt/embeddings/object.bin": ole},
+        ('<Default Extension="bin" ContentType="application/octet-stream"/>',),
+    )
+    assert code_of(deck) == "macros"
+
+
+def unpacked(data: bytes) -> int:
+    with zipfile.ZipFile(io.BytesIO(data)) as package:
+        return sum(entry.file_size for entry in package.infolist())
+
+
+def test_embedded_files_share_the_uploads_unpacking_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workbook = make_xlsx()
+    deck = with_chart(make_pptx(), workbook)
+    # Room for the deck itself, and for the workbook on its own, but not both.
+    monkeypatch.setattr(ooxml, "MAX_UNPACKED", unpacked(deck) + unpacked(workbook) - 1)
+    assert code_of(deck) == "too_large"
+
+
+def test_how_many_files_may_be_embedded_is_capped(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ooxml, "MAX_EMBEDDED_PACKAGES", 1)
+    deck = with_parts(
+        with_chart(make_pptx(), make_xlsx()), {"ppt/embeddings/second.xlsx": make_xlsx()}
+    )
+    assert code_of(deck) == "too_large"

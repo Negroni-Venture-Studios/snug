@@ -21,6 +21,7 @@ import re
 import shutil
 import zipfile
 from collections.abc import Callable
+from dataclasses import dataclass
 from xml.etree import ElementTree
 from xml.parsers import expat
 
@@ -32,9 +33,14 @@ MAX_UNPACKED = 1024 * 1024 * 1024
 MAX_PARSED_PART = 16 * 1024 * 1024
 MAX_SLIDES = 10_000
 # An Office file inside another, such as a chart's data: checked as an upload
-# is, one level deep, read whole into memory, so kept small.
+# is, one level deep, read whole into memory, so kept small. The upload and
+# every file inside it share MAX_UNPACKED.
 MAX_EMBEDDED = 64 * 1024 * 1024
+MAX_EMBEDDED_PACKAGES = 32
 ZIP_MAGIC = b"PK\x03\x04"
+# An old-style compound file: how Office stores OLE objects and .doc, .ppt and
+# .xls files, which may hold macros. Nothing in a .docx, .pptx or .xlsx needs one.
+OLE_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 
 CONTENT_TYPES = "[Content_Types].xml"
 ROOT_RELS = "_rels/.rels"
@@ -56,6 +62,8 @@ REL_DOC = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/o
 # never when the file opens. Anything else external (a template, a frame, a
 # linked picture or object) is fetched on opening, so must be on the author's disk.
 REL_HYPERLINK = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
+# An Office file inside this one, such as a chart's data: it must pass the same checks.
+REL_PACKAGE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package"
 # The elements that follow a hyperlink only when it is clicked. A hyperlink's
 # relationship may point anywhere, so no other element may use it.
 HYPERLINK_ELEMENTS = frozenset({"hyperlink", "hlinkClick", "hlinkHover", "hlinkMouseOver"})
@@ -90,6 +98,14 @@ NS_VT = "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"
 # Custom properties' format id, the same for every user-defined property.
 FMTID = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}"
 OUR_PROPERTIES = ("Shared with", "Shared on", "Snug link")
+
+
+@dataclass
+class _Budget:
+    """What is left to unpack, across the upload and every file inside it."""
+
+    unpacked: int
+    packages: int
 
 
 class Refused(Exception):
@@ -182,7 +198,9 @@ def _remote(target: str) -> bool:
     return (rest.startswith("//") and not rest.startswith("///")) or rest.startswith("////")
 
 
-def _main_part(package: zipfile.ZipFile, *, embedded: bool = False) -> tuple[str, str]:
+def _main_part(
+    package: zipfile.ZipFile, *, embedded: bool = False, budget: _Budget | None = None
+) -> tuple[str, str]:
     """The part Office would open, and its format, refusing macros, ActiveX and remote content.
 
     An allowlist, read the way Office reads a package: the root relationship
@@ -197,8 +215,12 @@ def _main_part(package: zipfile.ZipFile, *, embedded: bool = False) -> tuple[str
 
     An Office file inside this one, such as the workbook that holds a chart's
     data, is checked the same way, since it opens in Excel when the chart's
-    data is edited. A package inside an embedded one is refused.
+    data is edited, wherever it is and however it is typed: any part a package
+    relationship names, and any part that is a zip. A package inside an
+    embedded one is refused, as is an old-style compound file.
     """
+    if budget is None:
+        budget = _Budget(MAX_UNPACKED - _unpacked(package), MAX_EMBEDDED_PACKAGES)
     names = package.namelist()
     folded = [name.casefold() for name in names]
     if len(set(folded)) != len(folded):
@@ -223,6 +245,7 @@ def _main_part(package: zipfile.ZipFile, *, embedded: bool = False) -> tuple[str
         raise Refused("macros")
     # Every part's relationships, not only the main part's: a sheet or slide can link to code too.
     hyperlinks: dict[str, set[str]] = {}  # part name -> ids of its hyperlinks to other computers
+    packaged: set[str] = set()  # parts a package relationship names, folded
     for name in names:
         if name.casefold().endswith(".rels"):
             for relation in _xml(package, name).iter(f"{{{NS_RELS}}}Relationship"):
@@ -230,6 +253,8 @@ def _main_part(package: zipfile.ZipFile, *, embedded: bool = False) -> tuple[str
                 if any(word in kind.casefold() for word in CODE_WORDS):
                     raise Refused("macros")
                 external = relation.get("TargetMode", "").casefold() == "external"
+                if kind == REL_PACKAGE and not external:
+                    packaged.add(_resolve(_source_of(name), relation.get("Target", "")))
                 if not external or not _remote(relation.get("Target", "")):
                     continue
                 if kind != REL_HYPERLINK:
@@ -255,17 +280,20 @@ def _main_part(package: zipfile.ZipFile, *, embedded: bool = False) -> tuple[str
         if folded_name.endswith((".rels", "/")) or name == CONTENT_TYPES:
             continue
         kind = overrides.get(folded_name, defaults.get(folded_name.rpartition(".")[2], ""))
-        # A picture is never read for fields; an SVG often has a DOCTYPE, which _stream refuses.
-        if kind.startswith("image/"):
-            continue
-        # Anything else is read if it is typed as XML or looks like it, whatever it
-        # claims, and checked as a file of its own if it is a zip. Every Office type
-        # says "openxmlformats", so a type is XML only if it says so at its end.
         head = _head(package, name)
-        if _typed_as_xml(kind) or _starts_as_xml(head):
+        if head.startswith(OLE_MAGIC):
+            raise Refused("macros")
+        # A zip is checked as a file of its own, whatever it claims to be.
+        if folded_name in packaged or head.startswith(ZIP_MAGIC):
+            _check_embedded(package, name, embedded=embedded, budget=budget)
+            continue
+        # A picture is never read for fields; an SVG often has a DOCTYPE, which _stream refuses.
+        # Anything else is read if it is typed as XML or looks like it, whatever it claims.
+        # Every Office type says "openxmlformats", so a type is XML only if it ends so.
+        if not kind.startswith("image/") and (_typed_as_xml(kind) or _starts_as_xml(head)):
             xml_parts.append(name)
-        elif head.startswith(ZIP_MAGIC):
-            _check_embedded(package, name, embedded=embedded)
+        elif _hides_zip(package, name):  # a zip behind other bytes, as Office would find it
+            _check_embedded(package, name, embedded=embedded, budget=budget)
     _check_content(package, xml_parts, hyperlinks)
     return names[folded.index(main)], found
 
@@ -286,15 +314,40 @@ def _starts_as_xml(head: bytes) -> bool:
     return head.removeprefix(b"\xef\xbb\xbf").lstrip().startswith(b"<")
 
 
-def _check_embedded(package: zipfile.ZipFile, name: str, *, embedded: bool) -> None:
-    """An Office file inside this one, checked as an upload is."""
+def _unpacked(package: zipfile.ZipFile) -> int:
+    return sum(entry.file_size for entry in package.infolist())
+
+
+def _resolve(source: str, target: str) -> str:
+    """A relationship's target as a part name, folded: relative to its source's folder."""
+    if target.startswith("/"):
+        return posixpath.normpath(target.lstrip("/")).casefold()
+    return posixpath.normpath(posixpath.join(posixpath.dirname(source), target)).casefold()
+
+
+def _hides_zip(package: zipfile.ZipFile, name: str) -> bool:
+    info = package.getinfo(name)
+    if info.file_size > MAX_EMBEDDED:
+        return False  # too big to be checked; Office opens one only through a package relationship
+    return zipfile.is_zipfile(io.BytesIO(package.read(info)))
+
+
+def _check_embedded(
+    package: zipfile.ZipFile, name: str, *, embedded: bool, budget: _Budget
+) -> None:
+    """An Office file inside this one, checked as an upload is, within the upload's budget."""
     if embedded:
         raise Refused("not_office")
     info = package.getinfo(name)
-    if info.file_size > MAX_EMBEDDED:
+    budget.packages -= 1
+    if info.file_size > MAX_EMBEDDED or budget.packages < 0:
         raise Refused("too_large")
     with _package(package.read(info)) as inner:
-        _main_part(inner, embedded=True)
+        size = _unpacked(inner)
+        if size > budget.unpacked:
+            raise Refused("too_large")
+        budget.unpacked -= size
+        _main_part(inner, embedded=True, budget=budget)
 
 
 def _source_of(rels: str) -> str:
