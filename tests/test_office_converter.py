@@ -91,7 +91,7 @@ record = {"args": args, "env": dict(os.environ), "cwd": os.getcwd()}
 with open(os.path.join(out, "input.pdf"), "wb") as made:
     made.write(body + json.dumps(record).encode())
 """
-TOKEN = "Zk3pR8vQ2mN5xW7yT4aB"
+TOKEN = "testjob" + "0" * 13  # a job token is 16 to 64 letters, digits, - and _
 
 
 @pytest.fixture
