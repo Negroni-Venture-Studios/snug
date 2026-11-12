@@ -49,7 +49,7 @@ Two more settings in the same file are read by Docker Compose, for the container
 
 | Variable | Required | Default | What it does |
 |---|---|---|---|
-| `SNUG_IMAGE` | No | the release's image, such as `ghcr.io/negroni-venture-studios/snug:1.0.0` | The Snug image to run. The default is the image of the release whose files are in `/opt/snug`, which `snug update` brings up to date. |
+| `SNUG_IMAGE` | No | the release's image, such as `ghcr.io/negroni-venture-studios/snug:1.1.0` | The Snug image to run. The default is the image of the release whose files are in `/opt/snug`, which `snug update` brings up to date. |
 | `SNUG_BACKUP_EVERY` | No | `300` | Seconds between copies to the backup bucket. `snug doctor` reports a problem after 15 minutes without one. |
 
 ## Generating the secret key

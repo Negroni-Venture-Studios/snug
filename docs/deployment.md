@@ -68,7 +68,7 @@ Compose treats `$` in `snug.env` as the start of a variable. Wrap any value cont
 
 | | Snug | Caddy |
 |---|---|---|
-| Image | `ghcr.io/negroni-venture-studios/snug` at the release's version, such as `:1.0.0`; set `SNUG_IMAGE` in `.env` to use another, such as `:edge`, a build of the latest code on `main` | `caddy`, pinned by digest |
+| Image | `ghcr.io/negroni-venture-studios/snug` at the release's version, such as `:1.1.0`; set `SNUG_IMAGE` in `.env` to use another, such as `:edge`, a build of the latest code on `main` | `caddy`, pinned by digest |
 | Data | The `snug-data` volume, mounted at `/var/lib/snug` | The `caddy-data` volume, holding its certificates |
 | Ports | None on the server; only Caddy can reach it | 80 and 443, with 443 over UDP for HTTP/3 |
 | Filesystem | Read-only, apart from the data folder and `/tmp` | Read-only, apart from its volumes and `/tmp` |
@@ -115,7 +115,7 @@ The admin Overview shows the same problems. When there are none, it shows *Every
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/overview-dark.png">
-  <img alt="The admin Overview, with the status line Everything is working, the running version, Snug 1.0.0, and a link to Updating Snug above its numbers and the latest visits." src="images/screenshots/overview-light.png">
+  <img alt="The admin Overview, with the status line Everything is working, the running version, Snug 1.1.0, and a link to Updating Snug above its numbers and the latest visits." src="images/screenshots/overview-light.png">
 </picture>
 
 It checks housekeeping, the backups, the email settings and the GeoIP data on each visit; housekeeping runs the document worker, DNS and HTTPS checks every hour, and Snug records a failed email as it happens.

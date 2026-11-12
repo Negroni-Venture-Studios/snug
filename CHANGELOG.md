@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-12
+
+Word and PowerPoint files, and an optional LibreOffice converter that shows Office files in the browser.
+
 ### Added
 
 - Word documents (.docx) and PowerPoint presentations (.pptx) can be uploaded and shared for download, as Excel workbooks are. Each download has the investor's email address, the date and the link in its document properties, and the founder can add a description. A presentation's card shows its slide count.
@@ -219,5 +223,6 @@ External security audits found these.
 - Project documents: README, contributing guide, security policy, code of conduct, trademarks note, and agent instructions.
 - DESIGN.md, recording the architecture, the agreed decisions and the front-end design, with clickable mockups and the Snug logo in `docs/design/`.
 
-[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Negroni-Venture-Studios/snug/releases/tag/v1.0.0

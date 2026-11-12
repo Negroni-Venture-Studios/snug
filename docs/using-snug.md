@@ -13,11 +13,11 @@ Sign in with your email address and password, then the six-digit code from your 
 
 ## The Overview
 
-The Overview is the first page after signing in. A line at the top says whether everything is working, or shows any problem `snug doctor` would report, such as a late backup. Under it is the version of Snug running, such as *Snug 1.0.0*, with a link to *Updating Snug*. Next come the number of documents, active links, people who have visited and visits in the last week, then the latest visits, with a person's first open of a document marked *New*.
+The Overview is the first page after signing in. A line at the top says whether everything is working, or shows any problem `snug doctor` would report, such as a late backup. Under it is the version of Snug running, such as *Snug 1.1.0*, with a link to *Updating Snug*. Next come the number of documents, active links, people who have visited and visits in the last week, then the latest visits, with a person's first open of a document marked *New*.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/overview-dark.png">
-  <img alt="The Overview: everything is working, Snug 1.0.0 with a link to Updating Snug, five documents, nine active links, six people who have visited and fourteen visits this week, with the latest visits listed below." src="images/screenshots/overview-light.png">
+  <img alt="The Overview: everything is working, Snug 1.1.0 with a link to Updating Snug, five documents, nine active links, six people who have visited and fourteen visits this week, with the latest visits listed below." src="images/screenshots/overview-light.png">
 </picture>
 
 ## Uploading a document
