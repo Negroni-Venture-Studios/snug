@@ -40,6 +40,8 @@ The converter needs a server with 2 GB of memory, such as DigitalOcean's $12 a m
 sudo snug update --with-office
 ```
 
+On a server running Snug 1.0.0, run `sudo snug update` first, then the command above. 1.0.0's `snug` command does not pass `--with-office` on, so on its own it updates Snug without LibreOffice; the update installs a `snug` command that does.
+
 The command installs gVisor from gVisor's own packages, restarts Docker and with it Snug, and starts the converter. Snug then converts the current version of each Office document you have already uploaded, one at a time and oldest first.
 
 `sudo snug doctor` then shows the converter working, with its LibreOffice version:

@@ -145,6 +145,6 @@ sudo snug update
 
 To download from another branch or tag, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`.
 
-`sudo snug update --with-office` also installs LibreOffice, and `sudo snug update --without-office` removes it, as [office.md](office.md) explains. With LibreOffice installed, every `snug update` also pulls the converter's newest image, rebuilt every Monday with LibreOffice's security fixes.
+`sudo snug update --with-office` also installs LibreOffice, and `sudo snug update --without-office` removes it, as [office.md](office.md) explains. From Snug 1.0.0, run `sudo snug update` first: 1.0.0's command does not pass either option on. With LibreOffice installed, every `snug update` also pulls the converter's newest image, rebuilt every Monday with LibreOffice's security fixes.
 
 The Overview shows which Snug is running, under its status line: a release's version, or `edge` and the commit for a build of `main`.
