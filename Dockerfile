@@ -48,7 +48,12 @@ RUN apt-get update \
 # (docs/design.md).
 RUN groupadd --system --gid 10001 snug \
  && useradd --system --uid 10001 --gid snug --home-dir /var/lib/snug --shell /usr/sbin/nologin snug \
- && install --directory --owner snug --group snug --mode 0700 /var/lib/snug
+ && install --directory --owner snug --group snug --mode 0700 /var/lib/snug \
+ # The folders shared with the LibreOffice converter, if it is installed: Snug
+ # writes jobs to the inbox, which the converter only reads, and the converter
+ # writes PDFs to the outbox, which it cannot list (docs/office.md).
+ && install --directory --owner snug --group snug --mode 0755 /var/lib/snug-office/inbox \
+ && install --directory --owner snug --group snug --mode 0733 /var/lib/snug-office/outbox
 
 COPY --from=build --chown=root:root /app /app
 
