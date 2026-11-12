@@ -170,6 +170,7 @@ def convert(
             "SAL_USE_VCLPLUGIN": "svp",  # draw to memory: there is no display
             "TMPDIR": str(work),
         }
+        errors = (work / "errors.log").open("wb")
         try:
             process = subprocess.Popen(  # noqa: S603 - a fixed program, with the job's paths only
                 argv,
@@ -177,26 +178,44 @@ def convert(
                 env=environment,
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stderr=errors,
                 start_new_session=True,
                 preexec_fn=confine,  # the supervisor runs no threads, so this is safe
             )
         except subprocess.SubprocessError:
             # The child could not apply its limits or filter: fail closed.
             return "unconfined"
+        finally:
+            errors.close()
         try:
             code = process.wait(timeout=deadline)
         except subprocess.TimeoutExpired:
             _kill(process)
             return "timeout"
         _kill(process)  # anything it left in its group
-        if code != 0:
-            return "unreadable"
-        return _read_output(out)
+        result = _read_output(out) if code == 0 else "unreadable"
+        if isinstance(result, str):
+            _report(job, code, work / "errors.log")
+        return result
     except OSError:
         return "unreadable"
     finally:
         shutil.rmtree(work, ignore_errors=True)
+
+
+def _report(job: Job, code: int, errors: Path) -> None:
+    """Say on the container's log why a conversion failed, with the end of LibreOffice's own errors.
+
+    The log holds no document content: LibreOffice writes its warnings
+    there, not the file's text.
+    """
+    try:
+        with errors.open("rb") as handle:
+            handle.seek(max(0, errors.stat().st_size - 4096))
+            tail = handle.read().decode("utf-8", errors="replace").strip()
+    except OSError:
+        tail = ""
+    sys.stderr.write(f"{job.kind} conversion failed, LibreOffice exit {code}\n{tail}\n")
 
 
 def _read_output(out: Path) -> bytes | str:
