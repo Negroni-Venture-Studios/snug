@@ -42,6 +42,10 @@ sudo snug update --with-office
 
 The command installs gVisor from gVisor's own packages, restarts Docker and with it Snug, and starts the converter. Snug then converts the current version of each Office document you have already uploaded, one at a time and oldest first.
 
+`sudo snug doctor` then shows the converter working, with its LibreOffice version:
+
+<img alt="snug doctor, ending with ok, Office converter, LibreOffice 25.2.3, in an image built on 12 November 2026." src="images/office/doctor.png">
+
 ## Keeping it up to date
 
 Snug's converter image is rebuilt every Monday with Debian's latest LibreOffice, and `sudo snug update` installs it. *Settings* and `sudo snug doctor` show a warning when the image on your server is more than 14 days old.

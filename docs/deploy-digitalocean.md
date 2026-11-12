@@ -158,6 +158,8 @@ Snug asks one question at a time. Type each answer and press Return. To paste in
 | `Your company's name, as investors know it (you can change it later in Settings)` | your company's name, such as `Fernlea Robotics` |
 | `Show Office files in the browser? Type yes or no [no]` | `yes` on the $12.00/mo plan, if you want investors to read Word, PowerPoint and Excel files in the browser, or press Return for no ([office.md](office.md)) |
 
+<img alt="The console asking Show Office files in the browser? Type yes or no [no], after a note that it needs 2 GB of memory." src="images/digitalocean/setup-office.png">
+
 If Snug says your domain `points to nowhere yet`, the DNS records from step 5 have not arrived. Carry on: Snug keeps trying. If it names an address that is not the server's, check the records.
 
 Snug then downloads itself. The first time, this takes a minute or two. Then it asks about the backups:
