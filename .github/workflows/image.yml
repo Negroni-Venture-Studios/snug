@@ -62,9 +62,14 @@ jobs:
               assert sandbox.render(f.name, 1, 800)[:4] == b'RIFF'
           print('rendered in the worker')
           "
-      - name: Ships Snug's own code compiled, so a worker does not compile it on every page
+      - name: Ships Snug's code and Python's library compiled, so a worker does not compile them on every page
         run: |
-          docker exec snug sh -c 'ls /app/snug/rendering/__pycache__/worker.*.pyc'
+          docker exec snug python -c "
+          import os, json, snug.rendering.worker as worker
+          for module in (worker, json):
+              assert os.path.exists(module.__cached__), module.__cached__
+          print('compiled')
+          "
       - name: Ships the third-party licence notices
         run: |
           docker exec snug test -f /app/THIRD_PARTY_LICENCES.md

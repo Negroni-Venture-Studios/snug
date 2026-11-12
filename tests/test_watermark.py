@@ -93,17 +93,17 @@ def test_oversized_images_are_refused(tmp_path: Path) -> None:
 def test_the_mark_square_is_bounded_whatever_the_page_shape(
     size: tuple[int, int], full: bool, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # Security audit follow-up, 11 November 2026: the mark is drawn on a square
+    # Security audit follow-up, 11 November 2026: the mark was drawn on a square
     # as wide as the page's diagonal, so a long thin page within MAX_SIDE and
     # MAX_PIXELS asked for a square of 8,000 pixels a side (256 MB of RGBA).
-    squares: list[int] = []
+    # Since 12 November 2026 no square is drawn, and the bound still holds.
+    layers: list[tuple[int, int]] = []
     new = Image.new
 
     def spy(mode: str, dimensions: tuple[int, int], *args: object) -> Image.Image:
-        if mode == "RGBA" and dimensions[0] == dimensions[1]:
-            side = dimensions[0]
-            assert side * side <= 2 * worker.MAX_PIXELS + 4 * side, dimensions
-            squares.append(side)
+        if mode == "RGBA":
+            assert dimensions[0] * dimensions[1] <= 2 * worker.MAX_PIXELS, dimensions
+            layers.append(dimensions)
         return new(mode, dimensions, *args)  # type: ignore[arg-type]
 
     page = io.BytesIO()
@@ -113,9 +113,61 @@ def test_the_mark_square_is_bounded_whatever_the_page_shape(
         worker.stamp(page.getvalue(), pages.WATERMARK_FONT.read_bytes(), EMAIL, DATE, REF)
     )
     assert stamped.width == size[0] and stamped.height > size[1]
-    width, height = size
     # An ordinary page keeps its mark exactly: drawn at full size, not enlarged.
-    assert (squares == [int((width**2 + height**2) ** 0.5) + 1]) is full
+    assert (size in layers) is full
+
+
+def _old_mark_layer(width: int, height: int, font: bytes, email: str, date: str) -> Image.Image:
+    """The mark as drawn until 12 November 2026: a whole square, rotated, then cut."""
+    from PIL import ImageDraw, ImageFont
+
+    size = max(14, round(width * 0.018))
+    mark_font = ImageFont.truetype(io.BytesIO(font), size)
+    side = int((width**2 + height**2) ** 0.5) + 1
+    layer = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    text = f"{email}   {date}"
+    step_x = int(draw.textlength(text, font=mark_font)) + size * 4
+    step_y = size * 7
+    for row, y in enumerate(range(0, side, step_y)):
+        for x in range(-step_x + (row % 2) * step_x // 2, side, step_x):
+            draw.text((x, y), text, font=mark_font, fill=worker.MARK_COLOUR)
+    layer = layer.rotate(worker.MARK_ANGLE, resample=Image.Resampling.BICUBIC)
+    left, top = (side - width) // 2, (side - height) // 2
+    return layer.crop((left, top, left + width, top + height))
+
+
+@pytest.mark.parametrize("size", [(1600, 900), (800, 1131), (1600, 1600)])
+def test_the_mark_is_drawn_as_it_was(size: tuple[int, int]) -> None:
+    # Rotating the whole square took 90% of a stamp, 0.55 s on a one-CPU
+    # server (12 November 2026). Each line of text is now rotated once and
+    # placed where the rotated square put it.
+    font = pages.WATERMARK_FONT.read_bytes()
+    new = worker._mark_layer(*size, font, EMAIL, DATE).getchannel("A")
+    old = _old_mark_layer(*size, font, EMAIL, DATE).getchannel("A")
+    assert new.size == old.size == size
+    old_ink, new_ink = sum(old.histogram()[9:]), sum(new.histogram()[9:])
+    assert abs(new_ink - old_ink) < old_ink * 0.03, (new_ink, old_ink)
+    # Placed to the pixel: blurring both by a pixel leaves almost no difference.
+    from PIL import ImageFilter
+
+    blur = ImageFilter.BoxBlur(1)
+    apart = ImageChops.difference(new.filter(blur), old.filter(blur))
+    total = sum(value * count for value, count in enumerate(apart.histogram()))
+    assert total / (size[0] * size[1]) < 0.5
+
+
+def test_the_mark_rotates_a_line_of_text_not_the_page(monkeypatch: pytest.MonkeyPatch) -> None:
+    rotated: list[tuple[int, int]] = []
+    rotate = Image.Image.rotate
+
+    def spy(self: Image.Image, *args: object, **kwargs: object) -> Image.Image:
+        rotated.append(self.size)
+        return rotate(self, *args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(Image.Image, "rotate", spy)
+    worker._mark_layer(1600, 900, pages.WATERMARK_FONT.read_bytes(), EMAIL, DATE)
+    assert rotated and all(width * height < 1600 * 900 // 20 for width, height in rotated), rotated
 
 
 # ---------------------------------------------------------------- in-process, for coverage

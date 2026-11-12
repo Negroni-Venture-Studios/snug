@@ -60,6 +60,10 @@ RUN groupadd --system --gid 10001 snug \
  && install --directory --owner snug --group snug --mode 1733 /var/lib/snug-office/outbox
 
 COPY --from=build --chown=root:root /app /app
+# The base image ships Python's standard library without compiled files, and
+# the root file system is read-only, so every worker compiled what it used.
+RUN python -m compileall -q --invalidation-mode unchecked-hash \
+    "$(python -c 'import sysconfig; print(sysconfig.get_path("stdlib"))')"
 
 ENV PATH=/app/.venv/bin:$PATH \
     PYTHONDONTWRITEBYTECODE=1 \

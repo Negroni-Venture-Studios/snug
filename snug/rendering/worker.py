@@ -45,6 +45,7 @@ secrets, so even a file that took over the code reading it would find nothing to
 import codecs
 import io
 import json
+import math
 import os
 import re
 import sys
@@ -356,10 +357,13 @@ def _stamp_text(email: str, date: str, ref: str) -> tuple[str, str, str]:
 def _mark_layer(width: int, height: int, font: bytes | None, email: str, date: str) -> Any:
     """The diagonal mark: rows of "email  date", tiled and rotated, on a clear layer.
 
-    Drawn on a square big enough to cover the page at any angle, rotated, then
-    cut to the page. A page whose square would hold more than MAX_MARK_PIXELS
-    has its mark drawn smaller, then enlarged to the page. `font` None uses
-    Pillow's built-in font (for the warm-up).
+    Laid out on a square big enough to cover the page at any angle, as if the
+    square were rotated and cut to the page. Only one line of text is drawn and
+    rotated, and each copy is placed where the rotated square would put it:
+    rotating the whole square took 90% of a stamp (12 November 2026). A page
+    whose square would hold more than MAX_MARK_PIXELS has its mark drawn
+    smaller, then enlarged to the page. `font` None uses Pillow's built-in
+    font (for the warm-up).
     """
     from PIL import Image, ImageDraw, ImageFont
 
@@ -369,17 +373,32 @@ def _mark_layer(width: int, height: int, font: bytes | None, email: str, date: s
     size = max(14, round(width * 0.018))
     mark_font = ImageFont.truetype(io.BytesIO(font), size) if font else ImageFont.load_default(size)
     side = int((width**2 + height**2) ** 0.5) + 1
-    layer = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(layer)
     text = f"{email}   {date}"
+
+    line = Image.new("RGBA", (1, 1))
+    _, _, right, bottom = ImageDraw.Draw(line).textbbox((0, 0), text, font=mark_font)
+    line = Image.new("RGBA", (max(1, math.ceil(right)), max(1, math.ceil(bottom))), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(line)
+    draw.text((0, 0), text, font=mark_font, fill=MARK_COLOUR)
+    turned = line.rotate(MARK_ANGLE, resample=Image.Resampling.BICUBIC, expand=True)
+
     step_x = int(draw.textlength(text, font=mark_font)) + size * 4
     step_y = size * 7
+    cos, sin = math.cos(math.radians(MARK_ANGLE)), math.sin(math.radians(MARK_ANGLE))
+    centre = side / 2
+    left, top = (side - width) // 2, (side - height) // 2
+    layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     for row, y in enumerate(range(0, side, step_y)):
         for x in range(-step_x + (row % 2) * step_x // 2, side, step_x):
-            draw.text((x, y), text, font=mark_font, fill=MARK_COLOUR)
-    layer = layer.rotate(MARK_ANGLE, resample=Image.Resampling.BICUBIC)
-    left, top = (side - width) // 2, (side - height) // 2
-    layer = layer.crop((left, top, left + width, top + height))
+            # The line's centre on the square, turned about the square's centre
+            # (anticlockwise, as Image.rotate turns), then moved onto the page.
+            dx, dy = x + line.width / 2 - centre, y + line.height / 2 - centre
+            at_x = round(centre + dx * cos + dy * sin - left - turned.width / 2)
+            at_y = round(centre - dx * sin + dy * cos - top - turned.height / 2)
+            if not (-turned.width < at_x < width and -turned.height < at_y < height):
+                continue
+            source = (max(0, -at_x), max(0, -at_y))
+            layer.alpha_composite(turned, dest=(max(0, at_x), max(0, at_y)), source=source)
     return layer if layer.size == page else layer.resize(page, Image.Resampling.BICUBIC)
 
 
