@@ -30,7 +30,7 @@ def people(request: HttpRequest) -> HttpResponse:
                         read.seen,
                         f"{person.email}, {read.title}",
                         video=read.video,
-                        workbook=read.workbook,
+                        card=read.card,
                     ),
                     "visits": read.visits,
                     "downloads": read.downloads,

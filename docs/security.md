@@ -20,17 +20,17 @@ Signing in to the admin pages takes a password and a code from an authenticator 
 
 ## Uploaded files
 
-Snug reads every uploaded PDF, workbook and video in a separate worker process, confined so that it cannot open other files, connect to the network or reach Snug's other processes, with a time and a memory limit. If the worker cannot confine itself, Snug refuses to read the file. A file made to attack the PDF reader would run inside that confinement.
+Snug reads every uploaded PDF, Office file and video in a separate worker process, confined so that it cannot open other files, connect to the network or reach Snug's other processes, with a time and a memory limit. If the worker cannot confine itself, Snug refuses to read the file. A file made to attack the PDF reader would run inside that confinement.
 
 ## Watermarks and stamps
 
-Every page an investor reads in the browser shows their email address and the date, repeated diagonally across the page, and a line at the foot with the link's reference. A PDF or workbook download is stamped for its reader too, and the audit log records every download with a hash of the exact file sent.
+Every page an investor reads in the browser shows their email address and the date, repeated diagonally across the page, and a line at the foot with the link's reference. A PDF or Office file download is stamped for its reader too, and the audit log records every download with a hash of the exact file sent.
 
 | What they get | How it is marked | What the mark cannot stop |
 |---|---|---|
 | A page in the browser | Their email address and the date across the page, and a footer line | A photograph or a screenshot, which can then be cropped or edited |
 | A PDF download | The same marks on every page, as an image layer, and their details in the document's properties | Someone with a PDF editor removing the layer and the properties, or copying the text out |
-| A workbook download | Their details in the workbook's comments and three custom properties; every sheet stays exactly as uploaded | Copying the cells into a new workbook, or editing the properties |
+| A Word, PowerPoint or Excel download | Their details in the file's comments and three custom properties; every sheet, slide and paragraph stays exactly as uploaded | Copying the contents into a new file, or editing the properties |
 | A video | Their email address and the date drawn over the player | The browser's developer tools hiding it; Safari on iPhone playing in its own full screen without it; saving the stream, even with downloads off |
 | A video download | None: it is the original file | Anything. Every download is the same file, so its hash cannot show whose copy it was |
 

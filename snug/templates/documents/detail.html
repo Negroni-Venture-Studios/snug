@@ -10,9 +10,9 @@
   </div>
 </div>
 
-{% if latest and latest.is_workbook %}
+{% if latest and latest.is_office %}
 <section class="section" id="description">
-  <div class="section-head stacked"><h2>Description</h2><p>Optional. Investors see it above the list of sheets, on every link and in every room.</p></div>
+  <div class="section-head stacked"><h2>Description</h2><p>Optional. Investors see it {% if latest.is_workbook %}above the list of sheets{% else %}above the download button{% endif %}, on every link and in every room.</p></div>
   {% include "snug/partials/saved.html" with here="description" %}
   <form class="panel form settings-form" method="post" action="{% url 'documents:description' document.token %}#description" novalidate>
     {% csrf_token %}
@@ -21,10 +21,10 @@
     <button class="btn btn-primary" type="submit">Save description</button>
   </form>
 </section>
-<section class="section">
+{% if latest.is_workbook %}<section class="section">
   <div class="section-head stacked"><h2>Sheets</h2><p>Shared for download only. See who opened and downloaded it on the People page and in the audit log.</p></div>
   <ul class="sheet-list">{% for name in latest.sheets %}<li>{{ name }}</li>{% endfor %}</ul>
-</section>
+</section>{% else %}<p class="empty-line">Shared for download only, as the {{ latest.office.short }} itself. See who opened and downloaded it on the People page and in the audit log.</p>{% endif %}
 {% elif reading %}
 <div class="stats">
   <div class="stat"><div class="value">{{ reading.viewers }}</div><div class="label">Viewers</div></div>
@@ -68,7 +68,7 @@
     <div class="video-frame"><video src="{% url 'documents:video_preview' document.token latest.number %}" width="{{ latest.page_sizes.0.0 }}" height="{{ latest.page_sizes.0.1 }}" controls playsinline preload="metadata"></video></div>
     <p class="chart-note">Viewers also see their own watermark over the video.</p>
   </section>
-  {% elif not latest.is_workbook %}<section class="section">
+  {% elif not latest.is_office %}<section class="section">
     <div class="section-head"><h2>First page</h2></div>
     {% if latest and preview %}
     <div class="preview-frame"><img src="{% url 'documents:preview' document.token latest.number 1 %}" width="{{ preview.width }}" height="{{ preview.height }}" alt="Page 1 of {{ document.title }}, version {{ latest.number }}"></div>
@@ -84,7 +84,7 @@
       <form class="panel form" method="post" action="{% url 'documents:upload_version' document.token %}" enctype="multipart/form-data" novalidate data-upload>
         {% csrf_token %}
         {% include "snug/partials/form_error.html" %}
-        <div class="field"><label for="pdf">File</label><input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,video/mp4,.mp4" required><div class="hint">Up to {% if latest.is_video %}{{ video_mb }}{% else %}{{ limit_mb }}{% endif %} MB. Every link to this document will show the new version.</div></div>
+        <div class="field"><label for="pdf">File</label><input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,video/mp4,.mp4" required><div class="hint">Up to {% if latest.is_video %}{{ video_mb }}{% else %}{{ limit_mb }}{% endif %} MB. Every link to this document will show the new version.</div></div>
         <div class="upload-status" data-upload-status hidden><progress max="100" value="0"></progress><span role="status" aria-live="polite">Uploading</span></div>
         <div class="form-foot"><button class="btn btn-primary" type="submit">{% icon "upload-simple" %}Upload version</button></div>
       </form>

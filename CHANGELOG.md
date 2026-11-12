@@ -4,8 +4,14 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- Word documents (.docx) and PowerPoint presentations (.pptx) can be uploaded and shared for download, as Excel workbooks are. Each download has the investor's email address, the date and the link in its document properties, and the founder can add a description. A presentation's card shows its slide count.
+
 ### Changed
 
+- Snug refuses a Word, PowerPoint or Excel file that fetches a template, picture or object from another computer when it is opened. A template on the author's own computer is allowed.
+- An older .doc, .ppt or .xls file is refused with one message for all three, saying to save it as .docx, .pptx or .xlsx.
 - The README and guides state facts plainly, without hedges such as "at the time of writing" or notes on how Snug was tested before its release.
 - "What Snug does not do" in the README lists what Snug leaves out, each item starting with "No".
 

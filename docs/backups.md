@@ -7,7 +7,7 @@ The standard deployment backs Snug up continuously to a storage bucket of your o
 | What | How often | History kept |
 |---|---|---|
 | The database: admins, links, rooms, the audit log, NDA acceptances, reading data and settings, including how email is sent | Litestream records every change within a second; the bucket gets a copy every 5 minutes | Any moment in the last 7 days can be restored |
-| Uploaded documents (`originals/`): PDFs, Excel workbooks and videos | Every 5 minutes | A deleted or replaced file is kept for 30 days |
+| Uploaded documents (`originals/`): PDFs, Office files and videos | Every 5 minutes | A deleted or replaced file is kept for 30 days |
 | Your logo and tab icon (`branding/`) | Every 5 minutes | As documents |
 
 The page images Snug renders, the files it keeps while uploading, and DB-IP's country data are not backed up, since Snug rebuilds or fetches them again as needed.

@@ -27,10 +27,10 @@ from snug.documents import storage
 from snug.documents.ingest import UploadRejectedError, ingest
 from snug.documents.models import Document, DocumentVersion
 from snug.links import service
-from snug.rendering import workbook
+from snug.rendering import ooxml
 from snug.rooms.models import Room, RoomDocument
+from tests.office_files import MACRO_MAIN, make_xlsx, parts_of
 from tests.pdfs import chunks, make_pdf
-from tests.workbooks import MACRO_MAIN, make_xlsx, parts_of
 
 pytestmark = pytest.mark.django_db
 
@@ -102,9 +102,12 @@ def test_a_workbook_becomes_a_spreadsheet_document(model: Document) -> None:
 @pytest.mark.parametrize(
     ("data", "said"),
     [
-        (make_xlsx(main=MACRO_MAIN), "This workbook contains macros."),
-        (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 512, "an older Excel file (.xls)"),
-        (b"hello, this is a text file", "Snug takes PDFs, Excel workbooks (.xlsx) and MP4 videos"),
+        (make_xlsx(main=MACRO_MAIN), "This file contains macros"),
+        (
+            b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 512,
+            "an older Office file (.doc, .ppt or .xls)",
+        ),
+        (b"hello, this is a text file", "Snug takes PDFs, Word, PowerPoint and Excel files"),
     ],
 )
 def test_what_is_not_a_plain_workbook_or_pdf_is_refused(data: bytes, said: str) -> None:
@@ -150,7 +153,8 @@ def test_the_admin_can_upload_a_workbook(client: Client) -> None:
 def test_the_upload_forms_offer_workbooks(client: Client, model: Document) -> None:
     for url in ("/admin/documents/new", f"/admin/documents/{model.token}"):
         page = client.get(url, secure=True).content.decode()
-        assert 'accept="application/pdf,.pdf,' + XLSX + ',.xlsx,video/mp4,.mp4"' in page, url
+        assert ",.docx," in page and ",.pptx," in page, url
+        assert XLSX + ',.xlsx,video/mp4,.mp4"' in page, url
 
 
 # ---------------------------------------------------------------- the admin's pages
@@ -227,7 +231,7 @@ def test_the_download_is_the_workbook_stamped_for_its_reader(model: Document) ->
     body = response.content
     before, after = parts_of(MODEL), parts_of(body)
     assert after["xl/worksheets/sheet1.xml"] == before["xl/worksheets/sheet1.xml"]
-    props = workbook._parse(after["docProps/custom.xml"])
+    props = ooxml._parse(after["docProps/custom.xml"])
     names = {p.get("name"): "".join(p.itertext()) for p in props}
     assert names["Shared with"] == INVESTOR
     assert names["Snug link"] == issued.link.ref

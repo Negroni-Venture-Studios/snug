@@ -4,8 +4,8 @@
     python -I -m snug.rendering.worker render FD PAGE WIDTH
     python -I -m snug.rendering.worker stamp FD FONT_FD EMAIL DATE REF
     python -I -m snug.rendering.worker stamp-pdf FD FONT_FD EMAIL DATE REF
-    python -I -m snug.rendering.worker inspect-xlsx FD
-    python -I -m snug.rendering.worker stamp-xlsx FD EMAIL DATE REF
+    python -I -m snug.rendering.worker inspect-office FD
+    python -I -m snug.rendering.worker stamp-office FD EMAIL DATE REF
     python -I -m snug.rendering.worker inspect-mp4 FD
     python -I -m snug.rendering.worker logo FD
     python -I -m snug.rendering.worker icon FD
@@ -17,10 +17,11 @@ WebP image to standard output. `stamp` reads a rendered page (as FD) and a
 font, and writes the page with the viewer's watermark: a page rendered from
 an untrusted PDF is never decoded outside a confined worker. `stamp-pdf`
 writes the original PDF with the viewer's diagonal mark and a footer line on
-every page, and the same details in its document properties. `inspect-xlsx`
-and `stamp-xlsx` do the same for an Excel workbook (see
-snug.rendering.workbook): the sheet names, and the workbook with the reader's
-details in its properties. `inspect-mp4` checks an MP4 video's boxes,
+every page, and the same details in its document properties. `inspect-office`
+and `stamp-office` do the same for a Word, PowerPoint or Excel file (see
+snug.rendering.ooxml): which format it is, with a workbook's sheet names or a
+presentation's slide count, and the file with the reader's details in its
+properties. `inspect-mp4` checks an MP4 video's boxes,
 reading them in pieces from the descriptor rather than whole (see
 snug.rendering.video), and prints its length and size; the video itself is
 never decoded. `logo` and `icon` redraw a branding image as a PNG.
@@ -51,7 +52,7 @@ import sys
 import zipfile
 from typing import Any
 
-from snug.rendering import video, workbook  # standard library only, like this module
+from snug.rendering import ooxml, video  # standard library only, like this module
 
 MEMORY_BYTES = 1024 * 1024 * 1024  # 1 GiB of address space
 CPU_SECONDS = 60
@@ -144,29 +145,29 @@ def preload() -> None:
     for name in PDF_CODECS:
         codecs.lookup(name)
     _warm_up_pypdf()
-    _warm_up_workbook()
+    _warm_up_office()
 
 
-def _warm_up_workbook() -> None:
+def _warm_up_office() -> None:
     """Read and stamp a tiny workbook, so zipfile, zlib and expat are loaded before confine()."""
     package = io.BytesIO()
     with zipfile.ZipFile(package, "w", zipfile.ZIP_DEFLATED) as parts:
         parts.writestr(
-            workbook.CONTENT_TYPES,
-            f'<Types xmlns="{workbook.NS_TYPES}"><Override PartName="/xl/workbook.xml" '
-            f'ContentType="{workbook.MAIN}"/></Types>',
+            ooxml.CONTENT_TYPES,
+            f'<Types xmlns="{ooxml.NS_TYPES}"><Override PartName="/xl/workbook.xml" '
+            f'ContentType="{ooxml.MAIN}"/></Types>',
         )
         parts.writestr(
-            workbook.ROOT_RELS,
-            f'<Relationships xmlns="{workbook.NS_RELS}"><Relationship Id="rId1" '
-            f'Type="{workbook.REL_DOC}" Target="xl/workbook.xml"/></Relationships>',
+            ooxml.ROOT_RELS,
+            f'<Relationships xmlns="{ooxml.NS_RELS}"><Relationship Id="rId1" '
+            f'Type="{ooxml.REL_DOC}" Target="xl/workbook.xml"/></Relationships>',
         )
         parts.writestr(
             "xl/workbook.xml",
-            f'<workbook xmlns="{workbook.NS_MAIN}"><sheets><sheet name="A"/></sheets></workbook>',
+            f'<workbook xmlns="{ooxml.NS_MAIN}"><sheets><sheet name="A"/></sheets></workbook>',
         )
-    workbook.inspect(package.getvalue())
-    workbook.stamp(package.getvalue(), email="warm@up.example", date="1 Jan 2026", ref="WARM")
+    ooxml.inspect(package.getvalue())
+    ooxml.stamp(package.getvalue(), email="warm@up.example", date="1 Jan 2026", ref="WARM")
 
 
 def _warm_up_pypdf() -> None:
@@ -815,10 +816,10 @@ def main(argv: list[str], *, confined: bool = True) -> int:
                 limited=limited,
                 allow_unconfined=allow_unconfined,
             )
-        if len(argv) == 2 and argv[0] in ("inspect", "logo", "icon", "inspect-xlsx"):
+        if len(argv) == 2 and argv[0] in ("inspect", "logo", "icon", "inspect-office"):
             mode = argv[0]
-        elif len(argv) == 5 and argv[0] == "stamp-xlsx":
-            mode = "stamp-xlsx"
+        elif len(argv) == 5 and argv[0] == "stamp-office":
+            mode = "stamp-office"
         elif len(argv) == 4 and argv[0] == "render":
             mode, page, width = "render", int(argv[2]), int(argv[3])
         elif len(argv) == 6 and argv[0] == "stamp":
@@ -837,11 +838,12 @@ def main(argv: list[str], *, confined: bool = True) -> int:
             return _fail("unconfined")
         if mode == "inspect":
             sys.stdout.write(json.dumps(inspect(data)) + "\n")
-        elif mode == "inspect-xlsx":
-            sys.stdout.write(json.dumps(workbook.inspect(data)) + "\n")
+        elif mode == "inspect-office":
+            sys.stdout.write(json.dumps(ooxml.inspect(data)) + "\n")
         else:
-            if mode == "stamp-xlsx":
-                output = workbook.stamp(data, email=argv[2], date=argv[3], ref=argv[4])
+            if mode == "stamp-office":
+                email, date, ref = _stamp_text(argv[2], argv[3], argv[4])
+                output = ooxml.stamp(data, email=email, date=date, ref=ref)
             elif mode == "render":
                 output = render(data, page, width)
             elif mode == "stamp":
@@ -854,7 +856,7 @@ def main(argv: list[str], *, confined: bool = True) -> int:
                 output = stamp_pdf(data, font, argv[3], argv[4], argv[5])
             sys.stdout.flush()
             sys.stdout.buffer.write(output)
-    except (_Refused, workbook.Refused) as refused:
+    except (_Refused, ooxml.Refused) as refused:
         return _fail(refused.code)
     except MemoryError:
         return _fail("memory")

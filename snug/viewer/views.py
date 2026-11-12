@@ -51,7 +51,6 @@ from snug.viewer.models import VerificationCode
 
 CHECK_ATTRIBUTE = "snug_viewer_check"
 TOO_MANY = "Too many attempts. Wait 15 minutes, then try again."
-XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 GateView = Callable[[HttpRequest, Link, str], HttpResponse]
 
@@ -170,7 +169,7 @@ def _context(link: Link, token: str, **extra: Any) -> dict[str, Any]:
         "document": link.document,
         "room": link.room,
         "pages": version.page_count if version else None,
-        "workbook": bool(version and version.is_workbook),
+        "office": version.office if version else None,
         "video": bool(version and version.is_video),
         "length": version.length if version and version.is_video else "",
         "room_documents": link.room.entries.count() if link.room is not None else None,
@@ -306,16 +305,16 @@ def _room_index(
     return render(request, "viewer/room.html", context)
 
 
-def _workbook_card(
+def _office_card(
     request: HttpRequest,
     access: Access,
     token: str,
     version: DocumentVersion,
     context: dict[str, Any],
 ) -> HttpResponse:
-    """A spreadsheet: its sheets and a download, since the working file is what matters.
+    """A Word, PowerPoint or Excel file: what it is and a download, since the working file matters.
 
-    The card counts as the workbook's one page, so time on it is measured like a PDF's.
+    The card counts as the file's one page, so time on it is measured like a PDF's.
     """
     assert access.document is not None  # noqa: S101 - only document pages reach the card
     visit, new = reading.page_shown(access, access.document, version, 1)
@@ -338,7 +337,7 @@ def _workbook_card(
         beat_url=reverse("viewer:beat", kwargs={"token": token}),
         beat_seconds=reading.BEAT_SECONDS,
     )
-    return render(request, "viewer/workbook.html", context)
+    return render(request, "viewer/office.html", context)
 
 
 def _video_player(
@@ -406,8 +405,8 @@ def entry(request: HttpRequest, access: Access, token: str) -> HttpResponse:
     version = access.document.latest_version()
     if version is None:
         return render(request, "viewer/reader.html", context)
-    if version.is_workbook:
-        return _workbook_card(request, access, token, version, context)
+    if version.is_office:
+        return _office_card(request, access, token, version, context)
     if version.is_video:
         return _video_player(request, access, token, version, context)
     count = version.page_count
@@ -615,8 +614,8 @@ def download(request: HttpRequest, access: Access, token: str) -> HttpResponseBa
         "ref": access.link.ref,
     }
     try:
-        if version.is_workbook:
-            data = rendering.stamped_xlsx(version, **stamp)
+        if version.is_office:
+            data = rendering.stamped_office(version, **stamp)
         else:
             data = rendering.stamped_pdf(version, **stamp)
     except WorkerError:
@@ -631,10 +630,10 @@ def download(request: HttpRequest, access: Access, token: str) -> HttpResponseBa
         version=version.number,
         sha256=hashlib.sha256(data).hexdigest(),
     )
-    workbook = version.is_workbook
-    response = HttpResponse(data, content_type=XLSX_TYPE if workbook else "application/pdf")
+    office = version.office
+    response = HttpResponse(data, content_type=office.content_type if office else "application/pdf")
     response["Content-Disposition"] = content_disposition_header(
-        True, _filename(access.document.title, ".xlsx" if workbook else ".pdf")
+        True, _filename(access.document.title, office.extension if office else ".pdf")
     )
     return response
 

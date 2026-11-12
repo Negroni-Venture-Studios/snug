@@ -10,7 +10,7 @@ Snug is a self-hosted data room for early-stage founders. You run it on your own
 
 - Each investor gets their own link, and proves they can read the inbox it was sent to.
 - You can see who opened what, page by page, and revoke a link at any time.
-- Their email address is on each page they read and in each PDF or workbook they download.
+- Their email address is on each page they read and in each PDF or Office file they download.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/hero-dark.png">
@@ -25,12 +25,12 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 
 ## What Snug does
 
-- **Documents.** PDFs, read page by page; Excel workbooks (.xlsx), shared for download so investors get the working model; and MP4 videos, watched in the browser with the viewer's watermark over them. Upload new versions; links always show the latest.
+- **Documents.** PDFs, read page by page; Word documents, PowerPoint presentations and Excel workbooks (.docx, .pptx and .xlsx), shared for download so investors get the working file; and MP4 videos, watched in the browser with the viewer's watermark over them. Upload new versions; links always show the latest.
 - **Rooms.** Collections of documents, with one level of folders. A document can be in any number of rooms.
 - **Links.** One per person, to a document or a room, with an optional message from you. Email verification (on by default), optional expiry, downloads (on by default), and immediate revocation.
 - **UK-only mode.** A link, or a whole room, can open only for visitors in the UK, Jersey, Guernsey and the Isle of Man, judged by their internet address against a country database kept on your server.
 - **An NDA.** One click-through agreement for your instance, versioned, which you can require before a room or a single-document link opens. Snug records who accepted which text, and when.
-- **The reader.** Pages are rendered on your server and shown one at a time, watermarked with the reader's email address, the date and the link. A download is the original PDF, stamped with the same details, so its text stays searchable. A video plays in the browser with the same details drawn over it; a workbook's card lists its sheets, and you can add a description.
+- **The reader.** Pages are rendered on your server and shown one at a time, watermarked with the reader's email address, the date and the link. A download is the original PDF, stamped with the same details, so its text stays searchable. A video plays in the browser with the same details drawn over it. A Word, PowerPoint or Excel file has a card with your description and a download button, and a workbook's card lists its sheets.
 - **Analytics.** Who opened each document, how long they spent on each page (or on each 10 seconds of a video), and how often they downloaded it, on an Overview, each document's page and a People page. Every admin is emailed the first time each link is opened, unless they turn it off. Reading data is deleted 12 months after a link ends, or after a period you set. Snug does not phone home.
 - **An audit log** of every admin action and every viewer access, with the viewer's country, filterable and exportable as CSV.
 - **Email** through Google Workspace, as a mailbox on your domain over the Gmail API, or any provider over SMTP. It is set up in Settings in numbered steps, ending with a test email, and can be cleared there.
@@ -63,8 +63,8 @@ More screenshots are in [Using Snug](docs/using-snug.md).
 
 ## What Snug does not do
 
-- **No Word, PowerPoint or image files.** Export them to PDF before uploading. Video must be MP4 with H.264.
-- **No workbook preview.** Investors download Excel workbooks to read them.
+- **No preview of Word, PowerPoint or Excel files.** Investors download them to read them.
+- **No older Office formats or image files.** Save .doc, .ppt and .xls files in the newer formats, and export images to PDF. Video must be MP4 with H.264.
 - **No way to stop screen capture.** Anyone can photograph a screen or record a video as it plays, and a downloaded video has no watermark.
 - **No e-signatures.** The NDA is a click-through agreement, and Snug records who accepted it.
 - **No export control.** UK-only mode goes by internet address, and a VPN gets round it.
@@ -87,7 +87,7 @@ To put Snug on a server, follow [Putting Snug on DigitalOcean](docs/deploy-digit
 
 ## How it is built
 
-Python and Django, with SQLite in WAL mode, server-rendered pages and very little JavaScript. PDFs are read and rendered with pypdfium2 in a separate process, limited in memory and time and confined by Linux Landlock and a filter that blocks network access and any reach into other processes, so a hostile PDF cannot reach your data. The same process checks Excel workbooks and MP4 videos, with the standard library alone; it never decodes a video, which the viewer's browser plays. Snug is one container image, run beside Caddy, Litestream and rclone. [How Snug works](docs/architecture.md) explains the code, with diagrams, and [docs/design.md](docs/design.md) the decisions behind it.
+Python and Django, with SQLite in WAL mode, server-rendered pages and very little JavaScript. PDFs are read and rendered with pypdfium2 in a separate process, limited in memory and time and confined by Linux Landlock and a filter that blocks network access and any reach into other processes, so a hostile PDF cannot reach your data. The same process checks Word, PowerPoint and Excel files and MP4 videos, with the standard library alone; it never decodes a video, which the viewer's browser plays. Snug is one container image, run beside Caddy, Litestream and rclone. [How Snug works](docs/architecture.md) explains the code, with diagrams, and [docs/design.md](docs/design.md) the decisions behind it.
 
 UK-only mode uses [IP geolocation by DB-IP](https://db-ip.com), licensed CC BY 4.0, which your server downloads once a month.
 

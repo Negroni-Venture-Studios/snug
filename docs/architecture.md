@@ -131,7 +131,7 @@ Files live in the data folder, `SNUG_DATA_DIR`:
 ```
 /var/lib/snug/
 ├── snug.sqlite3          the database, with its -wal and -shm files
-├── originals/            uploads, under random names: <32 hex>.pdf, .xlsx or .mp4
+├── originals/            uploads, under random names: <32 hex>.pdf, .docx, .pptx, .xlsx or .mp4
 ├── renders/              page images, a cache: <version id>/<page>-<width>.webp
 ├── tmp/                  uploads in progress
 ├── branding/             the logo and icon
@@ -152,8 +152,8 @@ Files live in the data folder, `SNUG_DATA_DIR`:
 Django receives the upload first, in memory if it is under 2.5 MB and in `tmp/` if not. `snug.documents.ingest` then makes it a version, with `check` for the first three steps and `store` for the last:
 
 1. It copies the upload to a temporary file in `tmp/`, computing its SHA-256 as it goes and keeping the first kilobyte. As soon as the first bytes show a video, the video limit applies (`SNUG_MAX_VIDEO_MB`); otherwise the document limit does (`SNUG_MAX_UPLOAD_MB`).
-2. The first bytes set the kind: `ftyp` at byte 4 is an MP4 video, a zip is an Excel workbook, and `%PDF-` is a PDF. An old `.xls` file, or a workbook with a password, is refused with its own message. Every version of a document must be the same kind.
-3. A document worker checks the file. Snug has written nothing to the database yet, so no other write waits for the check. For a PDF it returns the number of pages and their sizes; for a workbook, its visible sheets, after refusing macros, ActiveX and embedded objects; for a video, its length and picture size, after checking its codecs.
+2. The first bytes set the kind: `ftyp` at byte 4 is an MP4 video, a zip is an Office file, and `%PDF-` is a PDF. The worker then reads which Office format the zip is from its main part. An old `.doc`, `.ppt` or `.xls` file, or an Office file with a password, is refused with its own message. Every version of a document must be the same kind.
+3. A document worker checks the file. Snug has written nothing to the database yet, so no other write waits for the check. For a PDF it returns the number of pages and their sizes; for an Office file, its format, with a workbook's visible sheets or a presentation's slide count, after refusing macros, ActiveX, embedded objects, and templates, pictures or objects fetched from another computer; for a video, its length and picture size, after checking its codecs.
 4. Only then, in one transaction, Snug writes a `DocumentVersion` and renames the temporary file into `originals/` under a random name. The name the file was uploaded with is kept for display only.
 
 A refusal at any step shows a plain message beside the form and records `document.upload_refused`. The temporary file is always deleted, and a new document is created only once its file has passed, so a refused upload leaves nothing behind but the audit entry.
@@ -177,7 +177,7 @@ Every uploaded file is untrusted. Snug reads them only in a separate process, th
 The worker then:
 
 1. limits itself to 1 GiB of memory, 60 seconds of CPU, 64 MB written to any file and 32 open files, with no core dumps and no new processes;
-2. loads PDFium and Pillow, and runs pypdf and the workbook reader once on tiny files, so nothing has to load later;
+2. loads PDFium and Pillow, and runs pypdf and the Office file reader once on tiny files, so nothing has to load later;
 3. reads its input, except a video, which it reads in pieces once it is confined;
 4. confines itself: no new privileges, then a Landlock ruleset that allows nothing but reading the system's fonts and refuses TCP, then a seccomp filter that refuses to create any socket, or to reach into another process: tracing it, reading or writing its memory, signalling it, re-prioritising it or changing its limits;
 5. refuses to go on unless Landlock ABI 4 or later (Linux 6.7), the filter and the memory limit are all in place;
@@ -185,7 +185,7 @@ The worker then:
 
 Snug reads the pipe in 64 KiB pieces up to 64 MB (more for a stamped download, which can be as large as the file), against a deadline: 60 seconds to check an upload or stamp a download, 30 seconds to draw a page. Past either limit it kills the worker's whole process group. An error comes back as a short code, such as `password` or `macros`, which `sandbox` turns into the message shown to the admin.
 
-The worker's modes are `inspect`, `render` and `stamp` for PDFs, `stamp-pdf` for a PDF download, `inspect-xlsx` and `stamp-xlsx` for workbooks, `inspect-mp4` for videos, `logo` and `icon` for the branding images, and `confinement`, which confines itself and reports how, for `snug doctor`. Workbooks and videos are read with the standard library alone (`snug.rendering.workbook` and `video`). The worker never decodes a video. It reads the headers of the video's boxes and its index, and the investor's browser plays it.
+The worker's modes are `inspect`, `render` and `stamp` for PDFs, `stamp-pdf` for a PDF download, `inspect-office` and `stamp-office` for Word, PowerPoint and Excel files, `inspect-mp4` for videos, `logo` and `icon` for the branding images, and `confinement`, which confines itself and reports how, for `snug doctor`. Office files and videos are read with the standard library alone (`snug.rendering.ooxml` and `video`). The worker never decodes a video. It reads the headers of the video's boxes and its index, and the investor's browser plays it.
 
 On a Mac, which has no Landlock, `SNUG_UNSAFE_UNCONFINED_RENDERING=true` lets the worker run unconfined for development. `snug check` warns whenever it is on.
 
@@ -193,9 +193,9 @@ On a Mac, which has no Landlock, `SNUG_UNSAFE_UNCONFINED_RENDERING=true` lets th
 
 **A PDF** is shown one page at a time. The page image, `/v/<token>/pages/<page>-<width>.webp`, is drawn by a worker at 800 or 1,600 pixels wide and kept in `renders/`. A second worker stamps that investor's watermark on every request: their email address and the date across the page, and a footer band with their address, the date and the link's reference. The browser picks the width from a `srcset` and fetches the next page ahead.
 
-**A download** is made for each request, in a worker. A PDF keeps its text and gets a faint diagonal mark on every page, a line at the foot of each page and the same details in its properties. A workbook gets the details in its document properties, with every sheet left as uploaded. A video is the original file. The audit log records each download with a hash of the exact file sent.
+**A download** is made for each request, in a worker. A PDF keeps its text and gets a faint diagonal mark on every page, a line at the foot of each page and the same details in its properties. A Word, PowerPoint or Excel file gets the details in its document properties, with everything else left as uploaded. A video is the original file. The audit log records each download with a hash of the exact file sent.
 
-**A workbook** is shown as a card with its description, its sheets and a download button.
+**An Office file** is shown as a card with its description and a download button, and a workbook's card lists its sheets.
 
 **A video** plays in the browser from `/v/<token>/video`, which answers only requests for a range of bytes, at most 8 MB at a time (`snug.core.ranges`). The investor's email address, the date and the link are drawn over the player, and Snug's own full-screen button takes the player and the mark together.
 
@@ -211,7 +211,7 @@ On a Mac, which has no Landlock, `SNUG_UNSAFE_UNCONFINED_RENDERING=true` lets th
 - Showing a page continues the visit by the same session to the same document within the last 30 minutes, or starts a new one. A new visit is recorded in the audit log, and after a link's first visit Snug emails the admins who have first-open emails turned on (`snug.analytics.notify`). A single conditional update on `Link.first_opened_at` claims the first open, so two pages loading together send one email.
 - While the tab is visible, the page's script (`viewer.js`) sends a heartbeat every 15 seconds with `navigator.sendBeacon`. Snug credits the page with the time since its clock last ran, never more than 20 seconds, so a browser cannot claim more time than passed, and a sleeping laptop does not count.
 - Hiding or closing the tab sends `end`, credited the same way. Showing it again sends `resume`, which restarts the clock and credits nothing.
-- A video's script (`video.js`) sends `part` as it plays into each 10-second part, and each part counts as a page. A workbook's card counts as its one page.
+- A video's script (`video.js`) sends `part` as it plays into each 10-second part, and each part counts as a page. An Office file's card counts as its one page.
 
 `snug.analytics.summary` adds the seconds up for a document's page and for People, and `snug.analytics.charts` draws the strips and bar charts as SVG on the server, with the colour of each cell set by a class for its band of time. The pages need no charting script.
 

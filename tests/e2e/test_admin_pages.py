@@ -171,7 +171,7 @@ def test_a_refused_version_shows_its_error_in_view(
     )
     page.get_by_role("button", name="Upload version").click()
     error = page.locator(".notice-error")
-    expect(error).to_contain_text("Snug takes PDFs, Excel workbooks (.xlsx) and MP4 videos")
+    expect(error).to_contain_text("Snug takes PDFs, Word, PowerPoint and Excel files")
     expect(error).to_be_in_viewport()
     expect(page.locator("header[data-kept='yes']")).to_have_count(1)
 
@@ -288,8 +288,8 @@ def test_a_workbook_is_uploaded_shared_and_downloaded(
 
     from snug.documents.models import Document
     from snug.links import service
-    from snug.rendering import workbook
-    from tests.workbooks import make_xlsx
+    from snug.rendering import ooxml
+    from tests.office_files import make_xlsx
 
     sign_in(live_server, page)
     page.goto(f"{live_server.url}/admin/documents/new")
@@ -331,9 +331,60 @@ def test_a_workbook_is_uploaded_shared_and_downloaded(
     assert download.suggested_filename == "Financial model.xlsx"
     data = Path(download.path()).read_bytes()
     with zipfile.ZipFile(io.BytesIO(data)) as package:
-        properties = workbook._parse(package.read("docProps/custom.xml"))
+        properties = ooxml._parse(package.read("docProps/custom.xml"))
     names = {p.get("name"): "".join(p.itertext()) for p in properties}
     assert names["Shared with"] == "priya@northfield.example"
+    investor.close()
+
+
+def test_a_presentation_is_uploaded_shared_and_downloaded(
+    live_server: Any, page: Page, browser: Any, data_folder: Any
+) -> None:
+    """The same journey for a PowerPoint deck, with real clicks."""
+    from snug.documents.models import Document
+    from snug.links import service
+    from snug.rendering import ooxml
+    from tests.office_files import make_pptx
+
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/documents/new")
+    page.get_by_label("Title").fill("Board deck")
+    page.get_by_label("File").set_input_files(
+        files=FilePayload(
+            name="Board deck.pptx",
+            mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            buffer=make_pptx(12),
+        )
+    )
+    page.get_by_role("button", name="Upload").click()
+    expect(page.locator(".notice-ok")).to_contain_text(
+        "Uploaded, a PowerPoint presentation with 12 slides", timeout=15000
+    )
+    page.get_by_label("What investors should know").fill("Start at slide 3.")
+    page.get_by_role("button", name="Save description").click()
+    expect(page.locator("#description .notice-ok")).to_contain_text("above the download button")
+
+    issued = service.create(
+        document=Document.objects.get(title="Board deck"),
+        email="priya@northfield.example",
+        note="",
+        expires_at=None,
+        require_verification=False,
+        allow_download=True,
+        created_by=None,
+    )
+    investor = browser.new_page()
+    investor.goto(f"{live_server.url}/v/{issued.token}")
+    investor.get_by_role("button", name="Open Board deck").click()
+    expect(investor.locator(".lede").first).to_contain_text(
+        "A PowerPoint presentation of 12 slides"
+    )
+    expect(investor.locator(".description")).to_have_text("Start at slide 3.")
+    with investor.expect_download() as arriving:
+        investor.get_by_role("link", name="Download the presentation").click()
+    download = arriving.value
+    assert download.suggested_filename == "Board deck.pptx"
+    assert ooxml.inspect(Path(download.path()).read_bytes()) == {"format": "pptx", "slides": 12}
     investor.close()
 
 

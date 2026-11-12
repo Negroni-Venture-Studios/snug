@@ -1,10 +1,13 @@
-"""Excel workbooks (.xlsx), read and stamped inside the confined worker.
+"""Office files (.xlsx, .docx and .pptx), read and stamped inside the confined worker.
 
-A workbook is a zip of XML parts. Snug reads only three of them: the content
-types, to know it is a plain workbook without macros; the workbook part, for
-the names of its visible sheets; and the document properties, which it
-rewrites on each download to name the reader. Every sheet, chart, formula
-and style is copied through unchanged, so the investor gets the working file.
+An Office file is a zip of XML parts. Snug reads only what it must: the
+content types, to know it is a plain workbook, document or presentation
+without macros; every part's relationships, to refuse code and anything
+fetched from another computer when the file is opened; the main part, for a
+workbook's visible sheets or a presentation's slide count; and the document
+properties, which it rewrites on each download to name the reader. Every
+sheet, slide, paragraph and picture is copied through unchanged, so the
+investor gets the working file.
 
 Standard library only. The parser refuses any part that declares a DOCTYPE
 or an entity, in any encoding, so no entity can be defined or expanded, and the zip's index is
@@ -14,6 +17,7 @@ and CPU limits stand behind both.
 
 import io
 import posixpath
+import re
 import shutil
 import zipfile
 from xml.etree import ElementTree
@@ -23,8 +27,9 @@ MAX_PARTS = 10_000
 # What the zip's index says it unpacks to, at most. zipfile never unpacks more
 # than a part's stated size, so a lying index cannot get past this.
 MAX_UNPACKED = 1024 * 1024 * 1024
-# The XML parts Snug parses are small; anything bigger is not a real workbook.
+# The XML parts Snug parses are small; anything bigger is not a real Office file.
 MAX_PARSED_PART = 16 * 1024 * 1024
+MAX_SLIDES = 10_000
 
 CONTENT_TYPES = "[Content_Types].xml"
 ROOT_RELS = "_rels/.rels"
@@ -32,11 +37,20 @@ CORE_PART = "docProps/core.xml"
 CUSTOM_PART = "docProps/custom.xml"
 
 MAIN = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"
-# A content type or relationship naming any of these is code Excel could run:
+DOCX_MAIN = "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
+PPTX_MAIN = "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"
+# The main part's content type says which format a package is. Templates,
+# slide shows and macro-enabled files are none of these, so they are refused.
+FORMATS = {MAIN: "xlsx", DOCX_MAIN: "docx", PPTX_MAIN: "pptx"}
+# A content type or relationship naming any of these is code Office could run:
 # VBA projects, Excel 4.0 macro sheets (and their international form),
-# ActiveX controls, and embedded OLE objects. A real model needs none of them.
+# ActiveX controls, and embedded OLE objects. A real file needs none of them.
 CODE_WORDS = ("macroenabled", "vbaproject", "vbadata", "macrosheet", "activex", "oleobject")
 REL_DOC = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
+# Only a hyperlink may point at another computer: it is followed when clicked,
+# never when the file opens. Anything else external (a template, a frame, a
+# linked picture or object) is fetched on opening, so must be on the author's disk.
+REL_HYPERLINK = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
 CORE_TYPE = "application/vnd.openxmlformats-package.core-properties+xml"
 CUSTOM_TYPE = "application/vnd.openxmlformats-officedocument.custom-properties+xml"
 REL_CORE = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties"
@@ -45,6 +59,7 @@ REL_CUSTOM = "http://schemas.openxmlformats.org/officeDocument/2006/relationship
 NS_TYPES = "http://schemas.openxmlformats.org/package/2006/content-types"
 NS_RELS = "http://schemas.openxmlformats.org/package/2006/relationships"
 NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+NS_PRESENTATION = "http://schemas.openxmlformats.org/presentationml/2006/main"
 NS_CP = "http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
 NS_DC = "http://purl.org/dc/elements/1.1/"
 NS_DCTERMS = "http://purl.org/dc/terms/"
@@ -67,12 +82,12 @@ def _package(data: bytes) -> zipfile.ZipFile:
     try:
         package = zipfile.ZipFile(io.BytesIO(data))
     except (zipfile.BadZipFile, OSError) as error:
-        raise Refused("not_xlsx") from error
+        raise Refused("not_office") from error
     entries = package.infolist()
     if len(entries) > MAX_PARTS or sum(e.file_size for e in entries) > MAX_UNPACKED:
         raise Refused("too_large")
     if any(e.flag_bits & 0x1 for e in entries):  # an encrypted part
-        raise Refused("not_xlsx")
+        raise Refused("not_office")
     return package
 
 
@@ -80,7 +95,7 @@ def _xml(package: zipfile.ZipFile, name: str) -> ElementTree.Element:
     try:
         info = package.getinfo(name)
     except KeyError as error:
-        raise Refused("not_xlsx") from error
+        raise Refused("not_office") from error
     if info.file_size > MAX_PARSED_PART:
         raise Refused("too_large")
     return _parse(package.read(info))
@@ -95,10 +110,10 @@ def _parse(raw: bytes) -> ElementTree.Element:
     """
 
     def refuse(*_: object) -> None:
-        raise Refused("not_xlsx")
+        raise Refused("not_office")
 
     def refuse_reference(*_: object) -> int:
-        raise Refused("not_xlsx")
+        raise Refused("not_office")
 
     def name(raw_name: str) -> str:
         # expat gives "uri}local"; ElementTree spells it "{uri}local".
@@ -119,25 +134,51 @@ def _parse(raw: bytes) -> ElementTree.Element:
     try:
         parser.Parse(raw, True)
     except expat.ExpatError as error:
-        raise Refused("not_xlsx") from error
+        raise Refused("not_office") from error
     return builder.close()
 
 
-def _workbook_part(package: zipfile.ZipFile) -> str:
-    """The workbook part Excel would open, refusing anything with macros or ActiveX.
+_SCHEME = re.compile(r"^([a-z][a-z0-9+.-]+):", re.IGNORECASE)
+
+
+def _remote(target: str) -> bool:
+    """True if a relationship's target names another computer.
+
+    A path on a local disk (C:\\..., file:///C:/..., or relative) is looked
+    for on the reader's own computer, never fetched. A URL with any scheme
+    but file, a UNC path, or a file URL with a host is fetched from elsewhere.
+    A one-letter scheme is a drive letter, not a scheme.
+    """
+    target = target.strip().replace("\\", "/")
+    if target.startswith("//"):
+        return True
+    scheme = _SCHEME.match(target)
+    if scheme is None:
+        return False
+    if scheme.group(1).casefold() != "file":
+        return True
+    rest = target[len(scheme.group(0)) :]
+    # file:///C:/... has an empty host; file://server/... and file:////server/... do not.
+    return (rest.startswith("//") and not rest.startswith("///")) or rest.startswith("////")
+
+
+def _main_part(package: zipfile.ZipFile) -> tuple[str, str]:
+    """The part Office would open, and its format, refusing macros, ActiveX and remote content.
 
     An allowlist, read the way Office reads a package: the root relationship
-    names the workbook part, and that part's content type (from its override,
-    or the default for its extension, compared without regard to case, as
-    content types are) must be a plain workbook's. Any part typed as macro or
-    ActiveX code, or a workbook relationship to such code, is refused, as is a
-    package with two parts whose names differ only in case, since two readers
-    could each pick a different one.
+    names the main part, and that part's content type (from its override, or
+    the default for its extension, compared without regard to case, as
+    content types are) must be a plain workbook's, document's or
+    presentation's. Any part typed as macro or ActiveX code, or a relationship
+    to such code, is refused, as is a package with two parts whose names
+    differ only in case, since two readers could each pick a different one.
+    So is any relationship other than a hyperlink that points at another
+    computer: Office would fetch it when the file opens.
     """
     names = package.namelist()
     folded = [name.casefold() for name in names]
     if len(set(folded)) != len(folded):
-        raise Refused("not_xlsx")
+        raise Refused("not_office")
     overrides: dict[str, str] = {}
     defaults: dict[str, str] = {}
     for entry in _xml(package, CONTENT_TYPES):
@@ -152,16 +193,20 @@ def _workbook_part(package: zipfile.ZipFile) -> str:
         else:
             continue
         if key in table:  # typed twice: two readers could believe different types
-            raise Refused("not_xlsx")
+            raise Refused("not_office")
         table[key] = kind
     if any(name.endswith("vbaproject.bin") for name in folded):
         raise Refused("macros")
-    # Every part's relationships, not only the workbook's: a sheet can link to code too.
+    # Every part's relationships, not only the main part's: a sheet or slide can link to code too.
     for name in names:
         if name.casefold().endswith(".rels"):
             for relation in _xml(package, name).iter(f"{{{NS_RELS}}}Relationship"):
-                if any(word in relation.get("Type", "").casefold() for word in CODE_WORDS):
+                kind = relation.get("Type", "")
+                if any(word in kind.casefold() for word in CODE_WORDS):
                     raise Refused("macros")
+                external = relation.get("TargetMode", "").casefold() == "external"
+                if external and kind != REL_HYPERLINK and _remote(relation.get("Target", "")):
+                    raise Refused("external")
 
     targets = [
         relation.get("Target", "")
@@ -169,20 +214,31 @@ def _workbook_part(package: zipfile.ZipFile) -> str:
         if relation.get("Type") == REL_DOC
     ]
     if len(targets) != 1:
-        raise Refused("not_xlsx")
+        raise Refused("not_office")
     main = posixpath.normpath(targets[0].lstrip("/")).casefold()
     extension = main.rpartition(".")[2]
-    if overrides.get(main, defaults.get(extension)) != MAIN.casefold() or main not in folded:
-        raise Refused("not_xlsx")
-    part = names[folded.index(main)]
+    found = {kind.casefold(): name for kind, name in FORMATS.items()}.get(
+        overrides.get(main, defaults.get(extension, ""))
+    )
+    if found is None or main not in folded:
+        raise Refused("not_office")
+    return names[folded.index(main)], found
 
-    return part
 
-
-def inspect(data: bytes) -> dict[str, list[str]]:
-    """The names of the workbook's visible sheets, in order."""
+def inspect(data: bytes) -> dict[str, object]:
+    """Which format the file is, with a workbook's visible sheets or a presentation's slides."""
     with _package(data) as package:
-        part = _xml(package, _workbook_part(package))
+        name, found = _main_part(package)
+        if found == "docx":
+            return {"format": "docx"}
+        part = _xml(package, name)
+    if found == "pptx":
+        slides = sum(1 for _ in part.iter(f"{{{NS_PRESENTATION}}}sldId"))
+        if not slides:
+            raise Refused("no_slides")
+        if slides > MAX_SLIDES:
+            raise Refused("too_large")
+        return {"format": "pptx", "slides": slides}
     sheets = [
         sheet.get("name", "")
         for sheet in part.iter(f"{{{NS_MAIN}}}sheet")
@@ -190,7 +246,7 @@ def inspect(data: bytes) -> dict[str, list[str]]:
     ]
     if not sheets:
         raise Refused("no_sheets")
-    return {"sheets": sheets}
+    return {"format": "xlsx", "sheets": sheets}
 
 
 def _serialise(element: ElementTree.Element, prefixes: dict[str, str]) -> bytes:
@@ -250,15 +306,15 @@ def _with_child(raw: bytes, namespace: str, tag: str, attributes: dict[str, str]
 
 
 def stamp(data: bytes, *, email: str, date: str, ref: str) -> bytes:
-    """The same workbook, with its properties naming the reader. Sheets are copied unchanged."""
+    """The same file, with its properties naming the reader. Everything else is copied unchanged."""
     line = f"Shared with {email} on {date}, link {ref}."
     values = dict(zip(OUR_PROPERTIES, (email, date, ref), strict=True))
     with _package(data) as package:
-        _workbook_part(package)  # a plain workbook, without macros
+        _main_part(package)  # a plain workbook, document or presentation, without macros
         names = package.namelist()
         replaced = {CORE_PART: _core(package, line), CUSTOM_PART: _custom(package, values)}
         if ROOT_RELS not in names:
-            raise Refused("not_xlsx")
+            raise Refused("not_office")
         types_raw = package.read(CONTENT_TYPES)
         rels_raw = package.read(ROOT_RELS)
         added = [
@@ -286,7 +342,7 @@ def stamp(data: bytes, *, email: str, date: str, ref: str) -> bytes:
                 if info.filename in replaced:
                     copy.writestr(entry, replaced[info.filename])
                     continue
-                # Streamed, so a large sheet never sits in memory whole.
+                # Streamed, so a large sheet or picture never sits in memory whole.
                 with package.open(info) as source, copy.open(entry, "w") as target:
                     shutil.copyfileobj(source, target, 1024 * 1024)
             for part, _kind, _rel in added:

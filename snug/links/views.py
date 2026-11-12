@@ -146,7 +146,9 @@ def _download_kind(document: Document | None, room: Room | None) -> str:
     latest = document.latest_version() if document is not None else None
     if latest is not None and latest.is_video:
         return "video"
-    return "workbook" if latest is not None and latest.is_workbook else "pdf"
+    if latest is not None and latest.is_workbook:
+        return "workbook"
+    return "office" if latest is not None and latest.is_office else "pdf"
 
 
 def _new_link(

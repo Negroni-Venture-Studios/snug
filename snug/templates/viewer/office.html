@@ -5,18 +5,18 @@
 {% block tools %}{% if room_url %}<a class="btn btn-quiet" href="{{ room_url }}">{% icon "caret-left" %}{{ link.room.name }}</a>{% endif %}<span class="doc">{{ title }}</span>{% endblock %}
 {% block main %}
 <div class="gate-grid">
-  <div class="gate workbook" data-visit="{{ visit }}" data-page="1" data-beat-url="{{ beat_url }}" data-interval="{{ beat_seconds }}">
+  <div class="gate office" data-visit="{{ visit }}" data-page="1" data-beat-url="{{ beat_url }}" data-interval="{{ beat_seconds }}">
     <form class="beacon" hidden>{% csrf_token %}</form>
     <h1>{{ title }}</h1>
-    <p class="lede">An Excel workbook, {{ version.size_bytes|filesizeformat }}, updated {{ version.uploaded_at|date:"j M Y" }}.</p>
+    <p class="lede">{{ office.a_name|capfirst }}{% if version.slides %} of {{ version.slides }} slide{{ version.slides|pluralize }}{% endif %}, {{ version.size_bytes|filesizeformat }}, updated {{ version.uploaded_at|date:"j M Y" }}.</p>
     {% if document.description %}<p class="description">{{ document.description|linebreaksbr }}</p>{% endif %}
-    <h2 class="sheets-title">Sheets</h2>
-    <ul class="sheet-list">{% for name in version.sheets %}<li>{{ name }}</li>{% endfor %}</ul>
+    {% if version.is_workbook %}<h2 class="sheets-title">Sheets</h2>
+    <ul class="sheet-list">{% for name in version.sheets %}<li>{{ name }}</li>{% endfor %}</ul>{% endif %}
     {% if download_url %}
-    <a class="btn btn-brand" href="{{ download_url }}">{% icon "download-simple" %}Download the workbook</a>
+    <a class="btn btn-brand" href="{{ download_url }}">{% icon "download-simple" %}Download the {{ office.short }}</a>
     <p class="hint">Your email address, the date and this link are written into your copy's document properties.</p>
     {% else %}
-    <p class="lede">Downloads are turned off for this link, so this workbook cannot be opened. Ask the person who sent it for a copy.</p>
+    <p class="lede">Downloads are turned off for this link, so this {{ office.short }} cannot be opened. Ask the person who sent it for a copy.</p>
     {% endif %}
   </div>
   {% include "viewer/_about.html" %}

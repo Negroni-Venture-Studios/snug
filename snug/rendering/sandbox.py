@@ -43,23 +43,29 @@ MESSAGES = {
 }
 
 
-# And for an Excel workbook, where the PDF wording would mislead.
-WORKBOOK_MESSAGES = {
-    "not_xlsx": (
-        "This file could not be read as an Excel workbook. Save it as an Excel Workbook "
-        "(.xlsx), without a password, then upload it again."
-    ),
+# And for a Word, PowerPoint or Excel file, where the PDF wording would mislead.
+SAVE_AS = "Save it as .docx, .pptx or .xlsx"
+NOT_OFFICE = (
+    f"This file could not be read as a Word, PowerPoint or Excel file. {SAVE_AS}, "
+    "without a password, then upload it again."
+)
+OFFICE_MESSAGES = {
+    "not_office": NOT_OFFICE,
     "macros": (
-        "This workbook contains macros. Save it as an Excel Workbook (.xlsx), then upload it again."
+        "This file contains macros or embedded objects, which Snug does not share. "
+        f"{SAVE_AS} without them, then upload it again."
+    ),
+    "external": (
+        "This file fetches a template, picture or object from another computer when it is "
+        "opened. Save it with everything stored in the file, then upload it again."
     ),
     "no_sheets": "This workbook has no visible sheets.",
-    "too_large": "This workbook unpacks to more than Snug allows.",
-    "unreadable": (
-        "This file could not be read as an Excel workbook. Save it as an Excel Workbook "
-        "(.xlsx), without a password, then upload it again."
-    ),
-    "timeout": "This workbook took too long to read.",
-    "memory": "This workbook needs more memory to read than Snug allows.",
+    "no_slides": "This presentation has no slides.",
+    "too_large": "This file unpacks to more than Snug allows.",
+    "unreadable": NOT_OFFICE,
+    "timeout": "This file took too long to read.",
+    "memory": "This file needs more memory to read than Snug allows.",
+    "usage": "Snug could not prepare this file.",
 }
 
 
@@ -319,41 +325,49 @@ def inspect_mp4(path: os.PathLike[str] | str) -> dict[str, Any]:
     return facts
 
 
-def _for_workbook(error: WorkerError) -> WorkerError:
-    return WorkerError(error.code, WORKBOOK_MESSAGES)
+def _for_office(error: WorkerError) -> WorkerError:
+    return WorkerError(error.code, OFFICE_MESSAGES)
 
 
-def inspect_xlsx(workbook: os.PathLike[str] | str) -> dict[str, Any]:
-    """The names of an Excel workbook's visible sheets, read in a confined worker."""
+def _office_facts(facts: object) -> dict[str, Any]:
+    """The worker's answer about an Office file, if it is one Snug could have sent."""
+    if not isinstance(facts, dict):
+        raise ValueError("not an object")
+    found = facts.get("format")
+    if found == "docx" and facts == {"format": "docx"}:
+        return facts
+    if found == "pptx" and set(facts) == {"format", "slides"}:
+        slides = facts["slides"]
+        if isinstance(slides, int) and not isinstance(slides, bool) and slides > 0:
+            return facts
+    if found == "xlsx" and set(facts) == {"format", "sheets"}:
+        sheets = facts["sheets"]
+        if isinstance(sheets, list) and sheets and all(isinstance(n, str) for n in sheets):
+            return facts
+    raise ValueError("inconsistent")
+
+
+def inspect_office(path: os.PathLike[str] | str) -> dict[str, Any]:
+    """Which Office format a file is, with its sheets or slide count, read in a confined worker."""
     try:
-        output = run(workbook, "inspect-xlsx", timeout=INSPECT_TIMEOUT)
-        facts: dict[str, Any] = json.loads(output.decode("utf-8").strip())
-        sheets = facts.get("sheets")
-        if (
-            not isinstance(sheets, list)
-            or not sheets
-            or not all(isinstance(n, str) for n in sheets)
-        ):
-            raise ValueError("inconsistent")
+        output = run(path, "inspect-office", timeout=INSPECT_TIMEOUT)
+        return _office_facts(json.loads(output.decode("utf-8").strip()))
     except WorkerError as error:
-        raise _for_workbook(error) from error
-    except (UnicodeDecodeError, ValueError, AttributeError) as error:
-        raise WorkerError("unreadable", WORKBOOK_MESSAGES) from error
-    return facts
+        raise _for_office(error) from error
+    except (UnicodeDecodeError, ValueError) as error:
+        raise WorkerError("unreadable", OFFICE_MESSAGES) from error
 
 
-def stamp_xlsx(
-    workbook: os.PathLike[str] | str, *, email: str, date: str, ref: str, limit: int
+def stamp_office(
+    path: os.PathLike[str] | str, *, email: str, date: str, ref: str, limit: int
 ) -> bytes:
-    """The workbook with its properties naming the reader, from a confined worker."""
+    """The Office file with its properties naming the reader, from a confined worker."""
     try:
-        stamped = run(
-            workbook, "stamp-xlsx", email, date, ref, timeout=INSPECT_TIMEOUT, limit=limit
-        )
+        stamped = run(path, "stamp-office", email, date, ref, timeout=INSPECT_TIMEOUT, limit=limit)
     except WorkerError as error:
-        raise _for_workbook(error) from error
+        raise _for_office(error) from error
     if len(stamped) > limit or not stamped.startswith(b"PK\x03\x04"):
-        raise WorkerError("unreadable", WORKBOOK_MESSAGES)
+        raise WorkerError("unreadable", OFFICE_MESSAGES)
     return stamped
 
 

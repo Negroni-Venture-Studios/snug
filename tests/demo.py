@@ -26,9 +26,9 @@ from snug.links.models import Link
 from snug.nda import terms
 from snug.rooms.models import Folder, Room, RoomDocument
 from tests.demo_deck import deck_pdf
+from tests.office_files import make_xlsx
 from tests.pdfs import chunks, make_pdf
 from tests.videos import CLIP
-from tests.workbooks import make_xlsx
 
 COMPANY = "Fernlea Robotics"
 DOMAIN = "room.fernlea.example"

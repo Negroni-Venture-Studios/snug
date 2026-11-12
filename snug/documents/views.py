@@ -72,16 +72,42 @@ def _store(
         document=document.token,
         version=version.number,
         kind=version.kind,
-        **(
-            {"sheets": len(version.sheets)}
-            if version.is_workbook
-            else {"seconds": version.seconds}
-            if version.is_video
-            else {"pages": version.page_count}
-        ),
+        **_upload_details(version),
         sha256=version.sha256[:16],
     )
     return version
+
+
+def _upload_details(version: DocumentVersion) -> dict[str, Any]:
+    """What the audit log records about an upload's contents."""
+    if version.is_workbook:
+        return {"sheets": len(version.sheets)}
+    if version.kind == DocumentVersion.Kind.PPTX:
+        return {"slides": version.slides}
+    if version.is_office:
+        return {}
+    if version.is_video:
+        return {"seconds": version.seconds}
+    return {"pages": version.page_count}
+
+
+def _uploaded_what(version: DocumentVersion | None) -> str:
+    """For the notice after an upload: "an Excel workbook with 3 sheets", "12 pages"."""
+    if version is None:
+        return "0 pages"
+    if version.is_video:
+        return f"an MP4 video, {version.length} long"
+    if version.is_workbook:
+        count = len(version.sheets)
+        return f"an Excel workbook with {count} sheet{pluralize(count)}"
+    if version.kind == DocumentVersion.Kind.PPTX:
+        return f"a PowerPoint presentation with {version.slides} slide{pluralize(version.slides)}"
+    if version.office is not None:
+        return version.office.a_name
+    return f"{version.page_count} page{pluralize(version.page_count)}"
+
+
+CHOOSE = "Choose a PDF, a Word, PowerPoint or Excel file, or an MP4 video to upload."
 
 
 @never_cache
@@ -113,7 +139,7 @@ def document_new(request: HttpRequest) -> HttpResponse:
     if not title:
         context["error"] = "Give the document a title."
     elif upload is None:
-        context["error"] = "Choose a PDF, an Excel workbook or an MP4 video to upload."
+        context["error"] = CHOOSE
     if "error" in context or upload is None:
         return render(request, "documents/new.html", context, status=400)
 
@@ -132,15 +158,7 @@ def document_new(request: HttpRequest) -> HttpResponse:
             _store(request, document, checked, upload)
     finally:
         checked.discard()
-    version = document.latest_version()
-    if version is not None and version.is_video:
-        what = f"an MP4 video, {version.length} long"
-    elif version is not None and version.is_workbook:
-        count = len(version.sheets)
-        what = f"an Excel workbook with {count} sheet{pluralize(count)}"
-    else:
-        pages = version.page_count if version else 0
-        what = f"{pages} page{pluralize(pages)}"
+    what = _uploaded_what(document.latest_version())
     return notices.saved(
         request,
         reverse("documents:detail", kwargs={"token": document.token}),
@@ -194,9 +212,9 @@ def _detail_context(request: HttpRequest, document: Document) -> dict[str, Any]:
     return {
         "tab": "documents",
         "document": document,
-        # A workbook is downloaded, not read page by page: it has no reading chart.
+        # An Office file is downloaded, not read page by page: it has no reading chart.
         "reading": None
-        if latest and latest.is_workbook
+        if latest and latest.is_office
         else _reading(document, video=bool(latest and latest.is_video)),
         "links": document.links.all(),
         "versions": versions,
@@ -224,7 +242,7 @@ def version_upload(request: HttpRequest, token: str) -> HttpResponse:
     upload = _uploaded(request)
     error = None
     if upload is None:
-        error = "Choose a PDF, an Excel workbook or an MP4 video to upload."
+        error = CHOOSE
     else:
         try:
             checked = check(upload.chunks(), document=document)
@@ -250,10 +268,10 @@ def version_upload(request: HttpRequest, token: str) -> HttpResponse:
 @login_required
 @require_POST
 def description(request: HttpRequest, token: str) -> HttpResponse:
-    """A workbook's description, shown to investors above its sheets."""
+    """An Office file's description, shown to investors on its card."""
     document = get_object_or_404(Document, token=token)
     latest = document.latest_version()
-    if latest is None or not latest.is_workbook:
+    if latest is None or not latest.is_office:
         raise Http404
     text = request.POST.get("description", "").strip()
     if len(text) > MAX_DESCRIPTION:
@@ -272,11 +290,8 @@ def description(request: HttpRequest, token: str) -> HttpResponse:
         document=document.token,
         characters=len(text),
     )
-    said = (
-        "Description saved. Investors see it above the list of sheets."
-        if text
-        else "Description removed."
-    )
+    where = "above the list of sheets" if latest.is_workbook else "above the download button"
+    said = f"Description saved. Investors see it {where}." if text else "Description removed."
     return notices.saved(
         request, reverse("documents:detail", kwargs={"token": document.token}), "description", said
     )

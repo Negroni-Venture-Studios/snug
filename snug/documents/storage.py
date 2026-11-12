@@ -1,6 +1,6 @@
 """Where files live. Every path is built from database records, never from a request.
 
-<data>/originals/<generated name>.<ext>   uploaded .pdf, .xlsx and .mp4 files (backed up)
+<data>/originals/<generated name>.<ext>   uploads: .pdf, .xlsx, .docx, .pptx and .mp4 (backed up)
 <data>/renders/<version id>/<page>-<width>.webp   rendered pages (a cache)
 <data>/tmp/                                uploads in progress
 """
@@ -13,7 +13,7 @@ from django.conf import settings
 
 from snug.documents.models import DocumentVersion
 
-STORED_NAME = re.compile(r"^[0-9a-f]{32}\.(pdf|xlsx|mp4)$")
+STORED_NAME = re.compile(r"^[0-9a-f]{32}\.(pdf|xlsx|docx|pptx|mp4)$")
 RENDER_WIDTHS = (800, 1600)
 
 

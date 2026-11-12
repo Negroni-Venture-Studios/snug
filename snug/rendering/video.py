@@ -9,7 +9,7 @@ which every browser plays, and optionally AAC audio (mp4a). QuickTime movies,
 other codecs and encrypted tracks are refused. The investor's browser decodes
 the video; Snug never does.
 
-Standard library only, like snug.rendering.workbook.
+Standard library only, like snug.rendering.ooxml.
 """
 
 import struct

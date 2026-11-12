@@ -8,7 +8,7 @@ Snug runs on one Linux server as four containers under Docker Compose:
 
 ## What you need
 
-- A server running Ubuntu 24.04 LTS. A DigitalOcean droplet with 1 GB of memory is enough for one company. Its disk holds every upload. PDFs and workbooks need little room, but a video can be hundreds of megabytes, up to `SNUG_MAX_VIDEO_MB`, 1 GB by default. Choose a disk with room for the videos you mean to share.
+- A server running Ubuntu 24.04 LTS. A DigitalOcean droplet with 1 GB of memory is enough for one company. Its disk holds every upload. PDFs and Office files need little room, but a video can be hundreds of megabytes, up to `SNUG_MAX_VIDEO_MB`, 1 GB by default. Choose a disk with room for the videos you mean to share.
 - A domain name, such as `room.example.com`, whose DNS `A` record points at the server, and its `AAAA` record too if the server has IPv6.
 - A way for Snug to send links and codes, set up in Settings once Snug is running: a Google Workspace mailbox, through the Gmail API ([email-google.md](email-google.md)), or an email provider's SMTP details ([email.md](email.md)).
 - A storage bucket for the backups, such as DigitalOcean Spaces, and a key for it. See [backups.md](backups.md).
