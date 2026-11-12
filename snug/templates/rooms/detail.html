@@ -14,7 +14,7 @@
   {% include "rooms/_entries.html" with entries=top %}
   {% for folder, entries in by_folder %}
   <div class="folder">
-    <div class="section-head"><h3>{{ folder.name }}</h3>
+    <div class="section-head"><h3>{% icon "folder-simple" %}{{ folder.name }}</h3>
       <form method="post" action="{% url 'rooms:folder_remove' room.token folder.pk %}">{% csrf_token %}<button class="btn btn-quiet btn-danger" type="submit">Remove folder</button></form></div>
     {% include "rooms/_entries.html" with entries=entries %}
     {% if not entries %}<p class="empty-line">Empty.</p>{% endif %}

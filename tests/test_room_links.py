@@ -162,6 +162,17 @@ def test_the_room_index_lists_the_room_by_folder(room: Room, outside: Document) 
     assert f'href="/v/{issued.token}/d/{seed.token}"' in page
 
 
+def test_a_folder_reads_as_a_folder_with_its_documents_inside(room: Room) -> None:
+    # Found 12 November 2026: folder names were quieter than document titles.
+    issued = share(room=room)
+    page = opened(issued).get(f"/v/{issued.token}", secure=True).content.decode()
+    heading = page[page.index('<h2 class="room-folder">') :].split("</h2>", 1)[0]
+    assert 'class="icon"' in heading and "Pitch" in heading
+    assert '<span class="count">1 document</span>' in heading
+    after = page[page.index('<h2 class="room-folder">') :]
+    assert after.index('<ul class="room-documents in-folder">') < after.index("Seed deck")
+
+
 def test_a_room_document_opens_in_the_reader(room: Room) -> None:
     issued = share(room=room)
     seed = member(room, "Seed deck")

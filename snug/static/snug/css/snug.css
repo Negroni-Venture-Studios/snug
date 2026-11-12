@@ -432,7 +432,13 @@ input.code-field { font-family: var(--mono); letter-spacing: 0.15em; }
 .nda-text { max-height: 22rem; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); padding: 1rem 1.15rem; margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.6; }
 .nda-text p + p { margin-top: 0.75rem; }
 .gate .small { margin: 0.25rem 0 1.25rem; }
-.room-index h2 { font-size: 0.95rem; font-weight: 500; margin: 1.75rem 0 0.5rem; color: var(--text-2); }
+/* A folder: an icon, its name a step above a document's title, and how many it holds.
+   Its documents sit indented under the name, so they read as inside it. */
+.room-index h2.room-folder { display: flex; align-items: center; gap: 0.5rem; margin: 2rem 0 0.25rem;
+    font-size: 1.05rem; font-weight: 600; color: var(--text); }
+.room-folder .icon { width: 1.25rem; height: 1.25rem; flex: none; color: var(--text-2); }
+.room-folder .count { margin-left: auto; font-size: 0.85rem; font-weight: 400; color: var(--text-3); }
+.room-documents.in-folder li { padding-left: 1.75rem; }
 .room-documents { list-style: none; border-top: 1px solid var(--border); }
 .room-documents li { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
 .room-documents a { color: var(--text); font-weight: 500; text-decoration: none; }
@@ -567,7 +573,8 @@ form.inline { display: inline; }
 .inline-form.sentence span { font-size: 0.875rem; font-weight: 500; }
 .form.retention { margin-top: 1rem; }
 .folder { margin-top: 1.5rem; }
-.folder h3 { font-size: 0.95rem; font-weight: 500; }
+.folder h3 { display: flex; align-items: center; gap: 0.5rem; font-size: 1rem; font-weight: 600; }
+.folder h3 .icon { width: 1.2rem; height: 1.2rem; flex: none; color: var(--text-2); }
 .version-rows { display: grid; grid-template-columns: minmax(10rem, 1fr) minmax(8rem, auto) 10rem; column-gap: 1.5rem; }
 .version-rows .item { grid-column: 1 / -1; grid-template-columns: subgrid; }
 .doc-rows a.email { color: var(--text); text-decoration: none; font-weight: 500; }

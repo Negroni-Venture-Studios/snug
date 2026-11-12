@@ -173,3 +173,34 @@ def test_the_loading_note_is_in_view_on_a_tall_page(
     expect(note).to_have_text("Loading page 1")
     box = note.bounding_box()
     assert box is not None and box["y"] + box["height"] < 700, box
+
+
+def test_a_rooms_folders_read_as_folders(live_server: Any, page: Page, document: Document) -> None:
+    import os
+
+    from snug.rooms.models import Folder, Room, RoomDocument
+
+    room = Room.objects.create(name="Seed round")
+    memo = Document.objects.create(title="Board memo")
+    ingest.ingest(memo, chunks(make_pdf((595, 842))), filename="m.pdf", uploaded_by=None)
+    RoomDocument.objects.create(room=room, document=memo)
+    RoomDocument.objects.create(
+        room=room, document=document, folder=Folder.objects.create(room=room, name="Decks")
+    )
+    issued = service.create(
+        room=room,
+        email=INVESTOR,
+        note="",
+        expires_at=None,
+        require_verification=False,
+        allow_download=True,
+        created_by=None,
+    )
+    page.goto(f"{live_server.url}/v/{issued.token}")
+    page.get_by_role("button", name="Open Seed round").click()
+    folder = page.get_by_role("heading", name="Decks")
+    expect(folder).to_contain_text("1 document")
+    if shots := os.environ.get("SNUG_SHOT_DIR"):
+        page.locator(".room-index").screenshot(path=f"{shots}/room-folders.png")
+    page.get_by_role("link", name="Seed deck").click()
+    expect_page(page, 1, 3)
