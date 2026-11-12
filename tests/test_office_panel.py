@@ -42,6 +42,10 @@ def test_while_it_waits_the_page_has_a_live_panel(
     assert "<progress></progress>" in page
     assert 'role="status" aria-live="polite" data-preview-stage>Waiting for the converter' in page
     assert "You can write the description and create links while it is made." in page
+    assert "Shared for download only" not in page  # a preview is coming
+    assert (
+        "Every link to this document will show the new version once its preview is ready." in page
+    )
 
 
 def test_asking_for_the_panel_moves_the_queue_on(

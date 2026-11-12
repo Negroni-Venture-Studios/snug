@@ -26,7 +26,7 @@
 {% if latest.is_workbook %}<section class="section">
   <div class="section-head stacked"><h2>Sheets</h2><p>Shared for download only. See who opened and downloaded it on the People page and in the audit log.</p></div>
   <ul class="sheet-list">{% for name in latest.sheets %}<li>{{ name }}</li>{% endfor %}</ul>
-</section>{% else %}<p class="empty-line">Shared for download only, as the {{ latest.office.short }} itself. See who opened and downloaded it on the People page and in the audit log.</p>{% endif %}
+</section>{% elif not panel or panel.failed %}<p class="empty-line">Shared for download only, as the {{ latest.office.short }} itself. See who opened and downloaded it on the People page and in the audit log.</p>{% endif %}
 {% elif reading %}
 <div class="stats">
   <div class="stat"><div class="value">{{ reading.viewers }}</div><div class="label">Viewers</div></div>
@@ -87,7 +87,7 @@
       <form class="panel form" method="post" action="{% url 'documents:upload_version' document.token %}" enctype="multipart/form-data" novalidate data-upload>
         {% csrf_token %}
         {% include "snug/partials/form_error.html" %}
-        <div class="field"><label for="pdf">File</label><input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,video/mp4,.mp4" required><div class="hint">Up to {% if latest.is_video %}{{ video_mb }}{% else %}{{ limit_mb }}{% endif %} MB. Every link to this document will show the new version.</div></div>
+        <div class="field"><label for="pdf">File</label><input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,video/mp4,.mp4" required><div class="hint">Up to {% if latest.is_video %}{{ video_mb }}{% else %}{{ limit_mb }}{% endif %} MB. Every link to this document will show the new version{% if panel %} once its preview is ready{% endif %}.</div></div>
         <div class="upload-status" data-upload-status hidden><progress max="100" value="0"></progress><span role="status" aria-live="polite">Uploading</span></div>
         <div class="form-foot"><button class="btn btn-primary" type="submit">{% icon "upload-simple" %}Upload version</button></div>
       </form>

@@ -16,9 +16,19 @@ When you upload an Office file, Snug saves it and returns at once. The document'
 
 A new version of a document waits for its preview before links show it, so an investor reading pages never drops back to a card. Until then, the document's page shows which version is being prepared, and links show the previous one.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/office-preview-dark.png">
+  <img alt="A board update's page while its preview is made: a progress bar, Waiting for the converter, 2 files ahead, and a note that the description and links can be done meanwhile, beside the form to upload a new version." src="images/screenshots/office-preview-light.png">
+</picture>
+
 If a preview cannot be made, the document's page shows the reason and a *Try again* button. Investors can still download the file.
 
 *Settings*, under *Office files*, shows the LibreOffice version, when the converter's image was built, and a switch for showing Office files in the browser. With it off, investors see cards with a download button again.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-office-dark.png">
+  <img alt="The Office files section of Settings: Working, LibreOffice 25.2.3, in an image built on 12 November 2026, with the switch Show Office files in the browser turned on." src="images/screenshots/settings-office-light.png">
+</picture>
 
 ## Installing LibreOffice
 

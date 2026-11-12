@@ -10,7 +10,9 @@ README's hero. Skipped unless SNUG_SCREENSHOTS is set, since it rewrites
 files in the repository.
 """
 
+import dataclasses
 import io
+import json
 import os
 from pathlib import Path
 from typing import Any
@@ -24,8 +26,12 @@ from playwright.sync_api import Browser, BrowserContext, Page
 
 from snug.accounts import totp
 from snug.accounts.models import Admin
+from snug.documents.ingest import ingest
+from snug.documents.models import Document
 from snug.links.models import Link
 from tests import browser_frame, demo
+from tests.office_files import make_pptx
+from tests.pdfs import chunks
 
 pytestmark = [
     pytest.mark.django_db(transaction=True),
@@ -146,6 +152,42 @@ def test_take_the_documentation_screenshots(
         taken["workbook"] = Image.open(io.BytesIO(page.screenshot()))
         _open(page, f"{url}/v/{built.nda_link.token}")
         taken["nda"] = Image.open(io.BytesIO(page.screenshot()))
+        context.close()
+
+    # docs/office.md: LibreOffice installed, and a board deck's preview being made.
+    # Taken last, so the deck is in none of the other pages. Installing the
+    # converter queues the demo's two workbooks first, being older, and nothing
+    # answers the converter's inbox, so the deck stays two files from the front.
+    office = data_folder / "office"
+    for folder in ("inbox", "outbox"):
+        (office / folder).mkdir(parents=True)
+    now = timezone.now()
+    (office / "outbox" / "status.json").write_text(
+        json.dumps(
+            {
+                "libreoffice": "4:25.2.3-2+deb13u9",
+                "built": now.date().isoformat(),
+                "heartbeat": now.isoformat(),
+            }
+        )
+    )
+    monkeypatch.setattr(
+        settings, "CONFIG", dataclasses.replace(settings.CONFIG, office=True, office_dir=office)
+    )
+    board = Document.objects.create(title="Board update, November", created_by=admin)
+    ingest(board, chunks(make_pptx(14)), filename="Board update.pptx", uploaded_by=admin)
+    office_pages = {
+        "settings-office": "/admin/settings/#office",
+        "office-preview": f"/admin/documents/{board.token}#preview",
+    }
+    for theme in THEMES:
+        context = _context(browser, theme, storage_state=signed_in)
+        page = context.new_page()
+        for name, path in office_pages.items():
+            shots[theme][name] = _shot(page, f"{url}{path}")
+            if name == "office-preview":  # the panel moves on by itself
+                page.wait_for_selector("text=2 files ahead")
+                shots[theme][name] = Image.open(io.BytesIO(page.screenshot()))
         context.close()
 
     for theme in THEMES:
