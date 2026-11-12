@@ -75,7 +75,7 @@ if data == b"swaplog":
     open(secret, "w").write("SECRET-FROM-ELSEWHERE")
     os.unlink(log)
     os.symlink(secret, log)
-    sys.stderr.write("the real error\\n")
+    sys.stderr.write("the real error\\nforged: all is well\\x1b[31m\\n")
     sys.exit(1)
 made = os.path.join(out, "input.pdf")
 if data == b"symlink":
@@ -332,6 +332,9 @@ def test_a_failure_is_reported_from_libreoffices_own_errors_only(
     )
     assert result == "unreadable"
     said = capsys.readouterr().err
-    assert "docx conversion failed, LibreOffice exit 1" in said
-    assert "the real error" in said
+    # One line of JSON: LibreOffice's text cannot forge another log line or an escape code.
+    assert said.count("\n") == 1 and "\x1b" not in said
+    report = json.loads(said)
+    assert (report["kind"], report["exit"]) == ("docx", 1)
+    assert "the real error" in report["errors"]
     assert "SECRET-FROM-ELSEWHERE" not in said

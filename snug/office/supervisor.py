@@ -226,7 +226,9 @@ def _report(job: Job, code: int, errors: int) -> None:
             tail = os.read(errors, 4096).decode("utf-8", errors="replace").strip()
     except OSError:
         pass
-    sys.stderr.write(f"{job.kind} conversion failed, LibreOffice exit {code}\n{tail}\n")
+    # One line of JSON, so LibreOffice's text can neither forge a log line nor send an escape code.
+    report = {"conversion": "failed", "kind": job.kind, "exit": code, "errors": tail[-2000:]}
+    sys.stderr.write(json.dumps(report) + "\n")
 
 
 def _read_output(out: Path) -> bytes | str:
