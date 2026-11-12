@@ -29,6 +29,7 @@ from snug.documents.models import (
     DocumentVersion,
     new_stored_name,
 )
+from snug.office import previews
 from snug.rendering import sandbox
 
 PDF_MAGIC = b"%PDF-"
@@ -189,8 +190,11 @@ def store(
             pages = 0 if office else int(facts["pages"])
             sizes = [] if office else facts["sizes"]
 
+        queued = previews.wanted(kind)
         with transaction.atomic():
             highest = document.versions.aggregate(n=Max("number"))["n"] or 0
+            # A new version waits for its preview before links show it; a first is shared at once.
+            waits = queued and document.latest_version() is not None
             version = DocumentVersion(
                 document=document,
                 number=highest + 1,
@@ -205,6 +209,8 @@ def store(
                 slides=facts.get("slides", 0) if office else 0,
                 seconds=float(facts["seconds"]) if video else 0,
                 uploaded_by=uploaded_by,
+                preview=DocumentVersion.Preview.PENDING if queued else DocumentVersion.Preview.NONE,
+                status=DocumentVersion.Status.PREPARING if waits else DocumentVersion.Status.READY,
             )
             destination = storage.original_path(version)
             destination.parent.mkdir(parents=True, exist_ok=True)

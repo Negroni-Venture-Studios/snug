@@ -76,6 +76,10 @@ class Config:
     unsafe_unconfined_rendering: bool = False
     # localhost only, when the container is published on a port: links need it.
     port: int | None = None
+    # The LibreOffice converter is installed (docs/office.md), and the folders
+    # Snug shares with it: an inbox for jobs and an outbox for its answers.
+    office: bool = False
+    office_dir: Path = Path("/var/lib/snug-office")
 
     @property
     def database_path(self) -> Path:
@@ -229,6 +233,10 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
     unsafe_unconfined_rendering = _flag(
         env, "SNUG_UNSAFE_UNCONFINED_RENDERING", default=False, problems=problems
     )
+    office = _flag(env, "SNUG_OFFICE", default=False, problems=problems)
+    office_dir = Path(env.get("SNUG_OFFICE_DIR", "").strip() or "/var/lib/snug-office")
+    if not office_dir.is_absolute():
+        problems.append(f"SNUG_OFFICE_DIR must be an absolute path, not {str(office_dir)!r}.")
 
     # Plain HTTP and debug pages are for a developer's own machine only. On a
     # real domain they would expose cookies and internals to the internet.
@@ -264,6 +272,8 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         smtp_password=env.get("SNUG_SMTP_PASSWORD", ""),
         smtp_security=smtp_security,
         unsafe_unconfined_rendering=unsafe_unconfined_rendering,
+        office=office,
+        office_dir=office_dir,
     )
 
 

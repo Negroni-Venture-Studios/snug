@@ -260,6 +260,20 @@ def test_unconfined_rendering_is_off_unless_asked_for() -> None:
     assert load_config(env).unsafe_unconfined_rendering is True
 
 
+def test_the_office_converter_is_off_unless_installed() -> None:
+    config = load_config(GOOD)
+    assert config.office is False
+    assert str(config.office_dir) == "/var/lib/snug-office"
+    config = load_config({**GOOD, "SNUG_OFFICE": "true", "SNUG_OFFICE_DIR": "/srv/office"})
+    assert config.office is True
+    assert str(config.office_dir) == "/srv/office"
+
+
+def test_the_office_folder_must_be_absolute() -> None:
+    found = problems({**GOOD, "SNUG_OFFICE_DIR": "office"})
+    assert "SNUG_OFFICE_DIR must be an absolute path, not 'office'." in found
+
+
 def test_unconfined_rendering_raises_a_warning_when_on(monkeypatch: pytest.MonkeyPatch) -> None:
     import dataclasses
 

@@ -2,6 +2,7 @@
 
 <data>/originals/<generated name>.<ext>   uploads: .pdf, .xlsx, .docx, .pptx and .mp4 (backed up)
 <data>/renders/<version id>/<page>-<width>.webp   rendered pages (a cache)
+<data>/previews/<version id>.pdf           Office files' PDFs, from the converter (a cache)
 <data>/tmp/                                uploads in progress
 """
 
@@ -34,6 +35,10 @@ def tmp_dir() -> Path:
     return _data() / "tmp"
 
 
+def previews_dir() -> Path:
+    return _data() / "previews"
+
+
 def _inside(base: Path, path: Path) -> Path:
     # Defence in depth: names are generated and checked, but refuse anything
     # that would resolve outside its folder all the same.
@@ -46,6 +51,12 @@ def original_path(version: DocumentVersion) -> Path:
     if not STORED_NAME.match(version.stored_name):
         raise ValueError("Stored name is not a generated name.")
     return _inside(originals_dir(), originals_dir() / version.stored_name)
+
+
+def preview_path(version: DocumentVersion) -> Path:
+    if version.pk is None:
+        raise ValueError("Version is not saved.")
+    return _inside(previews_dir(), previews_dir() / f"{int(version.pk)}.pdf")
 
 
 def render_path(version: DocumentVersion, page: int, width: int) -> Path:

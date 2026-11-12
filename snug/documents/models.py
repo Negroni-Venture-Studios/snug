@@ -93,6 +93,18 @@ class DocumentVersion(models.Model):
     class Status(models.TextChoices):
         READY = "ready", "Ready"
         FAILED = "failed", "Failed"
+        # A new version of an Office file, waiting for its preview before links
+        # show it (decided 12 November 2026); links show the version before.
+        PREPARING = "preparing", "Preparing"
+
+    class Preview(models.TextChoices):
+        """Where an Office file's preview is: made by the LibreOffice converter (snug.office)."""
+
+        NONE = "", "None"
+        PENDING = "pending", "Waiting for the converter"
+        CONVERTING = "converting", "Converting"
+        READY = "ready", "Ready"
+        FAILED = "failed", "Failed"
 
     class Kind(models.TextChoices):
         PDF = "pdf", "PDF"
@@ -119,6 +131,14 @@ class DocumentVersion(models.Model):
     sheets = models.JSONField(default=list)
     # A presentation's slide count, from its own list of slides.
     slides = models.PositiveIntegerField(default=0)
+    # An Office file's preview, when the converter is installed. Once it is
+    # ready, page_count and page_sizes are the preview PDF's, so it is read
+    # page by page like a PDF; the download is still the stamped original.
+    preview = models.CharField(max_length=10, choices=Preview.choices, blank=True, default="")
+    preview_error = models.CharField(max_length=20, blank=True)
+    # The job's name in the converter's inbox while it converts: random, like every token.
+    preview_token = models.CharField(max_length=64, blank=True)
+    preview_since = models.DateTimeField(null=True, blank=True)
     # A video's length. Its "pages" are its parts of PART_SECONDS each, so the
     # reading analytics count time watched on each part.
     seconds = models.FloatField(default=0)

@@ -27,6 +27,7 @@ from snug.core.client import client_ip, user_agent
 from snug.documents import storage
 from snug.documents.ingest import Checked, UploadRejectedError, check, store
 from snug.documents.models import MAX_DESCRIPTION, Document, DocumentVersion
+from snug.office import previews
 from snug.rendering import pages, sandbox
 
 MAX_TITLE = 200
@@ -65,6 +66,8 @@ def _store(
     request: HttpRequest, document: Document, checked: Checked, upload: UploadedFile[bytes]
 ) -> DocumentVersion:
     version = store(document, checked, filename=upload.name or "", uploaded_by=_admin(request))
+    if version.preview == DocumentVersion.Preview.PENDING:
+        transaction.on_commit(previews.drive_in_background)
     _audit(
         request,
         "document.version_uploaded",

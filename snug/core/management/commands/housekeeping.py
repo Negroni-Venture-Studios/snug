@@ -14,6 +14,7 @@ from snug.analytics import retention
 from snug.audit.models import AuditEvent, record
 from snug.core import doctor, geoip, ratelimit
 from snug.core.models import SiteSettings, SystemCheck
+from snug.office import previews
 from snug.viewer.models import VerificationCode, ViewerSession
 
 
@@ -50,6 +51,13 @@ class Command(BaseCommand):
         except Exception as error:  # noqa: BLE001 - never let it stop housekeeping
             fetched = f"failed ({type(error).__name__})"
         self.stdout.write(f"GeoIP: {fetched}.")
+        # Office previews left waiting, after a restart or once the converter is
+        # installed: one step each hour, and a thread to keep it moving.
+        try:
+            previews.pump()
+            previews.drive_in_background()
+        except Exception as error:  # noqa: BLE001 - never let it stop housekeeping
+            self.stdout.write(f"Office previews: failed ({type(error).__name__}).")
         self.stdout.write(
             f"Housekeeping: reading data: {visits} visit{'s' if visits != 1 else ''}; "
             f"codes: {codes}; viewer sessions: {viewer_sessions}; setup links: {setups}; "
