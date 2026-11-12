@@ -21,6 +21,7 @@ REL_HYPERLINK = "http://schemas.openxmlformats.org/officeDocument/2006/relations
 NS_W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 NS_P = "http://schemas.openxmlformats.org/presentationml/2006/main"
 NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+NS_A = "http://schemas.openxmlformats.org/drawingml/2006/main"
 XML_HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
 RELS_OPEN = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
 
@@ -59,16 +60,17 @@ def make_docx(
     settings_rels: tuple[str, ...] = (),
     document_rels: tuple[str, ...] = (),
     extra: dict[str, bytes] | None = None,
+    body: str = "<w:p><w:r><w:t>Board memo, November 2026</w:t></w:r></w:p>",
 ) -> bytes:
-    """A one-paragraph Word document, with relationships on its settings or body if given."""
+    """A Word document with this body, and relationships on its settings or body if given."""
     types = [
         f'<Override PartName="/word/document.xml" ContentType="{main}"/>',
         f'<Override PartName="/word/settings.xml" ContentType="{SETTINGS}"/>',
     ]
     parts = {
         "word/document.xml": (
-            f'{XML_HEAD}<w:document xmlns:w="{NS_W}" xmlns:r="{NS_R}"><w:body><w:p><w:r>'
-            "<w:t>Board memo, November 2026</w:t></w:r></w:p></w:body></w:document>"
+            f'{XML_HEAD}<w:document xmlns:w="{NS_W}" xmlns:r="{NS_R}">'
+            f"<w:body>{body}</w:body></w:document>"
         ).encode(),
         "word/settings.xml": f'{XML_HEAD}<w:settings xmlns:w="{NS_W}"/>'.encode(),
         "word/_rels/document.xml.rels": rels_part(
@@ -82,16 +84,24 @@ def make_docx(
     return _zip(types, rels, parts)
 
 
-def make_pptx(slides: int = 3, *, main: str = PPTX_MAIN, slide_rels: tuple[str, ...] = ()) -> bytes:
-    """A presentation with this many empty slides; the first has these relationships."""
+def make_pptx(
+    slides: int = 3,
+    *,
+    main: str = PPTX_MAIN,
+    slide_rels: tuple[str, ...] = (),
+    slide_body: str = "<p:spTree/>",
+) -> bytes:
+    """A presentation with this many slides; the first has these relationships and shapes."""
     types = [f'<Override PartName="/ppt/presentation.xml" ContentType="{main}"/>']
     ids, links, parts = [], [], {}
     for number in range(1, slides + 1):
         types.append(f'<Override PartName="/ppt/slides/slide{number}.xml" ContentType="{SLIDE}"/>')
         ids.append(f'<p:sldId id="{255 + number}" r:id="rId{number}"/>')
         links.append(relationship(f"rId{number}", REL_SLIDE, f"slides/slide{number}.xml"))
+        shapes = slide_body if number == 1 else "<p:spTree/>"
         parts[f"ppt/slides/slide{number}.xml"] = (
-            f'{XML_HEAD}<p:sld xmlns:p="{NS_P}"><p:cSld><p:spTree/></p:cSld></p:sld>'
+            f'{XML_HEAD}<p:sld xmlns:p="{NS_P}" xmlns:a="{NS_A}" xmlns:r="{NS_R}">'
+            f"<p:cSld>{shapes}</p:cSld></p:sld>"
         ).encode()
     if slide_rels:
         parts["ppt/slides/_rels/slide1.xml.rels"] = rels_part(*slide_rels)

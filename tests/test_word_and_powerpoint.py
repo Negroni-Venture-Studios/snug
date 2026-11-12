@@ -455,3 +455,86 @@ def test_the_link_form_says_what_a_download_of_an_office_file_is(
         "The file itself, with their email address, the date and the link in its properties."
         in page
     )
+
+
+# ---------------------------------------------------------------- fields and links in the content
+
+
+def field(instruction: str) -> str:
+    """A Word field, its instruction split across runs as Word writes it."""
+    half = len(instruction) // 2
+    return (
+        '<w:p><w:r><w:fldChar w:fldCharType="begin"/></w:r>'
+        f'<w:r><w:instrText xml:space="preserve">{instruction[:half]}</w:instrText></w:r>'
+        f'<w:r><w:instrText xml:space="preserve">{instruction[half:]}</w:instrText></w:r>'
+        '<w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>shown</w:t></w:r>'
+        '<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>'
+    )
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        field(' INCLUDEPICTURE "https://tracker.example/pixel.png" \\d '),
+        field(' INCLUDETEXT "\\\\\\\\fileserver\\\\share\\\\terms.docx" '),
+        field(' LINK Excel.Sheet.12 "https://files.example/model.xlsx" "Sheet1!R1C1" '),
+        field(' includepicture "http://tracker.example/pixel.png" '),
+        '<w:p><w:fldSimple w:instr=" INCLUDEPICTURE &quot;https://tracker.example/a.png&quot; ">'
+        "<w:r><w:t>x</w:t></w:r></w:fldSimple></w:p>",
+    ],
+)
+def test_a_field_that_fetches_from_another_computer_is_refused(body: str) -> None:
+    """Word updates INCLUDEPICTURE, INCLUDETEXT and LINK fields from wherever they point."""
+    assert refusal(make_docx(body=body)) == "external"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        field(' DDEAUTO c:\\\\windows\\\\system32\\\\cmd.exe "/k calc.exe" '),
+        field(' DDE excel "C:\\\\model.xlsx" "Sheet1!R1C1" '),
+    ],
+)
+def test_a_dde_field_is_refused(body: str) -> None:
+    """A DDE field asks Word to start another program, which has delivered malware."""
+    assert refusal(make_docx(body=body)) == "dde"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        field(' INCLUDEPICTURE "C:\\\\Users\\\\ruth\\\\Pictures\\\\logo.png" '),
+        field(' HYPERLINK "https://fernlea.example/demo" '),
+        field(" PAGE "),
+        field(' TOC \\o "1-3" '),
+    ],
+)
+def test_ordinary_fields_are_fine(body: str) -> None:
+    assert ooxml.inspect(make_docx(body=body)) == {"format": "docx"}
+
+
+def test_a_picture_cannot_borrow_a_hyperlinks_relationship() -> None:
+    """A relationship typed as a hyperlink may point anywhere, so only a hyperlink may use it."""
+    link = relationship("rId7", REL_HYPERLINK, "https://tracker.example/pixel.png", external=True)
+    picture = '<p:spTree><p:pic><p:blipFill><a:blip r:link="rId7"/></p:blipFill></p:pic></p:spTree>'
+    assert refusal(make_pptx(slide_rels=(link,), slide_body=picture)) == "external"
+
+
+def test_a_shapes_hyperlink_is_fine() -> None:
+    link = relationship("rId7", REL_HYPERLINK, "https://fernlea.example/demo", external=True)
+    shape = (
+        '<p:spTree><p:sp><p:nvSpPr><p:cNvPr id="2" name="Link">'
+        '<a:hlinkClick r:id="rId7"/></p:cNvPr></p:nvSpPr></p:sp></p:spTree>'
+    )
+    assert ooxml.inspect(make_pptx(slide_rels=(link,), slide_body=shape))["format"] == "pptx"
+
+
+@pytest.mark.parametrize("element", ["ddeLink", "oleLink"])
+def test_a_workbook_linked_to_another_program_is_refused(element: str) -> None:
+    """Excel's DDE and OLE links start or reach another program when the workbook opens."""
+    link = (
+        '<?xml version="1.0" encoding="UTF-8"?><externalLink xmlns="http://schemas.openxmlformats'
+        f'.org/spreadsheetml/2006/main"><{element} ddeService="cmd" ddeTopic="/c calc"/>'
+        "</externalLink>"
+    ).encode()
+    assert refusal(make_xlsx(extra={"xl/externalLinks/externalLink1.xml": link})) == "dde"

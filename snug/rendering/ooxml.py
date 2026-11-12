@@ -20,6 +20,7 @@ import posixpath
 import re
 import shutil
 import zipfile
+from collections.abc import Callable
 from xml.etree import ElementTree
 from xml.parsers import expat
 
@@ -51,6 +52,14 @@ REL_DOC = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/o
 # never when the file opens. Anything else external (a template, a frame, a
 # linked picture or object) is fetched on opening, so must be on the author's disk.
 REL_HYPERLINK = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
+# The elements that follow a hyperlink only when it is clicked. A hyperlink's
+# relationship may point anywhere, so no other element may use it.
+HYPERLINK_ELEMENTS = frozenset({"hyperlink", "hlinkClick", "hlinkHover", "hlinkMouseOver"})
+# Word fields that fetch content when they update, and the ones that start another program.
+FETCHING_FIELDS = frozenset({"INCLUDEPICTURE", "INCLUDETEXT", "INCLUDE", "LINK", "IMPORT"})
+DDE_FIELDS = frozenset({"DDE", "DDEAUTO"})
+# Excel's links to another program, in an external link part.
+DDE_ELEMENTS = frozenset({"ddeLink", "oleLink"})
 CORE_TYPE = "application/vnd.openxmlformats-package.core-properties+xml"
 CUSTOM_TYPE = "application/vnd.openxmlformats-officedocument.custom-properties+xml"
 REL_CORE = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties"
@@ -60,6 +69,8 @@ NS_TYPES = "http://schemas.openxmlformats.org/package/2006/content-types"
 NS_RELS = "http://schemas.openxmlformats.org/package/2006/relationships"
 NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 NS_PRESENTATION = "http://schemas.openxmlformats.org/presentationml/2006/main"
+NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+NS_W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 NS_CP = "http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
 NS_DC = "http://purl.org/dc/elements/1.1/"
 NS_DCTERMS = "http://purl.org/dc/terms/"
@@ -198,6 +209,7 @@ def _main_part(package: zipfile.ZipFile) -> tuple[str, str]:
     if any(name.endswith("vbaproject.bin") for name in folded):
         raise Refused("macros")
     # Every part's relationships, not only the main part's: a sheet or slide can link to code too.
+    hyperlinks: dict[str, set[str]] = {}  # part name -> ids of its hyperlinks to other computers
     for name in names:
         if name.casefold().endswith(".rels"):
             for relation in _xml(package, name).iter(f"{{{NS_RELS}}}Relationship"):
@@ -205,8 +217,11 @@ def _main_part(package: zipfile.ZipFile) -> tuple[str, str]:
                 if any(word in kind.casefold() for word in CODE_WORDS):
                     raise Refused("macros")
                 external = relation.get("TargetMode", "").casefold() == "external"
-                if external and kind != REL_HYPERLINK and _remote(relation.get("Target", "")):
+                if not external or not _remote(relation.get("Target", "")):
+                    continue
+                if kind != REL_HYPERLINK:
                     raise Refused("external")
+                hyperlinks.setdefault(_source_of(name), set()).add(relation.get("Id", ""))
 
     targets = [
         relation.get("Target", "")
@@ -222,7 +237,151 @@ def _main_part(package: zipfile.ZipFile) -> tuple[str, str]:
     )
     if found is None or main not in folded:
         raise Refused("not_office")
+    _check_content(package, found, hyperlinks)
     return names[folded.index(main)], found
+
+
+def _source_of(rels: str) -> str:
+    """The part a relationships part belongs to: a/_rels/b.xml.rels is a/b.xml."""
+    folder, name = posixpath.split(rels)
+    return posixpath.join(posixpath.dirname(folder), name.removesuffix(".rels"))
+
+
+def _stream(
+    package: zipfile.ZipFile,
+    name: str,
+    start: Callable[[str, dict[str, str]], None],
+    *,
+    end: Callable[[str], None] | None = None,
+    text: Callable[[str], None] | None = None,
+) -> None:
+    """Read one part in pieces, calling back on each element, refusing DTDs as _parse does.
+
+    No tree is built and the part is never held whole, so a large sheet can be
+    checked within the worker's memory. Names reach the callbacks as "uri}local".
+    """
+
+    def refuse(*_: object) -> None:
+        raise Refused("not_office")
+
+    def refuse_reference(*_: object) -> int:
+        raise Refused("not_office")
+
+    parser = expat.ParserCreate(namespace_separator="}")
+    parser.buffer_text = True
+    parser.StartDoctypeDeclHandler = refuse
+    parser.EntityDeclHandler = refuse
+    parser.UnparsedEntityDeclHandler = refuse
+    parser.ExternalEntityRefHandler = refuse_reference
+    parser.StartElementHandler = start
+    if end is not None:
+        parser.EndElementHandler = end
+    if text is not None:
+        parser.CharacterDataHandler = text
+    try:
+        with package.open(name) as source:
+            while chunk := source.read(1024 * 1024):
+                parser.Parse(chunk, False)
+        parser.Parse(b"", True)
+    except expat.ExpatError as error:
+        raise Refused("not_office") from error
+
+
+def _local(name: str) -> str:
+    return name.rpartition("}")[2]
+
+
+_FIELD_WORDS = re.compile(r'"([^"]*)"|(\S+)')
+
+
+def _check_field(instruction: str) -> None:
+    """Refuse a Word field that starts another program, or fetches from another computer."""
+    words = _FIELD_WORDS.findall(instruction)  # (quoted, bare) pairs; one of each is empty
+    if not words:
+        return
+    keyword = "".join(words[0]).upper()
+    if keyword in DDE_FIELDS:
+        raise Refused("dde")
+    # A switch such as \d is bare; a quoted argument is a path or URL, whatever it starts with.
+    arguments = [
+        quoted or bare for quoted, bare in words[1:] if quoted or not bare.startswith("\\")
+    ]
+    if keyword in FETCHING_FIELDS and any(_remote(argument) for argument in arguments):
+        raise Refused("external")
+
+
+def _check_fields(package: zipfile.ZipFile, name: str) -> None:
+    """Every field in one Word part, simple or written across runs between fldChar marks."""
+    fields: list[tuple[list[str], list[bool]]] = []  # (instruction so far, still open)
+    in_instruction = [False]
+
+    def start(tag: str, attributes: dict[str, str]) -> None:
+        local = _local(tag)
+        if local == "fldSimple":
+            _check_field(attributes.get(f"{NS_W}}}instr", ""))
+        elif local == "instrText":
+            in_instruction[0] = True
+        elif local == "fldChar":
+            kind = attributes.get(f"{NS_W}}}fldCharType", "")
+            if kind == "begin":
+                fields.append(([], [True]))
+            elif kind in ("separate", "end") and fields:
+                instruction, still_open = fields[-1]
+                if still_open[0]:
+                    _check_field("".join(instruction))
+                    still_open[0] = False
+                if kind == "end":
+                    fields.pop()
+
+    def end(tag: str) -> None:
+        if _local(tag) == "instrText":
+            in_instruction[0] = False
+
+    def text(data: str) -> None:
+        if in_instruction[0] and fields and fields[-1][1][0]:
+            fields[-1][0].append(data)
+
+    _stream(package, name, start, end=end, text=text)
+    for instruction, still_open in fields:  # a field never closed is still checked
+        if still_open[0]:
+            _check_field("".join(instruction))
+
+
+def _check_hyperlink_users(package: zipfile.ZipFile, name: str, ids: set[str]) -> None:
+    """Only a hyperlink element may use a relationship typed as a hyperlink."""
+
+    def start(tag: str, attributes: dict[str, str]) -> None:
+        if _local(tag) in HYPERLINK_ELEMENTS:
+            return
+        for key, value in attributes.items():
+            if key.startswith(f"{NS_R}}}") and value in ids:
+                raise Refused("external")
+
+    _stream(package, name, start)
+
+
+def _check_external_links(package: zipfile.ZipFile, name: str) -> None:
+    """A workbook's DDE or OLE link starts or reaches another program when it opens."""
+
+    def start(tag: str, attributes: dict[str, str]) -> None:
+        if _local(tag) in DDE_ELEMENTS:
+            raise Refused("dde")
+
+    _stream(package, name, start)
+
+
+def _check_content(package: zipfile.ZipFile, found: str, hyperlinks: dict[str, set[str]]) -> None:
+    """What the relationships cannot show: fields, DDE links, and borrowed hyperlinks."""
+    by_folded = {name.casefold(): name for name in package.namelist()}
+    for source, ids in hyperlinks.items():
+        name = by_folded.get(source.casefold())
+        if name is not None:
+            _check_hyperlink_users(package, name, ids)
+    for folded, name in by_folded.items():
+        if found == "docx" and folded.startswith("word/") and folded.endswith(".xml"):
+            _check_fields(package, name)
+        elif found == "xlsx" and folded.startswith("xl/externallinks/") and folded.endswith(".xml"):
+            _check_external_links(package, name)
 
 
 def inspect(data: bytes) -> dict[str, object]:

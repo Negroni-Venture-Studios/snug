@@ -10,7 +10,8 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Changed
 
-- Snug refuses a Word, PowerPoint or Excel file that fetches a template, picture or object from another computer when it is opened. A template on the author's own computer is allowed.
+- Snug refuses a Word, PowerPoint or Excel file that fetches a template, picture or object from another computer when it is opened, including through a Word field such as INCLUDEPICTURE. A template on the author's own computer is allowed.
+- Snug refuses a Word document with a DDE field, or a workbook with a DDE or OLE link, which start another program when the file is opened.
 - An older .doc, .ppt or .xls file is refused with one message for all three, saying to save it as .docx, .pptx or .xlsx.
 - The README and guides state facts plainly, without hedges such as "at the time of writing" or notes on how Snug was tested before its release.
 - "What Snug does not do" in the README lists what Snug leaves out, each item starting with "No".

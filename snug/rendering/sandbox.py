@@ -59,6 +59,10 @@ OFFICE_MESSAGES = {
         "This file fetches a template, picture or object from another computer when it is "
         "opened. Save it with everything stored in the file, then upload it again."
     ),
+    "dde": (
+        "This file asks Office to start another program when it is opened, through a DDE "
+        "field or link. Remove it, then upload the file again."
+    ),
     "no_sheets": "This workbook has no visible sheets.",
     "no_slides": "This presentation has no slides.",
     "too_large": "This file unpacks to more than Snug allows.",
