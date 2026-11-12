@@ -30,12 +30,13 @@
 
 <div class="room-tools">
   <section class="section" id="add-document">
-    <div class="section-head"><h2>Add a document</h2></div>
+    <div class="section-head stacked"><h2>Add a document</h2>{% if addable %}<p>Documents you have uploaded that are not in this room yet. Adding one shares it at once with everyone with a link to the room.</p>{% endif %}</div>
     {% if addable %}
     <form class="panel form" method="post" action="{% url 'rooms:document_add' room.token %}">
       {% csrf_token %}
       {% include "snug/partials/saved.html" with here="add-document" %}
-      <div class="field"><label for="document">Document</label><select id="document" name="document">{% for document in addable %}<option value="{{ document.token }}">{{ document.title }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="document">Document</label><select id="document" name="document" required><option value="" selected disabled>Choose a document</option>{% for document in addable %}<option value="{{ document.token }}">{{ document.title }}</option>{% endfor %}</select>
+        <div class="hint">To share a new file, <a href="{% url 'documents:new' %}">upload it</a> first.</div></div>
       <div class="field"><label for="folder">Folder</label><select id="folder" name="folder"><option value="">None, at the top</option>{% for folder in folders %}<option value="{{ folder.pk }}">{{ folder.name }}</option>{% endfor %}</select>
         {% if add_error %}<div class="error" role="alert">{% icon "warning-circle" %}{{ add_error }}</div>{% endif %}</div>
       <div class="form-foot"><button class="btn btn-primary" type="submit">{% icon "plus" %}Add to room</button></div>

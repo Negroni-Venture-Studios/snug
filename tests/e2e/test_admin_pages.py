@@ -85,6 +85,29 @@ def test_writing_the_nda_on_a_room_with_none_yet(live_server: Any, page: Page) -
     expect(page.get_by_label("The NDA", exact=True)).to_have_count(0)  # it exists now
 
 
+def test_a_document_is_added_to_a_room_only_once_it_is_chosen(live_server: Any, page: Page) -> None:
+    # Found 12 November 2026: the first document was shown chosen, as if in the room.
+    from snug.documents.models import Document
+    from snug.rooms.models import Room, RoomDocument
+
+    room = Room.objects.create(name="Seed round")
+    Document.objects.create(title="Restore test")
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/rooms/{room.token}")
+    panel = page.locator("#add-document")
+    expect(panel).to_contain_text("not in this room yet")
+    expect(page.get_by_label("Document", exact=True)).to_have_value("")
+    if shots := os.environ.get("SNUG_SHOT_DIR"):
+        panel.screenshot(path=f"{shots}/room-add-document.png")
+    panel.get_by_role("button", name="Add to room").click()  # nothing chosen: the browser says so
+    expect(page.locator("#documents")).to_contain_text("No documents yet")
+    assert not RoomDocument.objects.exists()
+    page.get_by_label("Document", exact=True).select_option(label="Restore test")
+    panel.get_by_role("button", name="Add to room").click()
+    expect(page.locator("#add-document .notice-ok")).to_contain_text("Restore test added")
+    expect(page.locator("#documents")).to_contain_text("Restore test")
+
+
 def test_the_link_form_shows_the_box_only_when_asked(live_server: Any, page: Page) -> None:
     from snug.documents.models import Document
 

@@ -187,3 +187,35 @@ def test_rooms_need_a_signed_in_admin(room: Room) -> None:
 
 def test_unknown_rooms_are_not_found(client: Client) -> None:
     assert client.get("/admin/rooms/nope", secure=True).status_code == 404
+
+
+# ---------------------------------------------------------------- the Add a document panel
+
+
+def page(client: Client, room: Room) -> str:
+    return client.get(f"/admin/rooms/{room.token}", secure=True).content.decode()
+
+
+def test_adding_says_the_documents_are_not_in_the_room_yet(
+    client: Client, room: Room, deck: Document
+) -> None:
+    # Found 12 November 2026: with one document listed, the choice read as if
+    # that document were already in the room.
+    shown = page(client, room)
+    assert "Documents you have uploaded that are not in this room yet." in shown
+    assert "everyone with a link to the room" in shown
+
+
+def test_no_document_is_chosen_until_the_admin_chooses_one(
+    client: Client, room: Room, deck: Document
+) -> None:
+    shown = page(client, room)
+    assert '<select id="document" name="document" required>' in shown
+    assert '<option value="" selected disabled>Choose a document</option>' in shown
+
+
+def test_adding_without_choosing_says_so(client: Client, room: Room, deck: Document) -> None:
+    response = post(client, f"/admin/rooms/{room.token}/documents", {"document": "", "folder": ""})
+    assert response.status_code == 400
+    assert "Choose a document" in response.content.decode()
+    assert not RoomDocument.objects.exists()
