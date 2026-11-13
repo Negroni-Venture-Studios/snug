@@ -31,6 +31,8 @@ Choose *Documents*, then *Upload a document*. Give it a title, which investors s
 
 To replace a document, upload a new version from its page. Every link to it shows the new version at once, and the old reading data stays.
 
+To change a document's title, use **Rename** on its page. Investors see the new title at once, on every link and in every room.
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/documents-dark.png">
   <img alt="The documents list: each document with its current version, what it is, such as 18 pages or an Excel workbook with 4 sheets, and when it was uploaded." src="images/screenshots/documents-light.png">

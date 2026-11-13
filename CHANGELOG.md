@@ -23,6 +23,8 @@ Word and PowerPoint files, and an optional LibreOffice converter that shows Offi
 - The README and guides state facts plainly, without hedges such as "at the time of writing" or notes on how Snug was tested before its release.
 - "What Snug does not do" in the README lists what Snug leaves out, each item starting with "No".
 - A room's Add a document panel says the documents listed are not in the room yet, and that adding one shares it with everyone who has a link to the room. No document is chosen until the admin chooses one.
+- A document can be renamed from its page, as a room can.
+- A long file name in a document's list of versions wraps within its column instead of running over the description beside it.
 - A room's folders have a folder icon and a name a step above its documents' titles, for investors and admins alike. On an investor's room page each folder says how many documents it holds, and its documents are indented under it.
 - Pages appear sooner. On a one-CPU server the first page of a document took up to 11 seconds to appear, blank meanwhile. Page 1 is now rendered when the file is uploaded or its preview is ready, the next page is fetched only once the current one has arrived, the watermark is drawn about twenty times faster, and the confined worker no longer compiles Python's code each time it starts. A page says "Loading page 1" until it arrives.
 - A small sheet of a workbook is shown at its own size, on a page as wide as A4, instead of filling the reader.

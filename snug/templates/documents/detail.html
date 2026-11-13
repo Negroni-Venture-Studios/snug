@@ -106,6 +106,17 @@
         {% endfor %}
       </div>
     </section>
+
+    <section class="section" id="rename">
+      <div class="section-head"><h2>Rename</h2></div>
+      <form class="panel form" method="post" action="{% url 'documents:rename' document.token %}" novalidate>
+        {% csrf_token %}
+        {% include "snug/partials/saved.html" with here="rename" %}
+        <div class="field"><label for="document-title">Title</label><input id="document-title" name="title" type="text" maxlength="200" required value="{% if rename_error %}{{ rename_value }}{% else %}{{ document.title }}{% endif %}"{% if rename_error %} aria-invalid="true" aria-describedby="rename-error"{% endif %}>
+          {% if rename_error %}<div class="error" id="rename-error" role="alert">{% icon "warning-circle" %}{{ rename_error }}</div>{% else %}<div class="hint">Investors see the new title at once, on every link and in every room, and in a downloaded copy's name.</div>{% endif %}</div>
+        <div class="form-foot"><button class="btn" type="submit">Rename</button></div>
+      </form>
+    </section>
   </div>
 </div>
 

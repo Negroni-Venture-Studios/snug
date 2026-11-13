@@ -315,6 +315,33 @@ def version_upload(request: HttpRequest, token: str) -> HttpResponse:
     )
 
 
+RENAME_ERROR = f"Give the document a title, of {MAX_TITLE} characters or fewer."
+
+
+@never_cache
+@login_required
+@require_POST
+def rename(request: HttpRequest, token: str) -> HttpResponse:
+    """The document's title, which investors see on every link and in every room."""
+    document = get_object_or_404(Document, token=token)
+    raw = request.POST.get("title", "")
+    title = " ".join(raw.split())
+    if not title or len(title) > MAX_TITLE:
+        context = {
+            **_detail_context(request, document),
+            "rename_error": RENAME_ERROR,
+            "rename_value": raw[: MAX_TITLE * 2],
+        }
+        return render(request, "documents/detail.html", context, status=400)
+    if title != document.title:
+        _audit(request, "document.renamed", document.title, document=document.token, to=title)
+        document.title = title
+        document.save(update_fields=["title"])
+    return notices.saved(
+        request, reverse("documents:detail", kwargs={"token": document.token}), "rename", "Renamed."
+    )
+
+
 @never_cache
 @login_required
 @require_POST

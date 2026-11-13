@@ -193,7 +193,7 @@ h1.page-title { overflow-wrap: anywhere; font-size: 2.1rem; font-weight: 300; le
 .matrix .avg .label { font-size: 0.85rem; color: var(--text-2); justify-content: flex-end; }
 .matrix .head .pages-axis { display: block; }
 .who .email { display: block; overflow-wrap: anywhere; }
-.who .note { display: block; font-size: 0.82rem; color: var(--text-3); }
+.who .note { display: block; font-size: 0.82rem; color: var(--text-3); overflow-wrap: anywhere; }
 .new { font-size: 0.75rem; font-weight: 500; color: var(--link); margin-left: 0.4rem; }
 /* Page numbers, drawn in the same columns as the strips (snug.analytics.charts). */
 .axis { display: flex; font-family: var(--mono); font-size: 0.68rem; color: var(--text-3); }

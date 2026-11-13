@@ -417,3 +417,62 @@ def test_previews_need_a_signed_in_admin(client: Client) -> None:
     upload_new(client)
     token = Document.objects.get().token
     assert Client().get(f"/admin/documents/{token}/v1/page-1.webp", secure=True).status_code == 302
+
+
+# ---------------------------------------------------------------- renaming
+# Asked for 13 November 2026: a typo in a title ("Ladded") could not be fixed.
+
+
+def made(client: Client) -> Document:
+    assert upload_new(client, title="Cambridge Startup Ladded").status_code == 302
+    return Document.objects.get()
+
+
+def rename(client: Client, document: Document, title: str) -> Any:
+    return client.post(f"/admin/documents/{document.token}/rename", {"title": title}, secure=True)
+
+
+def test_a_document_can_be_renamed(client: Client) -> None:
+    document = made(client)
+    response = rename(client, document, "  Cambridge   Startup Ladder ")
+    assert response.status_code == 302
+    assert response["Location"].endswith("#rename")
+    document.refresh_from_db()
+    assert document.title == "Cambridge Startup Ladder"
+    assert "document.renamed" in actions()
+    page = client.get(response["Location"], secure=True).content.decode()
+    assert "Renamed." in page
+
+
+def test_the_document_page_offers_renaming(client: Client) -> None:
+    document = made(client)
+    page = client.get(f"/admin/documents/{document.token}", secure=True).content.decode()
+    assert 'id="rename"' in page
+    assert 'value="Cambridge Startup Ladded"' in page
+
+
+@pytest.mark.parametrize("title", ["", "   ", "x" * 201])
+def test_a_title_must_be_given_and_not_too_long(client: Client, title: str) -> None:
+    document = made(client)
+    response = rename(client, document, title)
+    assert response.status_code == 400
+    assert "Give the document a title, of 200 characters or fewer." in response.content.decode()
+    document.refresh_from_db()
+    assert document.title == "Cambridge Startup Ladded"
+    assert "document.renamed" not in actions()
+
+
+def test_renaming_to_the_same_title_records_nothing(client: Client) -> None:
+    document = made(client)
+    assert rename(client, document, "Cambridge Startup Ladded").status_code == 302
+    assert "document.renamed" not in actions()
+
+
+def test_renaming_needs_a_signed_in_admin(client: Client) -> None:
+    document = made(client)
+    response = Client().post(
+        f"/admin/documents/{document.token}/rename", {"title": "Hijacked"}, secure=True
+    )
+    assert response.status_code in (302, 403)
+    document.refresh_from_db()
+    assert document.title == "Cambridge Startup Ladded"

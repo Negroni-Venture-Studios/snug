@@ -108,6 +108,38 @@ def test_a_document_is_added_to_a_room_only_once_it_is_chosen(live_server: Any, 
     expect(page.locator("#documents")).to_contain_text("Restore test")
 
 
+def test_a_document_is_renamed_and_its_long_file_name_stays_in_its_column(
+    live_server: Any, page: Page
+) -> None:
+    # Asked for 13 November 2026: a typo in a title could not be fixed, and a
+    # file name without spaces ran over the description beside it.
+    from snug.documents import ingest
+    from snug.documents.models import Document
+    from tests.pdfs import chunks, make_pdf
+
+    deck = Document.objects.create(title="Cambridge Startup Ladded")
+    ingest.ingest(
+        deck,
+        chunks(make_pdf((960, 540))),
+        filename="cambridge_startup_ladder_for_the_bursary_programme.pdf",
+        uploaded_by=None,
+    )
+    sign_in(live_server, page)
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.goto(f"{live_server.url}/admin/documents/{deck.token}")
+    # The text, not only its box, stays within the column.
+    name = page.locator("#versions .who .note").first
+    assert name.evaluate("e => e.scrollWidth <= e.clientWidth")
+    title = page.get_by_label("Title", exact=True)
+    title.fill("Cambridge Startup Ladder")
+    page.locator("#rename").get_by_role("button", name="Rename").click()
+    expect(page.locator("#rename .notice-ok")).to_contain_text("Renamed.")
+    expect(page.locator("h1")).to_have_text("Cambridge Startup Ladder")
+    if shots := os.environ.get("SNUG_SHOT_DIR"):
+        page.locator("#versions").screenshot(path=f"{shots}/versions.png")
+        page.locator("#rename").screenshot(path=f"{shots}/rename.png")
+
+
 def test_the_link_form_shows_the_box_only_when_asked(live_server: Any, page: Page) -> None:
     from snug.documents.models import Document
 
