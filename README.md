@@ -77,9 +77,13 @@ Version 1.1.2 is the latest release, with the container image `ghcr.io/negroni-v
 
 [What Snug protects against](docs/security.md) sets out the limits of its watermarks, the NDA record and UK-only mode. Planned work is in the [issues labelled enhancement](https://github.com/Negroni-Venture-Studios/snug/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
 
+## Windows, macOS and Linux
+
+Snug runs on a Linux server, and everyone uses it in a web browser. You can manage your data room from Windows, macOS or Linux with nothing to install, and investors can read on a phone too.
+
 ## Trying it on your own computer
 
-To try Snug on a Mac, follow [Trying Snug on your own computer](docs/deploy-localhost.md). It takes about fifteen minutes, starting with installing Docker Desktop.
+To try Snug on a Mac, follow [Trying Snug on your own computer](docs/deploy-localhost.md). It takes about fifteen minutes, starting with installing Docker Desktop. The same commands work on Linux. Docker Desktop runs on Windows too, but Snug has not been tried there.
 
 ## Running it on a server
 

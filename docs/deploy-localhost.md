@@ -2,7 +2,7 @@
 
 You can run Snug on your own Mac to see how it works before you set up a server. It runs at an address only your computer can open, so investors cannot reach it.
 
-The steps are for a Mac. On Linux, install [Docker Engine](https://docs.docker.com/engine/install/) and type the same commands. Windows is not covered.
+The steps are for a Mac. On Linux, install [Docker Engine](https://docs.docker.com/engine/install/) and type the same commands. Docker Desktop runs on Windows too, but Snug has not been tried there.
 
 ## 1. Install Docker Desktop
 
