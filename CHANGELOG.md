@@ -4,6 +4,11 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Changed
+
+- The README has a section on Windows, macOS, and Linux. Snug runs on a Linux server, and founders and investors use it in a web browser on any of them, or on a phone. The guide to trying Snug on your own computer covers a Mac and Linux; Snug has not been tried on Windows.
+- Lists of three or more use the serial comma throughout the interface, emails, and documentation.
+
 ## [1.1.2] - 2026-11-13
 
 `snug version`, and the version in `snug doctor`.
