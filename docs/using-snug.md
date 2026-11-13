@@ -31,7 +31,7 @@ Choose *Documents*, then *Upload a document*. Give it a title, which investors s
 
 To replace a document, upload a new version from its page. Every link to it shows the new version at once, and the old reading data stays.
 
-To change a document's title, use **Rename** on its page. Investors see the new title at once, on every link and in every room.
+To change a document's title, use **Rename** on its page. Investors see the new title at once.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/documents-dark.png">
@@ -115,6 +115,8 @@ If the link requires the NDA, they read it, type their name and tick to accept b
 </picture>
 
 A PDF is shown a page at a time, with their email address and the date across it and a line at the foot of each page. They can download it, if the link allows, with the same details stamped on every page.
+
+Pages are shown as images, so an investor who uses a screen reader needs to download the file. Links allow downloads unless you turn them off.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/reader-dark.png">

@@ -12,7 +12,7 @@
 
 {% if latest and latest.is_office %}
 <section class="section" id="description">
-  <div class="section-head stacked"><h2>Description</h2><p>Optional. Investors see it {% if latest.reads_as_pages %}beside the pages{% elif latest.is_workbook %}above the list of sheets{% else %}above the download button{% endif %}, on every link and in every room.</p></div>
+  <div class="section-head stacked"><h2>Description</h2><p>Optional. Investors see it {% if latest.reads_as_pages %}beside the pages{% elif latest.is_workbook %}above the list of sheets{% else %}above the download button{% endif %}.</p></div>
   {% include "snug/partials/saved.html" with here="description" %}
   <form class="panel form settings-form" method="post" action="{% url 'documents:description' document.token %}#description" novalidate>
     {% csrf_token %}
@@ -113,7 +113,7 @@
         {% csrf_token %}
         {% include "snug/partials/saved.html" with here="rename" %}
         <div class="field"><label for="document-title">Title</label><input id="document-title" name="title" type="text" maxlength="200" required value="{% if rename_error %}{{ rename_value }}{% else %}{{ document.title }}{% endif %}"{% if rename_error %} aria-invalid="true" aria-describedby="rename-error"{% endif %}>
-          {% if rename_error %}<div class="error" id="rename-error" role="alert">{% icon "warning-circle" %}{{ rename_error }}</div>{% else %}<div class="hint">Investors see the new title at once, on every link and in every room, and in a downloaded copy's name.</div>{% endif %}</div>
+          {% if rename_error %}<div class="error" id="rename-error" role="alert">{% icon "warning-circle" %}{{ rename_error }}</div>{% else %}<div class="hint">Investors see the new title at once.</div>{% endif %}</div>
         <div class="form-foot"><button class="btn" type="submit">Rename</button></div>
       </form>
     </section>

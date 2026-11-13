@@ -262,7 +262,7 @@ The company's logo at the top left with its name beside it, or either alone, and
 ### 3.13 Settled questions
 
 1. **Link tokens are stored hashed.** The founder sees the full link once, at creation, and can afterwards send a new link, which stops the old one working.
-2. **Page images and accessibility.** Pages are images, which a screen reader cannot read. The reader has a note saying so and, when downloads are allowed (the default), a pointer for screen-reader users to the PDF.
+2. **Page images and accessibility.** Pages are images, which a screen reader cannot read, so a screen reader user downloads the file, which links allow by default. [using-snug.md](using-snug.md) says so for founders; the reader does not repeat it on every page.
 3. **No thumbnails in the reader.**
 4. **Playwright runs in CI**, in a real browser.
 5. **A privacy notice for viewers.** Under UK GDPR the founder is the controller of investors' personal data: email address, IP address and reading behaviour. The reader shows a short statement of what is recorded, with an optional link to the founder's own privacy policy, set in Settings.

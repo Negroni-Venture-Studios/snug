@@ -6,7 +6,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [1.1.0] - 2026-11-12
 
-Word and PowerPoint files, and an optional LibreOffice converter that shows Office files in the browser.
+Support for Word and PowerPoint files, and an optional LibreOffice converter that shows Office files in the browser.
 
 ### Added
 

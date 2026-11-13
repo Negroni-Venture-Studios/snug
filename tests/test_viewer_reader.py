@@ -105,9 +105,11 @@ def test_the_page_says_it_is_loading_until_it_arrives(issued: service.Issued) ->
     assert '<span class="page-loading" aria-hidden="true">Loading page 2</span>' in page
 
 
-def test_the_reader_explains_images_and_screen_readers(issued: service.Issued) -> None:
+def test_the_reader_has_no_note_on_screen_readers(issued: service.Issued) -> None:
+    # 13 November 2026: a note on every page of every document was too much;
+    # docs/using-snug.md says that screen reader users should download.
     page = get(opened(issued), f"/v/{issued.token}").content.decode()
-    assert "screen reader" in page
+    assert "screen reader" not in page
 
 
 def test_a_document_still_being_prepared(document: Document) -> None:

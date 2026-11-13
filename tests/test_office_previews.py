@@ -263,7 +263,6 @@ def test_a_previewed_deck_is_read_page_by_page(converter: Converter) -> None:
     assert f"/v/{issued.token}/pages/1-" in page
     assert "Board deck, a PowerPoint presentation, 4 pages" in page
     assert "<dt>Access</dt><dd>View in the browser, or download</dd>" in page
-    assert "Download the presentation to read it with a screen reader." in page
     image = browser.get(f"/v/{issued.token}/pages/2-800.webp", secure=True)
     assert image.status_code == 200 and image["Content-Type"] == "image/webp"
 

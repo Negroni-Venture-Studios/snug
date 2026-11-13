@@ -322,7 +322,7 @@ RENAME_ERROR = f"Give the document a title, of {MAX_TITLE} characters or fewer."
 @login_required
 @require_POST
 def rename(request: HttpRequest, token: str) -> HttpResponse:
-    """The document's title, which investors see on every link and in every room."""
+    """The document's title, as investors and admins see it."""
     document = get_object_or_404(Document, token=token)
     raw = request.POST.get("title", "")
     title = " ".join(raw.split())
