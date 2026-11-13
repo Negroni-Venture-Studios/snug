@@ -220,6 +220,8 @@ Snug shows a QR code. Open your authenticator app, add an account, and scan the 
 
 Snug shows ten recovery codes. **Copy them into Snug admin in your password manager.** Each one lets you sign in once if you lose your phone.
 
+If Snug refuses the password, or the code, three times, setup finishes without an admin. Snug is still running, and `sudo snug createadmin` asks again.
+
 Setup ends with:
 
 ```
