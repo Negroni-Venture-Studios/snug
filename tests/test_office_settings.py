@@ -134,7 +134,7 @@ def test_turning_previews_off_shows_office_files_as_downloads(
     event = AuditEvent.objects.get(action="settings.office_previews_changed")
     assert event.details == {"show": False}
     shown = admin_browser.get(response["Location"], secure=True).content.decode()
-    assert "Saved. Word, PowerPoint and Excel files are shared as downloads only." in shown
+    assert "Saved. Word, PowerPoint, and Excel files are shared as downloads only." in shown
     admin_browser.post("/admin/settings/office", {"show": "on"}, secure=True)
     assert SiteSettings.load().office_previews is True
 

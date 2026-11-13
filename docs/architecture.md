@@ -10,14 +10,14 @@ Snug runs as four containers under Docker Compose, from [`deploy/compose.yaml`](
 - **Snug** runs the Django application with gunicorn. It is the only container that reads `snug.env`, the settings file with the secret key.
 - **Litestream** copies every change to the database into a replica in the same data volume. It has no network.
 - **Backup** runs rclone every 5 minutes, encrypting the replica and the uploaded files and copying them to the founder's bucket. It is on its own network, so it cannot reach Snug.
-- **Office**, the optional converter, runs LibreOffice under gVisor with no network. It converts one Word, PowerPoint or Excel file to PDF, then exits, and Docker restarts it for the next, in a new gVisor sandbox with an empty `/tmp`.
+- **Office**, the optional converter, runs LibreOffice under gVisor with no network. It converts one Word, PowerPoint, or Excel file to PDF, then exits, and Docker restarts it for the next, in a new gVisor sandbox with an empty `/tmp`.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/overview-dark.svg">
   <img alt="Founders and investors reach Snug through Caddy. Inside the Snug container, gunicorn's web workers serve requests and start a confined document worker for each job. The optional LibreOffice converter, under gVisor with no network, shares only an inbox and an outbox with Snug. Litestream and rclone share the data volume and copy it, encrypted, to the founder's bucket. Snug sends email through Google or an SMTP server and fetches country data from DB-IP." src="images/diagrams/overview-light.svg">
 </picture>
 
-Every container has a read-only filesystem, drops every Linux capability (Caddy keeps one, to listen on ports 80 and 443) and cannot gain new privileges. The Snug, Litestream and backup containers share one volume, `snug-data`, mounted at `/var/lib/snug`, and all three run as the same unprivileged user (10001). The converter runs as a user of its own (10002) and shares two volumes with Snug alone: its inbox, which it can read but not change, and its outbox.
+Every container has a read-only filesystem, drops every Linux capability (Caddy keeps one, to listen on ports 80 and 443), and cannot gain new privileges. The Snug, Litestream, and backup containers share one volume, `snug-data`, mounted at `/var/lib/snug`, and all three run as the same unprivileged user (10001). The converter runs as a user of its own (10002) and shares two volumes with Snug alone: its inbox, which it can read but not change, and its outbox.
 
 Inside the Snug container there are three kinds of process:
 
@@ -36,21 +36,21 @@ Inside the Snug container there are three kinds of process:
 | `snug/documents/` | Documents and their versions: uploads, the checks on them, and where files are stored |
 | `snug/rendering/` | The document worker, the code that starts it, and the page images it renders and stamps |
 | `snug/office/` | The LibreOffice converter: Snug's queue of previews, and the supervisor that runs in the converter's container |
-| `snug/links/` | Links: creating, emailing, revoking and reissuing them |
-| `snug/rooms/` | Rooms, their folders and the documents in them |
+| `snug/links/` | Links: creating, emailing, revoking, and reissuing them |
+| `snug/rooms/` | Rooms, their folders, and the documents in them |
 | `snug/viewer/` | Everything an investor sees, under `/v/`, and the one authorisation path |
 | `snug/nda/` | The NDA's versions and each acceptance |
 | `snug/analytics/` | Visits and reading time, the People page, the charts, first-open emails, and deleting old reading data |
 | `snug/audit/` | The audit log and its CSV export |
-| `snug/core/` | Shared parts: the Overview, settings stored in the database, email, rate limits, `snug doctor`, GeoIP, branding and middleware |
-| `snug/templates/`, `snug/static/` | The pages, the stylesheet, the fonts, the icons and the scripts |
+| `snug/core/` | Shared parts: the Overview, settings stored in the database, email, rate limits, `snug doctor`, GeoIP, branding, and middleware |
+| `snug/templates/`, `snug/static/` | The pages, the stylesheet, the fonts, the icons, and the scripts |
 | `converter/` | The converter's image: its Dockerfile and LibreOffice's settings |
 
-`snug.rendering` and `snug.office` are kept out of `INSTALLED_APPS`. The modules the document worker runs (`worker`, `ooxml`, `video` and `seccomp`) import nothing from Django or the rest of Snug and read none of its settings. The converter's image holds only `supervisor` and `seccomp`.
+`snug.rendering` and `snug.office` are kept out of `INSTALLED_APPS`. The modules the document worker runs (`worker`, `ooxml`, `video`, and `seccomp`) import nothing from Django or the rest of Snug and read none of its settings. The converter's image holds only `supervisor` and `seccomp`.
 
 ## Starting up
 
-`snug` is a console script, `snug.__main__:main`. Before anything else it marks its process as non-dumpable, so no other process running as the same user can read its memory or environment through `/proc`. It then reads the optional `--env-file`, loads the settings and creates the data folders.
+`snug` is a console script, `snug.__main__:main`. Before anything else it marks its process as non-dumpable, so no other process running as the same user can read its memory or environment through `/proc`. It then reads the optional `--env-file`, loads the settings, and creates the data folders.
 
 `snug.config.load_config` reads the `SNUG_*` environment variables. It checks all of them before it stops, so Snug reports every problem in a broken `snug.env` at once, and the command exits with status 2. The values sit in `settings.CONFIG`, which the rest of the code reads instead of the environment. [docs/configuration.md](configuration.md) lists them.
 
@@ -60,7 +60,7 @@ Inside the Snug container there are three kinds of process:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/request-path-dark.svg">
-  <img alt="A request passes through Caddy to a gunicorn web worker, then Django's middleware in order, and the URL router sends it to the admin views, the viewer views (every request for content through authorise()) or the public branding files. HTML, stamped page images, video in byte ranges, SVG charts and stamped downloads come back." src="images/diagrams/request-path-light.svg">
+  <img alt="A request passes through Caddy to a gunicorn web worker, then Django's middleware in order, and the URL router sends it to the admin views, the viewer views (every request for content through authorise()), or the public branding files. HTML, stamped page images, video in byte ranges, SVG charts, and stamped downloads come back." src="images/diagrams/request-path-light.svg">
 </picture>
 
 Caddy passes each request to `snug:8000` and adds the visitor's address in `X-Forwarded-For`. Snug uses that header only on requests from Caddy's fixed address on the Compose network, the `SNUG_TRUSTED_PROXIES` setting, so a visitor cannot forge their address in the audit log (`snug.core.client.client_ip`).
@@ -77,13 +77,13 @@ The middleware runs in this order:
 8. `upload_size_limit` refuses an oversized POST from its declared length, before anything reads the body. Anyone but a signed-in admin is allowed 64 KB, enough for a form's fields. The refusal is a 413, or the sign-in page for an admin whose session has ended. It runs before the CSRF check, since that would read the body to find the token.
 9. CSRF.
 
-Each view that needs a rate limit calls `snug.core.ratelimit.allow` with a `Limit` (a scope, a count and a window), or `exceeded` to look without counting. The counts are kept in the database, in fixed windows, keyed by a hash of the scope and the address, account or link.
+Each view that needs a rate limit calls `snug.core.ratelimit.allow` with a `Limit` (a scope, a count, and a window), or `exceeded` to look without counting. The counts are kept in the database, in fixed windows, keyed by a hash of the scope and the address, account, or link.
 
 The URL map sends a request to one of three places:
 
 - **`/admin/`**: the admin interface. Every view needs a signed-in admin; `tests/test_admin_urls.py` checks that each one outside a short public list redirects to the sign-in page.
 - **`/v/<token>/`**: everything an investor sees. Every request for a document or room goes through `authorise()`.
-- **`/brand/`**: the company's logo, icon and accent colour, which every investor's page loads before anyone has signed in.
+- **`/brand/`**: the company's logo, icon, and accent colour, which every investor's page loads before anyone has signed in.
 
 ## Admins
 
@@ -91,9 +91,9 @@ An admin signs in with a password, then a six-digit code from an authenticator a
 
 Admin sessions are Django's own, stored in the database. The hash that ties a session to its admin covers the password and the authenticator secret, so changing either ends that admin's sessions. Only a new password chosen in Settings leaves the browser it was chosen in signed in (`update_session_auth_hash`).
 
-A few changes need a fresh code from the admin's authenticator, even in a session already signed in: inviting, removing or resetting an admin, changing a password, and every change to how email is sent. Replacing your own authenticator takes your password and a code from the old app or a recovery code. `snug.accounts.setup.confirm` checks the code. Every attempt counts towards a rate limit, and each failure is recorded in the audit log.
+A few changes need a fresh code from the admin's authenticator, even in a session already signed in: inviting, removing, or resetting an admin, changing a password, and every change to how email is sent. Replacing your own authenticator takes your password and a code from the old app or a recovery code. `snug.accounts.setup.confirm` checks the code. Every attempt counts towards a rate limit, and each failure is recorded in the audit log.
 
-Invitations, resets and forgotten-password links are `AdminSetup` rows. Each link holds a random token, and the database keeps only its SHA-256 hash.
+Invitations, resets, and forgotten-password links are `AdminSetup` rows. Each link holds a random token, and the database keeps only its SHA-256 hash.
 
 ## Investors and the one authorisation path
 
@@ -105,14 +105,14 @@ Every view under `/v/` that shows anything goes through one function, `snug.view
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/authorise-dark.svg">
-  <img alt="authorise() checks five things in order: the link is live, the session belongs to this link and email, the NDA is accepted, the visitor is in the UK if required, and the document belongs to the link or its room. Each failure leads to its own page; success returns the link, session and document to the view." src="images/diagrams/authorise-light.svg">
+  <img alt="authorise() checks five things in order: the link is live, the session belongs to this link and email, the NDA is accepted, the visitor is in the UK if required, and the document belongs to the link or its room. Each failure leads to its own page; success returns the link, session, and document to the view." src="images/diagrams/authorise-light.svg">
 </picture>
 
-Each check raises its own exception, and the decorator `viewer_content` turns each into a response: `Unavailable` into one 404 page, the same for an unknown, expired or revoked link and for a document outside the link, `NotVerified` into the link's own page, which asks for a code or has a button to open the link, `NeedsNda` into a redirect to the NDA, and `OutsideUK` into a 403, recorded in the audit log. On success the view gets an `Access` with the link, the session and the document.
+Each check raises its own exception, and the decorator `viewer_content` turns each into a response: `Unavailable` into one 404 page, the same for an unknown, expired, or revoked link and for a document outside the link, `NotVerified` into the link's own page, which asks for a code or has a button to open the link, `NeedsNda` into a redirect to the NDA, and `OutsideUK` into a 403, recorded in the audit log. On success the view gets an `Access` with the link, the session, and the document.
 
 Three views come before a session exists: sending a code, checking it, and opening a link without one. They use `viewer_gate`, which checks only that the link is live and the visitor's country. The NDA page uses `viewer_nda`, which runs `authorise()` without the NDA check it exists to pass.
 
-Each decorator marks its view, and `tests/test_viewer_urls.py` walks Django's whole URL map. It fails if any URL under `/v/` lacks the mark, or takes a database key, or anything but a token, a page number or a width.
+Each decorator marks its view, and `tests/test_viewer_urls.py` walks Django's whole URL map. It fails if any URL under `/v/` lacks the mark, or takes a database key, or anything but a token, a page number, or a width.
 
 A room link's documents are checked on every request against the room's current contents (`RoomDocument`), so removing a document from a room closes it to every link at once.
 
@@ -120,14 +120,14 @@ A room link's documents are checked on every request against the room's current 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/data-model-dark.svg">
-  <img alt="Snug's tables in five groups (admins, rooms, documents, sharing and reading) with their many-to-one relations, and the tables that stand alone beneath: the audit log, the site and email settings, the stored checks and the rate limits." src="images/diagrams/data-model-light.svg">
+  <img alt="Snug's tables in five groups (admins, rooms, documents, sharing, and reading) with their many-to-one relations, and the tables that stand alone beneath: the audit log, the site and email settings, the stored checks, and the rate limits." src="images/diagrams/data-model-light.svg">
 </picture>
 
 - A `Link` points at a document or a room, never both; a check constraint in the database holds it to exactly one.
 - A link always shows its document's newest version. `Visit.version_number` records which version was read, as a number, so deleting an old version would not delete the reading data.
 - `AuditEvent` rows can be added but never changed or deleted. The model refuses it, and so do SQLite triggers created by the audit app's first migration.
-- An `NdaAcceptance` holds the name, email, address, browser and a SHA-256 hash of the exact text accepted. A link holds one for each version of the NDA, enforced by a unique constraint, and the first is kept. Its foreign keys are protected, so a link someone has accepted the NDA on cannot be deleted.
-- `SiteSettings` and `EmailSettings` each hold one row. They keep what admins change in Settings, so a change needs no restart. `EmailSettings` holds the SMTP password, the Google client secret and the refresh token as they are, since Snug needs them to send email.
+- An `NdaAcceptance` holds the name, email, address, browser, and a SHA-256 hash of the exact text accepted. A link holds one for each version of the NDA, enforced by a unique constraint, and the first is kept. Its foreign keys are protected, so a link someone has accepted the NDA on cannot be deleted.
+- `SiteSettings` and `EmailSettings` each hold one row. They keep what admins change in Settings, so a change needs no restart. `EmailSettings` holds the SMTP password, the Google client secret, and the refresh token as they are, since Snug needs them to send email.
 
 Files live in the data folder, `SNUG_DATA_DIR`:
 
@@ -157,8 +157,8 @@ Files live in the data folder, `SNUG_DATA_DIR`:
 Django receives the upload first, in memory if it is under 2.5 MB and in `tmp/` if not. `snug.documents.ingest` then makes it a version, with `check` for the first three steps and `store` for the last:
 
 1. It copies the upload to a temporary file in `tmp/`, computing its SHA-256 as it goes and keeping the first kilobyte. As soon as the first bytes show a video, the video limit applies (`SNUG_MAX_VIDEO_MB`); otherwise the document limit does (`SNUG_MAX_UPLOAD_MB`).
-2. The first bytes set the kind: `ftyp` at byte 4 is an MP4 video, a zip is an Office file, and `%PDF-` is a PDF. The worker then reads which Office format the zip is from its main part. An old `.doc`, `.ppt` or `.xls` file, or an Office file with a password, is refused with its own message. Every version of a document must be the same kind.
-3. A document worker checks the file. Snug has written nothing to the database yet, so no other write waits for the check. For a PDF it returns the number of pages and their sizes. For a video it returns the length and picture size, after checking the codecs. For an Office file it returns the format, with a workbook's visible sheets or a presentation's slide count, after refusing macros, ActiveX, objects embedded from other programs, documents for Word to import when it opens the file, DDE links and fields, and templates, pictures or objects fetched from another computer (`snug.rendering.ooxml`). An Office file inside it, such as a chart's workbook, gets the same checks, one level deep, and shares the upload's limit on what it unpacks to.
+2. The first bytes set the kind: `ftyp` at byte 4 is an MP4 video, a zip is an Office file, and `%PDF-` is a PDF. The worker then reads which Office format the zip is from its main part. An old `.doc`, `.ppt`, or `.xls` file, or an Office file with a password, is refused with its own message. Every version of a document must be the same kind.
+3. A document worker checks the file. Snug has written nothing to the database yet, so no other write waits for the check. For a PDF it returns the number of pages and their sizes. For a video it returns the length and picture size, after checking the codecs. For an Office file it returns the format, with a workbook's visible sheets or a presentation's slide count, after refusing macros, ActiveX, objects embedded from other programs, documents for Word to import when it opens the file, DDE links and fields, and templates, pictures, or objects fetched from another computer (`snug.rendering.ooxml`). An Office file inside it, such as a chart's workbook, gets the same checks, one level deep, and shares the upload's limit on what it unpacks to.
 4. Only then, in one transaction, Snug writes a `DocumentVersion` and renames the temporary file into `originals/` under a random name. The name the file was uploaded with is kept for display only.
 
 A refusal at any step shows a plain message beside the form and records `document.upload_refused`. The temporary file is always deleted, and a new document is created only once its file has passed, so a refused upload leaves nothing behind but the audit entry.
@@ -174,51 +174,51 @@ Every uploaded file is untrusted. Inside the Snug container, uploads are read on
 
 `snug.rendering.sandbox.run` starts `python -I -m snug.rendering.worker MODE FD`:
 
-- with an environment of `PATH`, `LANG` and `PYTHONDONTWRITEBYTECODE` alone, so no `SNUG_*` setting reaches it;
+- with an environment of `PATH`, `LANG`, and `PYTHONDONTWRITEBYTECODE` alone, so no `SNUG_*` setting reaches it;
 - in its own process group;
 - with the file already open, passed as a file descriptor, never as a path;
 - with standard input and errors on `/dev/null`, and its output on a pipe.
 
 The worker then:
 
-1. limits itself to 1 GiB of memory, 60 seconds of CPU, 64 MB written to any file and 32 open files, with no core dumps and no new processes;
+1. limits itself to 1 GiB of memory, 60 seconds of CPU, 64 MB written to any file, and 32 open files, with no core dumps and no new processes;
 2. loads what its mode needs (`PRELOADS`), so nothing has to load later: Pillow and PDFium to draw a page, Pillow alone to stamp one, and for every other mode both, with pypdf and the Office file reader run once on tiny files;
 3. reads its input, except a video, which it reads in pieces once it is confined;
-4. confines itself: no new privileges, then a Landlock ruleset that allows nothing but reading the system's fonts and refuses TCP, then a seccomp filter that refuses to create any socket, or to reach into another process: tracing it, reading or writing its memory, signalling it, re-prioritising it or changing its limits;
-5. refuses to go on unless Landlock ABI 4 or later (Linux 6.7), the filter and the memory limit are all in place;
+4. confines itself: no new privileges, then a Landlock ruleset that allows nothing but reading the system's fonts and refuses TCP, then a seccomp filter that refuses to create any socket, or to reach into another process: tracing it, reading or writing its memory, signalling it, re-prioritising it, or changing its limits;
+5. refuses to go on unless Landlock ABI 4 or later (Linux 6.7), the filter, and the memory limit are all in place;
 6. does its job and writes the answer to the pipe: a line of JSON, or the image or file it made.
 
 Snug reads the pipe in 64 KiB pieces up to 64 MB (more for a stamped download, which can be as large as the file), against a deadline: 60 seconds to check an upload or stamp a download, 30 seconds to draw or stamp a page. Past either limit it kills the worker's whole process group. An error comes back as a short code, such as `password` or `macros`, which `sandbox` turns into the message shown to the admin.
 
-The worker's modes are `inspect`, `render` and `stamp` for PDFs, `stamp-pdf` for a PDF download, `inspect-office` and `stamp-office` for Word, PowerPoint and Excel files, `inspect-mp4` for videos, `logo` and `icon` for the branding images, and `confinement`, which confines itself and reports how, for `snug doctor`. Office files and videos are read with the standard library alone (`snug.rendering.ooxml` and `video`). The worker never decodes a video. It reads the headers of the video's boxes and its index, and the investor's browser plays it.
+The worker's modes are `inspect`, `render`, and `stamp` for PDFs, `stamp-pdf` for a PDF download, `inspect-office` and `stamp-office` for Word, PowerPoint, and Excel files, `inspect-mp4` for videos, `logo` and `icon` for the branding images, and `confinement`, which confines itself and reports how, for `snug doctor`. Office files and videos are read with the standard library alone (`snug.rendering.ooxml` and `video`). The worker never decodes a video. It reads the headers of the video's boxes and its index, and the investor's browser plays it.
 
 On a Mac, which has no Landlock, `SNUG_UNSAFE_UNCONFINED_RENDERING=true` lets the worker run unconfined for development. `snug check` warns whenever it is on.
 
 ## The LibreOffice converter
 
-With `SNUG_OFFICE` set, each Word, PowerPoint or Excel upload is queued for a preview, as `pending` on its version ([office.md](office.md) is the operator's guide). `deploy/office.sh`, which `snug setup` and `snug update` use, installs gVisor's `runsc` and turns the converter on or off in `snug.env`. Snug reaches the converter's inbox and outbox at `/var/lib/snug-office/` (`SNUG_OFFICE_DIR`).
+With `SNUG_OFFICE` set, each Word, PowerPoint, or Excel upload is queued for a preview, as `pending` on its version ([office.md](office.md) is the operator's guide). `deploy/office.sh`, which `snug setup` and `snug update` use, installs gVisor's `runsc` and turns the converter on or off in `snug.env`. Snug reaches the converter's inbox and outbox at `/var/lib/snug-office/` (`SNUG_OFFICE_DIR`).
 
 1. `snug.office.previews.pump` moves the queue on one step: it collects the converter's answer for the file in hand, then copies the next file into the converter's inbox, in a folder named with a random token and renamed into place all at once. A lock file keeps two processes from pumping together. An upload starts a thread that pumps for up to 15 minutes, the document page's panel pumps each time it asks for its state, and housekeeping pumps every hour. Each pump also queues the current version of any Office document without a preview, such as one uploaded before the converter was installed, or one whose preview was lost in a restore.
 2. The converter's container (`converter/Dockerfile`, under gVisor, with no network) runs `snug.office.supervisor`, which converts one file and exits; Docker restarts it for the next. The supervisor copies the file into its own temporary folder and runs `soffice.bin` with the import filter for the kind, a fresh profile from `converter/registrymodifications.xcu`, an environment of five variables, limits on CPU and file size, a 2-minute deadline, and the seccomp filter from `snug.rendering.seccomp` with Unix sockets allowed. If the filter cannot be applied, LibreOffice does not start. It writes `<token>.pdf`, or `<token>.error`, to the outbox, and its status to `status.json`.
-3. The next pump reads the answer without following links, deletes the job and the answer, and has the document worker inspect the PDF. A good PDF is kept as `previews/<version id>.pdf`, and its page count and sizes become the version's, so the reader, analytics and page rendering treat it as a PDF (`DocumentVersion.reads_as_pages`). The download is still the stamped original.
+3. The next pump reads the answer without following links, deletes the job and the answer, and has the document worker inspect the PDF. A good PDF is kept as `previews/<version id>.pdf`, and its page count and sizes become the version's, so the reader, analytics, and page rendering treat it as a PDF (`DocumentVersion.reads_as_pages`). The download is still the stamped original.
 
 A new version of a document is `preparing` until its preview is ready or has failed, so `latest_version` keeps returning the one before. The document page's Preview panel (`documents/partials/preview_panel.html`) is drawn by the server; `admin.js` asks `preview_status` for it every 2 seconds while it waits.
 
 ## Showing a document
 
-**A PDF** is shown one page at a time. The page image, `/v/<token>/pages/<page>-<width>.webp`, is drawn by a worker at 800 or 1,600 pixels wide and kept in `renders/`. A second worker stamps that investor's watermark: their email address and the date across the page, and a footer band with their address, the date and the link's reference. The stamped page is kept in `stamped/` for the rest of the day, unless the link is revoked first (`pages.stamped_page`). While the investor is on the link's first page, a background thread stamps the first two pages of a document, or page 1 of a room's first three documents (`pages.stamp_ahead`). The browser picks the width from a `srcset`, and `viewer.js` fetches the next page once the current one has arrived. Page 1 is rendered in a background thread when a PDF is uploaded or an Office file's preview is ready (`pages.warm_in_background`), so the first investor waits only for the watermark.
+**A PDF** is shown one page at a time. The page image, `/v/<token>/pages/<page>-<width>.webp`, is drawn by a worker at 800 or 1,600 pixels wide and kept in `renders/`. A second worker stamps that investor's watermark: their email address and the date across the page, and a footer band with their address, the date, and the link's reference. The stamped page is kept in `stamped/` for the rest of the day, unless the link is revoked first (`pages.stamped_page`). While the investor is on the link's first page, a background thread stamps the first two pages of a document, or page 1 of a room's first three documents (`pages.stamp_ahead`). The browser picks the width from a `srcset`, and `viewer.js` fetches the next page once the current one has arrived. Page 1 is rendered in a background thread when a PDF is uploaded or an Office file's preview is ready (`pages.warm_in_background`), so the first investor waits only for the watermark.
 
-**A download** is made for each request, in a worker. A PDF keeps its text and gets a faint diagonal mark on every page, a line at the foot of each page and the same details in its properties. A Word, PowerPoint or Excel file gets the details in its document properties, with everything else left as uploaded. A video is the original file. The audit log records each download with a hash of the exact file sent.
+**A download** is made for each request, in a worker. A PDF keeps its text and gets a faint diagonal mark on every page, a line at the foot of each page, and the same details in its properties. A Word, PowerPoint, or Excel file gets the details in its document properties, with everything else left as uploaded. A video is the original file. The audit log records each download with a hash of the exact file sent.
 
 **An Office file** with a preview is read page by page, as a PDF is. A workbook's sheet narrower than an A4 page is drawn at the left of a page that wide (`SHEET_WIDTH`, passed to the worker's `render` as its minimum width), so a small sheet keeps its size. Without a preview, the file is shown as a card with its description, a workbook's sheets or a presentation's slide count, and a download button if the link allows downloads.
 
-**A video** plays in the browser from `/v/<token>/video`, which answers only requests for a range of bytes, at most 8 MB at a time (`snug.core.ranges`). The investor's email address, the date and the link are drawn over the player, and Snug's own full-screen button takes the player and the mark together.
+**A video** plays in the browser from `/v/<token>/video`, which answers only requests for a range of bytes, at most 8 MB at a time (`snug.core.ranges`). The investor's email address, the date, and the link are drawn over the player, and Snug's own full-screen button takes the player and the mark together.
 
 ## Reading time
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/reading-time-dark.svg">
-  <img alt="A sequence of the browser, Snug and the database: showing a page starts a visit and its clock, heartbeats every 15 seconds credit up to 20 seconds each to the page shown, hiding the tab ends the count and showing it resumes the clock without credit, and the People page shades a cell for each page by its time." src="images/diagrams/reading-time-light.svg">
+  <img alt="A sequence of the browser, Snug, and the database: showing a page starts a visit and its clock, heartbeats every 15 seconds credit up to 20 seconds each to the page shown, hiding the tab ends the count and showing it resumes the clock without credit, and the People page shades a cell for each page by its time." src="images/diagrams/reading-time-light.svg">
 </picture>
 
 `snug.analytics.reading` turns the reader's events into visits and seconds per page:
@@ -234,7 +234,7 @@ A new version of a document is `preparing` until its preview is ready or has fai
 
 ## The audit log
 
-`snug.audit.models.record` writes an `AuditEvent`: when, who (an admin, an investor's email, the command line or the system), the action, the address, the browser, the country and any details as JSON. Each app wraps it in its own `_audit` helper. Actions are named by area: `admin.login`, `document.version_uploaded`, `link.revoked`, `viewer.downloaded`, `settings.email_changed`, `system.reading_data_deleted` and so on.
+`snug.audit.models.record` writes an `AuditEvent`: when, who (an admin, an investor's email, the command line, or the system), the action, the address, the browser, the country, and any details as JSON. Each app wraps it in its own `_audit` helper. Actions are named by area: `admin.login`, `document.version_uploaded`, `link.revoked`, `viewer.downloaded`, `settings.email_changed`, `system.reading_data_deleted`, and so on.
 
 The Audit log page filters by kind or email address. Each CSV export is recorded in the audit log before the rows stream, and any cell a spreadsheet would run as a formula gets a leading quote.
 
@@ -258,22 +258,22 @@ Snug makes HTTP calls only to Google, to DB-IP, and to `/healthz` on its own dom
 `snug housekeeping` runs every hour, started by the thread in gunicorn's master. In order, it:
 
 1. deletes reading data past its retention period;
-2. deletes expired codes, viewer sessions, setup links and rate-limit windows, and pages stamped on earlier days;
+2. deletes expired codes, viewer sessions, setup links, rate-limit windows, and pages stamped on earlier days;
 3. records that housekeeping ran;
-4. runs the slower `snug doctor` checks (the document worker's confinement, DNS and HTTPS) and stores their results for the Overview;
+4. runs the slower `snug doctor` checks (the document worker's confinement, DNS, and HTTPS) and stores their results for the Overview;
 5. fetches DB-IP's country data when a new month's is out, into `geoip/countries.sqlite3`, replacing the old file only once the new one is complete;
 6. moves the converter's queue on, and starts a thread to keep it moving, when the converter is installed.
 
-`snug doctor` checks housekeeping, the backups, the document worker, DNS, HTTPS and the certificate, email, the country data and the converter, and can send a test email. The Overview shows any problem from the same checks. The quick ones run on each visit; the slower ones come from what housekeeping stored.
+`snug doctor` checks housekeeping, the backups, the document worker, DNS, HTTPS and the certificate, email, the country data, and the converter, and can send a test email. The Overview shows any problem from the same checks. The quick ones run on each visit; the slower ones come from what housekeeping stored.
 
 ## Backups and restore
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/backups-dark.svg">
-  <img alt="Litestream copies the database into a replica on the same volume. Every 5 minutes, rclone checks the bucket belongs to this Snug, then syncs the replica, the uploads and the branding through rclone crypt to the founder's bucket, keeping anything it would overwrite or delete for 30 days. A restore moves the current data aside, copies everything back, and has Litestream rebuild the database at any moment in the last 7 days." src="images/diagrams/backups-light.svg">
+  <img alt="Litestream copies the database into a replica on the same volume. Every 5 minutes, rclone checks the bucket belongs to this Snug, then syncs the replica, the uploads, and the branding through rclone crypt to the founder's bucket, keeping anything it would overwrite or delete for 30 days. A restore moves the current data aside, copies everything back, and has Litestream rebuild the database at any moment in the last 7 days." src="images/diagrams/backups-light.svg">
 </picture>
 
-Litestream ([`deploy/litestream.yml`](../deploy/litestream.yml)) follows the database's write-ahead log and writes a replica to `backup/database`, with a snapshot each day kept for 7 days. The backup container ([`deploy/backup.sh`](../deploy/backup.sh)) then copies that replica, `originals/` and `branding/` to the bucket every 5 minutes through an rclone `crypt` remote, so the files are encrypted before they leave the server.
+Litestream ([`deploy/litestream.yml`](../deploy/litestream.yml)) follows the database's write-ahead log and writes a replica to `backup/database`, with a snapshot each day kept for 7 days. The backup container ([`deploy/backup.sh`](../deploy/backup.sh)) then copies that replica, `originals/`, and `branding/` to the bucket every 5 minutes through an rclone `crypt` remote, so the files are encrypted before they leave the server.
 
 Before each copy, the backup container checks an `instance` file in the bucket against its own. A bucket holding another Snug's backups is never written to, so a new server started before its restore cannot overwrite them. Each run writes `backup/last-success` or `backup/problem`, which `snug doctor` reads.
 
@@ -294,7 +294,7 @@ The content security policy allows no inline script or style, so the few scripts
 | `nda-first.js` | Shows the box for writing the first NDA while a box asking for the NDA is ticked |
 | `brand.js` | Keeps the accent colour's picker and its text in step |
 | `viewer.js` | The reader's keyboard and page picker, heartbeats, and fetching the next page once the current one has loaded |
-| `video.js` | The video player's heartbeats, parts and full screen |
+| `video.js` | The video player's heartbeats, parts, and full screen |
 | `about.js` | Closes *About this link*, a `<details>` element at the top right of the reader and the video page, on Escape or a click elsewhere |
 
 Investors' pages get the company's accent colour from a small stylesheet, `/brand/brand.css`, generated from Settings.
@@ -309,7 +309,7 @@ The tests are in `tests/`, run with pytest.
 - `tests/e2e/` drives Chromium with Playwright through the investor's journey and the admin controls that need a real click.
 - `test_diagrams.py` checks the diagrams in this document were rebuilt after their sources changed.
 
-[CONTRIBUTING.md](../CONTRIBUTING.md) lists the commands. CI runs the same checks on every pull request (`.github/workflows/ci.yml`), along with CodeQL, and `image.yml` builds the container image, deploys it with Compose and checks backups and restore end to end before it is published. It also builds the converter's image and converts a Word document, a presentation and a workbook under gVisor. `office-image.yml` publishes the converter's image, and builds it again every Monday with Debian's latest LibreOffice fixes.
+[CONTRIBUTING.md](../CONTRIBUTING.md) lists the commands. CI runs the same checks on every pull request (`.github/workflows/ci.yml`), along with CodeQL, and `image.yml` builds the container image, deploys it with Compose, and checks backups and restore end to end before it is published. It also builds the converter's image and converts a Word document, a presentation, and a workbook under gVisor. `office-image.yml` publishes the converter's image, and builds it again every Monday with Debian's latest LibreOffice fixes.
 
 ## The diagrams
 

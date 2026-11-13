@@ -83,7 +83,7 @@ def outgoing() -> Outgoing:
 # 25, 465 and 587, so providers listen on others too: 2525 (Mailgun, SendGrid,
 # Postmark), and 2587 and 2465 (Amazon SES, with STARTTLS and TLS).
 SMTP_PORTS = config.SMTP_PORTS
-PORTS_IN_WORDS = ", ".join(map(str, SMTP_PORTS[:-1])) + f" or {SMTP_PORTS[-1]}"
+PORTS_IN_WORDS = config.PORTS_IN_WORDS
 
 
 class UnsafeServerError(OSError):

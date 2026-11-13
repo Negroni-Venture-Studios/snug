@@ -105,9 +105,9 @@ def test_a_workbook_becomes_a_spreadsheet_document(model: Document) -> None:
         (make_xlsx(main=MACRO_MAIN), "This file contains macros"),
         (
             b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 512,
-            "an older Office file (.doc, .ppt or .xls)",
+            "an older Office file (.doc, .ppt, or .xls)",
         ),
-        (b"hello, this is a text file", "Snug takes PDFs, Word, PowerPoint and Excel files"),
+        (b"hello, this is a text file", "Snug takes PDFs, Word, PowerPoint, and Excel files"),
     ],
 )
 def test_what_is_not_a_plain_workbook_or_pdf_is_refused(data: bytes, said: str) -> None:
@@ -194,7 +194,7 @@ def test_a_workbook_link_shows_a_card_with_its_sheets(model: Document) -> None:
     assert "Financial model" in page and "Excel workbook" in page
     assert "Summary" in page and "P&amp;L" in page and "Workings" not in page
     assert f'href="/v/{issued.token}/download"' in page
-    assert "the date and this link are written into your copy's document properties" in page
+    assert "the date, and this link are written into your copy's document properties" in page
     assert "/pages/" not in page  # no page images
     # The panel beside it describes a workbook, not pages and watermarks.
     assert "Financial model, an Excel workbook" in page

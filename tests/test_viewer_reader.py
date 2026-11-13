@@ -230,7 +230,7 @@ def test_the_about_panel_says_downloads_are_seen_only_when_allowed(document: Doc
     assert "download it" not in page
 
 
-RECORDED = "Your IP address, browser and country are recorded with each visit."
+RECORDED = "Your IP address, browser, and country are recorded with each visit."
 
 
 def test_the_about_panel_says_what_is_recorded_of_each_visit(document: Document) -> None:

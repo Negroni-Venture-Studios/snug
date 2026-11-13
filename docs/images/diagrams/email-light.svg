@@ -40,7 +40,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 .on-action { fill: var(--on-action); font-weight: 600; }
 </style>
 <title id="t">How Snug sends email</title>
-<desc id="d">For each email Snug tries five routes in order and uses the first that applies: Google Workspace connected in Settings, sending through the Gmail API; SMTP saved in Settings; SMTP set in snug.env; the outbox folder, on localhost only; or off. Every SMTP send resolves the server's name, allows only public addresses, connects to the address it checked and verifies TLS for the server's name. Snug sends investors' codes and links, first-open notices and admin emails, and records whether each send worked.</desc>
+<desc id="d">For each email Snug tries five routes in order and uses the first that applies: Google Workspace connected in Settings, sending through the Gmail API; SMTP saved in Settings; SMTP set in snug.env; the outbox folder, on localhost only; or off. Every SMTP send resolves the server's name, allows only public addresses, connects to the address it checked, and verifies TLS for the server's name. Snug sends investors' codes and links, first-open notices, and admin emails, and records whether each send worked.</desc>
 <defs>
   <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
   <marker id="tip-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-accent"/></marker>
@@ -60,7 +60,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <circle class="solid-action" cx="48" cy="178" r="13"/>
 <text class="on-action" x="48" y="183" text-anchor="middle">2</text>
 <text class="title" x="74" y="173">SMTP saved in Settings</text>
-<text class="label" x="74" y="194">server, port, account and From address</text>
+<text class="label" x="74" y="194">server, port, account, and From address</text>
 
 <rect class="box" x="20" y="232" width="372" height="60" rx="8"/>
 <circle class="solid-action" cx="48" cy="262" r="13"/>

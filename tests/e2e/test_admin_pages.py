@@ -230,7 +230,7 @@ def test_a_refused_version_shows_its_error_in_view(
     )
     page.get_by_role("button", name="Upload version").click()
     error = page.locator(".notice-error")
-    expect(error).to_contain_text("Snug takes PDFs, Word, PowerPoint and Excel files")
+    expect(error).to_contain_text("Snug takes PDFs, Word, PowerPoint, and Excel files")
     expect(error).to_be_in_viewport()
     expect(page.locator("header[data-kept='yes']")).to_have_count(1)
 

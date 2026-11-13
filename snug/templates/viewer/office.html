@@ -14,7 +14,7 @@
     <ul class="sheet-list">{% for name in version.sheets %}<li>{{ name }}</li>{% endfor %}</ul>{% endif %}
     {% if download_url %}
     <a class="btn btn-brand" href="{{ download_url }}">{% icon "download-simple" %}Download the {{ office.short }}</a>
-    <p class="hint">Your email address, the date and this link are written into your copy's document properties.</p>
+    <p class="hint">Your email address, the date, and this link are written into your copy's document properties.</p>
     {% else %}
     <p class="lede">Downloads are turned off for this link, so this {{ office.short }} cannot be opened. Ask the person who sent it for a copy.</p>
     {% endif %}

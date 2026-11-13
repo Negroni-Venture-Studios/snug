@@ -173,7 +173,7 @@ def room_uk_only(request: HttpRequest, token: str) -> HttpResponse:
         room.save(update_fields=["uk_only"])
         _audit(request, "room.uk_only" if wanted else "room.not_uk_only", room)
     text = (
-        "Saved. Links to this room open only in the UK, Jersey, Guernsey and the Isle of Man."
+        "Saved. Links to this room open only in the UK, Jersey, Guernsey, and the Isle of Man."
         if wanted
         else "Saved. Links to this room open anywhere."
     )

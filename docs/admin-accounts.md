@@ -1,6 +1,6 @@
 # Admin accounts
 
-Admins are the people at your company who upload documents, issue links and read the analytics. Every admin has the same rights. Each one signs in with an email address, a password and a six-digit code from an authenticator app.
+Admins are the people at your company who upload documents, issue links, and read the analytics. Every admin has the same rights. Each one signs in with an email address, a password, and a six-digit code from an authenticator app.
 
 ## Creating the first admin
 
@@ -13,7 +13,7 @@ sudo snug createadmin --email you@yourcompany.com
 Snug then:
 
 1. asks for a password twice. It must be at least 12 characters, and not a common password;
-2. shows a QR code. Scan it with an authenticator app, such as 1Password, Google Authenticator or Authy. If you cannot scan it, type in the key printed beneath it;
+2. shows a QR code. Scan it with an authenticator app, such as 1Password, Google Authenticator, or Authy. If you cannot scan it, type in the key printed beneath it;
 3. asks for the six-digit code the app now shows. Nothing is saved until a working code is entered;
 4. prints ten recovery codes.
 
@@ -31,7 +31,7 @@ Go to **Settings**, enter the person's email address under **Invite an admin**, 
 Snug then:
 
 1. emails them a setup link. It works once, for 72 hours. Sending another invite to the same address replaces the link;
-2. emails every admin, you included, to say who invited whom. If you ever get one of these you did not expect, sign in, remove the new admin and change your password.
+2. emails every admin, you included, to say who invited whom. If you ever get one of these you did not expect, sign in, remove the new admin, and change your password.
 
 The link takes them to a page where they choose a password, scan a QR code with their authenticator app, enter a code from it, and see their recovery codes once. They can then sign in.
 
@@ -71,7 +71,7 @@ Go to `/admin/` on your Snug domain. Enter your email address and password, then
 
 ## Changing your password
 
-In **Settings**, under **Your account**, enter your current password, the new one twice and a fresh code from your authenticator app, then choose **Change password**. You stay signed in on that browser; everywhere else is signed out. Snug emails you to say it changed, and writes the change to the audit log. The attempts share the 10-in-15-minutes limit on confirming admin changes.
+In **Settings**, under **Your account**, enter your current password, the new one twice, and a fresh code from your authenticator app, then choose **Change password**. You stay signed in on that browser; everywhere else is signed out. Snug emails you to say it changed, and writes the change to the audit log. The attempts share the 10-in-15-minutes limit on confirming admin changes.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-account-dark.png">
@@ -120,11 +120,11 @@ It asks you to confirm, shows a new QR code, and issues new recovery codes. The 
 
 ## Emails when a link is first opened
 
-The first time anyone opens a document through each link, every admin is emailed who opened it, what, when and from which country, with a link to that person on the People page. To stop them for yourself, untick *Email me when someone first opens a link* under Your account in Settings. The other admins still get theirs.
+The first time anyone opens a document through each link, every admin is emailed who opened it, what, when, and from which country, with a link to that person on the People page. To stop them for yourself, untick *Email me when someone first opens a link* under Your account in Settings. The other admins still get theirs.
 
 ## What is recorded
 
-Inviting, creating or removing an admin, resetting or replacing a second factor, changing a password, and asking for and using a forgotten-password link are all written to the audit log, along with every sign-in. Passwords, authenticator keys and recovery codes are never written to the log.
+Inviting, creating, or removing an admin, resetting or replacing a second factor, changing a password, and asking for and using a forgotten-password link are all written to the audit log, along with every sign-in. Passwords, authenticator keys, and recovery codes are never written to the log.
 
 ## How the secrets are kept
 

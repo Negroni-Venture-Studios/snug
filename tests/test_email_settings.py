@@ -287,8 +287,8 @@ def test_an_empty_password_keeps_the_saved_one(client: Client) -> None:
             "Enter the address emails come from, like rooms@example.com.",
         ),
         ("smtp_host", "", "Enter your provider's SMTP server, like smtp.postmarkapp.com."),
-        ("smtp_port", "70000", "Use port 25, 465, 587, 2465, 2525 or 2587."),
-        ("smtp_port", "8025", "Use port 25, 465, 587, 2465, 2525 or 2587."),
+        ("smtp_port", "70000", "Use port 25, 465, 587, 2465, 2525, or 2587."),
+        ("smtp_port", "8025", "Use port 25, 465, 587, 2465, 2525, or 2587."),
         (
             "smtp_security",
             "none",
@@ -543,6 +543,6 @@ def test_amazon_ses_ports_work_from_digitalocean(client: Client, port: str, secu
 
 def test_the_port_hints_name_every_port(client: Client) -> None:
     text = panel(client)
-    assert "25, 465, 587, 2465, 2525 or 2587. On DigitalOcean, use 2525" in text
-    assert "STARTTLS, for ports 587, 2525 and 2587" in text
+    assert "25, 465, 587, 2465, 2525, or 2587. On DigitalOcean, use 2525" in text
+    assert "STARTTLS, for ports 587, 2525, and 2587" in text
     assert "TLS, for ports 465 and 2465" in text

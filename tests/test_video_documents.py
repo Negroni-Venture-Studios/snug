@@ -92,7 +92,7 @@ def streamed(response: Any) -> bytes:
 
 def test_with_no_file_chosen_the_form_names_every_kind(client: Client, demo: Document) -> None:
     """Found in review, 9 November 2026: the message left videos out."""
-    wanted = "Choose a PDF, a Word, PowerPoint or Excel file, or an MP4 video to upload."
+    wanted = "Choose a PDF, an MP4 video, or a Word, PowerPoint, or Excel file to upload."
     response = client.post("/admin/documents/new", {"title": "Demo"}, secure=True)
     assert response.status_code == 400 and wanted in response.content.decode()
     response = client.post(f"/admin/documents/{demo.token}/versions", {}, secure=True)

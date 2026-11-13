@@ -135,7 +135,7 @@ def test_title_and_file_are_required(client: Client, data: dict[str, str], messa
 def test_a_refused_file_creates_nothing(client: Client, data_folder: Path) -> None:
     response = upload_new(client, data=b"Not a PDF at all")
     assert response.status_code == 400
-    assert "Snug takes PDFs, Word, PowerPoint and Excel files" in response.content.decode()
+    assert "Snug takes PDFs, Word, PowerPoint, and Excel files" in response.content.decode()
     assert not Document.objects.exists()
     assert actions() == ["document.upload_refused"]
     assert list((data_folder / "originals").iterdir()) == []

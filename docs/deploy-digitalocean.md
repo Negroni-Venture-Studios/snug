@@ -9,11 +9,11 @@ You need:
 - **A DigitalOcean account**, with a payment card added. Sign up at [digitalocean.com](https://www.digitalocean.com).
 - **A domain name you own**, such as `yourcompany.com`, and the login for the company you bought it from, where its DNS settings are.
 - **A password manager**, such as 1Password or Bitwarden. You will make three items in it as you go.
-- **An authenticator app on your phone**, such as 1Password, Google Authenticator or Authy.
+- **An authenticator app on your phone**, such as 1Password, Google Authenticator, or Authy.
 
 Decide on the address investors will use. A part of your own domain works best, such as `room.yourcompany.com`. This guide calls it **your Snug address**.
 
-The server costs $6 a month, or $12 with the memory to show Word, PowerPoint and Excel files in the browser. The backup storage costs $5 a month.
+The server costs $6 a month, or $12 with the memory to show Word, PowerPoint, and Excel files in the browser. The backup storage costs $5 a month.
 
 ## 1. Create the storage for your backups
 
@@ -66,7 +66,7 @@ DigitalOcean calls a server a droplet.
 
    <img alt="The Basic plan, with Regular CPU and the $6.00 a month plan chosen; the summary says $6.00 a month." src="images/digitalocean/droplet-plan.png">
 
-   To let investors read Word, PowerPoint and Excel files in the browser, choose the **$12.00/mo** plan instead, with 2 GB of memory and a 50 GB disk. LibreOffice, which shows them, needs 2 GB of memory ([Showing Office files in the browser](office.md)). Choose it too if you will share several videos, which can be hundreds of megabytes each.
+   To let investors read Word, PowerPoint, and Excel files in the browser, choose the **$12.00/mo** plan instead, with 2 GB of memory and a 50 GB disk. LibreOffice, which shows them, needs 2 GB of memory ([Showing Office files in the browser](office.md)). Choose it too if you will share several videos, which can be hundreds of megabytes each.
 
 5. Leave **Backups** unticked. Snug makes its own.
 6. Under **Authentication**, click **Password**. Ask your password manager to generate a password, save it as a new item called **Snug server**, and paste it into **Root password**. DigitalOcean ticks each rule it meets:
@@ -107,7 +107,7 @@ If you leave this page, you can find it again under **Droplets** in the menu on 
 
 ## 5. Point your Snug address at the server
 
-Go to the website of the company you bought your domain from, sign in, and find your domain's **DNS** settings. They may be called *DNS records*, *DNS zone* or *Manage DNS*. Add two records:
+Go to the website of the company you bought your domain from, sign in, and find your domain's **DNS** settings. They may be called *DNS records*, *DNS zone*, or *Manage DNS*. Add two records:
 
 | Type | Name, or host | Value, or data |
 |---|---|---|
@@ -120,7 +120,7 @@ Things that often go wrong:
 
 - **The wrong domain.** If you own several similar domains, check you are adding the records to the one in your Snug address.
 - **The whole address as the name.** Most DNS hosts want only `room`, and add `yourcompany.com` themselves. A few want `room.yourcompany.com.`, ending in a dot. If the host shows the full name beside the box as you type, check it reads your Snug address once, not `room.yourcompany.com.yourcompany.com`.
-- **An old record.** If there is already a record named `room`, of type `A`, `AAAA` or `CNAME`, delete it first.
+- **An old record.** If there is already a record named `room`, of type `A`, `AAAA`, or `CNAME`, delete it first.
 - **Waiting.** New records usually work within minutes, but can take up to an hour to reach everyone.
 
 ## 6. Open the server's console
@@ -156,7 +156,7 @@ Snug asks one question at a time. Type each answer and press Return. To paste in
 |---|---|
 | `The domain investors will use, like room.example.com` | your Snug address, such as `room.yourcompany.com`, without `https://` |
 | `Your company's name, as investors know it (you can change it later in Settings)` | your company's name, such as `Fernlea Robotics` |
-| `Show Office files in the browser? Type yes or no [no]` | `yes` on the $12.00/mo plan, if you want investors to read Word, PowerPoint and Excel files in the browser, or press Return for no |
+| `Show Office files in the browser? Type yes or no [no]` | `yes` on the $12.00/mo plan, if you want investors to read Word, PowerPoint, and Excel files in the browser, or press Return for no |
 
 <img alt="The console asking Show Office files in the browser? Type yes or no [no], after a note that it needs 2 GB of memory." src="images/digitalocean/setup-office.png">
 
@@ -289,16 +289,16 @@ Snug downloads the new version and restarts, which takes under a minute, and end
 
 ```
 Snug is up to date. To check everything is working: sudo snug doctor
-To show Word, PowerPoint and Excel files in the browser: sudo snug update --with-office
+To show Word, PowerPoint, and Excel files in the browser: sudo snug update --with-office
 ```
 
-The second line appears only while LibreOffice is not installed. Your documents, links, accounts and settings are kept. The Overview shows the new version under the line at the top, and `sudo snug version` prints it in the console.
+The second line appears only while LibreOffice is not installed. Your documents, links, accounts, and settings are kept. The Overview shows the new version under the line at the top, and `sudo snug version` prints it in the console.
 
 To add LibreOffice later, resize the droplet to the $12.00/mo plan first, then run `sudo snug update --with-office`. On a server running Snug 1.0.0, run `sudo snug update` once before that: 1.0.0's command does not pass `--with-office` on. [Showing Office files in the browser](office.md) explains the rest.
 
 ## Bringing Snug back on a new server
 
-If the server is lost, or you want to move Snug, the backups bring everything back on a new server: documents, links, admin accounts, reading data, the audit log and the email settings. It takes about twenty minutes, most of it the new server installing itself.
+If the server is lost, or you want to move Snug, the backups bring everything back on a new server: documents, links, admin accounts, reading data, the audit log, and the email settings. It takes about twenty minutes, most of it the new server installing itself.
 
 You need the backup settings you saved in your password manager in step 7. Without them, nobody can read the backups.
 
@@ -321,7 +321,7 @@ You need the backup settings you saved in your password manager in step 7. Witho
    Snug is restored at https://room.yourcompany.com. Sign in as before.
    ```
 
-6. **Sign in** with the same email address, password and authenticator app as before. The new server signs every admin out once. Investors' links work as they did.
+6. **Sign in** with the same email address, password, and authenticator app as before. The new server signs every admin out once. Investors' links work as they did.
 7. **Check**, in the console, with your own email address:
 
    ```bash

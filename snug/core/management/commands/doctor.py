@@ -46,7 +46,7 @@ def _email_test(address: str) -> Finding:
 
 
 class Command(BaseCommand):
-    help = "Check housekeeping, backups, the document worker, DNS, HTTPS, email and GeoIP data."
+    help = "Check housekeeping, backups, the document worker, DNS, HTTPS, email, and GeoIP data."
 
     def add_arguments(self, parser: ArgumentParser) -> None:
         parser.add_argument(

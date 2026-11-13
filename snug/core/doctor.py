@@ -128,7 +128,7 @@ def confinement() -> Finding:
     return _problem(
         label,
         f"The document worker cannot confine itself ({how}), so Snug will not read documents. "
-        f"It needs Linux {_LINUX_FOR_ABI[MIN_LANDLOCK_ABI]} or later, with Landlock, seccomp "
+        f"It needs Linux {_LINUX_FOR_ABI[MIN_LANDLOCK_ABI]} or later, with Landlock, seccomp, "
         "and a memory limit.",
     )
 
@@ -138,7 +138,10 @@ def _on_localhost() -> bool:
 
 
 def _listed(items: list[str]) -> str:
-    return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} and {items[-1]}"
+    """ "a", "a and b", or "a, b, and c": the serial comma is the house style."""
+    if len(items) <= 2:
+        return " and ".join(items)
+    return f"{', '.join(items[:-1])}, and {items[-1]}"
 
 
 def dns() -> Finding:

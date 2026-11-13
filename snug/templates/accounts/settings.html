@@ -72,7 +72,7 @@
   {% else %}<p class="email-status">{{ email.status }}</p>{% endif %}
   <fieldset class="field provider-choice"><legend class="label">How Snug sends email</legend>
     <label class="check"><input type="radio" name="provider" value="google" id="provider-google" form="email-setup-form"{% if email.values.provider == "google" %} checked{% endif %}><span>Google Workspace<span class="hint">Sends as a mailbox on your Workspace domain, after a one-time setup in Google Cloud.</span></span></label>
-    <label class="check"><input type="radio" name="provider" value="smtp" id="provider-smtp" form="email-setup-form"{% if email.values.provider != "google" %} checked{% endif %}><span>Another provider (SMTP)<span class="hint">Mailgun, Postmark, Amazon SES or another provider's SMTP server.</span></span></label>
+    <label class="check"><input type="radio" name="provider" value="smtp" id="provider-smtp" form="email-setup-form"{% if email.values.provider != "google" %} checked{% endif %}><span>Another provider (SMTP)<span class="hint">Mailgun, Postmark, Amazon SES, or another provider's SMTP server.</span></span></label>
   </fieldset>
   {% if email.saved_here %}<div class="email-clear" id="email-clear">
     <h3 class="panel-title">Clear email settings</h3>
@@ -110,7 +110,7 @@
   <div class="field"><label for="smtp-password">Password or API key</label>{% if email.password_saved %}{% include "snug/partials/password_field.html" with id="smtp-password" name="smtp_password" autocomplete="new-password" optional=True placeholder="••••••••••••" %}{% else %}{% include "snug/partials/password_field.html" with id="smtp-password" name="smtp_password" autocomplete="new-password" optional=True %}{% endif %}
     <div class="hint">{% if email.password_saved %}Saved. Type a new one to replace it.{% else %}Never shown again once saved.{% endif %}</div></div>
   <div class="field"><label for="smtp-security">Encryption</label><select id="smtp-security" name="smtp_security"{% if email.errors.smtp_security %} aria-invalid="true" aria-describedby="smtp-security-error"{% endif %}>
-      <option value="starttls"{% if email.values.smtp_security != "tls" %} selected{% endif %}>STARTTLS, for ports 587, 2525 and 2587</option>
+      <option value="starttls"{% if email.values.smtp_security != "tls" %} selected{% endif %}>STARTTLS, for ports 587, 2525, and 2587</option>
       <option value="tls"{% if email.values.smtp_security == "tls" %} selected{% endif %}>TLS, for ports 465 and 2465</option>
     </select>
     {% if email.errors.smtp_security %}<div class="error" id="smtp-security-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_security }}</div>{% endif %}</div>
@@ -192,10 +192,10 @@
 </div>
 
 <div class="section" id="office">
-<div class="section-head stacked"><h2>Office files</h2><p>Word, PowerPoint and Excel files are shared as downloads. With LibreOffice installed on this server, investors can also read them in the browser, page by page.</p>{% include "accounts/partials/doc_link.html" with page="office.md" label="Showing Office files in the browser" %}</div>
+<div class="section-head stacked"><h2>Office files</h2><p>Word, PowerPoint, and Excel files are shared as downloads. With LibreOffice installed on this server, investors can also read them in the browser, page by page.</p>{% include "accounts/partials/doc_link.html" with page="office.md" label="Showing Office files in the browser" %}</div>
 {% if not office.installed %}
 <div class="panel office-status">
-  <p><span class="status status-off">Not installed</span> LibreOffice is not installed, so Word, PowerPoint and Excel files are shared as downloads only.</p>
+  <p><span class="status status-off">Not installed</span> LibreOffice is not installed, so Word, PowerPoint, and Excel files are shared as downloads only.</p>
   <p class="hint">To install it in a container of its own, run <code>sudo snug update --with-office</code> on the server. It needs 2 GB of memory.</p>
 </div>
 {% else %}
@@ -205,7 +205,7 @@
 </div>
 <form class="panel form settings-form" method="post" action="{% url 'accounts:office' %}#office" novalidate>
   {% csrf_token %}
-  {% if saved == "office" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if office_previews %}Saved. Word, PowerPoint and Excel files are shown in the browser once their previews are made.{% else %}Saved. Word, PowerPoint and Excel files are shared as downloads only.{% endif %}</span></div>{% endif %}
+  {% if saved == "office" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if office_previews %}Saved. Word, PowerPoint, and Excel files are shown in the browser once their previews are made.{% else %}Saved. Word, PowerPoint, and Excel files are shared as downloads only.{% endif %}</span></div>{% endif %}
   <label class="check"><input type="checkbox" name="show"{% if office_previews %} checked{% endif %}><span>Show Office files in the browser<span class="hint">Investors read them page by page, watermarked. Off, they see a card describing the file. Either way, a link that allows downloads gives them the file itself.</span></span></label>
   <button class="btn btn-primary" type="submit">Save</button>
 </form>

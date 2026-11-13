@@ -38,15 +38,15 @@ MESSAGES = {
     "usage": "Snug could not read this PDF.",
     "unconfined": (
         "This server cannot open documents safely. It needs Linux 6.7 or later, with Landlock, "
-        "seccomp and a memory limit. Ask whoever runs the server."
+        "seccomp, and a memory limit. Ask whoever runs the server."
     ),
 }
 
 
 # And for a Word, PowerPoint or Excel file, where the PDF wording would mislead.
-SAVE_AS = "Save it as .docx, .pptx or .xlsx"
+SAVE_AS = "Save it as .docx, .pptx, or .xlsx"
 NOT_OFFICE = (
-    f"This file could not be read as a Word, PowerPoint or Excel file. {SAVE_AS}, "
+    f"This file could not be read as a Word, PowerPoint, or Excel file. {SAVE_AS}, "
     "without a password, then upload it again."
 )
 OFFICE_MESSAGES = {
@@ -56,7 +56,7 @@ OFFICE_MESSAGES = {
         f"{SAVE_AS} without them, then upload it again."
     ),
     "external": (
-        "This file fetches a template, picture or object from another computer when it is "
+        "This file fetches a template, picture, or object from another computer when it is "
         "opened. Save it with everything stored in the file, then upload it again."
     ),
     "dde": (
@@ -144,7 +144,7 @@ def run(
         if code == "unconfined":
             log.error(
                 "The document worker could not confine itself (Landlock ABI %s or later, a "
-                "seccomp filter and its memory limit are needed), so it refused to read the file.",
+                "seccomp filter, and its memory limit are needed), so it refused to read the file.",
                 MIN_LANDLOCK_ABI,
             )
         raise WorkerError(code)

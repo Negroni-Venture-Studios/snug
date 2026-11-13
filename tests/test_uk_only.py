@@ -138,7 +138,7 @@ def test_the_entry_page_refuses_before_any_code_is_sent(
     assert page.status_code == 403
     text = page.content.decode()
     assert "This link opens only in the UK" in text
-    assert "Jersey, Guernsey and the Isle of Man" in text
+    assert "Jersey, Guernsey, and the Isle of Man" in text
     sent = visitor.post(f"/v/{issued.token}/code/send", {"email": INVESTOR}, secure=True)
     assert sent.status_code == 403
     assert not django_mail.outbox

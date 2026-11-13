@@ -1,6 +1,6 @@
 # Trademarks
 
-Snug's code, documentation and logo files are all MIT licensed.
+Snug's code, documentation, and logo files are all MIT licensed.
 
 The name "Snug" and the snug-door icon identify this project, published by Negroni Venture Studios.
 

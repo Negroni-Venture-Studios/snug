@@ -65,11 +65,11 @@ def _kind(head: bytes) -> str:
         return DocumentVersion.Kind.PDF
     if head.startswith(OLE_MAGIC):
         raise UploadRejectedError(
-            "This is an older Office file (.doc, .ppt or .xls), or one saved with a password. "
-            "Save it as .docx, .pptx or .xlsx without a password, then upload it again."
+            "This is an older Office file (.doc, .ppt, or .xls), or one saved with a password. "
+            "Save it as .docx, .pptx, or .xlsx without a password, then upload it again."
         )
     raise UploadRejectedError(
-        "Snug takes PDFs, Word, PowerPoint and Excel files (.docx, .pptx and .xlsx), "
+        "Snug takes PDFs, Word, PowerPoint, and Excel files (.docx, .pptx, and .xlsx), "
         "and MP4 videos. Export other files to PDF first."
     )
 
@@ -122,7 +122,7 @@ def _same_kind(document: Document, kind: str) -> None:
     if latest is None or latest.kind == kind or (kind == OFFICE_ZIP and latest.is_office):
         return  # an Office zip is checked again once the worker has said which format it is
     is_a = {"pdf": "a PDF", "mp4": "a video"} | {k: f.a_name for k, f in OFFICE.items()}
-    short = {"pdf": "PDF", "mp4": "video", OFFICE_ZIP: "Word, PowerPoint or Excel file"} | {
+    short = {"pdf": "PDF", "mp4": "video", OFFICE_ZIP: "Word, PowerPoint, or Excel file"} | {
         k: f.short for k, f in OFFICE.items()
     }
     raise UploadRejectedError(

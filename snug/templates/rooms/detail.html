@@ -69,7 +69,7 @@
     <form class="panel form" method="post" action="{% url 'rooms:uk_only' room.token %}">
       {% csrf_token %}
       {% include "snug/partials/saved.html" with here="uk-only" %}
-      <label class="check"><input type="checkbox" name="uk_only"{% if room.uk_only %} checked{% endif %}><span>Open only from the UK<span class="hint">Every link to this room opens only for visitors in the UK, Jersey, Guernsey and the Isle of Man, by their internet address. A VPN can get round it. {% include "snug/partials/db_ip.html" %}</span></span></label>
+      <label class="check"><input type="checkbox" name="uk_only"{% if room.uk_only %} checked{% endif %}><span>Open only from the UK<span class="hint">Every link to this room opens only for visitors in the UK, Jersey, Guernsey, and the Isle of Man, by their internet address. A VPN can get round it. {% include "snug/partials/db_ip.html" %}</span></span></label>
       <div class="form-foot"><button class="btn" type="submit">Save</button></div>
     </form>
   </section>

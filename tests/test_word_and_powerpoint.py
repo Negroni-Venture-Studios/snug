@@ -170,7 +170,7 @@ def test_the_worker_stamps_a_presentation(tmp_path: Path) -> None:
                     relationship("rId1", REL_TEMPLATE, "https://t.example/x.dotm", external=True),
                 )
             ),
-            "fetches a template, picture or object from another computer",
+            "fetches a template, picture, or object from another computer",
         ),
         (make_pptx(0), "This presentation has no slides."),
     ],
@@ -267,12 +267,12 @@ def test_word_and_powerpoint_files_become_documents(
     [
         (
             b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 512,
-            "This is an older Office file (.doc, .ppt or .xls), or one saved with a password. "
-            "Save it as .docx, .pptx or .xlsx without a password, then upload it again.",
+            "This is an older Office file (.doc, .ppt, or .xls), or one saved with a password. "
+            "Save it as .docx, .pptx, or .xlsx without a password, then upload it again.",
         ),
         (
             b"hello, this is a text file",
-            "Snug takes PDFs, Word, PowerPoint and Excel files (.docx, .pptx and .xlsx), "
+            "Snug takes PDFs, Word, PowerPoint, and Excel files (.docx, .pptx, and .xlsx), "
             "and MP4 videos. Export other files to PDF first.",
         ),
         (make_docx(main=DOCM_MAIN), "This file contains macros"),
@@ -452,7 +452,7 @@ def test_the_link_form_says_what_a_download_of_an_office_file_is(
 ) -> None:
     page = client.get(f"/admin/links/for/{memo.token}", secure=True).content.decode()
     assert (
-        "The file itself, with their email address, the date and the link in its properties."
+        "The file itself, with their email address, the date, and the link in its properties."
         in page
     )
 

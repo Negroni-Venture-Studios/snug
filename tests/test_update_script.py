@@ -258,7 +258,7 @@ def test_without_office_turns_the_converter_off_and_removes_it(server: Path) -> 
 
 def test_without_the_converter_update_says_how_to_add_it(server: Path) -> None:
     result, log = run_update(server)
-    assert "To show Word, PowerPoint and Excel files in the browser: sudo snug update" in (
+    assert "To show Word, PowerPoint, and Excel files in the browser: sudo snug update" in (
         result.stdout
     )
     assert not any(line.startswith(("apt-get", "runsc")) for line in log)

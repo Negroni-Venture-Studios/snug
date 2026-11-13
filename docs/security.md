@@ -14,15 +14,15 @@ Snug cannot tell who is at the keyboard. Someone the investor lets use their inb
 
 ## Guessed codes and passwords
 
-An investor's code is six digits, works once, for ten minutes, and five wrong tries use it up. Asking for codes is limited for each link, email address and internet address, so someone holding a forwarded link cannot keep guessing.
+An investor's code is six digits, works once, for ten minutes, and five wrong tries use it up. Asking for codes is limited for each link, email address, and internet address, so someone holding a forwarded link cannot keep guessing.
 
 Signing in to the admin pages takes a password and a code from an authenticator app. After 20 wrong passwords from one address, 30 against one account, or 10 wrong codes, signing in pauses for 15 minutes ([every limit](admin-accounts.md#signing-in)).
 
 ## Uploaded files
 
-Snug reads every uploaded PDF, Office file and video in a separate worker process, confined so that it cannot open other files, connect to the network or reach Snug's other processes, with a time and a memory limit. If the worker cannot confine itself, Snug refuses to read the file. A file made to attack the PDF reader would run inside that confinement.
+Snug reads every uploaded PDF, Office file, and video in a separate worker process, confined so that it cannot open other files, connect to the network, or reach Snug's other processes, with a time and a memory limit. If the worker cannot confine itself, Snug refuses to read the file. A file made to attack the PDF reader would run inside that confinement.
 
-The worker refuses a Word, PowerPoint or Excel file with macros, ActiveX controls or objects embedded from other programs, one that fetches a template, picture or object from another computer when it opens, a Word field that does the same or starts another program, a Word document with another inside it to import when it opens, and a workbook linked to another program. An Office file inside the upload, such as the workbook that holds a chart's data, is checked in the same way, and one nested any deeper is refused. If you install LibreOffice to show Office files in the browser, it runs in a container of its own under gVisor, with no network; [Showing Office files in the browser](office.md) sets out what it costs and how it is confined.
+The worker refuses a Word, PowerPoint, or Excel file with macros, ActiveX controls, or objects embedded from other programs, one that fetches a template, picture, or object from another computer when it opens, a Word field that does the same or starts another program, a Word document with another inside it to import when it opens, and a workbook linked to another program. An Office file inside the upload, such as the workbook that holds a chart's data, is checked in the same way, and one nested any deeper is refused. If you install LibreOffice to show Office files in the browser, it runs in a container of its own under gVisor, with no network; [Showing Office files in the browser](office.md) sets out what it costs and how it is confined.
 
 ## Watermarks and stamps
 
@@ -32,8 +32,8 @@ Every page an investor reads in the browser shows their email address and the da
 |---|---|---|
 | A page in the browser | Their email address and the date across the page, and a footer line | A photograph or a screenshot, which can then be cropped or edited |
 | A PDF download | The same marks on every page, as an image layer, and their details in the document's properties | Someone with a PDF editor removing the layer and the properties, or copying the text out |
-| A Word, PowerPoint or Excel download | Their details in the file's comments and three custom properties; every sheet, slide and paragraph stays exactly as uploaded | Copying the contents into a new file, or editing the properties |
-| A video | Their email address, the date and the link's reference drawn over the player | The browser's developer tools hiding it; Safari on iPhone playing in its own full screen without it; saving the stream, even with downloads off |
+| A Word, PowerPoint, or Excel download | Their details in the file's comments and three custom properties; every sheet, slide, and paragraph stays exactly as uploaded | Copying the contents into a new file, or editing the properties |
+| A video | Their email address, the date, and the link's reference drawn over the player | The browser's developer tools hiding it; Safari on iPhone playing in its own full screen without it; saving the stream, even with downloads off |
 | A video download | None: it is the original file | Anything. Every download is the same file, so its hash cannot show whose copy it was |
 
 The hash in the audit log matches only an unchanged copy. Once a file has been edited, Snug cannot tell whose it was.
@@ -50,13 +50,13 @@ This is a record of acceptance, not a signature. The email address is only as su
 
 ## UK-only mode
 
-A UK-only link or room opens only for visitors whose internet address DB-IP's data places in the UK, Jersey, Guernsey or the Isle of Man. An address it cannot place is refused, and so is every visitor while the data is missing.
+A UK-only link or room opens only for visitors whose internet address DB-IP's data places in the UK, Jersey, Guernsey, or the Isle of Man. An address it cannot place is refused, and so is every visitor while the data is missing.
 
 A VPN gets round it, and so does any visitor using a computer in the UK. It checks where a connection comes from, and is not export control.
 
 ## Your server and your backups
 
-Your documents, the database and the record of who read them stay on your server. With backups set up, as `snug setup` asks, they are also copied to your own bucket, encrypted on the server before they leave it. Without them, losing the server loses everything. The backup settings in your password manager are the only way to read the backups, so whoever holds them can read everything in them.
+Your documents, the database, and the record of who read them stay on your server. With backups set up, as `snug setup` asks, they are also copied to your own bucket, encrypted on the server before they leave it. Without them, losing the server loses everything. The backup settings in your password manager are the only way to read the backups, so whoever holds them can read everything in them.
 
 Snug is served only over HTTPS, with a certificate from Let's Encrypt that Caddy renews, and tells browsers to use nothing else for a year.
 
@@ -66,7 +66,7 @@ Every admin has the same rights, and signs in with a password and a code from an
 
 ## What Snug records about investors
 
-Snug records each visitor's email address, IP address and country, and how long they spent on each page. In the *About this link* panel, investors are told that you will see when they open each document, how long they spend on each page and, if the link allows downloads, when they download it, and that their IP address, browser and country are recorded with each visit. The reading data is deleted a set time after their link ends, 12 months unless you change it in Settings; the audit log is kept.
+Snug records each visitor's email address, IP address, and country, and how long they spent on each page. In the *About this link* panel, investors are told that you will see when they open each document, how long they spend on each page, and, if the link allows downloads, when they download it, and that their IP address, browser, and country are recorded with each visit. The reading data is deleted a set time after their link ends, 12 months unless you change it in Settings; the audit log is kept.
 
 ## Reporting a security problem
 

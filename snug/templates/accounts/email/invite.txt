@@ -3,7 +3,7 @@
 Set up your account here:
 {{ url }}
 
-The link works once, for {{ hours }} hours. You will choose a password and add Snug to an authenticator app, such as 1Password, Google Authenticator or Authy.
+The link works once, for {{ hours }} hours. You will choose a password and add Snug to an authenticator app, such as 1Password, Google Authenticator, or Authy.
 
 If you were not expecting this, you can ignore this email. Reply to reach {{ by }}.
 {% endautoescape %}

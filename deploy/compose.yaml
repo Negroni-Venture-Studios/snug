@@ -90,7 +90,7 @@ services:
     logging: *logging
 
   backup:
-    # Encrypts the database replica, originals/ and branding/ and copies them
+    # Encrypts the database replica, originals/, and branding/ and copies them
     # to the bucket every 5 minutes. See backup.sh and docs/backups.md.
     image: rclone/rclone:1.75.2@sha256:2687085f718d3c628f7fdfb77c52a1d344332aed543110bb88088f2c70d43eb5
     restart: unless-stopped
@@ -118,7 +118,7 @@ services:
   # The LibreOffice converter (docs/office.md), only when COMPOSE_PROFILES
   # includes office: snug setup asks, and snug update --with-office adds it.
   # One conversion per start: it exits after each file and Docker restarts it,
-  # with new processes, a new gVisor sandbox and an empty /tmp, so nothing a
+  # with new processes, a new gVisor sandbox, and an empty /tmp, so nothing a
   # file did survives to the next.
   office:
     image: ${SNUG_OFFICE_IMAGE:-ghcr.io/negroni-venture-studios/snug-office:1.1.2}

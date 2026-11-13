@@ -31,7 +31,7 @@ For each acceptance, Snug keeps:
 
 - the name they typed, and the email address their link was sent to;
 - the link, and the version of the agreement;
-- the time, their IP address and their browser's user agent;
+- the time, their IP address, and their browser's user agent;
 - a SHA-256 fingerprint of the exact text accepted.
 
 Acceptances are never changed or deleted by Snug. Each one is also written to the audit log as `viewer.nda_accepted`. Acceptance is per link, so someone with two links to the same room accepts on each. A link holds one acceptance of each version: if the agreement is accepted twice on it, the first record is kept.
