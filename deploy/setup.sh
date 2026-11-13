@@ -277,7 +277,10 @@ else
 	say
 	if [ -t 0 ]; then
 		say "Now the first admin."
-		docker compose exec snug snug createadmin
+		if ! docker compose exec snug snug createadmin; then
+			say
+			say "No admin was created. Create the first admin with: sudo snug createadmin"
+		fi
 	else
 		say "Create the first admin with: sudo snug createadmin"
 	fi

@@ -24,6 +24,7 @@ case "$*" in
 	*"--entrypoint test snug -e /var/lib/snug/snug.sqlite3"*) [ "$HAS_DATABASE" = yes ] ;;
 	*"--entrypoint rclone backup lsf snug-backup:database"*)
 		[ "$BUCKET_HAS_BACKUPS" = yes ] && echo 0001.ltx ;;
+	*"exec snug snug createadmin"*) [ "$ADMIN_FAILS" != yes ] ;;
 	*) exit 0 ;;
 esac
 """
@@ -73,13 +74,16 @@ def run_setup(
     answers: str = "",
     succeeds: bool = True,
     terminal: bool = False,
+    keyboard: bool = False,
+    admin_fails: bool = False,
     no_docker: bool = False,
     office: str = "\n",
     memory_mb: int = 2048,
 ) -> list[str]:
     """Run setup.sh; what it printed is left in `screen`, beside the server folder.
 
-    With `terminal`, its output goes to a pseudo-terminal, as over SSH.
+    With `terminal`, its output goes to a pseudo-terminal, as over SSH; with
+    `keyboard` as well, so does its input, as when a founder types the answers.
     """
     log = server.parent / "log"
     log.touch()
@@ -90,6 +94,7 @@ def run_setup(
         "HAS_DATABASE": "yes" if has_database else "no",
         "BUCKET_HAS_BACKUPS": "yes" if bucket_has_backups else "no",
         "NO_DOCKER": "yes" if no_docker else "no",
+        "ADMIN_FAILS": "yes" if admin_fails else "no",
         "OFFICE_MEMINFO": str(meminfo(server, memory_mb)),
         "OFFICE_ROOT": str(server.parent / "root"),
     }
@@ -97,7 +102,9 @@ def run_setup(
     # then any later answers.
     typed = "\nFernlea Robotics\n" + office + answers
     if terminal:
-        returncode, printed = on_a_terminal(["/bin/sh", str(server / "setup.sh")], typed, env)
+        returncode, printed = on_a_terminal(
+            ["/bin/sh", str(server / "setup.sh")], typed, env, keyboard=keyboard
+        )
     else:
         result = subprocess.run(
             ["/bin/sh", str(server / "setup.sh")],
@@ -113,8 +120,14 @@ def run_setup(
     return log.read_text().splitlines()
 
 
-def on_a_terminal(command: list[str], typed: str, env: dict[str, str]) -> tuple[int, str]:
-    """Run `command` with its output on a pseudo-terminal and `typed` as its input."""
+def on_a_terminal(
+    command: list[str], typed: str, env: dict[str, str], *, keyboard: bool = False
+) -> tuple[int, str]:
+    """Run `command` with its output on a pseudo-terminal and `typed` as its input.
+
+    With `keyboard`, `typed` is typed on the pseudo-terminal too, so the command
+    sees a terminal on its input.
+    """
     controller, terminal = pty.openpty()
     chunks: list[bytes] = []
 
@@ -130,9 +143,15 @@ def on_a_terminal(command: list[str], typed: str, env: dict[str, str]) -> tuple[
 
     reader = threading.Thread(target=read)
     reader.start()
-    process = subprocess.run(
-        command, input=typed.encode(), stdout=terminal, stderr=terminal, env=env, check=False
-    )
+    if keyboard:
+        os.write(controller, typed.encode())
+        process = subprocess.run(
+            command, stdin=terminal, stdout=terminal, stderr=terminal, env=env, check=False
+        )
+    else:
+        process = subprocess.run(
+            command, input=typed.encode(), stdout=terminal, stderr=terminal, env=env, check=False
+        )
     os.close(terminal)
     reader.join(timeout=10)
     os.close(controller)
@@ -263,6 +282,24 @@ def test_the_backup_settings_are_cleared_from_the_terminal_once_saved(server: Pa
     assert shown < screen.index("Type saved once it is in your password manager") < cleared
     assert "fernlea-secret" not in screen[cleared:]
     assert "The backup settings have been cleared from the screen." in screen[cleared:]
+
+
+def test_a_refused_first_admin_says_how_to_try_again(server: Path) -> None:
+    # Found on 13 November 2026: three refused passwords stopped setup at the
+    # admin step, before it said how to create one or where to sign in.
+    calls = run_setup(
+        server,
+        has_database=False,
+        bucket_has_backups=False,
+        terminal=True,
+        keyboard=True,
+        admin_fails=True,
+    )
+    assert "docker compose exec snug snug createadmin" in calls
+    screen = (server.parent / "screen").read_text()
+    refused = screen.index("No admin was created.")
+    assert refused < screen.index("sudo snug createadmin", refused)
+    assert refused < screen.index("Snug is running at https://room.fernlea.example")
 
 
 def test_without_a_terminal_nothing_is_cleared(server: Path) -> None:
