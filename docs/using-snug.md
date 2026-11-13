@@ -172,7 +172,7 @@ Branding sets how investors' pages look. Each part is saved on its own.
 
 ### Privacy and reading data
 
-In the *About this link* panel, investors are told what you will see: when they open each document, how long they spend on each page and, if the link allows downloads, when they download it. They are also told that their email address is watermarked on what they read, and that their IP address, browser and country are recorded with each visit. To add a link to your own privacy policy there, enter its address under **Privacy policy address**.
+In the *About this link* panel, investors are told what you will see: when they open each document, how long they spend on each page and, if the link allows downloads, when they download it. They are also told that their IP address, browser and country are recorded with each visit, and, for an Office file they can download, that their email address is written into its document properties. To add a link to your own privacy policy there, enter its address under **Privacy policy address**.
 
 **Keep reading data for** sets how many months Snug keeps what each person read or watched after their link is revoked or expires, from 1 to 120. It is 12 unless you change it. While a link works, its reading data is kept. The link and the audit log are kept regardless.
 

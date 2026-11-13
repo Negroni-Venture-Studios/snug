@@ -265,8 +265,8 @@ def test_a_previewed_deck_is_read_page_by_page(converter: Converter) -> None:
     assert "<dt>Access</dt><dd>View in the browser, or download</dd>" in page
     assert (
         "when you open this presentation, how long you spend on each page, and when you "
-        "download it. Your email address is watermarked on every page and written into the "
-        "document properties of any copy you download." in page
+        "download it. Your email address is written into the document properties of any "
+        "copy you download." in page
     )
     image = browser.get(f"/v/{issued.token}/pages/2-800.webp", secure=True)
     assert image.status_code == 200 and image["Content-Type"] == "image/webp"

@@ -240,3 +240,17 @@ def test_the_about_panel_says_what_is_recorded_of_each_visit(document: Document)
     landing = get(Client(), f"/v/{issued.token}").content.decode()
     reader = get(opened(issued), f"/v/{issued.token}").content.decode()
     assert RECORDED in landing and RECORDED in reader
+
+
+def about_panel(page: str) -> str:
+    start = page.index('<aside class="about"')
+    return page[start : page.index("</aside>", start)]
+
+
+def test_the_about_panel_leaves_the_watermark_unsaid(document: Document) -> None:
+    # 13 November 2026: the investor can see the watermark on every page, so
+    # the panel does not say it is there.
+    issued = issue(document)
+    landing = get(Client(), f"/v/{issued.token}").content.decode()
+    reader = get(opened(issued), f"/v/{issued.token}").content.decode()
+    assert "watermark" not in about_panel(landing) and "watermark" not in about_panel(reader)
