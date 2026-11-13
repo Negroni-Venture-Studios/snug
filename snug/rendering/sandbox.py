@@ -30,7 +30,7 @@ CHUNK = 64 * 1024
 MESSAGES = {
     "password": "This PDF is protected by a password. Remove the password, then upload it again.",
     "empty": "This PDF has no pages.",
-    "too_many_pages": "This PDF has more than 2,000 pages, which is more than Snug can show.",
+    "too_many_pages": "This PDF has more than the 2,000 pages Snug can show.",
     "unreadable": "This file could not be read as a PDF. Export it to PDF again, then upload it.",
     "timeout": "This PDF took too long to read. Export it to PDF again, then upload it.",
     "memory": "This PDF needs more memory to read than Snug allows.",
@@ -43,23 +43,37 @@ MESSAGES = {
 }
 
 
-# And for an Excel workbook, where the PDF wording would mislead.
-WORKBOOK_MESSAGES = {
-    "not_xlsx": (
-        "This file could not be read as an Excel workbook. Save it as an Excel Workbook "
-        "(.xlsx), without a password, then upload it again."
-    ),
+# And for a Word, PowerPoint or Excel file, where the PDF wording would mislead.
+SAVE_AS = "Save it as .docx, .pptx or .xlsx"
+NOT_OFFICE = (
+    f"This file could not be read as a Word, PowerPoint or Excel file. {SAVE_AS}, "
+    "without a password, then upload it again."
+)
+OFFICE_MESSAGES = {
+    "not_office": NOT_OFFICE,
     "macros": (
-        "This workbook contains macros. Save it as an Excel Workbook (.xlsx), then upload it again."
+        "This file contains macros or embedded objects, which Snug does not share. "
+        f"{SAVE_AS} without them, then upload it again."
+    ),
+    "external": (
+        "This file fetches a template, picture or object from another computer when it is "
+        "opened. Save it with everything stored in the file, then upload it again."
+    ),
+    "dde": (
+        "This file asks Office to start another program when it is opened, through a DDE "
+        "field or link. Remove it, then upload the file again."
+    ),
+    "field": (
+        "This document has a field built from other fields, which Snug cannot check. Select "
+        "everything in Word and unlink its fields, so they become plain text, then upload it again."
     ),
     "no_sheets": "This workbook has no visible sheets.",
-    "too_large": "This workbook unpacks to more than Snug allows.",
-    "unreadable": (
-        "This file could not be read as an Excel workbook. Save it as an Excel Workbook "
-        "(.xlsx), without a password, then upload it again."
-    ),
-    "timeout": "This workbook took too long to read.",
-    "memory": "This workbook needs more memory to read than Snug allows.",
+    "no_slides": "This presentation has no slides.",
+    "too_large": "This file unpacks to more than Snug allows.",
+    "unreadable": NOT_OFFICE,
+    "timeout": "This file took too long to read.",
+    "memory": "This file needs more memory to read than Snug allows.",
+    "usage": "Snug could not prepare this file.",
 }
 
 
@@ -272,9 +286,13 @@ def inspect(pdf: os.PathLike[str] | str) -> dict[str, Any]:
     return facts
 
 
-def render(pdf: os.PathLike[str] | str, page: int, width: int) -> bytes:
-    """The page as WebP bytes. Only the container format is checked; nothing is decoded."""
-    image = run(pdf, "render", str(page), str(width), timeout=RENDER_TIMEOUT)
+def render(pdf: os.PathLike[str] | str, page: int, width: int, *, at_least: int = 0) -> bytes:
+    """The page as WebP bytes. Only the container format is checked; nothing is decoded.
+
+    A page narrower than `at_least` points is drawn on a white page that wide.
+    """
+    extra = (str(at_least),) if at_least else ()
+    image = run(pdf, "render", str(page), str(width), *extra, timeout=RENDER_TIMEOUT)
     if len(image) > OUTPUT_BYTES or image[:4] != b"RIFF" or image[8:12] != b"WEBP":
         raise WorkerError("unreadable")
     return image
@@ -286,7 +304,7 @@ VIDEO_MESSAGES = {
     "not_mp4": f"This file could not be read as an MP4 video. {EXPORT_MP4}",
     "quicktime": f"This is a QuickTime movie. {EXPORT_MP4}",
     "codec": (
-        "This video does not use H.264, which every browser plays. "
+        "This video does not use H.264. "
         "Export it as MP4 with H.264 video and AAC sound, then upload it again."
     ),
     "encrypted": "This video is protected against copying, so browsers cannot play it from Snug.",
@@ -319,41 +337,49 @@ def inspect_mp4(path: os.PathLike[str] | str) -> dict[str, Any]:
     return facts
 
 
-def _for_workbook(error: WorkerError) -> WorkerError:
-    return WorkerError(error.code, WORKBOOK_MESSAGES)
+def _for_office(error: WorkerError) -> WorkerError:
+    return WorkerError(error.code, OFFICE_MESSAGES)
 
 
-def inspect_xlsx(workbook: os.PathLike[str] | str) -> dict[str, Any]:
-    """The names of an Excel workbook's visible sheets, read in a confined worker."""
+def _office_facts(facts: object) -> dict[str, Any]:
+    """The worker's answer about an Office file, if it is one Snug could have sent."""
+    if not isinstance(facts, dict):
+        raise ValueError("not an object")
+    found = facts.get("format")
+    if found == "docx" and facts == {"format": "docx"}:
+        return facts
+    if found == "pptx" and set(facts) == {"format", "slides"}:
+        slides = facts["slides"]
+        if isinstance(slides, int) and not isinstance(slides, bool) and slides > 0:
+            return facts
+    if found == "xlsx" and set(facts) == {"format", "sheets"}:
+        sheets = facts["sheets"]
+        if isinstance(sheets, list) and sheets and all(isinstance(n, str) for n in sheets):
+            return facts
+    raise ValueError("inconsistent")
+
+
+def inspect_office(path: os.PathLike[str] | str) -> dict[str, Any]:
+    """Which Office format a file is, with its sheets or slide count, read in a confined worker."""
     try:
-        output = run(workbook, "inspect-xlsx", timeout=INSPECT_TIMEOUT)
-        facts: dict[str, Any] = json.loads(output.decode("utf-8").strip())
-        sheets = facts.get("sheets")
-        if (
-            not isinstance(sheets, list)
-            or not sheets
-            or not all(isinstance(n, str) for n in sheets)
-        ):
-            raise ValueError("inconsistent")
+        output = run(path, "inspect-office", timeout=INSPECT_TIMEOUT)
+        return _office_facts(json.loads(output.decode("utf-8").strip()))
     except WorkerError as error:
-        raise _for_workbook(error) from error
-    except (UnicodeDecodeError, ValueError, AttributeError) as error:
-        raise WorkerError("unreadable", WORKBOOK_MESSAGES) from error
-    return facts
+        raise _for_office(error) from error
+    except (UnicodeDecodeError, ValueError) as error:
+        raise WorkerError("unreadable", OFFICE_MESSAGES) from error
 
 
-def stamp_xlsx(
-    workbook: os.PathLike[str] | str, *, email: str, date: str, ref: str, limit: int
+def stamp_office(
+    path: os.PathLike[str] | str, *, email: str, date: str, ref: str, limit: int
 ) -> bytes:
-    """The workbook with its properties naming the reader, from a confined worker."""
+    """The Office file with its properties naming the reader, from a confined worker."""
     try:
-        stamped = run(
-            workbook, "stamp-xlsx", email, date, ref, timeout=INSPECT_TIMEOUT, limit=limit
-        )
+        stamped = run(path, "stamp-office", email, date, ref, timeout=INSPECT_TIMEOUT, limit=limit)
     except WorkerError as error:
-        raise _for_workbook(error) from error
+        raise _for_office(error) from error
     if len(stamped) > limit or not stamped.startswith(b"PK\x03\x04"):
-        raise WorkerError("unreadable", WORKBOOK_MESSAGES)
+        raise WorkerError("unreadable", OFFICE_MESSAGES)
     return stamped
 
 

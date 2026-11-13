@@ -20,29 +20,33 @@ Signing in to the admin pages takes a password and a code from an authenticator 
 
 ## Uploaded files
 
-Snug reads every uploaded PDF, workbook and video in a separate worker process, confined so that it cannot open other files, connect to the network or reach Snug's other processes, with a time and a memory limit. If the worker cannot confine itself, Snug refuses to read the file. A file made to attack the PDF reader would run inside that confinement.
+Snug reads every uploaded PDF, Office file and video in a separate worker process, confined so that it cannot open other files, connect to the network or reach Snug's other processes, with a time and a memory limit. If the worker cannot confine itself, Snug refuses to read the file. A file made to attack the PDF reader would run inside that confinement.
+
+The worker refuses a Word, PowerPoint or Excel file with macros, ActiveX controls or objects embedded from other programs, one that fetches a template, picture or object from another computer when it opens, a Word field that does the same or starts another program, a Word document with another inside it to import when it opens, and a workbook linked to another program. An Office file inside the upload, such as the workbook that holds a chart's data, is checked in the same way, and one nested any deeper is refused. If you install LibreOffice to show Office files in the browser, it runs in a container of its own under gVisor, with no network; [Showing Office files in the browser](office.md) sets out what it costs and how it is confined.
 
 ## Watermarks and stamps
 
-Every page an investor reads in the browser shows their email address and the date, repeated diagonally across the page, and a line at the foot with the link's reference. A PDF or workbook download is stamped for its reader too, and the audit log records every download with a hash of the exact file sent.
+Every page an investor reads in the browser shows their email address and the date, repeated diagonally across the page, and a line at the foot with the same details and the link's reference. A PDF or Office file download is stamped for its reader too, and the audit log records every download with a hash of the exact file sent.
 
 | What they get | How it is marked | What the mark cannot stop |
 |---|---|---|
 | A page in the browser | Their email address and the date across the page, and a footer line | A photograph or a screenshot, which can then be cropped or edited |
 | A PDF download | The same marks on every page, as an image layer, and their details in the document's properties | Someone with a PDF editor removing the layer and the properties, or copying the text out |
-| A workbook download | Their details in the workbook's comments and three custom properties; every sheet stays exactly as uploaded | Copying the cells into a new workbook, or editing the properties |
-| A video | Their email address and the date drawn over the player | The browser's developer tools hiding it; Safari on iPhone playing in its own full screen without it; saving the stream, even with downloads off |
+| A Word, PowerPoint or Excel download | Their details in the file's comments and three custom properties; every sheet, slide and paragraph stays exactly as uploaded | Copying the contents into a new file, or editing the properties |
+| A video | Their email address, the date and the link's reference drawn over the player | The browser's developer tools hiding it; Safari on iPhone playing in its own full screen without it; saving the stream, even with downloads off |
 | A video download | None: it is the original file | Anything. Every download is the same file, so its hash cannot show whose copy it was |
 
 The hash in the audit log matches only an unchanged copy. Once a file has been edited, Snug cannot tell whose it was.
 
-Turning off downloads on a link stops the download button. The investor can still screenshot what they can see, and save a video as it plays.
+Pages stamped for an investor are kept on the server until the end of the day, so a page they return to is not stamped again, and the first pages are stamped while they open the link. Every request for one is authorised first, revoking the link deletes them, and they are not backed up.
+
+Turning off downloads on a link removes the download button, and a request for the file is refused. The investor can still screenshot what they can see, and save a video as it plays.
 
 ## The NDA record
 
 When an investor accepts the NDA, Snug records the name they type, their email address, the link, the time, their IP address and browser, and a SHA-256 hash of the exact text they accepted. Each acceptance is kept for that link and that version, and editing the NDA asks everyone to accept the new version.
 
-This is a record of acceptance, not a signature. Snug knows the email address only as well as the link's verification checks it, and has no other check on who typed the name. Whether a record like this binds anyone is a question for your lawyer.
+This is a record of acceptance, not a signature. The email address is only as sure as the link's verification, and nothing checks who typed the name. Whether a record like this binds anyone is a question for your lawyer.
 
 ## UK-only mode
 
@@ -62,7 +66,7 @@ Every admin has the same rights, and signs in with a password and a code from an
 
 ## What Snug records about investors
 
-Snug records each visitor's email address, IP address and country, and how long they spent on each page. Beside every document, investors are told that you will see when they open it and how long they spend on each page; the NDA page also tells them their IP address is recorded. The reading data is deleted a set time after their link ends, 12 months unless you change it in Settings; the audit log is kept.
+Snug records each visitor's email address, IP address and country, and how long they spent on each page. In the *About this link* panel, investors are told that you will see when they open each document, how long they spend on each page and, if the link allows downloads, when they download it. On the NDA page they are also told that their IP address is recorded. The reading data is deleted a set time after their link ends, 12 months unless you change it in Settings; the audit log is kept.
 
 ## Reporting a security problem
 

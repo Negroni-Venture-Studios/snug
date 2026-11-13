@@ -1,6 +1,6 @@
 # Putting Snug on DigitalOcean
 
-Setting Snug up takes about an hour, much of it waiting. Every step happens in your web browser: DigitalOcean's website has a window onto your server, called the console, where you type the few commands needed.
+Setting Snug up takes about an hour, much of it waiting. Every step happens in your web browser. DigitalOcean's website has a window onto your server, called the console, where you type the few commands needed.
 
 ## Before you start
 
@@ -13,11 +13,11 @@ You need:
 
 Decide on the address investors will use. A part of your own domain works best, such as `room.yourcompany.com`. This guide calls it **your Snug address**.
 
-The server and the backup storage cost about $11 a month: $6 for the server and $5 for the storage.
+The server costs $6 a month, or $12 with the memory to show Word, PowerPoint and Excel files in the browser. The backup storage costs $5 a month.
 
 ## 1. Create the storage for your backups
 
-Snug copies everything to a storage bucket every five minutes, so if the server is lost, at most five minutes of changes go with it.
+Snug copies your documents and its database to a storage bucket every five minutes, so if the server is lost, at most five minutes of changes go with it.
 
 1. Sign in to DigitalOcean at [cloud.digitalocean.com](https://cloud.digitalocean.com).
 2. Click **Create** at the top of the page, scroll to the bottom of the menu, and choose **Spaces Object Storage**.
@@ -66,7 +66,7 @@ DigitalOcean calls a server a droplet.
 
    <img alt="The Basic plan, with Regular CPU and the $6.00 a month plan chosen; the summary says $6.00 a month." src="images/digitalocean/droplet-plan.png">
 
-   Each video you share can be hundreds of megabytes. If you will share several, choose the $12.00/mo plan, with a 50 GB disk.
+   To let investors read Word, PowerPoint and Excel files in the browser, choose the **$12.00/mo** plan instead, with 2 GB of memory and a 50 GB disk. LibreOffice, which shows them, needs 2 GB of memory ([Showing Office files in the browser](office.md)). Choose it too if you will share several videos, which can be hundreds of megabytes each.
 
 5. Leave **Backups** unticked. Snug makes its own.
 6. Under **Authentication**, click **Password**. Ask your password manager to generate a password, save it as a new item called **Snug server**, and paste it into **Root password**. DigitalOcean ticks each rule it meets:
@@ -156,6 +156,9 @@ Snug asks one question at a time. Type each answer and press Return. To paste in
 |---|---|
 | `The domain investors will use, like room.example.com` | your Snug address, such as `room.yourcompany.com`, without `https://` |
 | `Your company's name, as investors know it (you can change it later in Settings)` | your company's name, such as `Fernlea Robotics` |
+| `Show Office files in the browser? Type yes or no [no]` | `yes` on the $12.00/mo plan, if you want investors to read Word, PowerPoint and Excel files in the browser, or press Return for no |
+
+<img alt="The console asking Show Office files in the browser? Type yes or no [no], after a note that it needs 2 GB of memory." src="images/digitalocean/setup-office.png">
 
 If Snug says your domain `points to nowhere yet`, the DNS records from step 5 have not arrived. Carry on: Snug keeps trying. If it names an address that is not the server's, check the records.
 
@@ -264,12 +267,12 @@ It emails you a code to type back, and ends with `Everything is working.` when a
 | The console says `snug: command not found` | The server is still installing. Close the console, wait five minutes, and open it again. |
 | The console says `Snug is still installing` | Close the console, wait five minutes, and open it again. |
 | The console's welcome message, or `snug setup`, says `Snug's installation did not finish` | The installation stopped part-way, usually because a download failed. Destroy the server (on its page, **Settings**, then **Destroy**) and create a new one, as in step 3. |
-| Snug says a value `contains ' (a single quote)` | Choose a value without a `'`, and run `sudo snug setup` again. |
+| Snug says it `cannot store a value containing ' (a single quote)` | Choose a value without a `'`, and run `sudo snug setup` again. |
 | The browser cannot reach your Snug address | Check the DNS records in step 5. |
 | The Overview shows a backup problem | **Settings**, under **Backups**, shows the reason. Check the bucket's name and key in **Snug backups** against steps 1 and 2. |
 | Anything else | In the console, type `sudo snug doctor` and press Return. It lists what is wrong and how to fix it. |
 
-To change your Snug address or company name later, run `sudo snug setup` again. It keeps your documents and accounts.
+To change your Snug address later, run `sudo snug setup` again. It keeps your documents and accounts. Your company's name is changed in Settings, under **Branding**.
 
 ## Keeping Snug up to date
 
@@ -286,9 +289,12 @@ Snug downloads the new version and restarts, which takes under a minute, and end
 
 ```
 Snug is up to date. To check everything is working: sudo snug doctor
+To show Word, PowerPoint and Excel files in the browser: sudo snug update --with-office
 ```
 
-Your documents, links, accounts and settings are kept. The Overview shows the new version under the line at the top.
+The second line appears only while LibreOffice is not installed. Your documents, links, accounts and settings are kept. The Overview shows the new version under the line at the top.
+
+To add LibreOffice later, resize the droplet to the $12.00/mo plan first, then run `sudo snug update --with-office`. On a server running Snug 1.0.0, run `sudo snug update` once before that: 1.0.0's command does not pass `--with-office` on. [Showing Office files in the browser](office.md) explains the rest.
 
 ## Bringing Snug back on a new server
 
@@ -306,6 +312,7 @@ You need the backup settings you saved in your password manager in step 7. Witho
    |---|---|
    | `The domain investors will use, like room.example.com` | the same Snug address as before |
    | `Your company's name, as investors know it (you can change it later in Settings)` | your company's name |
+   | `Show Office files in the browser? Type yes or no [no]` | `yes` if the old server showed them, on the $12.00/mo plan, or press Return for no |
    | `Are you restoring Snug from an earlier server's backups? Type yes or no [no]` | `yes` |
 
    Snug asks you to paste the backup settings. Copy the whole of them from your password manager, from the first line, `# Snug's backups`, to the last, `password2 = ...`, and paste them into the console. Snug says `Found the backups: setup will restore them`, fetches them, and says:

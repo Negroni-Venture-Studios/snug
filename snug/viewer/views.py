@@ -51,7 +51,10 @@ from snug.viewer.models import VerificationCode
 
 CHECK_ATTRIBUTE = "snug_viewer_check"
 TOO_MANY = "Too many attempts. Wait 15 minutes, then try again."
-XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+# Ten codes to one inbox, counted by the hour (limits.SEND_PER_EMAIL).
+TOO_MANY_CODES = "Too many codes have been sent to this address. Try again in an hour."
+# Downloads are counted by the hour (limits.DOWNLOAD_PER_LINK).
+TOO_MANY_DOWNLOADS = "Too many downloads on this link. Try again in an hour."
 
 GateView = Callable[[HttpRequest, Link, str], HttpResponse]
 
@@ -170,7 +173,9 @@ def _context(link: Link, token: str, **extra: Any) -> dict[str, Any]:
         "document": link.document,
         "room": link.room,
         "pages": version.page_count if version else None,
-        "workbook": bool(version and version.is_workbook),
+        "office": version.office if version else None,
+        # An Office file shown as pages, from its preview: read like a PDF, downloaded as itself.
+        "previewed": bool(version and version.is_office and version.reads_as_pages),
         "video": bool(version and version.is_video),
         "length": version.length if version and version.is_video else "",
         "room_documents": link.room.entries.count() if link.room is not None else None,
@@ -191,6 +196,10 @@ def _gate_page(
     status: int = 200,
 ) -> HttpResponse:
     """The landing page for a browser with no session for this link."""
+    if status == 200:
+        # While the investor opens the link, or fetches their code, the first
+        # pages are stamped for them (snug.rendering.pages.stamp_ahead).
+        rendering.stamp_ahead(link)
     template = "viewer/verify.html" if link.require_verification else "viewer/open.html"
     context = _context(link, token, error=error, typed=typed)
     return render(request, template, context, status=status)
@@ -241,9 +250,11 @@ def _send(link: Link, code: str, company: str, via: mail.Outgoing | None = None)
     )
 
 
-def _send_refused(request: HttpRequest, link: Link, token: str, typed: str) -> HttpResponse:
+def _send_refused(
+    request: HttpRequest, link: Link, token: str, typed: str, error: str = TOO_MANY
+) -> HttpResponse:
     _audit(request, "viewer.code_refused", link, typed, reason="rate_limited")
-    return _gate_page(request, link, token, error=TOO_MANY, typed=typed, status=429)
+    return _gate_page(request, link, token, error=error, typed=typed, status=429)
 
 
 # ---------------------------------------------------------------- pages
@@ -306,16 +317,16 @@ def _room_index(
     return render(request, "viewer/room.html", context)
 
 
-def _workbook_card(
+def _office_card(
     request: HttpRequest,
     access: Access,
     token: str,
     version: DocumentVersion,
     context: dict[str, Any],
 ) -> HttpResponse:
-    """A spreadsheet: its sheets and a download, since the working file is what matters.
+    """A Word, PowerPoint or Excel file: what it is and a download, since the working file matters.
 
-    The card counts as the workbook's one page, so time on it is measured like a PDF's.
+    The card counts as the file's one page, so time on it is measured like a PDF's.
     """
     assert access.document is not None  # noqa: S101 - only document pages reach the card
     visit, new = reading.page_shown(access, access.document, version, 1)
@@ -338,7 +349,7 @@ def _workbook_card(
         beat_url=reverse("viewer:beat", kwargs={"token": token}),
         beat_seconds=reading.BEAT_SECONDS,
     )
-    return render(request, "viewer/workbook.html", context)
+    return render(request, "viewer/office.html", context)
 
 
 def _video_player(
@@ -406,15 +417,15 @@ def entry(request: HttpRequest, access: Access, token: str) -> HttpResponse:
     version = access.document.latest_version()
     if version is None:
         return render(request, "viewer/reader.html", context)
-    if version.is_workbook:
-        return _workbook_card(request, access, token, version, context)
+    if version.is_office and not version.reads_as_pages:
+        return _office_card(request, access, token, version, context)
     if version.is_video:
         return _video_player(request, access, token, version, context)
     count = version.page_count
     number = _page_number(request.GET.get("page", ""), count)
     sizes = version.page_sizes
     # Every upload records its page sizes; a 16:9 page if one is somehow missing.
-    page_width, page_height = sizes[number - 1] if len(sizes) >= number else (16, 9)
+    page_width, page_height = version.shown_size(number) if len(sizes) >= number else (16, 9)
     big = max(RENDER_WIDTHS)
 
     image = urls.image
@@ -456,25 +467,24 @@ def entry(request: HttpRequest, access: Access, token: str) -> HttpResponse:
 def page_image(
     request: HttpRequest, access: Access, token: str, page: int, width: int
 ) -> HttpResponse:
-    """One page, stamped for this viewer on every request."""
+    """One page, stamped for this viewer: kept for the day, and authorised on every request."""
     if access.document is None:
         raise Http404
     version = access.document.latest_version()
-    if version is None or version.kind != DocumentVersion.Kind.PDF or width not in RENDER_WIDTHS:
+    if version is None or not version.reads_as_pages or width not in RENDER_WIDTHS:
         raise Http404
     if not 1 <= page <= version.page_count:
         raise Http404
-    today = timezone.localdate()
     try:
         data = rendering.stamped_page(
             version,
             page,
             width,
+            link=access.link,
             email=access.session.email,
-            date=f"{today.day} {today:%b %Y}",
-            ref=access.link.ref,
+            day=timezone.localdate(),
         )
-    except WorkerError:
+    except (WorkerError, OSError):  # OSError: its PDF has gone, as after a restore
         return HttpResponse("This page could not be shown.", status=503, content_type="text/plain")
     response = HttpResponse(data, content_type="image/webp")
     # Kept briefly, by this browser only. Revoking stops new pages at once.
@@ -590,7 +600,7 @@ def download(request: HttpRequest, access: Access, token: str) -> HttpResponseBa
     if not access.link.allow_download or version is None:
         raise Http404
     if not ratelimit.allow(limits.DOWNLOAD_PER_LINK, str(access.link.pk)):
-        return HttpResponse(TOO_MANY, status=429, content_type="text/plain")
+        return HttpResponse(TOO_MANY_DOWNLOADS, status=429, content_type="text/plain")
     if version.is_video:
         # The original file: a video cannot carry a visible mark without re-encoding.
         _audit(
@@ -615,8 +625,8 @@ def download(request: HttpRequest, access: Access, token: str) -> HttpResponseBa
         "ref": access.link.ref,
     }
     try:
-        if version.is_workbook:
-            data = rendering.stamped_xlsx(version, **stamp)
+        if version.is_office:
+            data = rendering.stamped_office(version, **stamp)
         else:
             data = rendering.stamped_pdf(version, **stamp)
     except WorkerError:
@@ -631,10 +641,10 @@ def download(request: HttpRequest, access: Access, token: str) -> HttpResponseBa
         version=version.number,
         sha256=hashlib.sha256(data).hexdigest(),
     )
-    workbook = version.is_workbook
-    response = HttpResponse(data, content_type=XLSX_TYPE if workbook else "application/pdf")
+    office = version.office
+    response = HttpResponse(data, content_type=office.content_type if office else "application/pdf")
     response["Content-Disposition"] = content_disposition_header(
-        True, _filename(access.document.title, ".xlsx" if workbook else ".pdf")
+        True, _filename(access.document.title, office.extension if office else ".pdf")
     )
     return response
 
@@ -660,18 +670,20 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
         if neutral or over:
             return _code_page(request, link, token, neutral=True)
         error = (
-            "That is not the address this link was sent to. "
+            "This link was not sent to that address. "
             "Check for a typo, or ask the person who sent it."
         )
         return _gate_page(request, link, token, error=error, typed=typed, status=400)
 
-    if not ratelimit.allow(limits.SEND_PER_LINK, str(link.pk)) or not ratelimit.allow(
-        limits.SEND_PER_EMAIL, link.email
-    ):
+    per_link = ratelimit.allow(limits.SEND_PER_LINK, str(link.pk))
+    if not per_link or not ratelimit.allow(limits.SEND_PER_EMAIL, link.email):
         if neutral:
             _audit(request, "viewer.code_refused", link, typed, reason="rate_limited")
             return _code_page(request, link, token, neutral=True)
-        return _send_refused(request, link, token, typed)
+        # Each limit says how long it lasts: 15 minutes for a link, an hour for an inbox.
+        return _send_refused(
+            request, link, token, typed, TOO_MANY if not per_link else TOO_MANY_CODES
+        )
     if neutral:
         # Sent without waiting, so the reply takes as long as a wrong
         # address's would. A failure is logged by mail.send, not shown.

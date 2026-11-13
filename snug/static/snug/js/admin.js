@@ -110,10 +110,68 @@
     if (error) error.scrollIntoView({ block: 'center' });
   }
 
+  // The Preview panel of an Office file (<section id="preview" data-preview-poll="url">):
+  // while the converter works, ask the server for the panel every 2 seconds,
+  // only while the page is in view. Only the panel changes, so a description
+  // being typed elsewhere on the page is left alone. While it waits, only the
+  // stage line changes, so a screen reader hears each stage once. When it is
+  // ready or has failed, the panel is replaced and the asking stops.
+  function wirePreview() {
+    var panel = document.querySelector('#preview[data-preview-poll]');
+    if (!panel || !window.fetch || !window.DOMParser) return;
+    var url = panel.getAttribute('data-preview-poll');
+    var asking = false;
+    var timer = window.setInterval(function () {
+      if (asking || document.visibilityState !== 'visible') return;
+      asking = true;
+      fetch(url, { credentials: 'same-origin', cache: 'no-store' })
+        .then(function (response) {
+          return response.ok ? response.text() : Promise.reject(response.status);
+        })
+        .then(function (html) {
+          var sent = new DOMParser().parseFromString(html, 'text/html').getElementById('preview');
+          var current = document.getElementById('preview');
+          if (!sent || !current) return;  // the sign-in page, after a session has ended
+          var stage = current.querySelector('[data-preview-stage]');
+          var said = sent.querySelector('[data-preview-stage]');
+          if (sent.hasAttribute('data-preview-poll') && stage && said) {
+            if (stage.textContent !== said.textContent) stage.textContent = said.textContent;
+            return;
+          }
+          var fresh = document.importNode(sent, true);
+          current.replaceWith(fresh);
+          wire(fresh);
+          if (!fresh.hasAttribute('data-preview-poll')) window.clearInterval(timer);
+          // Ready: the rest of the page describes a download until it is drawn
+          // again, so reload it, unless that would lose something unsaved.
+          if (fresh.hasAttribute('data-preview-ready')) {
+            var note = fresh.querySelector('[data-preview-reload]');
+            if (unsaved()) { if (note) note.hidden = false; } else { window.location.reload(); }
+          }
+        })
+        .catch(function () { /* try again on the next tick */ })
+        .then(function () { asking = false; });
+    }, 2000);
+  }
+
+  // Typed or chosen on this page and not yet sent.
+  function unsaved() {
+    var fields = document.querySelectorAll('main textarea, main input');
+    for (var i = 0; i < fields.length; i++) {
+      var field = fields[i];
+      if (field.type === 'file' ? field.files && field.files.length : field.type !== 'hidden' &&
+          field.type !== 'checkbox' && field.type !== 'radio' && field.value !== field.defaultValue) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function wire(root) {
     wireCopy(root);
     wireUploads(root);
   }
 
   wire(document);
+  wirePreview();
 })();

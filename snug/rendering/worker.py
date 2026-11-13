@@ -4,8 +4,8 @@
     python -I -m snug.rendering.worker render FD PAGE WIDTH
     python -I -m snug.rendering.worker stamp FD FONT_FD EMAIL DATE REF
     python -I -m snug.rendering.worker stamp-pdf FD FONT_FD EMAIL DATE REF
-    python -I -m snug.rendering.worker inspect-xlsx FD
-    python -I -m snug.rendering.worker stamp-xlsx FD EMAIL DATE REF
+    python -I -m snug.rendering.worker inspect-office FD
+    python -I -m snug.rendering.worker stamp-office FD EMAIL DATE REF
     python -I -m snug.rendering.worker inspect-mp4 FD
     python -I -m snug.rendering.worker logo FD
     python -I -m snug.rendering.worker icon FD
@@ -17,10 +17,11 @@ WebP image to standard output. `stamp` reads a rendered page (as FD) and a
 font, and writes the page with the viewer's watermark: a page rendered from
 an untrusted PDF is never decoded outside a confined worker. `stamp-pdf`
 writes the original PDF with the viewer's diagonal mark and a footer line on
-every page, and the same details in its document properties. `inspect-xlsx`
-and `stamp-xlsx` do the same for an Excel workbook (see
-snug.rendering.workbook): the sheet names, and the workbook with the reader's
-details in its properties. `inspect-mp4` checks an MP4 video's boxes,
+every page, and the same details in its document properties. `inspect-office`
+and `stamp-office` do the same for a Word, PowerPoint or Excel file (see
+snug.rendering.ooxml): which format it is, with a workbook's sheet names or a
+presentation's slide count, and the file with the reader's details in its
+properties. `inspect-mp4` checks an MP4 video's boxes,
 reading them in pieces from the descriptor rather than whole (see
 snug.rendering.video), and prints its length and size; the video itself is
 never decoded. `logo` and `icon` redraw a branding image as a PNG.
@@ -44,14 +45,15 @@ secrets, so even a file that took over the code reading it would find nothing to
 import codecs
 import io
 import json
+import math
 import os
 import re
-import struct
 import sys
 import zipfile
 from typing import Any
 
-from snug.rendering import video, workbook  # standard library only, like this module
+from snug.rendering import ooxml, video  # standard library only, like this module
+from snug.rendering.seccomp import seccomp_filter as _seccomp_filter
 
 MEMORY_BYTES = 1024 * 1024 * 1024  # 1 GiB of address space
 CPU_SECONDS = 60
@@ -129,44 +131,57 @@ def apply_limits() -> bool:
     return True
 
 
-def preload() -> None:
-    """Import now everything rendering needs: after confine(), nothing can be loaded."""
-    import PIL.Image
-    import PIL.ImageDraw
-    import PIL.ImageFont
-    import PIL.ImageOps
-    import PIL.WebPImagePlugin
-    import pypdfium2
-    import pypdfium2.raw
+# What each mode loads before confine(). Pages are rendered and stamped on
+# every view, so those modes load only what they use: a worker took 1.6 s to
+# start on a one-CPU server (12 November 2026). Every other mode loads it all.
+EVERYTHING = ("pil", "pdfium", "pypdf", "office")
+PRELOADS = {"render": ("pil", "pdfium"), "stamp": ("pil",)}
 
-    PIL.Image.init()
-    del pypdfium2
+
+def preload(mode: str = "") -> None:
+    """Import now everything the mode needs: after confine(), nothing can be loaded."""
+    needs = PRELOADS.get(mode, EVERYTHING)
     for name in PDF_CODECS:
         codecs.lookup(name)
-    _warm_up_pypdf()
-    _warm_up_workbook()
+    if "pil" in needs:
+        import PIL.Image
+        import PIL.ImageDraw
+        import PIL.ImageFont
+        import PIL.ImageOps
+        import PIL.WebPImagePlugin
+
+        PIL.Image.init()
+    if "pdfium" in needs:
+        import pypdfium2
+        import pypdfium2.raw
+
+        del pypdfium2
+    if "pypdf" in needs:
+        _warm_up_pypdf()
+    if "office" in needs:
+        _warm_up_office()
 
 
-def _warm_up_workbook() -> None:
+def _warm_up_office() -> None:
     """Read and stamp a tiny workbook, so zipfile, zlib and expat are loaded before confine()."""
     package = io.BytesIO()
     with zipfile.ZipFile(package, "w", zipfile.ZIP_DEFLATED) as parts:
         parts.writestr(
-            workbook.CONTENT_TYPES,
-            f'<Types xmlns="{workbook.NS_TYPES}"><Override PartName="/xl/workbook.xml" '
-            f'ContentType="{workbook.MAIN}"/></Types>',
+            ooxml.CONTENT_TYPES,
+            f'<Types xmlns="{ooxml.NS_TYPES}"><Override PartName="/xl/workbook.xml" '
+            f'ContentType="{ooxml.MAIN}"/></Types>',
         )
         parts.writestr(
-            workbook.ROOT_RELS,
-            f'<Relationships xmlns="{workbook.NS_RELS}"><Relationship Id="rId1" '
-            f'Type="{workbook.REL_DOC}" Target="xl/workbook.xml"/></Relationships>',
+            ooxml.ROOT_RELS,
+            f'<Relationships xmlns="{ooxml.NS_RELS}"><Relationship Id="rId1" '
+            f'Type="{ooxml.REL_DOC}" Target="xl/workbook.xml"/></Relationships>',
         )
         parts.writestr(
             "xl/workbook.xml",
-            f'<workbook xmlns="{workbook.NS_MAIN}"><sheets><sheet name="A"/></sheets></workbook>',
+            f'<workbook xmlns="{ooxml.NS_MAIN}"><sheets><sheet name="A"/></sheets></workbook>',
         )
-    workbook.inspect(package.getvalue())
-    workbook.stamp(package.getvalue(), email="warm@up.example", date="1 Jan 2026", ref="WARM")
+    ooxml.inspect(package.getvalue())
+    ooxml.stamp(package.getvalue(), email="warm@up.example", date="1 Jan 2026", ref="WARM")
 
 
 def _warm_up_pypdf() -> None:
@@ -192,172 +207,6 @@ def _may_read(*, limited: bool, allow_unconfined: bool) -> bool:
     development machine.
     """
     return (fully_confined(confine()) and limited) or allow_unconfined
-
-
-# The syscalls the seccomp filter refuses outright. io_uring can open sockets
-# without calling socket(), so it goes too. The rest reach into another
-# process: tracing it, reading or writing its memory, signalling it through a
-# pidfd, or changing its priority, scheduling or memory placement. The worker
-# does none of these to itself either.
-_REFUSED = (
-    "socket",
-    "io_uring_setup",
-    "ptrace",
-    "process_vm_readv",
-    "process_vm_writev",
-    "pidfd_open",
-    "pidfd_getfd",
-    "pidfd_send_signal",
-    "setpriority",
-    "ioprio_set",
-    "sched_setaffinity",
-    "sched_setscheduler",
-    "sched_setparam",
-    "kcmp",
-    "move_pages",
-    "migrate_pages",
-    "process_madvise",
-    "sched_setattr",
-    "process_mrelease",
-)
-# The syscalls that send a signal: allowed only to the worker itself.
-_SIGNALLING = ("kill", "tkill", "tgkill", "rt_sigqueueinfo", "rt_tgsigqueueinfo")
-# Each architecture's audit value and syscall numbers.
-_SECCOMP_ARCHES = {
-    "x86_64": (
-        0xC000003E,
-        {
-            "socket": 41,
-            "kill": 62,
-            "ptrace": 101,
-            "rt_sigqueueinfo": 129,
-            "setpriority": 141,
-            "sched_setparam": 142,
-            "sched_setscheduler": 144,
-            "tkill": 200,
-            "sched_setaffinity": 203,
-            "tgkill": 234,
-            "ioprio_set": 251,
-            "migrate_pages": 256,
-            "move_pages": 279,
-            "rt_tgsigqueueinfo": 297,
-            "prlimit64": 302,
-            "process_vm_readv": 310,
-            "process_vm_writev": 311,
-            "kcmp": 312,
-            "pidfd_send_signal": 424,
-            "io_uring_setup": 425,
-            "pidfd_open": 434,
-            "pidfd_getfd": 438,
-            "process_madvise": 440,
-            "sched_setattr": 314,
-            "process_mrelease": 448,
-        },
-    ),
-    "aarch64": (
-        0xC00000B7,
-        {
-            "ioprio_set": 30,
-            "ptrace": 117,
-            "sched_setparam": 118,
-            "sched_setscheduler": 119,
-            "sched_setaffinity": 122,
-            "kill": 129,
-            "tkill": 130,
-            "tgkill": 131,
-            "rt_sigqueueinfo": 138,
-            "setpriority": 140,
-            "socket": 198,
-            "migrate_pages": 238,
-            "move_pages": 239,
-            "rt_tgsigqueueinfo": 240,
-            "prlimit64": 261,
-            "process_vm_readv": 270,
-            "process_vm_writev": 271,
-            "kcmp": 272,
-            "pidfd_send_signal": 424,
-            "io_uring_setup": 425,
-            "pidfd_open": 434,
-            "pidfd_getfd": 438,
-            "process_madvise": 440,
-            "sched_setattr": 274,
-            "process_mrelease": 448,
-        },
-    ),
-}
-
-# A BPF instruction: its code, its constant, and the labels it jumps to if
-# its test is true or false (None for the next instruction).
-_Instruction = tuple[int, int, str | None, str | None]
-
-
-def _assemble(lines: list[str | _Instruction]) -> bytes:
-    """BPF bytecode from instructions and the labels between them. Jumps go forward only."""
-    labels: dict[str, int] = {}
-    instructions: list[_Instruction] = []
-    for line in lines:
-        if isinstance(line, str):
-            labels[line] = len(instructions)
-        else:
-            instructions.append(line)
-
-    def offset(index: int, label: str | None) -> int:
-        return 0 if label is None else labels[label] - index - 1
-
-    return b"".join(
-        struct.pack("HBBI", code, offset(index, true), offset(index, false), k)
-        for index, (code, k, true, false) in enumerate(instructions)
-    )
-
-
-def _seccomp_filter(machine: str, pid: int) -> bytes | None:
-    """A seccomp program for the worker, whose process ID is `pid`. Refused calls get EPERM.
-
-    It refuses to create sockets: Landlock's network rules cover TCP only, so
-    without this a compromised worker could still send UDP. It refuses every
-    call in _REFUSED, so the worker cannot trace, re-prioritise or read the
-    memory of another process. It lets the worker send a signal only to
-    itself (abort() does), never to another process or process group, and
-    change only its own limits. Landlock scopes signals only from ABI 6. Any
-    other architecture or ABI (32-bit compatibility calls, x32) is killed
-    outright rather than filtered.
-    """
-    if machine not in _SECCOMP_ARCHES:
-        return None
-    arch, numbers = _SECCOMP_ARCHES[machine]
-    load, jump_eq, jump_ge, ret = 0x20, 0x15, 0x35, 0x06  # BPF_LD|W|ABS, JEQ, JGE, RET
-    allow, eperm, kill = 0x7FFF0000, 0x00050000 | 1, 0x80000000
-    # The target of a signal or of prlimit64: the low 32 bits of its first
-    # argument, which is all of a pid_t.
-    target = 16
-
-    lines: list[str | _Instruction] = [
-        (load, 4, None, None),  # the architecture
-        (jump_eq, arch, None, "kill"),
-        (load, 0, None, None),  # the syscall number
-    ]
-    if machine == "x86_64":
-        lines.append((jump_ge, 0x40000000, "refuse", None))  # x32 calls carry this bit
-    lines += [(jump_eq, numbers[name], "refuse", None) for name in _REFUSED]
-    lines += [(jump_eq, numbers[name], "signal", None) for name in _SIGNALLING]
-    lines += [
-        (jump_eq, numbers["prlimit64"], "limits", None),
-        (ret, allow, None, None),  # anything else
-        "signal",
-        (load, target, None, None),
-        (jump_eq, pid, "allow", "refuse"),  # the worker itself; never 0, its process group
-        "limits",
-        (load, target, None, None),
-        (jump_eq, 0, "allow", None),  # 0 is the caller: glibc's getrlimit and setrlimit
-        (jump_eq, pid, "allow", "refuse"),
-        "allow",
-        (ret, allow, None, None),
-        "refuse",
-        (ret, eperm, None, None),
-        "kill",
-        (ret, kill, None, None),
-    ]
-    return _assemble(lines)
 
 
 def confine() -> str:  # pragma: no cover - runs only inside the worker process
@@ -480,17 +329,34 @@ def inspect(data: bytes) -> dict[str, Any]:
     return {"pages": count, "sizes": sizes}
 
 
-def render(data: bytes, page: int, width: int) -> bytes:
+# The widest page a minimum may ask for, in points: A0 is 2,384.
+MAX_AT_LEAST = 2400
+
+
+def render(data: bytes, page: int, width: int, at_least: int = 0) -> bytes:
+    """The page as WebP, `width` pixels wide.
+
+    A page narrower than `at_least` points is drawn at the scale of one that
+    wide, at the top left of a white page: a workbook's small sheet stays at
+    its own size instead of filling the reader.
+    """
     pdf = _open(data)
     if not 1 <= page <= len(pdf):
         raise _Refused("no_such_page")
     pdf_page = pdf[page - 1]
     page_width, page_height = pdf_page.get_size()
-    scale = width / page_width
-    if (page_width * scale) * (page_height * scale) > MAX_PIXELS:
-        scale = (MAX_PIXELS / (page_width * page_height)) ** 0.5
-    scale = min(scale, MAX_SIDE / max(page_width, page_height))
+    shown_width = max(page_width, at_least)
+    scale = width / shown_width
+    if (shown_width * scale) * (page_height * scale) > MAX_PIXELS:
+        scale = (MAX_PIXELS / (shown_width * page_height)) ** 0.5
+    scale = min(scale, MAX_SIDE / max(shown_width, page_height))
     image = pdf_page.render(scale=scale, may_draw_forms=True).to_pil().convert("RGB")
+    if shown_width > page_width:
+        from PIL import Image
+
+        page_image = Image.new("RGB", (round(shown_width * scale), image.height), "white")
+        page_image.paste(image, (0, 0))
+        image = page_image
     out = io.BytesIO()
     image.save(out, "WEBP", quality=85, method=4)
     return out.getvalue()
@@ -508,10 +374,13 @@ def _stamp_text(email: str, date: str, ref: str) -> tuple[str, str, str]:
 def _mark_layer(width: int, height: int, font: bytes | None, email: str, date: str) -> Any:
     """The diagonal mark: rows of "email  date", tiled and rotated, on a clear layer.
 
-    Drawn on a square big enough to cover the page at any angle, rotated, then
-    cut to the page. A page whose square would hold more than MAX_MARK_PIXELS
-    has its mark drawn smaller, then enlarged to the page. `font` None uses
-    Pillow's built-in font (for the warm-up).
+    Laid out on a square big enough to cover the page at any angle, as if the
+    square were rotated and cut to the page. Only one line of text is drawn and
+    rotated, and each copy is placed where the rotated square would put it:
+    rotating the whole square took 90% of a stamp (12 November 2026). A page
+    whose square would hold more than MAX_MARK_PIXELS has its mark drawn
+    smaller, then enlarged to the page. `font` None uses Pillow's built-in
+    font (for the warm-up).
     """
     from PIL import Image, ImageDraw, ImageFont
 
@@ -521,17 +390,32 @@ def _mark_layer(width: int, height: int, font: bytes | None, email: str, date: s
     size = max(14, round(width * 0.018))
     mark_font = ImageFont.truetype(io.BytesIO(font), size) if font else ImageFont.load_default(size)
     side = int((width**2 + height**2) ** 0.5) + 1
-    layer = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(layer)
     text = f"{email}   {date}"
+
+    line = Image.new("RGBA", (1, 1))
+    _, _, right, bottom = ImageDraw.Draw(line).textbbox((0, 0), text, font=mark_font)
+    line = Image.new("RGBA", (max(1, math.ceil(right)), max(1, math.ceil(bottom))), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(line)
+    draw.text((0, 0), text, font=mark_font, fill=MARK_COLOUR)
+    turned = line.rotate(MARK_ANGLE, resample=Image.Resampling.BICUBIC, expand=True)
+
     step_x = int(draw.textlength(text, font=mark_font)) + size * 4
     step_y = size * 7
+    cos, sin = math.cos(math.radians(MARK_ANGLE)), math.sin(math.radians(MARK_ANGLE))
+    centre = side / 2
+    left, top = (side - width) // 2, (side - height) // 2
+    layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     for row, y in enumerate(range(0, side, step_y)):
         for x in range(-step_x + (row % 2) * step_x // 2, side, step_x):
-            draw.text((x, y), text, font=mark_font, fill=MARK_COLOUR)
-    layer = layer.rotate(MARK_ANGLE, resample=Image.Resampling.BICUBIC)
-    left, top = (side - width) // 2, (side - height) // 2
-    layer = layer.crop((left, top, left + width, top + height))
+            # The line's centre on the square, turned about the square's centre
+            # (anticlockwise, as Image.rotate turns), then moved onto the page.
+            dx, dy = x + line.width / 2 - centre, y + line.height / 2 - centre
+            at_x = round(centre + dx * cos + dy * sin - left - turned.width / 2)
+            at_y = round(centre - dx * sin + dy * cos - top - turned.height / 2)
+            if not (-turned.width < at_x < width and -turned.height < at_y < height):
+                continue
+            source = (max(0, -at_x), max(0, -at_y))
+            layer.alpha_composite(turned, dest=(max(0, at_x), max(0, at_y)), source=source)
     return layer if layer.size == page else layer.resize(page, Image.Resampling.BICUBIC)
 
 
@@ -804,9 +688,9 @@ def main(argv: list[str], *, confined: bool = True) -> int:
         how = confine() if confined else "unconfined: not asked"
         sys.stdout.write((how if limited else "unconfined: memory limit refused") + "\n")
         return 0
-    preload()
+    preload(argv[0] if argv else "")
     try:
-        page = width = 0
+        page = width = at_least = 0
         font = b""
         if len(argv) == 2 and argv[0] == "inspect-mp4":
             return _inspect_mp4(
@@ -815,12 +699,15 @@ def main(argv: list[str], *, confined: bool = True) -> int:
                 limited=limited,
                 allow_unconfined=allow_unconfined,
             )
-        if len(argv) == 2 and argv[0] in ("inspect", "logo", "icon", "inspect-xlsx"):
+        if len(argv) == 2 and argv[0] in ("inspect", "logo", "icon", "inspect-office"):
             mode = argv[0]
-        elif len(argv) == 5 and argv[0] == "stamp-xlsx":
-            mode = "stamp-xlsx"
-        elif len(argv) == 4 and argv[0] == "render":
+        elif len(argv) == 5 and argv[0] == "stamp-office":
+            mode = "stamp-office"
+        elif len(argv) in (4, 5) and argv[0] == "render":
             mode, page, width = "render", int(argv[2]), int(argv[3])
+            at_least = int(argv[4]) if len(argv) == 5 else 0
+            if not 0 <= at_least <= MAX_AT_LEAST:
+                return _fail("usage")
         elif len(argv) == 6 and argv[0] == "stamp":
             mode = "stamp"
             with os.fdopen(int(argv[2]), "rb") as font_file:
@@ -837,13 +724,14 @@ def main(argv: list[str], *, confined: bool = True) -> int:
             return _fail("unconfined")
         if mode == "inspect":
             sys.stdout.write(json.dumps(inspect(data)) + "\n")
-        elif mode == "inspect-xlsx":
-            sys.stdout.write(json.dumps(workbook.inspect(data)) + "\n")
+        elif mode == "inspect-office":
+            sys.stdout.write(json.dumps(ooxml.inspect(data)) + "\n")
         else:
-            if mode == "stamp-xlsx":
-                output = workbook.stamp(data, email=argv[2], date=argv[3], ref=argv[4])
+            if mode == "stamp-office":
+                email, date, ref = _stamp_text(argv[2], argv[3], argv[4])
+                output = ooxml.stamp(data, email=email, date=date, ref=ref)
             elif mode == "render":
-                output = render(data, page, width)
+                output = render(data, page, width, at_least)
             elif mode == "stamp":
                 output = stamp(data, font, argv[3], argv[4], argv[5])
             elif mode == "logo":
@@ -854,7 +742,7 @@ def main(argv: list[str], *, confined: bool = True) -> int:
                 output = stamp_pdf(data, font, argv[3], argv[4], argv[5])
             sys.stdout.flush()
             sys.stdout.buffer.write(output)
-    except (_Refused, workbook.Refused) as refused:
+    except (_Refused, ooxml.Refused) as refused:
         return _fail(refused.code)
     except MemoryError:
         return _fail("memory")

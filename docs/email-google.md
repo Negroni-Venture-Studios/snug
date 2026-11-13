@@ -135,7 +135,7 @@ Without *Send mail as*, Gmail quietly sends from the mailbox's primary address i
 
 ## Your domain's email records
 
-Receiving servers check three DNS records before they trust mail from your domain. Without them, Snug's emails go to spam or are refused. They live in the DNS of the domain the emails come **from**, and every domain you send from needs its own set, alias domains included.
+Receiving servers check three DNS records before they trust mail from your domain. Without them, Snug's emails go to spam or are refused. They belong in the DNS of the domain the emails come **from**, and every domain you send from needs its own set, alias domains included.
 
 Your Workspace administrator may have set them up already. To check, open the [Admin console](https://admin.google.com), then **Account**, **Domains**, **Manage domains**, and look at **Email setup status** for each domain. It lists MX, SPF and DKIM, each marked *Complete* or *Incorrect*. Changes can take up to 72 hours to show there, though most show within hours.
 

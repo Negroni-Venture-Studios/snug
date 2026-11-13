@@ -162,7 +162,7 @@ def test_uploading_a_new_version(client: Client, deck: Document) -> None:
     pdf = SimpleUploadedFile("deck.pdf", DECK, content_type="application/pdf")
     anchor, section = saved(client, f"/admin/documents/{deck.token}/versions", {"pdf": pdf})
     assert anchor == "versions"
-    assert notice(section) == "Version 1 uploaded. Every link to this document shows it now."
+    assert notice(section) == "Version 1 uploaded. Investors see it now."
 
 
 def test_revoking_a_link(client: Client, deck: Document, room: Room) -> None:

@@ -62,6 +62,14 @@ jobs:
               assert sandbox.render(f.name, 1, 800)[:4] == b'RIFF'
           print('rendered in the worker')
           "
+      - name: Ships Snug's code and Python's library compiled, so a worker does not compile them on every page
+        run: |
+          docker exec snug python -c "
+          import os, json, snug.rendering.worker as worker
+          for module in (worker, json):
+              assert os.path.exists(module.__cached__), module.__cached__
+          print('compiled')
+          "
       - name: Ships the third-party licence notices
         run: |
           docker exec snug test -f /app/THIRD_PARTY_LICENCES.md
@@ -162,8 +170,10 @@ jobs:
           echo "$report"
           echo "$report" | grep -q '^ok        Housekeeping'
           echo "$report" | grep -q '^ok        Backups'
-          echo "$report" | grep -q '^ok        Document worker  Documents are read in a confined worker (landlock v'
+          # Columns are padded to the longest label, so any run of spaces separates them.
+          echo "$report" | grep -Eq '^ok +Document worker +Documents are read in a confined worker \(landlock v'
           echo "$report" | grep -q '^skipped   HTTPS'
+          echo "$report" | grep -Eq '^skipped +Office converter +Not installed'
           # On localhost without SMTP, emails go to the outbox folder.
           echo "$report" | grep -q '^ok        Email'
           echo "$report" | grep -q '^Everything is working.$'
@@ -218,6 +228,130 @@ jobs:
         run: |
           sudo docker compose logs || true
           sudo docker compose down --volumes || true
+
+  office:
+    # The LibreOffice converter (docs/office.md): built, run under gVisor with
+    # the hardening deploy/compose.yaml gives it, one file per container, and
+    # its PDFs read by Snug's own confined worker.
+    name: office converter
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
+      - name: Build the converter for amd64
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
+        with:
+          context: .
+          file: converter/Dockerfile
+          load: true
+          tags: snug-office:smoke
+      - name: Install gVisor's runsc
+        # Pinned to the newest release at least two weeks old (AGENTS.md).
+        run: |
+          curl -fsSL https://gvisor.dev/archive.key | sudo gpg --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases 20261026 main" \
+            | sudo tee /etc/apt/sources.list.d/gvisor.list
+          sudo apt-get update -qq
+          sudo apt-get install --yes -qq runsc poppler-utils
+          sudo runsc install
+          sudo systemctl restart docker
+          runsc --version
+      - name: The seccomp filter applies inside gVisor
+        run: |
+          docker run --rm --runtime=runsc --network=none --read-only --cap-drop=ALL \
+            --security-opt=no-new-privileges --entrypoint python3 snug-office:smoke -I -c "
+          import socket
+          from snug.office import supervisor
+          supervisor.confine_child()
+          socket.socket(socket.AF_UNIX).close()
+          try:
+              socket.socket(socket.AF_INET)
+          except PermissionError:
+              print('network sockets refused, Unix sockets allowed')
+          else:
+              raise SystemExit('a network socket was allowed')
+          "
+      - name: Make a Word document, a presentation and a workbook
+        run: |
+          mkdir -p samples
+          python3 -c "
+          from tests.office_files import make_docx, make_pptx, make_xlsx
+          open('samples/sample.docx', 'wb').write(make_docx())
+          open('samples/sample.pptx', 'wb').write(make_pptx(12))
+          open('samples/sample.xlsx', 'wb').write(make_xlsx((('Summary', 'visible'), ('Detail', 'visible'))))
+          # A field that would pull in a file on the converter's own disk, if links were updated.
+          field = (
+              '<w:p><w:r><w:fldChar w:fldCharType=\"begin\"/></w:r>'
+              '<w:r><w:instrText xml:space=\"preserve\"> INCLUDETEXT \"/etc/snug-office.json\" </w:instrText></w:r>'
+              '<w:r><w:fldChar w:fldCharType=\"separate\"/></w:r><w:r><w:t>placeholder</w:t></w:r>'
+              '<w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>'
+          )
+          open('samples/sample.linked', 'wb').write(make_docx(body=field))
+          "
+      - name: Convert each in a fresh gVisor container
+        run: |
+          mkdir -p exchange/inbox exchange/outbox
+          chmod 0755 exchange/inbox
+          chmod 1733 exchange/outbox
+          for sample in docx pptx xlsx linked; do
+            kind=$sample
+            if [ "$sample" = linked ]; then kind=docx; fi
+            token="smoke${sample}000000000000"
+            mkdir "exchange/inbox/$token"
+            cp "samples/sample.$sample" "exchange/inbox/$token/input.$kind"
+            printf '{"kind": "%s"}' "$kind" > "exchange/inbox/$token/job.json"
+            began=$(date +%s)
+            docker run --detach --name "office-$sample" --runtime=runsc --network=none --read-only \
+              --tmpfs /tmp:size=768m,mode=1777 --cap-drop=ALL --security-opt=no-new-privileges \
+              --memory=1g --memory-swap=1g --pids-limit=256 --cpus=1 \
+              -v "$PWD/exchange/inbox:/exchange/inbox:ro" -v "$PWD/exchange/outbox:/exchange/outbox" \
+              snug-office:smoke
+            while [ "$(docker inspect -f '{{.State.Running}}' "office-$sample")" = true ]; do
+              used=$(docker stats --no-stream --format '{{.MemUsage}}' "office-$sample" | cut -d/ -f1)
+              echo "$sample: $used"
+              sleep 1
+            done
+            echo "$sample: container lived $(( $(date +%s) - began )) s, exit $(docker inspect -f '{{.State.ExitCode}}' "office-$sample")"
+            docker logs "office-$sample"
+            docker rm "office-$sample" > /dev/null
+            if [ -f "exchange/outbox/$token.error" ]; then cat "exchange/outbox/$token.error"; exit 1; fi
+            head -c 5 "exchange/outbox/$token.pdf" | grep -q '%PDF-'
+            pdfinfo "exchange/outbox/$token.pdf" | grep -E '^(Pages|Page size)'
+          done
+          cat exchange/outbox/status.json
+          python3 -c "
+          import json
+          status = json.load(open('exchange/outbox/status.json'))
+          assert status['libreoffice'] and status['built'], status
+          assert status['seccomp'] == 'unix sockets only', status
+          print('LibreOffice', status['libreoffice'], 'built', status['built'], 'kernel', status['kernel'])
+          "
+          test "$(pdfinfo exchange/outbox/smokepptx000000000000.pdf | awk '/^Pages/ {print $2}')" = 12
+          # Links are never updated: the field shows its placeholder, not the file.
+          pdftotext exchange/outbox/smokelinked000000000000.pdf - | tee linked.txt
+          grep -q placeholder linked.txt
+          if grep -q libreoffice linked.txt; then echo "the linked file was pulled into the PDF"; exit 1; fi
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e  # v10.3.2
+      - name: Snug's confined worker reads each PDF
+        run: |
+          uv sync --locked --quiet
+          uv run python -c "
+          import glob
+          from snug.rendering import sandbox
+          for path in sorted(glob.glob('exchange/outbox/*.pdf')):
+              facts = sandbox.inspect(path)
+              print(path, facts['pages'], 'pages')
+          "
+      - name: Keep the PDFs to look at
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: office-converter-pdfs
+          path: exchange/outbox/*.pdf
+          retention-days: 7
 
   publish:
     name: publish image

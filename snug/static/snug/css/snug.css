@@ -193,7 +193,7 @@ h1.page-title { overflow-wrap: anywhere; font-size: 2.1rem; font-weight: 300; le
 .matrix .avg .label { font-size: 0.85rem; color: var(--text-2); justify-content: flex-end; }
 .matrix .head .pages-axis { display: block; }
 .who .email { display: block; overflow-wrap: anywhere; }
-.who .note { display: block; font-size: 0.82rem; color: var(--text-3); }
+.who .note { display: block; font-size: 0.82rem; color: var(--text-3); overflow-wrap: anywhere; }
 .new { font-size: 0.75rem; font-weight: 500; color: var(--link); margin-left: 0.4rem; }
 /* Page numbers, drawn in the same columns as the strips (snug.analytics.charts). */
 .axis { display: flex; font-family: var(--mono); font-size: 0.68rem; color: var(--text-3); }
@@ -212,6 +212,10 @@ svg.bars { height: 64px; }
 .rows .item { display: grid; grid-template-columns: minmax(13rem, 1.25fr) 6rem minmax(10rem, 1.2fr) 7.5rem 5.5rem; gap: 1.5rem; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
 .rows .r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .rows .muted { color: var(--text-2); font-size: 0.875rem; }
+.preview-progress { display: grid; gap: 0.6rem; }
+.preview-progress progress { width: 100%; height: 0.5rem; accent-color: var(--action); }
+.preview-progress [data-preview-stage] { margin: 0; font-size: 0.875rem; color: var(--text-2); }
+.preview-progress .hint { margin: 0; }
 .status { justify-self: start; font-size: 0.78rem; font-weight: 500; padding: 0.12rem 0.45rem; border-radius: var(--r-sm); }
 .status-ok { color: var(--ok); background: var(--ok-tint); }
 .status-warn { color: var(--warn); background: var(--warn-tint); }
@@ -225,8 +229,8 @@ svg.bars { height: 64px; }
 .form.invite { max-width: 30rem; }
 /* Settings forms share one width, wide enough for the NDA text at a
    comfortable line length. */
-.form.settings-form, .backup-status { max-width: 40rem; }
-.form.settings-form + .form.settings-form { margin-top: 1rem; }
+.form.settings-form, .backup-status, .office-status { max-width: 40rem; }
+.form.settings-form + .form.settings-form, .office-status + .form.settings-form { margin-top: 1rem; }
 .panel-title { font-size: 1rem; font-weight: 500; }
 /* QR codes need dark modules on light, in either theme. */
 .qr-tile { width: min(100%, 13rem); background: #fff; border-radius: var(--r); padding: 0.25rem; margin: 0.35rem 0 0.5rem; }
@@ -372,8 +376,8 @@ footer.admin-foot .source-link:hover .github-mark { opacity: 0.9; }
 .sheets-title { font-size: 0.85rem; font-weight: 500; color: var(--text-2); margin-bottom: 0.5rem; }
 .sheet-list { list-style: none; padding: 0; margin: 0 0 1.75rem; display: grid; gap: 0.35rem; max-width: 27rem; }
 .sheet-list li { padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--r-sm); overflow-wrap: anywhere; }
-.gate.workbook .hint { font-size: 0.82rem; color: var(--text-3); margin-top: 0.75rem; }
-.gate.workbook .description { margin-bottom: 1.75rem; overflow-wrap: anywhere; }
+.gate.office .hint { font-size: 0.82rem; color: var(--text-3); margin-top: 0.75rem; }
+.gate.office .description { margin-bottom: 1.75rem; overflow-wrap: anywhere; }
 #description .notice { margin-bottom: 0.75rem; }
 .gate .small { font-size: 0.85rem; color: var(--text-3); margin-top: 1.1rem; }
 .gate .small a { color: var(--brand-text); }
@@ -400,7 +404,19 @@ input.code-field { font-family: var(--mono); letter-spacing: 0.15em; }
    the bare video, goes full screen, so the mark goes with it. */
 .player { display: grid; gap: 1.1rem; justify-items: center; }
 /* Below the page or the video, where it moves nothing the reader is looking at. */
-.reader > .about, .player > .about { width: 100%; max-width: 32rem; margin-top: 1.5rem; }
+/* About this link, at the top right of the reader and the video page: a button
+   with an icon and a caret that turns when it is open, and the panel dropped
+   down over the page, at the right, so the page keeps its whole width. */
+/* Placed against the toolbar's right edge, which lines up with the page's at any width. */
+.v-tools { position: relative; }
+.about-toggle > summary { list-style: none; }
+.about-toggle > summary::-webkit-details-marker { display: none; }
+.about-toggle .caret { transition: transform 0.15s ease; }
+.about-toggle[open] .caret { transform: rotate(180deg); }
+.about-toggle[open] > summary { border-color: var(--text-3); }
+.about-pop { position: absolute; right: 0; top: calc(100% + 0.5rem); z-index: 20; width: min(26rem, calc(100vw - 2rem));
+    box-shadow: 0 12px 32px light-dark(rgba(28,25,23,0.16), rgba(0,0,0,0.5)); border-radius: var(--r); }
+.about-pop .about { margin: 0; }
 .video-frame { position: relative; width: 100%; border-radius: 2px; overflow: hidden; border: 1px solid var(--border); background: #000000; }
 .video-frame video { display: block; width: 100%; height: auto; max-height: 80vh; }
 .video-frame:fullscreen video { max-height: none; height: 100%; }
@@ -410,7 +426,13 @@ input.code-field { font-family: var(--mono); letter-spacing: 0.15em; }
 .page-frame { width: 100%; border-radius: 2px; overflow: hidden; border: 1px solid var(--border); background: #ffffff;
     box-shadow: 0 1px 2px light-dark(rgba(28,25,23,0.05), rgba(0,0,0,0.3)), 0 12px 32px light-dark(rgba(28,25,23,0.07), rgba(0,0,0,0.35)); }
 .page-frame svg { display: block; width: 100%; height: auto; }
-.page-frame img { display: block; width: 100%; height: auto; }
+.page-frame img { display: block; width: 100%; height: auto; position: relative; }
+/* Behind the page image, so it shows only until the page arrives. Near the top,
+   so a tall page's note is in view. The frame is white in both themes, so the
+   colour is fixed: 7.6:1 on white. */
+.page-frame { position: relative; }
+.page-loading { position: absolute; top: min(50%, 12rem); left: 0; right: 0; transform: translateY(-50%);
+    text-align: center; color: #57534e; font-size: 0.875rem; }
 .reader-controls .btn[aria-disabled="true"] { opacity: 0.45; cursor: default; }
 /* Disabled controls look disabled, so a box that will not tick never looks broken.
    The hint beside it says why, and stays readable. */
@@ -422,7 +444,13 @@ input.code-field { font-family: var(--mono); letter-spacing: 0.15em; }
 .nda-text { max-height: 22rem; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); padding: 1rem 1.15rem; margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.6; }
 .nda-text p + p { margin-top: 0.75rem; }
 .gate .small { margin: 0.25rem 0 1.25rem; }
-.room-index h2 { font-size: 0.95rem; font-weight: 500; margin: 1.75rem 0 0.5rem; color: var(--text-2); }
+/* A folder: an icon, its name a step above a document's title, and how many it holds.
+   Its documents sit indented under the name, so they read as inside it. */
+.room-index h2.room-folder { display: flex; align-items: center; gap: 0.5rem; margin: 2rem 0 0.25rem;
+    font-size: 1.05rem; font-weight: 600; color: var(--text); }
+.room-folder .icon { width: 1.25rem; height: 1.25rem; flex: none; color: var(--text-2); }
+.room-folder .count { margin-left: auto; font-size: 0.85rem; font-weight: 400; color: var(--text-3); }
+.room-documents.in-folder li { padding-left: 1.75rem; }
 .room-documents { list-style: none; border-top: 1px solid var(--border); }
 .room-documents li { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
 .room-documents a { color: var(--text); font-weight: 500; text-decoration: none; }
@@ -481,6 +509,8 @@ input.code-field { font-family: var(--mono); letter-spacing: 0.15em; }
     .header-tools .who-am-i { display: none; }
     .v-head, .v-main { padding-left: 1rem; padding-right: 1rem; }
     .v-head .doc { display: none; }
+    /* The icon and caret say what it is; the words stay for screen readers. */
+    .about-toggle .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     /* Previous, the position and Next stay on one row; the picker goes below. */
     .reader-controls { gap: 0.5rem; }
     .reader-controls .jump { flex-basis: 100%; justify-content: center; }
@@ -557,7 +587,8 @@ form.inline { display: inline; }
 .inline-form.sentence span { font-size: 0.875rem; font-weight: 500; }
 .form.retention { margin-top: 1rem; }
 .folder { margin-top: 1.5rem; }
-.folder h3 { font-size: 0.95rem; font-weight: 500; }
+.folder h3 { display: flex; align-items: center; gap: 0.5rem; font-size: 1rem; font-weight: 600; }
+.folder h3 .icon { width: 1.2rem; height: 1.2rem; flex: none; color: var(--text-2); }
 .version-rows { display: grid; grid-template-columns: minmax(10rem, 1fr) minmax(8rem, auto) 10rem; column-gap: 1.5rem; }
 .version-rows .item { grid-column: 1 / -1; grid-template-columns: subgrid; }
 .doc-rows a.email { color: var(--text); text-decoration: none; font-weight: 500; }

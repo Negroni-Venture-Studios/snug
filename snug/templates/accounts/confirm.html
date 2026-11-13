@@ -6,7 +6,7 @@
 <div class="title-row"><div>
 {% if action == "remove" %}
   <h1 class="page-title">Remove {{ target.email }}?</h1>
-  <div class="page-meta">{% if target.is_active %}They are signed out at once and can no longer sign in. Their links and uploads stay.{% else %}Their invite stops working at once.{% endif %} Every admin, and they, will be emailed.</div>
+  <div class="page-meta">{% if target.is_active %}They are signed out at once and can no longer sign in. Their links and uploads stay.{% else %}Their invite stops working at once.{% endif %} They and the other admins will be emailed.</div>
 {% else %}
   <h1 class="page-title">Reset the second factor for {{ target.email }}?</h1>
   <div class="page-meta">Their authenticator and recovery codes stop working, and they are signed out at once. They are emailed a link, which works for 72 hours, to set up their authenticator again. Their password does not change. Every admin will be emailed.</div>

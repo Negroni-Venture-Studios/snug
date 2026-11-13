@@ -185,5 +185,7 @@ for k, val in subs.items():
 page = re.sub(r"\{\{icon:([a-z-]+)\}\}", lambda m: icon(m.group(1)), page)
 page = re.sub(r"\{\{logo:([A-Za-z0-9]+)\}\}", lambda m: logo(m.group(1)), page)
 assert "{{" not in page, re.findall(r"\{\{[^}]+\}\}", page)
+# A placeholder that comes out empty leaves its indent behind.
+page = "\n".join(line.rstrip() for line in page.split("\n"))
 (DESIGN / "mockups.html").write_text(page, encoding="utf-8")
 print("written", len(page), "bytes; median", dur(median), "; longest", longest)

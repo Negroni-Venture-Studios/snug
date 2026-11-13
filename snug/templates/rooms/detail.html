@@ -14,7 +14,7 @@
   {% include "rooms/_entries.html" with entries=top %}
   {% for folder, entries in by_folder %}
   <div class="folder">
-    <div class="section-head"><h3>{{ folder.name }}</h3>
+    <div class="section-head"><h3>{% icon "folder-simple" %}{{ folder.name }}</h3>
       <form method="post" action="{% url 'rooms:folder_remove' room.token folder.pk %}">{% csrf_token %}<button class="btn btn-quiet btn-danger" type="submit">Remove folder</button></form></div>
     {% include "rooms/_entries.html" with entries=entries %}
     {% if not entries %}<p class="empty-line">Empty.</p>{% endif %}
@@ -30,12 +30,13 @@
 
 <div class="room-tools">
   <section class="section" id="add-document">
-    <div class="section-head"><h2>Add a document</h2></div>
+    <div class="section-head stacked"><h2>Add a document</h2>{% if addable %}<p>Documents you have uploaded that are not in this room yet. Adding one shares it at once with everyone with a link to the room.</p>{% endif %}</div>
     {% if addable %}
     <form class="panel form" method="post" action="{% url 'rooms:document_add' room.token %}">
       {% csrf_token %}
       {% include "snug/partials/saved.html" with here="add-document" %}
-      <div class="field"><label for="document">Document</label><select id="document" name="document">{% for document in addable %}<option value="{{ document.token }}">{{ document.title }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="document">Document</label><select id="document" name="document" required><option value="" selected disabled>Choose a document</option>{% for document in addable %}<option value="{{ document.token }}">{{ document.title }}</option>{% endfor %}</select>
+        <div class="hint">To share a new file, <a href="{% url 'documents:new' %}">upload it</a> first.</div></div>
       <div class="field"><label for="folder">Folder</label><select id="folder" name="folder"><option value="">None, at the top</option>{% for folder in folders %}<option value="{{ folder.pk }}">{{ folder.name }}</option>{% endfor %}</select>
         {% if add_error %}<div class="error" role="alert">{% icon "warning-circle" %}{{ add_error }}</div>{% endif %}</div>
       <div class="form-foot"><button class="btn btn-primary" type="submit">{% icon "plus" %}Add to room</button></div>
@@ -57,7 +58,7 @@
     <form class="panel form" method="post" action="{% url 'rooms:nda' room.token %}">
       {% csrf_token %}
       {% include "snug/partials/saved.html" with here="nda" %}
-      <label class="check"><input id="room-require-nda" type="checkbox" name="require_nda"{% if room.require_nda %} checked{% endif %}><span>Ask for the NDA before anything is shown<span class="hint">{% if nda %}Version {{ nda.number }}. Investors accept it once on each link, and again when it changes.{% else %}There is no NDA yet. Write it below: it becomes version 1, for every room and link that asks for it, and you can change it in Settings.{% endif %}</span></span></label>
+      <label class="check"><input id="room-require-nda" type="checkbox" name="require_nda"{% if room.require_nda %} checked{% endif %}><span>Ask for the NDA before anything is shown<span class="hint">{% if nda %}Version {{ nda.number }}. Investors accept it once on each link, and again when it changes.{% else %}There is no NDA yet. Write it below; any room or link that asks for the NDA will use it. You can change it in Settings.{% endif %}</span></span></label>
       {% if not nda %}<div class="field nda-first" data-nda-for="room-require-nda"><label for="room-nda-text">The NDA</label><textarea id="room-nda-text" name="nda_text" rows="6"{% if nda_error %} aria-invalid="true" aria-describedby="room-nda-error"{% endif %}>{{ nda_draft|default:'' }}</textarea>{% if nda_error %}<div class="error" id="room-nda-error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% endif %}</div>
       {% elif nda_error %}<div class="error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% endif %}
       <div class="form-foot"><button class="btn" type="submit">Save</button></div>

@@ -28,6 +28,7 @@ from snug.core.client import client_ip, user_agent
 from snug.core.models import EmailSettings, SiteSettings, company_name
 from snug.nda import terms as nda_terms
 from snug.nda.models import NdaVersion
+from snug.office import previews
 from snug.rendering import sandbox
 
 SETUP_SESSION = "snug.setup"
@@ -76,6 +77,8 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
         "retention_months": SiteSettings.load().reading_retention_months,
         "backup": doctor.backups(now),
         "backup_at": doctor.last_backup(),
+        "office": previews.state(now),
+        "office_previews": SiteSettings.load().office_previews,
         "nda": nda_terms.current(),
         "nda_history": NdaVersion.objects.select_related("created_by")[:10],
         "values": {"email": ""},
@@ -454,7 +457,7 @@ def _email_status(now: mail.Outgoing) -> str:
     if now.source == "snug.env":
         return (
             f"Using the SMTP settings in snug.env: {now.host}, as {now.from_address}. "
-            "Saving here replaces them."
+            "Settings saved here are used instead."
         )
     if now.kind == "outbox":
         return "On this computer, emails are written to the outbox folder in the data folder."
@@ -863,8 +866,8 @@ def email_test_view(request: HttpRequest) -> HttpResponse:
     )
     if not sent:
         error = (
-            "The test email could not be sent. Check the settings, and Snug's log for the "
-            "kind of error: sudo docker compose logs snug, in /opt/snug."
+            "The test email could not be sent. Check the settings, then Snug's log for the "
+            "reason: sudo docker compose logs snug, in /opt/snug."
         )
         return _settings_page(request, status=502, email_test_error=error)
     return redirect(f"/admin/settings/?saved=email-test#{TEST_STEP}")
@@ -926,6 +929,20 @@ def nda_view(request: HttpRequest) -> HttpResponse:
             sha256=version.sha256,
         )
     return redirect("/admin/settings/?saved=nda#nda")
+
+
+@never_cache
+@login_required
+@require_POST
+def office_view(request: HttpRequest) -> HttpResponse:
+    """Whether Word, PowerPoint and Excel files are shown in the browser, from their previews."""
+    site = SiteSettings.load()
+    show = request.POST.get("show") == "on"
+    if site.office_previews != show:
+        site.office_previews = show
+        site.save(update_fields=["office_previews"])
+        _audit(request, "settings.office_previews_changed", _admin(request).email, "", show=show)
+    return redirect("/admin/settings/?saved=office#office")
 
 
 # ---------------------------------------------------------------- removing and resetting

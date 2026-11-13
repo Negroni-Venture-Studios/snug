@@ -43,6 +43,21 @@
     });
   }
 
+  // The next page is fetched once this one has arrived, so the two never
+  // share the server's time; Next then shows it at once.
+  var shown = document.querySelector('.page-frame img[data-next]');
+  if (shown) {
+    var fetchNext = function () {
+      var link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.as = 'image';
+      link.href = shown.dataset.next;
+      document.head.appendChild(link);
+    };
+    if (shown.complete && shown.naturalWidth > 0) fetchNext();
+    else shown.addEventListener('load', fetchNext, { once: true });
+  }
+
   // Choosing a page goes straight to it.
   document.querySelectorAll('select[data-autosubmit]').forEach(function (select) {
     select.addEventListener('change', function () {

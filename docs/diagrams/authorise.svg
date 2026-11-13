@@ -48,7 +48,7 @@
 
 <rect class="box" x="584" y="216" width="296" height="68" rx="8"/>
 <text class="title" x="604" y="244">The link's own page</text>
-<text class="label" x="604" y="266">which asks for the code</text>
+<text class="label" x="604" y="266">for a code, or a button to open it</text>
 
 <rect class="box" x="584" y="320" width="296" height="68" rx="8"/>
 <text class="title" x="604" y="348">The NDA page</text>

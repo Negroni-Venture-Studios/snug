@@ -281,7 +281,10 @@ def test_downloads_are_rate_limited_per_link(document: Document) -> None:
     issued = issue(document)
     for _ in range(limits.DOWNLOAD_PER_LINK.limit):
         ratelimit.hit(limits.DOWNLOAD_PER_LINK, str(issued.link.pk))
-    assert download(opened(issued), issued).status_code == 429
+    response = download(opened(issued), issued)
+    assert response.status_code == 429
+    # The window is an hour, not the 15 minutes of the gate's limits.
+    assert response.content.decode() == "Too many downloads on this link. Try again in an hour."
 
 
 def test_a_failed_stamp_says_so(document: Document, monkeypatch: pytest.MonkeyPatch) -> None:

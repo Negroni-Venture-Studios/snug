@@ -37,9 +37,10 @@ updates:
       actions:
         patterns: ["*"]
 
-  # The Dockerfile's base images, pinned by digest.
+  # The Dockerfiles' base images, pinned by digest: Snug's own, and the
+  # LibreOffice converter's, which shares its Python base.
   - package-ecosystem: "docker"
-    directory: "/"
+    directories: ["/", "/converter"]
     schedule:
       interval: "weekly"
       day: "monday"

@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from snug.rendering import sandbox, worker
+from snug.rendering import sandbox, seccomp, worker
 from tests.pdfs import make_pdf
 
 linux_only = pytest.mark.skipif(sys.platform != "linux", reason="Landlock and prctl are Linux")
@@ -263,6 +263,59 @@ def test_preload_loads_every_text_codec_pypdf_uses() -> None:
         assert f"encodings.{module}" in loaded, module
 
 
+# What a page view starts with: pages are rendered and stamped on every view,
+# so those modes load only what they use (12 November 2026: a worker took 1.6 s
+# to start on a one-CPU server). Once confined, nothing more can be loaded.
+PAGE_MODE = """
+import sys
+from snug.rendering import worker
+worker.preload({mode!r})
+before = set(sys.modules)
+pdf = open({pdf!r}, 'rb').read()
+webp = open({webp!r}, 'rb').read()
+font = open({font!r}, 'rb').read()
+if {mode!r} == 'render':
+    worker.render(pdf, 1, 800)
+else:
+    worker.stamp(webp, font, 'priya@northfield.example', '12 Nov 2026', 'RZFQ')
+print(' '.join(sorted(set(sys.modules) - before)) or '-')
+print(' '.join(sorted(m for m in before if m.split('.')[0] in ('pypdf', 'pypdfium2'))) or '-')
+"""
+
+
+@pytest.mark.parametrize(
+    ("mode", "unneeded"),
+    [("render", {"pypdf"}), ("stamp", {"pypdf", "pypdfium2"})],
+)
+def test_a_page_mode_preloads_what_it_uses_and_no_more(
+    mode: str, unneeded: set[str], deck: Path, tmp_path: Path
+) -> None:
+    from snug.rendering import pages
+
+    webp = tmp_path / "page.webp"
+    webp.write_bytes(sandbox.render(deck, 1, 800))
+    font = str(pages.WATERMARK_FONT)
+    code = PAGE_MODE.format(mode=mode, pdf=str(deck), webp=str(webp), font=font)
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", code], capture_output=True, text=True, timeout=60, check=False
+    )
+    assert result.returncode == 0, result.stderr
+    loaded_late, heavy = result.stdout.splitlines()
+    assert loaded_late == "-", f"{mode} imported {loaded_late} after its preload"
+    assert not {name.split(".")[0] for name in heavy.split() if name != "-"} & unneeded, heavy
+
+
+def test_other_modes_still_preload_everything() -> None:
+    code = (
+        "import sys; from snug.rendering import worker; worker.preload('stamp-pdf'); "
+        "print('pypdf' in sys.modules, 'pypdfium2' in sys.modules, 'PIL.Image' in sys.modules)"
+    )
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", code], capture_output=True, text=True, timeout=60, check=True
+    )
+    assert result.stdout.split() == ["True", "True", "True"]
+
+
 def test_confine_reports_when_unavailable() -> None:
     if sys.platform != "linux":
         assert worker.confine() == "unconfined: not Linux"
@@ -391,7 +444,7 @@ def test_the_filter_refuses_sockets_and_reaching_into_other_processes(machine: s
     # Security audit, 10 November 2026: below Landlock ABI 6 nothing stopped a
     # compromised worker tracing or reading the memory of Snug's own processes.
     arch, numbers = SYSCALLS[machine]
-    program = worker._seccomp_filter(machine, WORKER_PID)
+    program = seccomp.seccomp_filter(machine, WORKER_PID)
     assert program is not None
     for name in (
         "socket",
@@ -424,7 +477,7 @@ def test_the_filter_refuses_sockets_and_reaching_into_other_processes(machine: s
 def test_the_filter_lets_the_worker_change_only_its_own_limits(machine: str) -> None:
     # glibc's getrlimit and setrlimit call prlimit64 with 0, meaning the caller.
     arch, numbers = SYSCALLS[machine]
-    program = worker._seccomp_filter(machine, WORKER_PID)
+    program = seccomp.seccomp_filter(machine, WORKER_PID)
     assert program is not None
     for target in (0, WORKER_PID):
         assert _seccomp(program, arch, numbers["prlimit64"], target, 7) == SECCOMP_ALLOW
@@ -435,7 +488,7 @@ def test_the_filter_lets_the_worker_change_only_its_own_limits(machine: str) -> 
 @pytest.mark.parametrize("machine", sorted(SYSCALLS))
 def test_the_filter_lets_the_worker_signal_only_itself(machine: str) -> None:
     arch, numbers = SYSCALLS[machine]
-    program = worker._seccomp_filter(machine, WORKER_PID)
+    program = seccomp.seccomp_filter(machine, WORKER_PID)
     assert program is not None
     for name in SIGNALLING:
         # abort() is tgkill(own pid, own thread, SIGABRT): the worker may signal itself.
@@ -451,24 +504,24 @@ def test_the_filter_lets_the_worker_signal_only_itself(machine: str) -> None:
 @pytest.mark.parametrize("machine", sorted(SYSCALLS))
 def test_the_filter_allows_everything_else(machine: str) -> None:
     arch, numbers = SYSCALLS[machine]
-    program = worker._seccomp_filter(machine, WORKER_PID)
+    program = seccomp.seccomp_filter(machine, WORKER_PID)
     assert program is not None
     for name in ("read", "write", "mmap", "getpid"):
         assert _seccomp(program, arch, numbers[name], WORKER_PID + 1) == SECCOMP_ALLOW, name
 
 
 def test_the_filter_kills_calls_from_any_other_architecture() -> None:
-    program = worker._seccomp_filter("x86_64", WORKER_PID)
+    program = seccomp.seccomp_filter("x86_64", WORKER_PID)
     assert program is not None
     assert _seccomp(program, 0x40000003, 3) == SECCOMP_KILL  # 32-bit x86, read
     assert _seccomp(program, 0xC000003E, 0x40000000 | 0) == SECCOMP_EPERM  # x32, read
-    arm = worker._seccomp_filter("aarch64", WORKER_PID)
+    arm = seccomp.seccomp_filter("aarch64", WORKER_PID)
     assert arm is not None
     assert _seccomp(arm, 0x40000028, 3) == SECCOMP_KILL  # 32-bit Arm, read
 
 
 def test_there_is_no_filter_for_an_unknown_architecture() -> None:
-    assert worker._seccomp_filter("riscv64", WORKER_PID) is None
+    assert seccomp.seccomp_filter("riscv64", WORKER_PID) is None
 
 
 @linux_only
@@ -740,6 +793,12 @@ def test_too_many_pages_are_refused(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(worker._Refused) as caught:
         worker.inspect(make_pdf(*[(100, 100)] * 4))
     assert caught.value.code == "too_many_pages"
+
+
+def test_too_many_pages_says_how_many_snug_shows() -> None:
+    assert str(sandbox.WorkerError("too_many_pages")) == (
+        f"This PDF has more than the {worker.MAX_PAGES:,} pages Snug can show."
+    )
 
 
 def test_gunicorn_master_makes_itself_undumpable(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -53,12 +53,13 @@ def strip(
     email: str,
     *,
     video: bool = False,
-    workbook: bool = False,
+    card: str = "",
 ) -> SafeString:
+    """One person's reading of one document. `card` names an Office file, which has one page."""
     width = _width(len(seconds))
     count = sum(seen)
-    if workbook:
-        what = f"had the workbook's page open for {duration(sum(seconds))}"
+    if card:
+        what = f"had the {card}'s page open for {duration(sum(seconds))}"
     elif video:
         what = f"watched {count} of {len(seconds)} parts"
     else:
@@ -69,7 +70,7 @@ def strip(
     ]
     for i, (secs, was_seen) in enumerate(zip(seconds, seen, strict=True)):
         name = label(i, video=video)
-        if workbook:
+        if card:
             tip = f"Page open for {duration(secs)}"
         else:
             tip = f"{name}: {duration(secs)}" if was_seen else f"{name}: not seen"

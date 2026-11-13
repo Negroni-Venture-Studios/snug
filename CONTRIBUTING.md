@@ -84,10 +84,10 @@ Snug keeps its dependencies few and well maintained.
 
 ## Releasing
 
-1. On a branch, set the version in `pyproject.toml` (then run `uv lock`), name that version's image in `deploy/compose.yaml`, and date its section in `CHANGELOG.md`. `tests/test_release.py` checks the three agree.
-2. Check that `docs/deploy-localhost.md` and `docs/deploy-digitalocean.md` describe the release.
-3. Tag a release candidate, `vX.Y.Z-rc.N`, on the branch. Its image is published as `:X.Y.Z-rc.N`, and `:latest` does not move. Set up a fresh server by following the DigitalOcean guide, with the startup script changed to download the candidate's tag and run its image.
-4. Merge the pull request, tag `vX.Y.Z` on the merge commit, and publish a GitHub release for the tag. New servers and `snug update` use the newest published release, so they stay on the previous one until this one is published.
+1. On a branch named `release-X.Y.Z`, with a pull request to `main`, set the version in `pyproject.toml` (then run `uv lock`), name that version's images, Snug's and the converter's, in `deploy/compose.yaml`, and date its section in `CHANGELOG.md`. `tests/test_release.py` checks that `pyproject.toml`, Snug's image and the changelog agree.
+2. Check that the README's Status section, `docs/deploy-localhost.md` and `docs/deploy-digitalocean.md` describe the release.
+3. Tag a release candidate, `vX.Y.Z-rc.N`, on the branch. The `Image` and `Office image` workflows publish its images as `:X.Y.Z-rc.N`, and `:latest` does not move. Set up a fresh server by following the DigitalOcean guide, with the startup script changed to download the candidate's tag and to add two lines to `snug.env`, setting `SNUG_IMAGE` and `SNUG_OFFICE_IMAGE` to the candidate's images. To try the update from the previous release, add the same two lines to a server running it, then run `sudo env SNUG_REF=vX.Y.Z-rc.N snug update`.
+4. Merge the pull request, tag `vX.Y.Z` on the merge commit, and publish a GitHub release for the tag. New servers and `snug update` use the newest published release, so they stay on the previous one until this one is published. On any server that ran a candidate, delete the two image lines from `snug.env` and run `sudo snug update`.
 
 ## Code of conduct
 

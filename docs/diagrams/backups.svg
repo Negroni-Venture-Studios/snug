@@ -58,8 +58,9 @@
 <text class="label" x="736" y="368">anything overwritten or</text>
 <text class="label" x="736" y="385">deleted, kept 30 days</text>
 <path class="line-dashed" d="M822,288 V320"/>
-<text class="small" x="492" y="352">Not backed up: the page cache,</text>
-<text class="small" x="492" y="370">GeoIP data and temporary files,</text>
+<text class="small" x="492" y="334">Not backed up: page images,</text>
+<text class="small" x="492" y="352">Office files' previews, GeoIP</text>
+<text class="small" x="492" y="370">data and temporary files,</text>
 <text class="small" x="492" y="388">which Snug can make again.</text>
 
 <!-- Restoring -->

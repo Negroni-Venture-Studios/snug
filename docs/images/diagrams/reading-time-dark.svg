@@ -128,5 +128,5 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <text class="small" x="20" y="804">A video sends</text>
 <text class="mono" x="104" y="804">part</text>
 <text class="small" x="140" y="804">as it plays into each 10-second part, and each part counts as a page.</text>
-<text class="small" x="20" y="824">A workbook's card counts as its one page.</text>
+<text class="small" x="20" y="824">An Office file's card, shown when it has no preview, counts as its one page.</text>
 </svg>

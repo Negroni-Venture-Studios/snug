@@ -162,6 +162,17 @@ def test_the_room_index_lists_the_room_by_folder(room: Room, outside: Document) 
     assert f'href="/v/{issued.token}/d/{seed.token}"' in page
 
 
+def test_a_folder_reads_as_a_folder_with_its_documents_inside(room: Room) -> None:
+    # Found 12 November 2026: folder names were quieter than document titles.
+    issued = share(room=room)
+    page = opened(issued).get(f"/v/{issued.token}", secure=True).content.decode()
+    heading = page[page.index('<h2 class="room-folder">') :].split("</h2>", 1)[0]
+    assert 'class="icon"' in heading and "Pitch" in heading
+    assert '<span class="count">1 document</span>' in heading
+    after = page[page.index('<h2 class="room-folder">') :]
+    assert after.index('<ul class="room-documents in-folder">') < after.index("Seed deck")
+
+
 def test_a_room_document_opens_in_the_reader(room: Room) -> None:
     issued = share(room=room)
     seed = member(room, "Seed deck")
@@ -193,7 +204,9 @@ def test_a_rooms_privacy_line_does_not_assume_every_document_has_pages(room: Roo
     """A room can hold workbooks and videos beside PDFs."""
     issued = share(room=room)
     page = Client().get(f"/v/{issued.token}", secure=True).content.decode()
-    assert "when you open each document and how long you spend on it." in page
+    assert (
+        "when you open each document, how long you spend on it, and when you download it." in page
+    )
     assert "Every page and video shows your email address as a watermark." in page
 
 
@@ -243,3 +256,14 @@ def test_a_room_download_records_which_document(room: Room, data_folder: Any) ->
     assert response.status_code == 200
     event = AuditEvent.objects.get(action="viewer.downloaded")
     assert event.details["room"] == room.token and event.details["document"] == pdf_deck.token
+
+
+def test_the_issued_page_for_a_room_link_points_to_the_rooms_page(
+    room: Room, admin_browser: Client
+) -> None:
+    # Found in the wording pass, 13 November 2026: it said "the document's page".
+    data = {"email": "ana@northfield.example", "note": "", "action": "copy"}
+    admin_browser.post(f"/admin/links/for-room/{room.token}", data, secure=True)
+    page = admin_browser.get("/admin/links/issued", secure=True).content.decode()
+    assert "send a new link from the room's page" in page
+    assert "the document's page" not in page

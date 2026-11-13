@@ -5,9 +5,17 @@ import os
 import time
 import types
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from django.conf import settings
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from django.test import Client
+
+    from tests.fake_converter import Converter
 
 # The end-to-end tests need a browser and their own settings: see tests/e2e_settings.py.
 collect_ignore = [] if os.environ.get("SNUG_E2E") == "1" else ["e2e"]
@@ -49,6 +57,29 @@ def no_network_downloads(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture(autouse=True)
+def no_background_rendering(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pages are rendered and stamped ahead in threads; in tests, they are not.
+
+    A thread would outlive its test and write into a data folder that is gone.
+    Tests of the work itself ask for `background_now`.
+    """
+    from snug.rendering import pages
+
+    monkeypatch.setattr(pages, "_in_background", lambda task: None)
+
+
+@pytest.fixture
+def background_now(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run what pages would do in a thread at once, on the test's own thread."""
+    from snug.rendering import pages
+
+    def now(task: "Callable[[], None]") -> None:
+        task()
+
+    monkeypatch.setattr(pages, "_in_background", now)
+
+
+@pytest.fixture(autouse=True)
 def steady_rate_limit_clock(monkeypatch: pytest.MonkeyPatch) -> None:
     """Rate limits count in fixed windows on the clock (15 minutes for sign-in).
 
@@ -61,3 +92,33 @@ def steady_rate_limit_clock(monkeypatch: pytest.MonkeyPatch) -> None:
 
     started = time.time()
     monkeypatch.setattr(ratelimit, "time", types.SimpleNamespace(time=lambda: started))
+
+
+@pytest.fixture
+def converter(data_folder: Path, monkeypatch: pytest.MonkeyPatch) -> "Converter":
+    """The LibreOffice converter installed, with a stand-in that answers when told to."""
+    from tests.fake_converter import Converter
+
+    office = data_folder / "office"
+    fake = Converter(office)
+    monkeypatch.setattr(
+        settings, "CONFIG", dataclasses.replace(settings.CONFIG, office=True, office_dir=office)
+    )
+    return fake
+
+
+@pytest.fixture
+def admin_browser(db: None) -> "Client":
+    """A browser signed in as an admin, past the second factor."""
+    from django.test import Client
+
+    from snug.accounts import sessions
+    from snug.accounts.models import Admin
+
+    admin = Admin.objects.create(email="ruth@fernlea.example", is_active=True)
+    browser = Client()
+    browser.force_login(admin)
+    session = browser.session
+    session[sessions.LOGIN_AT] = session[sessions.LAST_ACTIVITY] = time.time()
+    session.save()
+    return browser

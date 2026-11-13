@@ -21,7 +21,11 @@ WORKDIR /app
 COPY pyproject.toml uv.lock README.md LICENSE THIRD_PARTY_LICENCES.md ./
 RUN uv sync --locked --no-dev --no-install-project
 COPY snug ./snug
-RUN uv sync --locked --no-dev
+# uv compiles the dependencies; Snug itself is installed from /app/snug, so it is
+# compiled here. The root file system is read-only, so without this every worker,
+# one for each page shown, compiled Snug's code again.
+RUN uv sync --locked --no-dev \
+ && /app/.venv/bin/python -m compileall -q --invalidation-mode unchecked-hash /app/snug
 
 # Static files are collected into the image. These settings exist only for
 # this step: Snug refuses to start without a real key and domain.
@@ -48,9 +52,18 @@ RUN apt-get update \
 # (docs/design.md).
 RUN groupadd --system --gid 10001 snug \
  && useradd --system --uid 10001 --gid snug --home-dir /var/lib/snug --shell /usr/sbin/nologin snug \
- && install --directory --owner snug --group snug --mode 0700 /var/lib/snug
+ && install --directory --owner snug --group snug --mode 0700 /var/lib/snug \
+ # The folders shared with the LibreOffice converter, if it is installed: Snug
+ # writes jobs to the inbox, which the converter only reads, and the converter
+ # writes PDFs to the outbox, which it cannot list (docs/office.md).
+ && install --directory --owner snug --group snug --mode 0755 /var/lib/snug-office/inbox \
+ && install --directory --owner snug --group snug --mode 1733 /var/lib/snug-office/outbox
 
 COPY --from=build --chown=root:root /app /app
+# The base image ships Python's standard library without compiled files, and
+# the root file system is read-only, so every worker compiled what it used.
+RUN python -m compileall -q --invalidation-mode unchecked-hash \
+    "$(python -c 'import sysconfig; print(sysconfig.get_path("stdlib"))')"
 
 ENV PATH=/app/.venv/bin:$PATH \
     PYTHONDONTWRITEBYTECODE=1 \

@@ -1,7 +1,11 @@
 """Admin pages in a real browser: what only a click can prove under the CSP."""
 
+import contextlib
 import os
 import re
+import threading
+import time
+from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -79,6 +83,61 @@ def test_writing_the_nda_on_a_room_with_none_yet(live_server: Any, page: Page) -
     )
     expect(page.locator(".page-meta")).to_contain_text("Asks for the NDA, version 1")
     expect(page.get_by_label("The NDA", exact=True)).to_have_count(0)  # it exists now
+
+
+def test_a_document_is_added_to_a_room_only_once_it_is_chosen(live_server: Any, page: Page) -> None:
+    # Found 12 November 2026: the first document was shown chosen, as if in the room.
+    from snug.documents.models import Document
+    from snug.rooms.models import Room, RoomDocument
+
+    room = Room.objects.create(name="Seed round")
+    Document.objects.create(title="Restore test")
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/rooms/{room.token}")
+    panel = page.locator("#add-document")
+    expect(panel).to_contain_text("not in this room yet")
+    expect(page.get_by_label("Document", exact=True)).to_have_value("")
+    if shots := os.environ.get("SNUG_SHOT_DIR"):
+        panel.screenshot(path=f"{shots}/room-add-document.png")
+    panel.get_by_role("button", name="Add to room").click()  # nothing chosen: the browser says so
+    expect(page.locator("#documents")).to_contain_text("No documents yet")
+    assert not RoomDocument.objects.exists()
+    page.get_by_label("Document", exact=True).select_option(label="Restore test")
+    panel.get_by_role("button", name="Add to room").click()
+    expect(page.locator("#add-document .notice-ok")).to_contain_text("Restore test added")
+    expect(page.locator("#documents")).to_contain_text("Restore test")
+
+
+def test_a_document_is_renamed_and_its_long_file_name_stays_in_its_column(
+    live_server: Any, page: Page
+) -> None:
+    # Asked for 13 November 2026: a typo in a title could not be fixed, and a
+    # file name without spaces ran over the description beside it.
+    from snug.documents import ingest
+    from snug.documents.models import Document
+    from tests.pdfs import chunks, make_pdf
+
+    deck = Document.objects.create(title="Cambridge Startup Ladded")
+    ingest.ingest(
+        deck,
+        chunks(make_pdf((960, 540))),
+        filename="cambridge_startup_ladder_for_the_bursary_programme.pdf",
+        uploaded_by=None,
+    )
+    sign_in(live_server, page)
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.goto(f"{live_server.url}/admin/documents/{deck.token}")
+    # The text, not only its box, stays within the column.
+    name = page.locator("#versions .who .note").first
+    assert name.evaluate("e => e.scrollWidth <= e.clientWidth")
+    title = page.get_by_label("Title", exact=True)
+    title.fill("Cambridge Startup Ladder")
+    page.locator("#rename").get_by_role("button", name="Rename").click()
+    expect(page.locator("#rename .notice-ok")).to_contain_text("Renamed.")
+    expect(page.locator("h1")).to_have_text("Cambridge Startup Ladder")
+    if shots := os.environ.get("SNUG_SHOT_DIR"):
+        page.locator("#versions").screenshot(path=f"{shots}/versions.png")
+        page.locator("#rename").screenshot(path=f"{shots}/rename.png")
 
 
 def test_the_link_form_shows_the_box_only_when_asked(live_server: Any, page: Page) -> None:
@@ -171,7 +230,7 @@ def test_a_refused_version_shows_its_error_in_view(
     )
     page.get_by_role("button", name="Upload version").click()
     error = page.locator(".notice-error")
-    expect(error).to_contain_text("Snug takes PDFs, Excel workbooks (.xlsx) and MP4 videos")
+    expect(error).to_contain_text("Snug takes PDFs, Word, PowerPoint and Excel files")
     expect(error).to_be_in_viewport()
     expect(page.locator("header[data-kept='yes']")).to_have_count(1)
 
@@ -236,7 +295,7 @@ def test_email_is_set_up_in_steps_with_the_next_one_in_view(live_server: Any, pa
     page.locator("#email-setup").get_by_role("button", name="Save").click()
 
     expect(page).to_have_url(re.compile(r"#google-mailbox$"))
-    expect(mailbox).to_contain_text("Saved your Google client. Now connect the mailbox")
+    expect(mailbox).to_contain_text("Saved your Google client. Now connect the sending mailbox.")
     expect(page.get_by_role("link", name="Connect Google")).to_be_in_viewport()
 
     page.get_by_label("Another provider (SMTP)").check()
@@ -288,8 +347,8 @@ def test_a_workbook_is_uploaded_shared_and_downloaded(
 
     from snug.documents.models import Document
     from snug.links import service
-    from snug.rendering import workbook
-    from tests.workbooks import make_xlsx
+    from snug.rendering import ooxml
+    from tests.office_files import make_xlsx
 
     sign_in(live_server, page)
     page.goto(f"{live_server.url}/admin/documents/new")
@@ -331,9 +390,60 @@ def test_a_workbook_is_uploaded_shared_and_downloaded(
     assert download.suggested_filename == "Financial model.xlsx"
     data = Path(download.path()).read_bytes()
     with zipfile.ZipFile(io.BytesIO(data)) as package:
-        properties = workbook._parse(package.read("docProps/custom.xml"))
+        properties = ooxml._parse(package.read("docProps/custom.xml"))
     names = {p.get("name"): "".join(p.itertext()) for p in properties}
     assert names["Shared with"] == "priya@northfield.example"
+    investor.close()
+
+
+def test_a_presentation_is_uploaded_shared_and_downloaded(
+    live_server: Any, page: Page, browser: Any, data_folder: Any
+) -> None:
+    """The same journey for a PowerPoint deck, with real clicks."""
+    from snug.documents.models import Document
+    from snug.links import service
+    from snug.rendering import ooxml
+    from tests.office_files import make_pptx
+
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/documents/new")
+    page.get_by_label("Title").fill("Board deck")
+    page.get_by_label("File").set_input_files(
+        files=FilePayload(
+            name="Board deck.pptx",
+            mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            buffer=make_pptx(12),
+        )
+    )
+    page.get_by_role("button", name="Upload").click()
+    expect(page.locator(".notice-ok")).to_contain_text(
+        "Uploaded, a PowerPoint presentation with 12 slides", timeout=15000
+    )
+    page.get_by_label("What investors should know").fill("Start at slide 3.")
+    page.get_by_role("button", name="Save description").click()
+    expect(page.locator("#description .notice-ok")).to_contain_text("above the download button")
+
+    issued = service.create(
+        document=Document.objects.get(title="Board deck"),
+        email="priya@northfield.example",
+        note="",
+        expires_at=None,
+        require_verification=False,
+        allow_download=True,
+        created_by=None,
+    )
+    investor = browser.new_page()
+    investor.goto(f"{live_server.url}/v/{issued.token}")
+    investor.get_by_role("button", name="Open Board deck").click()
+    expect(investor.locator(".lede").first).to_contain_text(
+        "A PowerPoint presentation of 12 slides"
+    )
+    expect(investor.locator(".description")).to_have_text("Start at slide 3.")
+    with investor.expect_download() as arriving:
+        investor.get_by_role("link", name="Download the presentation").click()
+    download = arriving.value
+    assert download.suggested_filename == "Board deck.pptx"
+    assert ooxml.inspect(Path(download.path()).read_bytes()) == {"format": "pptx", "slides": 12}
     investor.close()
 
 
@@ -508,3 +618,138 @@ def test_the_overview_shows_the_version_under_the_status(
     assert middles[2] == middles[3], middles
     if shots := os.environ.get("SNUG_SHOT_DIR"):
         page.locator("main").screenshot(path=f"{shots}/overview-version.png")
+
+
+@contextlib.contextmanager
+def stand_in_converter(data_folder: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """A converter that answers each job with a three-page PDF after a few seconds."""
+    import dataclasses
+
+    from django.conf import settings
+
+    from tests.pdfs import make_pdf
+
+    office = data_folder / "office"
+    inbox, outbox = office / "inbox", office / "outbox"
+    inbox.mkdir(parents=True)
+    outbox.mkdir()
+    monkeypatch.setattr(
+        settings, "CONFIG", dataclasses.replace(settings.CONFIG, office=True, office_dir=office)
+    )
+    stop = threading.Event()
+
+    def converter() -> None:
+        while not stop.is_set():
+            for job in inbox.iterdir():
+                if job.name.startswith(".") or (outbox / f"{job.name}.pdf").exists():
+                    continue
+                time.sleep(4)  # long enough to see it converting
+                (outbox / f"{job.name}.pdf").write_bytes(make_pdf(*[(720, 540)] * 3))
+            time.sleep(0.2)
+
+    thread = threading.Thread(target=converter, daemon=True)
+    thread.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        thread.join(timeout=5)
+
+
+def upload_deck(live_server: Any, page: Page) -> None:
+    from tests.office_files import make_pptx
+
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/documents/new")
+    page.get_by_label("Title").fill("Board deck")
+    page.get_by_label("File").set_input_files(
+        files=FilePayload(
+            name="Board deck.pptx",
+            mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            buffer=make_pptx(3),
+        )
+    )
+    page.get_by_role("button", name="Upload").click()
+    expect(page.locator(".notice-ok")).to_contain_text("Its preview is being made.", timeout=15000)
+
+
+def test_an_office_preview_arrives_while_the_founder_writes_its_description(
+    live_server: Any, page: Page, data_folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Asked for 12 November 2026: configure the document while it converts, with real clicks.
+
+    The panel moves through its stages by itself, and the description being
+    typed is still there when the first page arrives, with a note to save it
+    and reload for the rest of the page.
+    """
+    with stand_in_converter(data_folder, monkeypatch):
+        upload_deck(live_server, page)
+        stage = page.locator("[data-preview-stage]")
+        expect(stage).to_contain_text("Converting in LibreOffice", timeout=10000)
+        typing = page.get_by_label("What investors should know")
+        typing.fill("Start at slide 3.")
+        expect(page.locator("#preview img")).to_be_visible(timeout=30000)
+        expect(page.locator("#preview")).to_contain_text("Ready, 3 pages.")
+        expect(typing).to_have_value("Start at slide 3.")  # left alone while the panel changed
+        expect(page.locator("[data-preview-reload]")).to_be_visible()
+        expect(page.locator("[data-preview-reload]")).to_contain_text("Save the description")
+
+
+def test_the_whole_page_catches_up_when_a_preview_arrives(
+    live_server: Any, page: Page, data_folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Found on the rc.3 server, 12 November 2026: only the panel changed, and
+    # the rest of the page still described a download until it was reloaded.
+    with stand_in_converter(data_folder, monkeypatch):
+        upload_deck(live_server, page)
+        description = page.locator("#description .section-head")
+        expect(description).to_contain_text("above the download button")
+        expect(page.locator("#preview")).to_contain_text("Ready, 3 pages.", timeout=30000)
+        expect(description).to_contain_text("beside the pages", timeout=10000)
+        expect(page.locator("[data-preview-reload]")).to_be_hidden()
+
+
+def test_office_previews_are_turned_off_in_settings_with_a_click(
+    live_server: Any, page: Page, data_folder: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import dataclasses
+    import json
+
+    from django.conf import settings
+    from django.utils import timezone
+
+    from snug.core.models import SiteSettings
+
+    office = data_folder / "office"
+    (office / "outbox").mkdir(parents=True)
+    (office / "inbox").mkdir()
+    now = timezone.now()
+    (office / "outbox" / "status.json").write_text(
+        json.dumps(
+            {
+                "libreoffice": "4:25.2.3-2+deb13u9",
+                "built": now.date().isoformat(),
+                "heartbeat": now.isoformat(),
+            }
+        )
+    )
+    monkeypatch.setattr(
+        settings, "CONFIG", dataclasses.replace(settings.CONFIG, office=True, office_dir=office)
+    )
+    sign_in(live_server, page)
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.goto(f"{live_server.url}/admin/settings/#office")
+    section = page.locator("#office")
+    expect(section).to_contain_text("LibreOffice 25.2.3")
+    # Found on the release candidate's server: the status box spanned the page and
+    # touched the form. It is as wide as the form under it, with a gap between.
+    status = section.locator(".office-status").bounding_box()
+    form = section.locator("form").bounding_box()
+    assert status is not None and form is not None
+    assert round(status["width"]) == round(form["width"])
+    assert form["y"] - (status["y"] + status["height"]) >= 12
+    section.get_by_label("Show Office files in the browser").uncheck()
+    section.get_by_role("button", name="Save").click()
+    expect(page.locator("#office .notice-ok")).to_contain_text("shared as downloads only")
+    expect(page).to_have_url(re.compile(r"#office$"))
+    assert SiteSettings.load().office_previews is False

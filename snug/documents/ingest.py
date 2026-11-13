@@ -1,9 +1,10 @@
-"""Taking in an upload, a PDF, an Excel workbook or an MP4 video: check, store and record it.
+"""Taking in an upload, a PDF, an Office file or an MP4 video: check, store and record it.
 
-The kind is decided by the file's first bytes, never its name: a PDF starts
-with %PDF- (within its first KiB), a workbook is a zip, and a video has an
-ftyp box at byte 4. The confined worker then checks it properly:
-snug.rendering.worker, workbook and video.
+The kind is decided by the file's contents, never its name: a PDF starts
+with %PDF- (within its first KiB), an Office file is a zip whose main part
+says whether it is a workbook, a document or a presentation, and a video has
+an ftyp box at byte 4. The confined worker checks each properly:
+snug.rendering.worker, ooxml and video.
 """
 
 import hashlib
@@ -21,15 +22,24 @@ from django.db.models import Max
 
 from snug.accounts.models import Admin
 from snug.documents import storage
-from snug.documents.models import PART_SECONDS, Document, DocumentVersion, new_stored_name
+from snug.documents.models import (
+    OFFICE,
+    PART_SECONDS,
+    Document,
+    DocumentVersion,
+    new_stored_name,
+)
+from snug.office import previews
 from snug.rendering import sandbox
 
 PDF_MAGIC = b"%PDF-"
 ZIP_MAGIC = b"PK\x03\x04"
-# Old .xls files, and workbooks saved with a password, are OLE compound files.
+# Old .doc, .ppt and .xls files, and Office files saved with a password, are OLE compound files.
 OLE_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 # The header may be preceded by a little junk; PDF readers search the first KiB.
 HEADER_WINDOW = 1024
+# A zip, until the worker has read which Office format it is.
+OFFICE_ZIP = "office"
 
 
 class UploadRejectedError(Exception):
@@ -50,16 +60,17 @@ def _kind(head: bytes) -> str:
     if _is_video(head):
         return DocumentVersion.Kind.MP4
     if head.startswith(ZIP_MAGIC):
-        return DocumentVersion.Kind.XLSX
+        return OFFICE_ZIP
     if PDF_MAGIC in head:
         return DocumentVersion.Kind.PDF
     if head.startswith(OLE_MAGIC):
         raise UploadRejectedError(
-            "This is an older Excel file (.xls), or a workbook saved with a password. "
-            "Save it as an Excel Workbook (.xlsx) without a password, then upload it again."
+            "This is an older Office file (.doc, .ppt or .xls), or one saved with a password. "
+            "Save it as .docx, .pptx or .xlsx without a password, then upload it again."
         )
     raise UploadRejectedError(
-        "Snug takes PDFs, Excel workbooks (.xlsx) and MP4 videos. Export other files to PDF first."
+        "Snug takes PDFs, Word, PowerPoint and Excel files (.docx, .pptx and .xlsx), "
+        "and MP4 videos. Export other files to PDF first."
     )
 
 
@@ -108,10 +119,12 @@ def _receive(chunks: Iterable[bytes]) -> tuple[Path, int, str, str]:
 def _same_kind(document: Document, kind: str) -> None:
     """A document's versions are all one kind: links, analytics and downloads depend on it."""
     latest = document.latest_version()
-    if latest is None or latest.kind == kind:
-        return
-    is_a = {"pdf": "a PDF", "xlsx": "an Excel workbook", "mp4": "a video"}
-    short = {"pdf": "PDF", "xlsx": "workbook", "mp4": "video"}
+    if latest is None or latest.kind == kind or (kind == OFFICE_ZIP and latest.is_office):
+        return  # an Office zip is checked again once the worker has said which format it is
+    is_a = {"pdf": "a PDF", "mp4": "a video"} | {k: f.a_name for k, f in OFFICE.items()}
+    short = {"pdf": "PDF", "mp4": "video", OFFICE_ZIP: "Word, PowerPoint or Excel file"} | {
+        k: f.short for k, f in OFFICE.items()
+    }
     raise UploadRejectedError(
         f"{document.title} is {is_a[latest.kind]}. Upload a {short[latest.kind]} as its new "
         f"version, or upload the {short[kind]} as a new document."
@@ -146,12 +159,15 @@ def check(chunks: Iterable[bytes], *, document: Document | None = None) -> Check
         try:
             if kind == DocumentVersion.Kind.MP4:
                 facts = sandbox.inspect_mp4(temporary)
-            elif kind == DocumentVersion.Kind.XLSX:
-                facts = sandbox.inspect_xlsx(temporary)
+            elif kind == OFFICE_ZIP:
+                facts = sandbox.inspect_office(temporary)
+                kind = facts["format"]
             else:
                 facts = sandbox.inspect(temporary)
         except sandbox.WorkerError as error:
             raise UploadRejectedError(str(error)) from error
+        if document is not None:
+            _same_kind(document, kind)
     except BaseException:
         temporary.unlink(missing_ok=True)
         raise
@@ -163,7 +179,7 @@ def store(
 ) -> DocumentVersion:
     """Add a checked upload to a document as its next version."""
     kind, facts = checked.kind, checked.facts
-    workbook = kind == DocumentVersion.Kind.XLSX
+    office = kind in OFFICE
     video = kind == DocumentVersion.Kind.MP4
     try:
         if video:
@@ -171,11 +187,14 @@ def store(
             pages = max(1, math.ceil(facts["seconds"] / PART_SECONDS))
             sizes = [[facts["width"], facts["height"]]]
         else:
-            pages = 0 if workbook else int(facts["pages"])
-            sizes = [] if workbook else facts["sizes"]
+            pages = 0 if office else int(facts["pages"])
+            sizes = [] if office else facts["sizes"]
 
+        queued = previews.wanted(kind)
         with transaction.atomic():
             highest = document.versions.aggregate(n=Max("number"))["n"] or 0
+            # A new version waits for its preview before links show it; a first is shared at once.
+            waits = queued and document.latest_version() is not None
             version = DocumentVersion(
                 document=document,
                 number=highest + 1,
@@ -186,9 +205,12 @@ def store(
                 kind=kind,
                 page_count=pages,
                 page_sizes=sizes,
-                sheets=facts["sheets"] if workbook else [],
+                sheets=facts.get("sheets", []) if office else [],
+                slides=facts.get("slides", 0) if office else 0,
                 seconds=float(facts["seconds"]) if video else 0,
                 uploaded_by=uploaded_by,
+                preview=DocumentVersion.Preview.PENDING if queued else DocumentVersion.Preview.NONE,
+                status=DocumentVersion.Status.PREPARING if waits else DocumentVersion.Status.READY,
             )
             destination = storage.original_path(version)
             destination.parent.mkdir(parents=True, exist_ok=True)
@@ -207,6 +229,6 @@ def ingest(
     filename: str,
     uploaded_by: Admin | None,
 ) -> DocumentVersion:
-    """Add an uploaded PDF, workbook or video to a document as its next version."""
+    """Add an uploaded PDF, Office file or video to a document as its next version."""
     checked = check(chunks, document=document)
     return store(document, checked, filename=filename, uploaded_by=uploaded_by)

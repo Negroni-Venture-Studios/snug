@@ -1,6 +1,6 @@
 [project]
 name = "snug"
-version = "1.0.0"
+version = "1.1.0"
 description = "A self-hosted data room for early-stage founders."
 readme = "README.md"
 license = "MIT"

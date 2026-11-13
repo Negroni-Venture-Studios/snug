@@ -6,7 +6,7 @@
   <div class="gate">
     <h1>Check your email</h1>
     {% if neutral %}
-    <p class="lede">If that is the address this link was sent to, we have sent it a six-digit code. It works for 10 minutes.</p>
+    <p class="lede">If this link was sent to that address, we have sent a six-digit code to it. It works for 10 minutes.</p>
     {% else %}
     <p class="lede">We sent a six-digit code to {% if shown %}{{ shown }}{% else %}your email address{% endif %}. It works for 10 minutes.</p>
     {% endif %}

@@ -1,5 +1,5 @@
 {% if documents %}
-<ul class="room-documents">
+<ul class="room-documents{% if in_folder %} in-folder{% endif %}">
   {% for document in documents %}
   <li><a href="{{ document.url }}">{{ document.title }}</a><span class="meta">{% if document.describe %}{{ document.describe }}, updated {{ document.updated|date:"j M Y" }}{% else %}Not ready yet{% endif %}</span></li>
   {% endfor %}

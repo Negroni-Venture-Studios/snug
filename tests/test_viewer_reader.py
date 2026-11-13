@@ -87,14 +87,29 @@ def test_odd_page_numbers_show_the_first_page(issued: service.Issued, asked: str
     assert 'alt="Page 1 of 3"' in page
 
 
-def test_the_reader_prefetches_the_next_page(issued: service.Issued) -> None:
+def test_the_reader_fetches_the_next_page_after_this_one(issued: service.Issued) -> None:
+    # viewer.js fetches it once this page has loaded, so on a one-CPU server the
+    # two never share the server's time (page 1 took 11 s, 12 November 2026).
     page = get(opened(issued), f"/v/{issued.token}").content.decode()
-    assert f'<link rel="prefetch" href="{image_url(issued, 2, 1600)}"' in page
+    assert f'data-next="{image_url(issued, 2, 1600)}"' in page
+    assert 'rel="prefetch"' not in page
 
 
-def test_the_reader_explains_images_and_screen_readers(issued: service.Issued) -> None:
+def test_the_last_page_fetches_nothing_more(issued: service.Issued) -> None:
+    page = get(opened(issued), f"/v/{issued.token}?page=3").content.decode()
+    assert "data-next" not in page
+
+
+def test_the_page_says_it_is_loading_until_it_arrives(issued: service.Issued) -> None:
+    page = get(opened(issued), f"/v/{issued.token}?page=2").content.decode()
+    assert '<span class="page-loading" aria-hidden="true">Loading page 2</span>' in page
+
+
+def test_the_reader_has_no_note_on_screen_readers(issued: service.Issued) -> None:
+    # 13 November 2026: a note on every page of every document was too much;
+    # docs/using-snug.md says that screen reader users should download.
     page = get(opened(issued), f"/v/{issued.token}").content.decode()
-    assert "screen reader" in page
+    assert "screen reader" not in page
 
 
 def test_a_document_still_being_prepared(document: Document) -> None:
@@ -169,11 +184,11 @@ def test_the_watermark_carries_todays_date(
 ) -> None:
     seen: dict[str, str] = {}
 
-    def capture(version: Any, page: int, width: int, **stamp: str) -> bytes:
+    def capture(page: Any, font: Any, **stamp: str) -> bytes:
         seen.update(stamp)
         return b"RIFF\x00\x00\x00\x00WEBPVP8 "
 
-    monkeypatch.setattr("snug.rendering.pages.stamped_page", capture)
+    monkeypatch.setattr("snug.rendering.sandbox.stamp", capture)
     get(opened(issued), image_url(issued))
     today = timezone.localdate()
     assert seen == {"email": INVESTOR, "date": f"{today.day} {today:%b %Y}", "ref": issued.link.ref}
@@ -193,9 +208,23 @@ def test_a_page_that_cannot_be_rendered_says_so(
 
 
 def test_the_reader_shows_the_about_panel_with_the_message(document: Document) -> None:
-    """docs/design.md: the cover message is in the About this link panel on every page."""
+    """docs/design.md: the cover message is in the About this link panel."""
     issued = issue(document, message="Ahead of Thursday's call.\nPage 5 is the one.")
     page = get(opened(issued), f"/v/{issued.token}").content.decode()
     assert 'aria-label="About this link"' in page
     assert "Ahead of Thursday&#x27;s call.<br>Page 5 is the one." in page
     assert "how long you spend on each page" in page
+
+
+def test_the_about_panel_says_downloads_are_seen_only_when_allowed(document: Document) -> None:
+    """Downloads are audited and shown on People, so the panel says so when a link allows them."""
+    with_download = issue(document)
+    page = get(opened(with_download), f"/v/{with_download.token}").content.decode()
+    assert (
+        "will see when you open this document, how long you spend on each page, "
+        "and when you download it." in page
+    )
+    view_only = issue(document, allow_download=False)
+    page = get(opened(view_only), f"/v/{view_only.token}").content.decode()
+    assert "will see when you open this document and how long you spend on each page." in page
+    assert "download it" not in page

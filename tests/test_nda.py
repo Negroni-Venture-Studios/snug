@@ -228,6 +228,7 @@ def test_the_reader_sends_you_to_the_nda_first(room: Room, document: Document) -
     assert TEXT in page and 'name="name"' in page and 'name="accept"' in page
     assert "record of acceptance, not a signature" in page
     assert "IP address" in page
+    assert "You are asked to accept this agreement first." in page  # no company name set
 
 
 @pytest.mark.usefixtures("nda")

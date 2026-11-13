@@ -1,0 +1,5 @@
+# The converter's image needs its supervisor, the seccomp filter and its own folder; nothing else of Snug.
+*
+!converter/
+!snug/office/supervisor.py
+!snug/rendering/seccomp.py

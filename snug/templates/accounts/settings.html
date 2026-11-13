@@ -28,7 +28,7 @@
   <div class="field invite-wide">{% if invite_error %}<div class="error" id="invite-email-error" role="alert">{% icon "warning-circle" %}{{ invite_error }}</div>{% endif %}{% if code_error %}<div class="error" id="code-error" role="alert">{% icon "warning-circle" %}{{ code_error }}</div>{% endif %}{% if not invite_error and not code_error %}<div class="hint">Every change to the admins needs a code from your authenticator app.</div>{% endif %}</div>
 </form>
 {% else %}
-<p class="admin-invite-off">Inviting needs email. See <code>docs/email.md</code>, or create admins on the server with <code>sudo snug createadmin</code>.</p>
+<p class="admin-invite-off">Inviting needs email. Set it up below, under Email, or create admins on the server with <code>sudo snug createadmin</code>.</p>
 {% endif %}
 </div>
 
@@ -105,7 +105,7 @@
   <div class="field"><label for="smtp-host">SMTP server</label><input id="smtp-host" name="smtp_host" type="text" autocomplete="off" spellcheck="false" value="{{ email.values.smtp_host }}"{% if email.errors.smtp_host %} aria-invalid="true" aria-describedby="smtp-host-error"{% endif %}>
     {% if email.errors.smtp_host %}<div class="error" id="smtp-host-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_host }}</div>{% endif %}</div>
   <div class="field"><label for="smtp-port">Port</label><input id="smtp-port" name="smtp_port" type="text" inputmode="numeric" autocomplete="off" value="{{ email.values.smtp_port }}"{% if email.errors.smtp_port %} aria-invalid="true" aria-describedby="smtp-port-error"{% endif %}>
-    {% if email.errors.smtp_port %}<div class="error" id="smtp-port-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_port }}</div>{% else %}<div class="hint">{{ email.ports }}. On DigitalOcean, use 2525, or 2587 or 2465 for Amazon SES.</div>{% endif %}</div>
+    {% if email.errors.smtp_port %}<div class="error" id="smtp-port-error" role="alert">{% icon "warning-circle" %}{{ email.errors.smtp_port }}</div>{% else %}<div class="hint">One of {{ email.ports }}. On DigitalOcean, use 2525, or 2587 or 2465 for Amazon SES.</div>{% endif %}</div>
   <div class="field"><label for="smtp-username">Username</label><input id="smtp-username" name="smtp_username" type="text" autocomplete="off" spellcheck="false" value="{{ email.values.smtp_username }}"></div>
   <div class="field"><label for="smtp-password">Password or API key</label>{% if email.password_saved %}{% include "snug/partials/password_field.html" with id="smtp-password" name="smtp_password" autocomplete="new-password" optional=True placeholder="••••••••••••" %}{% else %}{% include "snug/partials/password_field.html" with id="smtp-password" name="smtp_password" autocomplete="new-password" optional=True %}{% endif %}
     <div class="hint">{% if email.password_saved %}Saved. Type a new one to replace it.{% else %}Never shown again once saved.{% endif %}</div></div>
@@ -122,7 +122,7 @@
 </li>
 <li id="google-mailbox" class="step panel provider-google{% if not email.google_ready %} step-waiting{% endif %}">
   <div class="step-head"><h3 class="panel-title">The sending mailbox</h3>{% if email.google_account %}<span class="status status-ok">Connected</span>{% endif %}</div>
-  {% if saved == "email" and email.values.provider == "google" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved your Google client. Now connect the mailbox Snug sends from.</span></div>
+  {% if saved == "email" and email.values.provider == "google" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved your Google client. Now connect the sending mailbox.</span></div>
   {% elif saved == "google-pending" and email.google_pending %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Google approved {{ email.google_pending }}. Enter a code to finish.</span></div>
   {% elif saved == "email-google-off" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Disconnected from Google. Snug no longer sends email through it.</span></div>
   {% elif saved == "google-no-client" %}<div class="notice notice-error" role="alert">{% icon "warning-circle" %}<span>Save the client ID and secret first.</span></div>
@@ -162,7 +162,7 @@
   {% if saved == "branding" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if accent %}Saved. Investors' pages use this colour.{% if brand_adjusted %} Text and links are darkened where needed to stay readable.{% endif %}{% else %}Saved. Investors' pages use Snug's default colour.{% endif %}</span></div>{% endif %}
   <div class="field"><label for="company">Company name</label>
     <input id="company" name="company" type="text" maxlength="100" autocomplete="organization" value="{{ company_value }}"{% if company_error %} aria-invalid="true" aria-describedby="company-error"{% endif %}>
-    {% if company_error %}<div class="error" id="company-error" role="alert">{% icon "warning-circle" %}{{ company_error }}</div>{% else %}<div class="hint">As investors know it. Shown at the top of their pages when there is no logo, and in every email Snug sends.</div>{% endif %}</div>
+    {% if company_error %}<div class="error" id="company-error" role="alert">{% icon "warning-circle" %}{{ company_error }}</div>{% else %}<div class="hint">As investors know it. Shown at the top of their pages when there is no logo, and in Snug's emails.</div>{% endif %}</div>
   <div class="field"><label class="check"><input name="show_name" type="checkbox" value="1"{% if show_name %} checked{% endif %}><span>Show the name beside the logo<span class="hint">Turn this off if your logo already spells out the name. Without a logo, the name always shows.</span></span></label></div>
   <div class="field"><label for="accent">Accent colour</label>
     <div class="inline-form"><input id="accent-picker" type="color" value="{{ accent_shown }}" aria-label="Choose a colour" data-accent-picker><input id="accent" name="accent" type="text" maxlength="7" autocomplete="off" spellcheck="false" value="{{ accent_typed|default:accent }}" placeholder="{{ accent_shown }}"{% if branding_error %} aria-invalid="true" aria-describedby="accent-error"{% endif %}></div>
@@ -191,13 +191,34 @@
 </form>
 </div>
 
+<div class="section" id="office">
+<div class="section-head stacked"><h2>Office files</h2><p>Word, PowerPoint and Excel files are shared as downloads. With LibreOffice installed on this server, investors can also read them in the browser, page by page.</p>{% include "accounts/partials/doc_link.html" with page="office.md" label="Showing Office files in the browser" %}</div>
+{% if not office.installed %}
+<div class="panel office-status">
+  <p><span class="status status-off">Not installed</span> LibreOffice is not installed, so Word, PowerPoint and Excel files are shared as downloads only.</p>
+  <p class="hint">To install it in a container of its own, run <code>sudo snug update --with-office</code> on the server. It needs 2 GB of memory.</p>
+</div>
+{% else %}
+<div class="panel office-status">
+  <p>{% if office.problem %}<span class="status status-warn">Problem</span> {{ office.problem }} Run <code>sudo snug doctor</code> on the server.{% else %}<span class="status status-ok">Working</span> LibreOffice {{ office.status.version }}, in an image built on {{ office.status.built|date:"j F Y" }}.{% endif %}</p>
+  {% if office.out_of_date %}<p class="hint">An update is waiting, with LibreOffice's latest security fixes. Run <code>sudo snug update</code> on the server.</p>{% elif not office.problem %}<p class="hint">The image is rebuilt every week with LibreOffice's security fixes. <code>sudo snug update</code> installs the newest.</p>{% endif %}
+</div>
+<form class="panel form settings-form" method="post" action="{% url 'accounts:office' %}#office" novalidate>
+  {% csrf_token %}
+  {% if saved == "office" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>{% if office_previews %}Saved. Word, PowerPoint and Excel files are shown in the browser once their previews are made.{% else %}Saved. Word, PowerPoint and Excel files are shared as downloads only.{% endif %}</span></div>{% endif %}
+  <label class="check"><input type="checkbox" name="show"{% if office_previews %} checked{% endif %}><span>Show Office files in the browser<span class="hint">Investors read them page by page, watermarked. Off, they see a card describing the file. Either way, a link that allows downloads gives them the file itself.</span></span></label>
+  <button class="btn btn-primary" type="submit">Save</button>
+</form>
+{% endif %}
+</div>
+
 <div class="section" id="nda">
 <div class="section-head stacked"><h2>NDA</h2><p>One agreement for every room and link that asks for it. {% if nda %}Version {{ nda.number }}, {{ nda.created_at|date:"j M Y" }}.{% else %}None yet.{% endif %}</p>{% include "accounts/partials/doc_link.html" with page="nda.md" label="The NDA guide" %}</div>
 <form class="panel form settings-form" method="post" action="{% url 'accounts:nda' %}#nda" novalidate>
   {% csrf_token %}
   {% if saved == "nda" and nda %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Saved as version {{ nda.number }}. Anyone asked for the NDA accepts this version on their next visit.</span></div>{% endif %}
   <div class="field"><label for="nda-text">Agreement</label><textarea id="nda-text" name="text" rows="10"{% if nda_error %} aria-invalid="true" aria-describedby="nda-error"{% endif %}>{% if nda_draft %}{{ nda_draft }}{% elif nda %}{{ nda.text }}{% endif %}</textarea>
-    {% if nda_error %}<div class="error" id="nda-error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% else %}<div class="hint">Saving changes makes a new version, which everyone accepts on their next visit. Earlier acceptances are kept. Viewers are told this is a record of acceptance, not a signature.</div>{% endif %}</div>
+    {% if nda_error %}<div class="error" id="nda-error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% else %}<div class="hint">Saving changes makes a new version, which investors accept on their next visit. Earlier acceptances are kept. Viewers are told this is a record of acceptance, not a signature.</div>{% endif %}</div>
   <button class="btn btn-primary" type="submit">Save agreement</button>
 </form>
 {% if nda_history|length > 1 %}<p class="page-meta">Earlier versions: {% for version in nda_history %}{% if not forloop.first %}version {{ version.number }} ({{ version.created_at|date:"j M Y" }}){% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}.</p>{% endif %}

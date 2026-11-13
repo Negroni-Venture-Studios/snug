@@ -106,8 +106,8 @@ class PersonDocument:
     downloads: int = 0
     # A video's columns are its parts, labelled by time.
     video: bool = False
-    # A workbook has one column: time on its page.
-    workbook: bool = False
+    # An Office file has one column, time on its card; this names it, such as "workbook".
+    card: str = ""
 
     @property
     def total_seconds(self) -> float:
@@ -146,16 +146,16 @@ def for_people() -> list[Person]:
         return []
     page_counts: dict[int, int] = {}
     videos: set[int] = set()
-    workbooks: set[int] = set()
+    cards: dict[int, str] = {}
     for visit in visits:
         if visit.document_id not in page_counts:
             latest = visit.document.latest_version()
             page_counts[visit.document_id] = latest.page_count if latest else 0
             if latest is not None and latest.is_video:
                 videos.add(visit.document_id)
-            if latest is not None and latest.is_workbook:
+            if latest is not None and latest.office is not None and not latest.reads_as_pages:
                 # Its card is its one page; visits from before that was counted have none.
-                workbooks.add(visit.document_id)
+                cards[visit.document_id] = latest.office.short
                 page_counts[visit.document_id] = 1
     views = list(PageView.objects.values("visit_id", "page", "seconds"))
     document_of = {visit.pk: visit.document_id for visit in visits}
@@ -180,12 +180,12 @@ def for_people() -> list[Person]:
                 seconds=[0.0] * pages,
                 seen=[False] * pages,
                 video=visit.document_id in videos,
-                workbook=visit.document_id in workbooks,
+                card=cards.get(visit.document_id, ""),
             )
             person.documents.append(reads[key])
         read = reads[key]
-        if read.workbook:
-            read.seen[0] = True  # every visit to a workbook showed its card
+        if read.card:
+            read.seen[0] = True  # every visit to an Office file showed its card
         read.visits += 1
         read.last_seen = max(filter(None, [read.last_seen, visit.last_seen_at]))
         owner[visit.pk] = key

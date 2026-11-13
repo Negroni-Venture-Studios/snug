@@ -27,6 +27,7 @@ from snug.core.client import client_ip, user_agent
 from snug.documents import storage
 from snug.documents.ingest import Checked, UploadRejectedError, check, store
 from snug.documents.models import MAX_DESCRIPTION, Document, DocumentVersion
+from snug.office import previews
 from snug.rendering import pages, sandbox
 
 MAX_TITLE = 200
@@ -65,6 +66,10 @@ def _store(
     request: HttpRequest, document: Document, checked: Checked, upload: UploadedFile[bytes]
 ) -> DocumentVersion:
     version = store(document, checked, filename=upload.name or "", uploaded_by=_admin(request))
+    if version.preview == DocumentVersion.Preview.PENDING:
+        transaction.on_commit(previews.drive_in_background)
+    else:
+        transaction.on_commit(lambda: pages.warm_in_background(version))
     _audit(
         request,
         "document.version_uploaded",
@@ -72,16 +77,42 @@ def _store(
         document=document.token,
         version=version.number,
         kind=version.kind,
-        **(
-            {"sheets": len(version.sheets)}
-            if version.is_workbook
-            else {"seconds": version.seconds}
-            if version.is_video
-            else {"pages": version.page_count}
-        ),
+        **_upload_details(version),
         sha256=version.sha256[:16],
     )
     return version
+
+
+def _upload_details(version: DocumentVersion) -> dict[str, Any]:
+    """What the audit log records about an upload's contents."""
+    if version.is_workbook:
+        return {"sheets": len(version.sheets)}
+    if version.kind == DocumentVersion.Kind.PPTX:
+        return {"slides": version.slides}
+    if version.is_office:
+        return {}
+    if version.is_video:
+        return {"seconds": version.seconds}
+    return {"pages": version.page_count}
+
+
+def _uploaded_what(version: DocumentVersion | None) -> str:
+    """For the notice after an upload: "an Excel workbook with 3 sheets", "12 pages"."""
+    if version is None:
+        return "0 pages"
+    if version.is_video:
+        return f"an MP4 video, {version.length} long"
+    if version.is_workbook:
+        count = len(version.sheets)
+        return f"an Excel workbook with {count} sheet{pluralize(count)}"
+    if version.kind == DocumentVersion.Kind.PPTX:
+        return f"a PowerPoint presentation with {version.slides} slide{pluralize(version.slides)}"
+    if version.office is not None:
+        return version.office.a_name
+    return f"{version.page_count} page{pluralize(version.page_count)}"
+
+
+CHOOSE = "Choose a PDF, a Word, PowerPoint or Excel file, or an MP4 video to upload."
 
 
 @never_cache
@@ -91,7 +122,13 @@ def document_list(request: HttpRequest) -> HttpResponse:
     ready = DocumentVersion.objects.filter(status=DocumentVersion.Status.READY).order_by("-number")
     documents = Document.objects.prefetch_related(Prefetch("versions", queryset=ready))
     rows = [(document, next(iter(document.versions.all()), None)) for document in documents]
-    return render(request, "documents/list.html", {"tab": "documents", "rows": rows})
+    making = set(
+        DocumentVersion.objects.filter(
+            preview__in=(DocumentVersion.Preview.PENDING, DocumentVersion.Preview.CONVERTING)
+        ).values_list("document_id", flat=True)
+    )
+    context = {"tab": "documents", "rows": rows, "making": making}
+    return render(request, "documents/list.html", context)
 
 
 @never_cache
@@ -103,6 +140,7 @@ def document_new(request: HttpRequest) -> HttpResponse:
         "limit_mb": _limit_mb(),
         "video_mb": settings.MAX_VIDEO_BYTES // (1024 * 1024),
         "title": "",
+        "office_pages": previews.shown(),
     }
     if request.method == "GET":
         return render(request, "documents/new.html", context)
@@ -113,7 +151,7 @@ def document_new(request: HttpRequest) -> HttpResponse:
     if not title:
         context["error"] = "Give the document a title."
     elif upload is None:
-        context["error"] = "Choose a PDF, an Excel workbook or an MP4 video to upload."
+        context["error"] = CHOOSE
     if "error" in context or upload is None:
         return render(request, "documents/new.html", context, status=400)
 
@@ -132,20 +170,12 @@ def document_new(request: HttpRequest) -> HttpResponse:
             _store(request, document, checked, upload)
     finally:
         checked.discard()
-    version = document.latest_version()
-    if version is not None and version.is_video:
-        what = f"an MP4 video, {version.length} long"
-    elif version is not None and version.is_workbook:
-        count = len(version.sheets)
-        what = f"an Excel workbook with {count} sheet{pluralize(count)}"
-    else:
-        pages = version.page_count if version else 0
-        what = f"{pages} page{pluralize(pages)}"
+    what = _uploaded_what(document.latest_version())
     return notices.saved(
         request,
         reverse("documents:detail", kwargs={"token": document.token}),
         "links",
-        f"Uploaded, {what}. Create a link to share it.",
+        f"Uploaded, {what}. Create a link to share it.{_preview_note(document)}",
     )
 
 
@@ -184,24 +214,63 @@ def _reading(document: Document, *, video: bool = False) -> dict[str, Any] | Non
     }
 
 
+def _preview_panel(request: HttpRequest, document: Document) -> dict[str, Any] | None:
+    """The Preview panel's state for an Office file while the converter is installed.
+
+    It follows a version being prepared, if there is one, or else the latest.
+    """
+    preparing = document.versions.filter(status=DocumentVersion.Status.PREPARING).first()
+    latest = document.latest_version()
+    subject = preparing or latest
+    if subject is None or not subject.is_office or not previews.enabled():
+        return None
+    if subject.preview == DocumentVersion.Preview.NONE:
+        return None
+    waiting = subject.preview in (
+        DocumentVersion.Preview.PENDING,
+        DocumentVersion.Preview.CONVERTING,
+    )
+    panel: dict[str, Any] = {
+        "version": subject,
+        "waiting": waiting,
+        "stage": previews.stage(subject) if waiting else "",
+        "failed": subject.preview == DocumentVersion.Preview.FAILED,
+        "message": previews.message(subject.preview_error),
+        "ready": subject.preview == DocumentVersion.Preview.READY,
+        "preparing": preparing is not None,
+        "showing": latest,
+        "poll_url": reverse("documents:preview_status", kwargs={"token": document.token}),
+        "retry_url": reverse(
+            "documents:preview_retry", kwargs={"token": document.token, "number": subject.number}
+        ),
+    }
+    if panel["ready"] and subject.page_sizes:
+        width, height = subject.shown_size(1)
+        panel["size"] = {"width": PREVIEW_WIDTH, "height": round(PREVIEW_WIDTH * height / width)}
+    return panel
+
+
 def _detail_context(request: HttpRequest, document: Document) -> dict[str, Any]:
-    versions = list(document.versions.filter(status=DocumentVersion.Status.READY))
-    latest = versions[0] if versions else None
+    # A version being prepared is listed too; links keep showing the latest ready one.
+    shown = (DocumentVersion.Status.READY, DocumentVersion.Status.PREPARING)
+    versions = list(document.versions.filter(status__in=shown))
+    latest = document.latest_version()
     preview: dict[str, Any] | None = None
     if latest and latest.page_sizes:
-        width, height = latest.page_sizes[0]
+        width, height = latest.shown_size(1)
         preview = {"width": PREVIEW_WIDTH, "height": round(PREVIEW_WIDTH * height / width)}
     return {
         "tab": "documents",
         "document": document,
-        # A workbook is downloaded, not read page by page: it has no reading chart.
+        # An Office file is downloaded, not read page by page: it has no reading chart.
         "reading": None
-        if latest and latest.is_workbook
+        if latest and not latest.reads_as_pages and latest.is_office
         else _reading(document, video=bool(latest and latest.is_video)),
         "links": document.links.all(),
         "versions": versions,
         "latest": latest,
         "preview": preview,
+        "panel": _preview_panel(request, document),
         "limit_mb": _limit_mb(),
         "video_mb": settings.MAX_VIDEO_BYTES // (1024 * 1024),
         "notice": notices.take(request),
@@ -224,7 +293,7 @@ def version_upload(request: HttpRequest, token: str) -> HttpResponse:
     upload = _uploaded(request)
     error = None
     if upload is None:
-        error = "Choose a PDF, an Excel workbook or an MP4 video to upload."
+        error = CHOOSE
     else:
         try:
             checked = check(upload.chunks(), document=document)
@@ -242,7 +311,34 @@ def version_upload(request: HttpRequest, token: str) -> HttpResponse:
         request,
         reverse("documents:detail", kwargs={"token": document.token}),
         "versions",
-        f"Version {number} uploaded. Every link to this document shows it now.",
+        _version_notice(document, number),
+    )
+
+
+RENAME_ERROR = f"Give the document a title, of {MAX_TITLE} characters or fewer."
+
+
+@never_cache
+@login_required
+@require_POST
+def rename(request: HttpRequest, token: str) -> HttpResponse:
+    """The document's title, as investors and admins see it."""
+    document = get_object_or_404(Document, token=token)
+    raw = request.POST.get("title", "")
+    title = " ".join(raw.split())
+    if not title or len(title) > MAX_TITLE:
+        context = {
+            **_detail_context(request, document),
+            "rename_error": RENAME_ERROR,
+            "rename_value": raw[: MAX_TITLE * 2],
+        }
+        return render(request, "documents/detail.html", context, status=400)
+    if title != document.title:
+        _audit(request, "document.renamed", document.title, document=document.token, to=title)
+        document.title = title
+        document.save(update_fields=["title"])
+    return notices.saved(
+        request, reverse("documents:detail", kwargs={"token": document.token}), "rename", "Renamed."
     )
 
 
@@ -250,10 +346,10 @@ def version_upload(request: HttpRequest, token: str) -> HttpResponse:
 @login_required
 @require_POST
 def description(request: HttpRequest, token: str) -> HttpResponse:
-    """A workbook's description, shown to investors above its sheets."""
+    """An Office file's description, shown to investors on its card."""
     document = get_object_or_404(Document, token=token)
     latest = document.latest_version()
-    if latest is None or not latest.is_workbook:
+    if latest is None or not latest.is_office:
         raise Http404
     text = request.POST.get("description", "").strip()
     if len(text) > MAX_DESCRIPTION:
@@ -272,13 +368,82 @@ def description(request: HttpRequest, token: str) -> HttpResponse:
         document=document.token,
         characters=len(text),
     )
-    said = (
-        "Description saved. Investors see it above the list of sheets."
-        if text
-        else "Description removed."
+    where = (
+        "beside the pages"
+        if latest.reads_as_pages
+        else "above the list of sheets"
+        if latest.is_workbook
+        else "above the download button"
     )
+    said = f"Description saved. Investors see it {where}." if text else "Description removed."
     return notices.saved(
         request, reverse("documents:detail", kwargs={"token": document.token}), "description", said
+    )
+
+
+def _preview_note(document: Document) -> str:
+    latest = document.latest_version()
+    pending = latest is not None and latest.preview == DocumentVersion.Preview.PENDING
+    return " Its preview is being made." if pending else ""
+
+
+def _version_notice(document: Document, number: int) -> str:
+    preparing = document.versions.filter(
+        status=DocumentVersion.Status.PREPARING, number=number
+    ).exists()
+    if preparing:
+        latest = document.latest_version()
+        before = latest.number if latest else number - 1
+        return (
+            f"Version {number} uploaded. Links show it once its preview is ready, "
+            f"and version {before} until then."
+        )
+    return f"Version {number} uploaded. Investors see it now."
+
+
+@never_cache
+@login_required
+@require_safe
+def preview_status(request: HttpRequest, token: str) -> HttpResponse:
+    """The Preview panel alone, which admin.js asks for while the converter works.
+
+    Asking moves the converter's queue on a step, so a watched preview
+    arrives as soon as it is made.
+    """
+    document = get_object_or_404(Document, token=token)
+    previews.pump()
+    context = {"document": document, "panel": _preview_panel(request, document)}
+    return render(request, "documents/partials/preview_panel.html", context)
+
+
+@never_cache
+@login_required
+@require_POST
+def preview_retry(request: HttpRequest, token: str, number: int) -> HttpResponse:
+    """Queue a failed preview again."""
+    version = get_object_or_404(
+        DocumentVersion,
+        document__token=token,
+        number=number,
+        preview=DocumentVersion.Preview.FAILED,
+    )
+    if not previews.enabled():
+        raise Http404
+    version.preview, version.preview_error = DocumentVersion.Preview.PENDING, ""
+    version.save(update_fields=["preview", "preview_error"])
+    _audit(
+        request,
+        "document.preview_retried",
+        version.document.title,
+        document=token,
+        version=number,
+    )
+    transaction.on_commit(previews.drive_in_background)
+    return notices.saved(
+        request,
+        reverse("documents:detail", kwargs={"token": token}),
+        "preview",
+        "Trying again. The preview appears here when it is ready.",
     )
 
 
@@ -309,8 +474,9 @@ def page_preview(
         document__token=token,
         number=number,
         status=DocumentVersion.Status.READY,
-        kind=DocumentVersion.Kind.PDF,
     )
+    if not version.reads_as_pages:
+        raise Http404
     try:
         path = pages.page_image(version, page, width=PREVIEW_WIDTH)
     except ValueError as error:

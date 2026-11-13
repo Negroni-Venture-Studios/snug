@@ -12,6 +12,7 @@ from django.utils import timezone
 from snug.accounts.models import Admin
 from snug.core import mail
 from snug.core.models import company_name
+from snug.documents import storage
 from snug.documents.models import Document
 from snug.links.models import Link, new_ref
 
@@ -97,6 +98,8 @@ def revoke(link: Link, by: Admin | None) -> None:
         link.revoked_at = timezone.now()
         link.revoked_by = by
         link.save(update_fields=["revoked_at", "revoked_by"])
+    # Its investor's stamped pages: authorise() refuses them already, so this is tidying.
+    storage.clear_stamped(link_id=int(link.pk))
 
 
 def send_link_email(issued: Issued, sender: Admin) -> bool:

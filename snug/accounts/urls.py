@@ -35,6 +35,7 @@ urlpatterns = [
     path("settings/logo", admin_views.logo_view, name="logo"),
     path("settings/icon", admin_views.icon_view, name="icon"),
     path("settings/privacy", admin_views.privacy_view, name="privacy"),
+    path("settings/office", admin_views.office_view, name="office"),
     path("settings/nda", admin_views.nda_view, name="nda"),
     path("settings/retention", admin_views.retention_view, name="retention"),
     path("settings/admins/invite", admin_views.invite_view, name="invite"),

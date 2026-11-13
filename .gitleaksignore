@@ -1,0 +1,3 @@
+# Findings checked by hand and known not to be secrets, by gitleaks fingerprint.
+# A made-up job token in a test, before it was changed to an obviously fake one (12 November 2026).
+d599935ca09928ed44412704303bd2000ea50bf2:tests/test_office_converter.py:generic-api-key:77

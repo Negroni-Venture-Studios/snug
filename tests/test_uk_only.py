@@ -294,7 +294,7 @@ def test_doctor_warns_when_uk_only_links_have_no_data(data_folder: Path) -> None
     found = doctor.geoip_data(NOW)
     assert found.status == "problem"
     assert found.message == (
-        "UK-only links refuse everyone: there is no country data yet. Housekeeping "
+        "There is no country data yet, so UK-only links refuse everyone. Housekeeping "
         "downloads it from DB-IP; check that the server can reach download.db-ip.com."
     )
     assert found in doctor.problems(NOW)

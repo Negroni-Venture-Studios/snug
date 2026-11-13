@@ -1,8 +1,8 @@
 {% extends "viewer/base.html" %}
 {% load static snug %}
 {% block title %}{{ title }}{% endblock %}
-{% block scripts %}<script src="{% static 'snug/js/video.js' %}" defer></script>{% endblock %}
-{% block tools %}{% if room_url %}<a class="btn btn-quiet" href="{{ room_url }}">{% icon "caret-left" %}{{ link.room.name }}</a>{% endif %}<span class="doc">{{ title }}</span>{% if download_url %}<a class="btn btn-brand" href="{{ download_url }}">{% icon "download-simple" %}Download</a>{% endif %}{% endblock %}
+{% block scripts %}<script src="{% static 'snug/js/video.js' %}" defer></script><script src="{% static 'snug/js/about.js' %}" defer></script>{% endblock %}
+{% block tools %}{% if room_url %}<a class="btn btn-quiet" href="{{ room_url }}">{% icon "caret-left" %}{{ link.room.name }}</a>{% endif %}<span class="doc">{{ title }}</span>{% if download_url %}<a class="btn btn-brand" href="{{ download_url }}">{% icon "download-simple" %}Download</a>{% endif %}{% include "viewer/_about_toggle.html" %}{% endblock %}
 {% block main %}
 <div class="player" data-visit="{{ visit }}" data-beat-url="{{ beat_url }}" data-interval="{{ beat_seconds }}" data-part-seconds="{{ part_seconds }}">
   <form class="beacon" hidden>{% csrf_token %}</form>
@@ -12,6 +12,5 @@
     <button class="btn video-fullscreen" type="button" hidden>Full screen</button>
   </div>
   <p class="reader-note">{{ mark }}.</p>
-  {% include "viewer/_about.html" %}
 </div>
 {% endblock %}

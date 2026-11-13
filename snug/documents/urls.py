@@ -12,6 +12,9 @@ urlpatterns = [
     path("<str:token>", views.document_detail, name="detail"),
     path("<str:token>/versions", views.version_upload, name="upload_version"),
     path("<str:token>/description", views.description, name="description"),
+    path("<str:token>/rename", views.rename, name="rename"),
+    path("<str:token>/preview", views.preview_status, name="preview_status"),
+    path("<str:token>/v<int:number>/preview", views.preview_retry, name="preview_retry"),
     path("<str:token>/v<int:number>/page-<int:page>.webp", views.page_preview, name="preview"),
     path("<str:token>/v<int:number>/video", views.video_preview, name="video_preview"),
 ]

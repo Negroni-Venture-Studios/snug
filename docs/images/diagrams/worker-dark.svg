@@ -40,7 +40,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 .on-action { fill: var(--on-action); font-weight: 600; }
 </style>
 <title id="t">The confined document worker</title>
-<desc id="d">Snug opens the file and starts a separate worker process, passing the file as a descriptor. The worker limits its own resources, loads its libraries, reads the input, then confines itself with Landlock and a seccomp filter, and refuses to go on without both and its memory limit. A video is read only once the worker is confined, in pieces. It answers on a pipe, which Snug reads within a size limit and a deadline, killing the worker's whole process group past either.</desc>
+<desc id="d">Snug opens the file and starts a separate worker process, passing the file as a descriptor. The worker limits its own resources, loads the libraries its mode uses, reads the input, then confines itself with Landlock and a seccomp filter, and refuses to go on without both and its memory limit. A video is read only once the worker is confined, in pieces. It answers on a pipe, which Snug reads within a size limit and a deadline, killing the worker's whole process group past either.</desc>
 <defs>
   <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
   <marker id="tip-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-accent"/></marker>
@@ -68,7 +68,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <text class="title" x="56" y="430">Reads the answer</text>
 <text class="label" x="56" y="452">64 KiB at a time. Past its size limit or deadline</text>
 <text class="label" x="56" y="470">(64 MB, more for a stamped download; 60 s, or</text>
-<text class="label" x="56" y="488">30 s to render), it kills the process group.</text>
+<text class="label" x="56" y="488">30 s for a page), it kills the process group.</text>
 
 <rect class="box" x="40" y="524" width="380" height="80" rx="8"/>
 <text class="title" x="56" y="550">Turns an error into a message</text>
@@ -88,7 +88,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 
 <rect class="box" x="520" y="146" width="380" height="64" rx="8"/>
 <text class="title" x="536" y="172"><tspan class="accent">2</tspan><tspan dx="8">Loads its libraries</tspan></text>
-<text class="label" x="536" y="194">PDFium, Pillow, pypdf and the workbook reader</text>
+<text class="label" x="536" y="194">what its mode uses: PDFium, Pillow, pypdf, ooxml</text>
 
 <rect class="box" x="520" y="226" width="380" height="64" rx="8"/>
 <text class="title" x="536" y="252"><tspan class="accent">3</tspan><tspan dx="8">Reads the input</tspan></text>
@@ -108,8 +108,8 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <text class="label" x="536" y="532">JSON, or the image or file, on the pipe</text>
 
 <text class="heading" x="536" y="582">MODES</text>
-<text class="mono" x="536" y="604">inspect render stamp stamp-pdf inspect-xlsx</text>
-<text class="mono" x="536" y="624">stamp-xlsx inspect-mp4 logo icon confinement</text>
+<text class="mono" x="536" y="604">inspect render stamp stamp-pdf inspect-office</text>
+<text class="mono" x="536" y="624">stamp-office inspect-mp4 logo icon confinement</text>
 
 <path class="line" d="M710,130 V146" marker-end="url(#tip)"/>
 <path class="line" d="M710,210 V226" marker-end="url(#tip)"/>

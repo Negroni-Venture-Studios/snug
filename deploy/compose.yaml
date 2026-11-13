@@ -14,7 +14,7 @@ x-logging: &logging
 
 services:
   snug:
-    image: ${SNUG_IMAGE:-ghcr.io/negroni-venture-studios/snug:1.0.0}
+    image: ${SNUG_IMAGE:-ghcr.io/negroni-venture-studios/snug:1.1.0}
     restart: unless-stopped
     env_file: snug.env
     environment:
@@ -23,6 +23,9 @@ services:
       SNUG_TRUSTED_PROXIES: 172.30.83.2/32, fd53:6e75:6700::2/128
     volumes:
       - snug-data:/var/lib/snug
+      # Shared with the LibreOffice converter, when it is installed (docs/office.md).
+      - office-inbox:/var/lib/snug-office/inbox
+      - office-outbox:/var/lib/snug-office/outbox
     networks:
       - web
     # Snug writes only to its data folder and /tmp.
@@ -112,6 +115,35 @@ services:
       - no-new-privileges:true
     logging: *logging
 
+  # The LibreOffice converter (docs/office.md), only when COMPOSE_PROFILES
+  # includes office: snug setup asks, and snug update --with-office adds it.
+  # One conversion per start: it exits after each file and Docker restarts it,
+  # with new processes, a new gVisor sandbox and an empty /tmp, so nothing a
+  # file did survives to the next.
+  office:
+    image: ${SNUG_OFFICE_IMAGE:-ghcr.io/negroni-venture-studios/snug-office:1.1.0}
+    profiles: [office]
+    # gVisor: LibreOffice's system calls reach gVisor's own kernel, not the server's.
+    runtime: ${SNUG_OFFICE_RUNTIME:-runsc}
+    restart: unless-stopped
+    network_mode: none
+    read_only: true
+    tmpfs:
+      - /tmp:size=768m,mode=1777
+    volumes:
+      # It reads jobs and cannot change them; it writes only its answers.
+      - office-inbox:/exchange/inbox:ro
+      - office-outbox:/exchange/outbox
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    memswap_limit: 1g
+    pids_limit: 256
+    cpus: 1.0
+    logging: *logging
+
 networks:
   # The backup container reaches the bucket from here, apart from Snug.
   outbound:
@@ -135,3 +167,5 @@ volumes:
   snug-data:
   caddy-data:
   caddy-config:
+  office-inbox:
+  office-outbox:

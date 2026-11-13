@@ -4,13 +4,15 @@ A link points at a document and always shows its latest ready version;
 analytics record which version was read. Originals are stored under a
 generated name, never the name they were uploaded with.
 
-A document is a PDF, read page by page; an Excel workbook (decided
-9 November 2026), shared for download only; or an MP4 video (the same day),
-watched in the browser. Its versions are all one kind.
+A document is a PDF, read page by page; an Office file, shared for download
+(an Excel workbook, decided 9 November 2026; a Word document or PowerPoint
+presentation, 12 November 2026); or an MP4 video (9 November), watched in
+the browser. Its versions are all one kind.
 """
 
 import secrets
 import uuid
+from dataclasses import dataclass
 
 from django.conf import settings
 from django.db import models
@@ -28,11 +30,51 @@ def new_stored_name(extension: str = "pdf") -> str:
 MAX_DESCRIPTION = 1000
 # A video is counted in parts of this many seconds, each treated as a page.
 PART_SECONDS = 10
+# The narrowest a workbook's page is shown, in points: an A4 page's width.
+# LibreOffice sizes each sheet's page to its cells, so a small sheet would
+# otherwise be drawn as wide as the reader (snug.rendering.worker.render).
+SHEET_WIDTH = 595
+
+
+@dataclass(frozen=True)
+class OfficeFormat:
+    """How Snug names an Office file to admins and investors, and serves it."""
+
+    name: str  # "Excel workbook"
+    a_name: str  # "an Excel workbook"
+    short: str  # "workbook", as in "Download the workbook"
+    content_type: str
+    extension: str
+
+
+OFFICE = {
+    "xlsx": OfficeFormat(
+        "Excel workbook",
+        "an Excel workbook",
+        "workbook",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".xlsx",
+    ),
+    "docx": OfficeFormat(
+        "Word document",
+        "a Word document",
+        "Word document",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".docx",
+    ),
+    "pptx": OfficeFormat(
+        "PowerPoint presentation",
+        "a PowerPoint presentation",
+        "presentation",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ".pptx",
+    ),
+}
 
 
 class Document(models.Model):
     title = models.CharField(max_length=200)
-    # A workbook's own words for investors, above its sheets: plain text, kept
+    # An Office file's own words for investors, on its card: plain text, kept
     # from version to version. A link's cover message is for one investor.
     description = models.TextField(blank=True, max_length=MAX_DESCRIPTION)
     token = models.CharField(max_length=32, unique=True, default=new_token, editable=False)
@@ -55,10 +97,24 @@ class DocumentVersion(models.Model):
     class Status(models.TextChoices):
         READY = "ready", "Ready"
         FAILED = "failed", "Failed"
+        # A new version of an Office file, waiting for its preview before links
+        # show it (decided 12 November 2026); links show the version before.
+        PREPARING = "preparing", "Preparing"
+
+    class Preview(models.TextChoices):
+        """Where an Office file's preview is: made by the LibreOffice converter (snug.office)."""
+
+        NONE = "", "None"
+        PENDING = "pending", "Waiting for the converter"
+        CONVERTING = "converting", "Converting"
+        READY = "ready", "Ready"
+        FAILED = "failed", "Failed"
 
     class Kind(models.TextChoices):
         PDF = "pdf", "PDF"
         XLSX = "xlsx", "Excel workbook"
+        DOCX = "docx", "Word document"
+        PPTX = "pptx", "PowerPoint presentation"
         MP4 = "mp4", "MP4 video"
 
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="versions")
@@ -77,6 +133,16 @@ class DocumentVersion(models.Model):
     kind = models.CharField(max_length=4, choices=Kind.choices, default=Kind.PDF)
     # A workbook's visible sheets, in order; hidden sheets are never listed.
     sheets = models.JSONField(default=list)
+    # A presentation's slide count, from its own list of slides.
+    slides = models.PositiveIntegerField(default=0)
+    # An Office file's preview, when the converter is installed. Once it is
+    # ready, page_count and page_sizes are the preview PDF's, so it is read
+    # page by page like a PDF; the download is still the stamped original.
+    preview = models.CharField(max_length=10, choices=Preview.choices, blank=True, default="")
+    preview_error = models.CharField(max_length=20, blank=True)
+    # The job's name in the converter's inbox while it converts: random, like every token.
+    preview_token = models.CharField(max_length=64, blank=True)
+    preview_since = models.DateTimeField(null=True, blank=True)
     # A video's length. Its "pages" are its parts of PART_SECONDS each, so the
     # reading analytics count time watched on each part.
     seconds = models.FloatField(default=0)
@@ -94,6 +160,36 @@ class DocumentVersion(models.Model):
 
     def __str__(self) -> str:
         return f"{self.document} v{self.number}"
+
+    @property
+    def office(self) -> OfficeFormat | None:
+        """How to name and serve this version, if it is a Word, PowerPoint or Excel file."""
+        return OFFICE.get(self.kind)
+
+    @property
+    def is_office(self) -> bool:
+        return self.kind in OFFICE
+
+    @property
+    def reads_as_pages(self) -> bool:
+        """Read page by page: a PDF, or an Office file whose preview is ready.
+
+        An Office file's preview is shown only while the converter is
+        installed and previews are on in Settings; otherwise the file is a
+        download card again.
+        """
+        if self.kind == self.Kind.PDF:
+            return True
+        if not (self.is_office and self.preview == self.Preview.READY and settings.CONFIG.office):
+            return False
+        from snug.core.models import SiteSettings
+
+        return SiteSettings.load().office_previews
+
+    def shown_size(self, page: int) -> tuple[float, float]:
+        """A page's size as it is drawn, in points: a workbook's sheets at least A4-wide."""
+        width, height = self.page_sizes[page - 1]
+        return (max(width, SHEET_WIDTH), height) if self.is_workbook else (width, height)
 
     @property
     def is_workbook(self) -> bool:
@@ -119,4 +215,8 @@ class DocumentVersion(models.Model):
         if self.is_workbook:
             count = len(self.sheets)
             return f"Excel workbook, {count} sheet{'' if count == 1 else 's'}"
+        if self.kind == self.Kind.PPTX:
+            return f"PowerPoint presentation, {self.slides} slide{'' if self.slides == 1 else 's'}"
+        if self.kind == self.Kind.DOCX:
+            return "Word document"
         return f"{self.page_count} page{'' if self.page_count == 1 else 's'}"
