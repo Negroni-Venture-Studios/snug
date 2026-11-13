@@ -21,7 +21,7 @@ from snug.viewer.models import VerificationCode, ViewerSession
 
 class Command(BaseCommand):
     help = (
-        "Delete expired codes, sessions, setup links, rate-limit counts and old reading data, "
+        "Delete expired codes, sessions, setup links, rate-limit counts, and old reading data, "
         "then refresh the stored checks and DB-IP's country data."
     )
 

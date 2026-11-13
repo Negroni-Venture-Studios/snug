@@ -112,7 +112,7 @@ def _uploaded_what(version: DocumentVersion | None) -> str:
     return f"{version.page_count} page{pluralize(version.page_count)}"
 
 
-CHOOSE = "Choose a PDF, a Word, PowerPoint or Excel file, or an MP4 video to upload."
+CHOOSE = "Choose a PDF, an MP4 video, or a Word, PowerPoint, or Excel file to upload."
 
 
 @never_cache

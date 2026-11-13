@@ -232,7 +232,7 @@ def test_snug_env_is_held_to_the_same_smtp_ports_as_settings() -> None:
     """Found in review, 9 November 2026: only the Settings form checked the port."""
     found = problems({**SMTP, "SNUG_SMTP_PORT": "8025"})
     assert any(
-        "SNUG_SMTP_PORT must be 25, 465, 587, 2465, 2525 or 2587, not 8025" in p for p in found
+        "SNUG_SMTP_PORT must be 25, 465, 587, 2465, 2525, or 2587, not 8025" in p for p in found
     ), found
 
 

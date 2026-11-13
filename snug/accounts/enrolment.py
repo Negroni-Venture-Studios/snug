@@ -26,7 +26,7 @@ def enrol(
     secret = totp.new_secret()
     say(
         "\nScan this QR code with an authenticator app, such as 1Password, "
-        "Google Authenticator or Authy:\n"
+        "Google Authenticator, or Authy:\n"
     )
     say(totp.terminal_qr(totp.provisioning_uri(secret, email, domain)))
     say(f"Or enter this key by hand: {totp.grouped(secret)}\n")

@@ -733,7 +733,7 @@ def test_an_unconfined_refusal_is_explained() -> None:
     message = str(sandbox.WorkerError("unconfined"))
     assert message == (
         "This server cannot open documents safely. It needs Linux 6.7 or later, with Landlock, "
-        "seccomp and a memory limit. Ask whoever runs the server."
+        "seccomp, and a memory limit. Ask whoever runs the server."
     )
 
 

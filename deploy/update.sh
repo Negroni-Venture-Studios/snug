@@ -89,5 +89,5 @@ docker compose up --detach --wait
 echo
 echo "Snug is up to date. To check everything is working: sudo snug doctor"
 if ! office_is_on && [ "$office" != off ]; then
-	echo "To show Word, PowerPoint and Excel files in the browser: sudo snug update --with-office"
+	echo "To show Word, PowerPoint, and Excel files in the browser: sudo snug update --with-office"
 fi

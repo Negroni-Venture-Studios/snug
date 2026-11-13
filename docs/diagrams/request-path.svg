@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 692" width="960" height="692" role="img" aria-labelledby="t d">
 <title id="t">How a request reaches a view</title>
-<desc id="d">A browser's request goes through Caddy, which handles HTTPS and adds X-Forwarded-For, to a gunicorn web worker. There it passes Django's middleware in order: X-Forwarded-Proto, dropped unless Caddy sent it, security headers, the health check, static files, sessions, authentication, the admin session limits, the upload size limit and CSRF. The URL router then sends it to the admin views, the viewer views, where every request for content goes through authorise(), or the public branding files. Back come HTML pages, stamped page images, video in byte ranges, charts drawn on the server and stamped downloads.</desc>
+<desc id="d">A browser's request goes through Caddy, which handles HTTPS and adds X-Forwarded-For, to a gunicorn web worker. There it passes Django's middleware in order: X-Forwarded-Proto, dropped unless Caddy sent it, security headers, the health check, static files, sessions, authentication, the admin session limits, the upload size limit, and CSRF. The URL router then sends it to the admin views, the viewer views, where every request for content goes through authorise(), or the public branding files. Back come HTML pages, stamped page images, video in byte ranges, charts drawn on the server, and stamped downloads.</desc>
 <defs>
   <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
   <marker id="tip-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-accent"/></marker>
@@ -69,7 +69,7 @@
 <rect class="box" x="680" y="542" width="260" height="76" rx="8"/>
 <text class="title" x="696" y="566">Branding</text>
 <text class="mono" x="696" y="586">/brand/</text>
-<text class="small" x="696" y="606">logo, icon and colours; public</text>
+<text class="small" x="696" y="606">logo, icon, and colours; public</text>
 
 <!-- What comes back -->
 <rect class="zone" x="680" y="60" width="260" height="206" rx="10"/>

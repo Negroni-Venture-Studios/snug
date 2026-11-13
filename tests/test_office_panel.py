@@ -156,8 +156,8 @@ def test_without_the_converter_there_is_no_panel(
 
 
 NEW = "/admin/documents/new"
-PAGE_BY_PAGE = "Investors read a PDF, Word, PowerPoint or Excel file page by page"
-DOWNLOADED = "download a Word, PowerPoint or Excel file to open in its own app"
+PAGE_BY_PAGE = "Investors read a PDF, Word, PowerPoint, or Excel file page by page"
+DOWNLOADED = "download a Word, PowerPoint, or Excel file to open in its own app"
 
 
 def test_with_previews_the_upload_page_says_office_files_are_read_page_by_page(

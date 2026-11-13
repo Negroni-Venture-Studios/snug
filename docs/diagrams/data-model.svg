@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 784" width="960" height="784" role="img" aria-labelledby="t d">
 <title id="t">Snug's tables</title>
-<desc id="d">Snug's database tables in groups. Admins have recovery codes and setup links. A document has versions, each with its kind, its pages and, for an Office file, its preview. A room has folders, and holds documents through room entries. A link points at one document or one room, and has viewer sessions, verification codes and NDA acceptances, each of a published NDA version. A visit belongs to a link, a document and a viewer session, and has a page view for each page or part. The audit log, site settings, email settings, stored checks and rate-limit windows stand alone.</desc>
+<desc id="d">Snug's database tables in groups. Admins have recovery codes and setup links. A document has versions, each with its kind, its pages, and, for an Office file, its preview. A room has folders, and holds documents through room entries. A link points at one document or one room, and has viewer sessions, verification codes, and NDA acceptances, each of a published NDA version. A visit belongs to a link, a document, and a viewer session, and has a page view for each page or part. The audit log, site settings, email settings, stored checks, and rate-limit windows stand alone.</desc>
 <rect class="bg" width="960" height="784"/>
 
 <!-- ADMINS -->

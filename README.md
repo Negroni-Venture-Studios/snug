@@ -25,13 +25,13 @@ Founders raising a seed or Series A round who want more than a shared Drive fold
 
 ## What Snug does
 
-- **Documents.** PDFs, read page by page; Word documents, PowerPoint presentations and Excel workbooks (.docx, .pptx and .xlsx), downloaded as the working file, and read in the browser too if you install LibreOffice ([docs/office.md](docs/office.md)); and MP4 videos, watched in the browser with the viewer's watermark over them. Links show the latest version of each document.
+- **Documents.** PDFs, read page by page; Word documents, PowerPoint presentations, and Excel workbooks (.docx, .pptx, and .xlsx), downloaded as the working file, and read in the browser too if you install LibreOffice ([docs/office.md](docs/office.md)); and MP4 videos, watched in the browser with the viewer's watermark over them. Links show the latest version of each document.
 - **Rooms.** Collections of documents, with one level of folders. A document can be in any number of rooms.
 - **Links.** One per person, to a document or a room, with an optional message from you. Email verification (on by default), optional expiry, downloads (on by default), and immediate revocation.
-- **UK-only mode.** A link, or a whole room, can open only for visitors in the UK, Jersey, Guernsey and the Isle of Man, judged by their internet address against a country database kept on your server.
+- **UK-only mode.** A link, or a whole room, can open only for visitors in the UK, Jersey, Guernsey, and the Isle of Man, judged by their internet address against a country database kept on your server.
 - **An NDA.** One click-through agreement for your instance, versioned, which you can require before a room or a single-document link opens. Snug records who accepted which text, and when.
-- **The reader.** Pages are rendered on your server and shown one at a time, watermarked with the reader's email address, the date and the link. A download is the original PDF, stamped with the same details, so its text stays searchable. A video plays in the browser with the same details drawn over it. With LibreOffice, a Word, PowerPoint or Excel file is read page by page in the same way; without it, the file has a card with your description, and a workbook's card lists its sheets. Either way, a download is the file itself, with the same details in its document properties.
-- **Analytics.** Who opened each document, how long they spent on each page (or on each 10 seconds of a video), and how often they downloaded it, on an Overview, each document's page and a People page. Every admin is emailed the first time each link is opened, unless they turn it off. Reading data is deleted 12 months after a link ends, or after a period you set.
+- **The reader.** Pages are rendered on your server and shown one at a time, watermarked with the reader's email address, the date, and the link. A download is the original PDF, stamped with the same details, so its text stays searchable. A video plays in the browser with the same details drawn over it. With LibreOffice, a Word, PowerPoint, or Excel file is read page by page in the same way; without it, the file has a card with your description, and a workbook's card lists its sheets. Either way, a download is the file itself, with the same details in its document properties.
+- **Analytics.** Who opened each document, how long they spent on each page (or on each 10 seconds of a video), and how often they downloaded it, on an Overview, each document's page, and a People page. Every admin is emailed the first time each link is opened, unless they turn it off. Reading data is deleted 12 months after a link ends, or after a period you set.
 - **An audit log** of admin actions and viewer access, with each viewer's country, filterable and exportable as CSV.
 - **Email** through Google Workspace, as a mailbox on your domain over the Gmail API, or any provider over SMTP. It is set up in Settings in numbered steps, ending with a test email, and can be cleared there.
 - **Admin accounts** with a password and an authenticator app, recovery codes, invitations by email, and an email to every admin whenever the admins change.
@@ -45,7 +45,7 @@ You see who opened what on the Overview, and each person's reading on People:
 </picture>
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/people-dark.png">
-  <img alt="The People page: each investor's strip of pages, shaded by time, with their visits, downloads and total time." src="docs/images/screenshots/people-light.png" width="49%">
+  <img alt="The People page: each investor's strip of pages, shaded by time, with their visits, downloads, and total time." src="docs/images/screenshots/people-light.png" width="49%">
 </picture>
 
 An investor enters a code sent to their inbox, then reads, or downloads a workbook:
@@ -63,23 +63,27 @@ More screenshots are in [Using Snug](docs/using-snug.md).
 
 ## What Snug does not do
 
-- **No preview of Word, PowerPoint or Excel files without LibreOffice.** LibreOffice is optional, and runs in a container of its own ([docs/office.md](docs/office.md)); without it, investors download these files to read them.
-- **No older Office formats or image files.** Save .doc, .ppt and .xls files in the newer formats, and export images to PDF. Video must be MP4 with H.264.
+- **No preview of Word, PowerPoint, or Excel files without LibreOffice.** LibreOffice is optional, and runs in a container of its own ([docs/office.md](docs/office.md)); without it, investors download these files to read them.
+- **No older Office formats or image files.** Save .doc, .ppt, and .xls files in the newer formats, and export images to PDF. Video must be MP4 with H.264.
 - **No way to stop screen capture.** Anyone can photograph a screen or record a video as it plays, and a downloaded video has no watermark.
 - **No e-signatures.** The NDA is a click-through agreement, and Snug records who accepted it.
 - **No export control.** UK-only mode goes by internet address, and a VPN gets round it.
 - **No hosted version.** You run Snug on your own server, and one installation serves one company.
-- **No comments, single sign-on, investor updates or AI features.**
+- **No comments, single sign-on, investor updates, or AI features.**
 
 ## Status
 
 Version 1.1.2 is the latest release, with the container image `ghcr.io/negroni-venture-studios/snug:1.1.2`. Since 1.1.0, Snug takes Word and PowerPoint files, and has an optional LibreOffice converter that shows Office files in the browser.
 
-[What Snug protects against](docs/security.md) sets out the limits of its watermarks, the NDA record and UK-only mode. Planned work is in the [issues labelled enhancement](https://github.com/Negroni-Venture-Studios/snug/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
+[What Snug protects against](docs/security.md) sets out the limits of its watermarks, the NDA record, and UK-only mode. Planned work is in the [issues labelled enhancement](https://github.com/Negroni-Venture-Studios/snug/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
+
+## Windows, macOS, and Linux
+
+Snug runs on a Linux server, and you and your investors use it in a web browser, on Windows, macOS, Linux, or a phone.
 
 ## Trying it on your own computer
 
-To try Snug on a Mac, follow [Trying Snug on your own computer](docs/deploy-localhost.md). It takes about fifteen minutes, starting with installing Docker Desktop.
+To try Snug on a Mac or a Linux computer, follow [Trying Snug on your own computer](docs/deploy-localhost.md). It takes about fifteen minutes, starting with installing Docker Desktop on a Mac or Docker Engine on Linux. Snug has not been tried on Windows, though Docker Desktop runs there too.
 
 ## Running it on a server
 
@@ -87,13 +91,13 @@ To put Snug on a server, follow [Putting Snug on DigitalOcean](docs/deploy-digit
 
 ## How it is built
 
-Python and Django, with SQLite in WAL mode, server-rendered pages and very little JavaScript. PDFs are read and rendered with pypdfium2 in a separate process, limited in memory and time and confined by Linux Landlock and a filter that blocks network access and any reach into other processes, so a hostile PDF cannot reach your data. The same process checks Word, PowerPoint and Excel files and MP4 videos, with the standard library alone; it never decodes a video, which the viewer's browser plays. The optional LibreOffice converter makes a PDF of an Office file in a container of its own under gVisor, with no network, restarted after each file, and the confined process then reads that PDF. Snug is one container image, run beside Caddy, Litestream and rclone, and the converter's image if you install it. [How Snug works](docs/architecture.md) explains the code, with diagrams, and [docs/design.md](docs/design.md) the decisions behind it.
+Python and Django, with SQLite in WAL mode, server-rendered pages, and very little JavaScript. PDFs are read and rendered with pypdfium2 in a separate process, limited in memory and time and confined by Linux Landlock and a filter that blocks network access and any reach into other processes, so a hostile PDF cannot reach your data. The same process checks Word, PowerPoint, and Excel files and MP4 videos, with the standard library alone; it never decodes a video, which the viewer's browser plays. The optional LibreOffice converter makes a PDF of an Office file in a container of its own under gVisor, with no network, restarted after each file, and the confined process then reads that PDF. Snug is one container image, run beside Caddy, Litestream, rclone, and the converter's image if you install it. [How Snug works](docs/architecture.md) explains the code, with diagrams, and [docs/design.md](docs/design.md) the decisions behind it.
 
 UK-only mode uses [IP geolocation by DB-IP](https://db-ip.com), licensed CC BY 4.0, which your server downloads once a month.
 
 ## Contributing and security
 
-- [CONTRIBUTING.md](CONTRIBUTING.md) explains how to set up, test and propose changes.
+- [CONTRIBUTING.md](CONTRIBUTING.md) explains how to set up, test, and propose changes.
 - Please report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md).
 - [AGENTS.md](AGENTS.md) holds the working rules for AI coding agents.
 

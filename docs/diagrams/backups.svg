@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 700" width="960" height="700" role="img" aria-labelledby="t d">
 <title id="t">Backups and restore</title>
-<desc id="d">Litestream copies every change to the database into a replica on the same volume, without a network. Every 5 minutes the rclone backup container checks that the bucket belongs to this Snug, then syncs the replica, the uploads and the branding through rclone crypt, so they are encrypted before they leave the server. Anything the sync would overwrite or delete is kept in deleted/date/ for 30 days. The container records success or a problem for snug doctor and the Overview. sudo snug restore stops Snug, sets the current data aside, copies everything back from the bucket, has Litestream rebuild the database at any moment in the last 7 days, and starts again.</desc>
+<desc id="d">Litestream copies every change to the database into a replica on the same volume, without a network. Every 5 minutes the rclone backup container checks that the bucket belongs to this Snug, then syncs the replica, the uploads, and the branding through rclone crypt, so they are encrypted before they leave the server. Anything the sync would overwrite or delete is kept in deleted/date/ for 30 days. The container records success or a problem for snug doctor and the Overview. sudo snug restore stops Snug, sets the current data aside, copies everything back from the bucket, has Litestream rebuild the database at any moment in the last 7 days, and starts again.</desc>
 <defs>
   <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
   <marker id="tip-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-accent"/></marker>
@@ -33,7 +33,7 @@
 <text class="label" x="52" y="275">match this Snug's</text>
 <rect class="box" x="264" y="212" width="196" height="76" rx="8"/>
 <text class="title" x="280" y="238">Sync</text>
-<text class="label" x="280" y="258">the replica, originals</text>
+<text class="label" x="280" y="258">the replica, originals,</text>
 <text class="label" x="280" y="275">and branding</text>
 <rect class="key" x="492" y="212" width="196" height="76" rx="8"/>
 <text class="title" x="508" y="238">rclone crypt</text>
@@ -60,7 +60,7 @@
 <path class="line-dashed" d="M822,288 V320"/>
 <text class="small" x="492" y="334">Not backed up: page images,</text>
 <text class="small" x="492" y="352">Office files' previews, GeoIP</text>
-<text class="small" x="492" y="370">data and temporary files,</text>
+<text class="small" x="492" y="370">data, and temporary files,</text>
 <text class="small" x="492" y="388">which Snug can make again.</text>
 
 <!-- Restoring -->
@@ -70,7 +70,7 @@
 
 <rect class="box" x="36" y="490" width="164" height="96" rx="8"/>
 <text class="title" x="52" y="516">Stop</text>
-<text class="label" x="52" y="538">Snug, Litestream</text>
+<text class="label" x="52" y="538">Snug, Litestream,</text>
 <text class="label" x="52" y="555">and the backup</text>
 <rect class="box" x="220" y="490" width="164" height="96" rx="8"/>
 <text class="title" x="236" y="516">Set aside</text>
@@ -78,7 +78,7 @@
 <text class="mono" x="236" y="556">previous-&lt;time&gt;/</text>
 <rect class="box" x="404" y="490" width="164" height="96" rx="8"/>
 <text class="title" x="420" y="516">Copy back</text>
-<text class="label" x="420" y="538">the replica, originals</text>
+<text class="label" x="420" y="538">the replica, originals,</text>
 <text class="label" x="420" y="555">and branding</text>
 <rect class="key" x="588" y="490" width="164" height="96" rx="8"/>
 <text class="title" x="604" y="516">Rebuild</text>

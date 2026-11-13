@@ -3,7 +3,7 @@
 {% block title %}Snug audit log{% endblock %}
 {% block content %}
 <div class="title-row">
-  <div><h1 class="page-title">Audit log</h1><div class="page-meta">What admins, viewers and Snug have done, newest first. Nothing here can be changed or deleted.</div></div>
+  <div><h1 class="page-title">Audit log</h1><div class="page-meta">What admins, viewers, and Snug have done, newest first. Nothing here can be changed or deleted.</div></div>
   <div class="actions"><a class="btn" href="{% url 'audit:export' %}{% if kind or q %}?{% if kind %}kind={{ kind|urlencode }}{% endif %}{% if kind and q %}&amp;{% endif %}{% if q %}q={{ q|urlencode }}{% endif %}{% endif %}">{% icon "download-simple" %}Export CSV</a></div>
 </div>
 <form class="filters" method="get" action="{% url 'audit:list' %}">
@@ -32,6 +32,6 @@
 </nav>
 {% endif %}
 {% else %}
-<div class="empty">{% if kind or q %}<h2>Nothing matches that filter</h2>{% else %}<h2>Nothing recorded yet</h2><p>Sign-ins, links, uploads and viewer activity appear here.</p>{% endif %}</div>
+<div class="empty">{% if kind or q %}<h2>Nothing matches that filter</h2>{% else %}<h2>Nothing recorded yet</h2><p>Sign-ins, links, uploads, and viewer activity appear here.</p>{% endif %}</div>
 {% endif %}
 {% endblock %}

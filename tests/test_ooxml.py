@@ -333,7 +333,7 @@ def test_a_refused_workbook_says_why_in_plain_words(tmp_path: Path) -> None:
         sandbox.inspect_office(path)
     assert str(error.value) == (
         "This file contains macros or embedded objects, which Snug does not share. "
-        "Save it as .docx, .pptx or .xlsx without them, then upload it again."
+        "Save it as .docx, .pptx, or .xlsx without them, then upload it again."
     )
 
 
@@ -367,7 +367,7 @@ def test_odd_answers_from_the_worker_are_refused(
     monkeypatch.setattr(sandbox, "run", lambda *args, **kwargs: output)
     with pytest.raises(sandbox.WorkerError) as error:
         sandbox.inspect_office(model)
-    assert "Word, PowerPoint or Excel file" in str(error.value)
+    assert "Word, PowerPoint, or Excel file" in str(error.value)
 
 
 @pytest.mark.parametrize("output", [b"%PDF-1.7 not a workbook", b"PK\x03\x04" + b"x" * 2048])
@@ -377,7 +377,7 @@ def test_a_stamped_workbook_that_is_not_one_or_too_big_is_refused(
     monkeypatch.setattr(sandbox, "run", lambda *args, **kwargs: output)
     with pytest.raises(sandbox.WorkerError) as error:
         sandbox.stamp_office(model, **STAMP, limit=1024)
-    assert "Word, PowerPoint or Excel file" in str(error.value)
+    assert "Word, PowerPoint, or Excel file" in str(error.value)
 
 
 def test_a_worker_failure_while_stamping_speaks_of_a_workbook(

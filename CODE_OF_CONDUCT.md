@@ -15,7 +15,7 @@ Behaviour that contributes to a positive environment:
 
 Unacceptable behaviour:
 
-- trolling, insults, derogatory comments and personal attacks;
+- trolling, insults, derogatory comments, and personal attacks;
 - publishing other people's private information without their explicit permission;
 - any other conduct that would reasonably be considered inappropriate in a professional setting.
 

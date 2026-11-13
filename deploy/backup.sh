@@ -2,7 +2,7 @@
 # Snug's backup sidecar, run in the rclone container by compose.yaml.
 #
 # Every 5 minutes it copies Litestream's replica of the database, the
-# uploaded originals and the branding images to the bucket, through the
+# uploaded originals, and the branding images to the bucket, through the
 # crypt remote "snug-backup" in /config/rclone/rclone.conf, which encrypts
 # everything before it leaves the server. Files that are deleted or replaced,
 # including the database replica's, are kept under deleted/<date>/ in the

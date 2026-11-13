@@ -11,7 +11,7 @@ Google needs to know about Snug first, so there is a one-time setup in the Googl
 - **A Google Workspace account that is an administrator**, or one allowed to create Google Cloud projects (most are).
 - **The mailbox Snug will send from.** It must be a real user with a Gmail licence, not a group. A dedicated user, such as `rooms@`, is best. Investor emails then stay out of your own *Sent* folder, and sending does not stop if you leave or change your password. Your own mailbox works too, and is the quickest way to try it.
 - **Snug running, and you signed in.** You will copy its redirect address from Settings, and paste the client into it at the end.
-- **Your domain's email records in place.** Mail from a domain without SPF, DKIM and DMARC goes to spam. If you are not sure yours has them, see [Your domain's email records](#your-domains-email-records) first.
+- **Your domain's email records in place.** Mail from a domain without SPF, DKIM, and DMARC goes to spam. If you are not sure yours has them, see [Your domain's email records](#your-domains-email-records) first.
 
 ## Before you start: one Google account at a time
 
@@ -137,7 +137,7 @@ Without *Send mail as*, Gmail quietly sends from the mailbox's primary address i
 
 Receiving servers check three DNS records before they trust mail from your domain. Without them, Snug's emails go to spam or are refused. They belong in the DNS of the domain the emails come **from**, and every domain you send from needs its own set, alias domains included.
 
-Your Workspace administrator may have set them up already. To check, open the [Admin console](https://admin.google.com), then **Account**, **Domains**, **Manage domains**, and look at **Email setup status** for each domain. It lists MX, SPF and DKIM, each marked *Complete* or *Incorrect*. Changes can take up to 72 hours to show there, though most show within hours.
+Your Workspace administrator may have set them up already. To check, open the [Admin console](https://admin.google.com), then **Account**, **Domains**, **Manage domains**, and look at **Email setup status** for each domain. It lists MX, SPF, and DKIM, each marked *Complete* or *Incorrect*. Changes can take up to 72 hours to show there, though most show within hours.
 
 You add the records at your DNS host: your registrar, Cloudflare, or wherever your domain's records are kept.
 
@@ -181,7 +181,7 @@ Once a record is added, ask for it from a terminal:
 
 Each should print the value you added. A new record usually appears within minutes. A changed one can take as long as its old *TTL*, often an hour.
 
-Then send a test from Snug, open it in Gmail, and choose **Show original** from the message's menu. The top of the page should say **PASS** for SPF, DKIM and DMARC.
+Then send a test from Snug, open it in Gmail, and choose **Show original** from the message's menu. The top of the page should say **PASS** for SPF, DKIM, and DMARC.
 
 ### When your DNS host is awkward
 
@@ -208,5 +208,5 @@ Then send a test from Snug, open it in Gmail, and choose **Show original** from 
 | Google approves a different address from the one you expected | It is the mailbox's primary address, on another of your domains. See [Sending from another address](#sending-from-another-address). |
 | Snug says Google did not give **a lasting permission** | Remove Snug from the mailbox's [third-party connections](https://myaccount.google.com/connections), then connect again. |
 | Snug says **invalid_client** | The client ID or secret is wrong, or the client was deleted. Paste them again. |
-| The test arrives, but in spam | SPF, DKIM or DMARC is missing or failing. See [Your domain's email records](#your-domains-email-records), and check **Show original**. |
+| The test arrives, but in spam | SPF, DKIM, or DMARC is missing or failing. See [Your domain's email records](#your-domains-email-records), and check **Show original**. |
 | The test comes from the wrong address | The From address is not under the mailbox's **Send mail as** in Gmail. |

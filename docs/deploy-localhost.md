@@ -2,7 +2,7 @@
 
 You can run Snug on your own Mac to see how it works before you set up a server. It runs at an address only your computer can open, so investors cannot reach it.
 
-The steps are for a Mac. On Linux, install [Docker Engine](https://docs.docker.com/engine/install/) and type the same commands. Windows is not covered.
+The steps are for a Mac. On Linux, install [Docker Engine](https://docs.docker.com/engine/install/) and type the same commands. Snug has not been tried on Windows, though Docker Desktop runs there too.
 
 ## 1. Install Docker Desktop
 
@@ -63,7 +63,7 @@ Put your own email address in place of `you@example.com`. Snug asks:
 
 Nothing appears as you type the password.
 
-Snug then shows a QR code. Open your authenticator app, such as 1Password, Google Authenticator or Authy, add an account, and scan the code. If the code does not fit in the window, make the window bigger, or type the key shown under it into the app instead.
+Snug then shows a QR code. Open your authenticator app, such as 1Password, Google Authenticator, or Authy, add an account, and scan the code. If the code does not fit in the window, make the window bigger, or type the key shown under it into the app instead.
 
 | Snug asks | You type |
 |---|---|
@@ -73,7 +73,7 @@ Snug shows ten recovery codes. Each lets you sign in once without your phone. Ke
 
 ## 6. Sign in
 
-Open [http://localhost:8000/admin/](http://localhost:8000/admin/) in your browser, and sign in with your email address, your password and a code from your app.
+Open [http://localhost:8000/admin/](http://localhost:8000/admin/) in your browser, and sign in with your email address, your password, and a code from your app.
 
 The Overview says that nothing has been backed up, since backups need a server.
 

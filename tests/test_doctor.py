@@ -184,7 +184,7 @@ def test_anything_less_is_a_problem(how: str, monkeypatch: pytest.MonkeyPatch) -
     assert found.status == "problem"
     assert found.message == (
         f"The document worker cannot confine itself ({how}), so Snug will not read documents. "
-        "It needs Linux 6.7 or later, with Landlock, seccomp and a memory limit."
+        "It needs Linux 6.7 or later, with Landlock, seccomp, and a memory limit."
     )
 
 
@@ -418,3 +418,16 @@ def test_every_message_starts_in_one_column_clear_of_the_longest_label(
     starts = {len(line) - len(line[10:].split("  ", 1)[1].lstrip()) for line in lines}
     assert len(starts) == 1, report
     assert starts.pop() == 10 + max(len(label) for label in labels) + 2, report
+
+
+@pytest.mark.parametrize(
+    ("items", "words"),
+    [
+        (["192.0.2.1"], "192.0.2.1"),
+        (["192.0.2.1", "2001:db8::1"], "192.0.2.1 and 2001:db8::1"),
+        (["192.0.2.1", "192.0.2.2", "2001:db8::1"], "192.0.2.1, 192.0.2.2, and 2001:db8::1"),
+    ],
+)
+def test_addresses_are_listed_with_the_serial_comma(items: list[str], words: str) -> None:
+    # House style is the serial comma (13 November 2026), and a pair has no comma.
+    assert doctor._listed(items) == words

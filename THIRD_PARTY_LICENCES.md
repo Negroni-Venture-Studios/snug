@@ -11,7 +11,7 @@ The full licence texts ship with each package, in its `*.dist-info/licenses` fol
 | Django (with asgiref and sqlparse) | BSD-3-Clause | The web framework |
 | gunicorn | MIT | The web server |
 | whitenoise | MIT | Serving static files |
-| argon2-cffi (with argon2-cffi-bindings, cffi and pycparser) | MIT (cffi MIT-0, pycparser BSD-3-Clause) | Password hashing |
+| argon2-cffi (with argon2-cffi-bindings, cffi, and pycparser) | MIT (cffi MIT-0, pycparser BSD-3-Clause) | Password hashing |
 | pyotp | MIT | Authenticator codes |
 | segno | BSD-3-Clause | QR codes for authenticator enrolment |
 | pypdfium2 | Apache-2.0 or BSD-3-Clause | Reading and rendering PDFs |
@@ -28,14 +28,14 @@ pypdfium2's wheels include a compiled copy of Google's PDFium and the libraries 
 | pdfium-binaries build | MIT |
 | FreeType | FreeType Licence (FTL), chosen from its FTL or GPL-2.0 dual licence |
 | ICU | Unicode Licence V3 |
-| libjpeg-turbo | IJG Licence, BSD-3-Clause and zlib |
+| libjpeg-turbo | IJG Licence, BSD-3-Clause, and zlib |
 | Little CMS (lcms) | MIT |
 | OpenJPEG | BSD-2-Clause |
 | libpng | libpng Licence |
 | zlib | zlib Licence |
 | Anti-Grain Geometry 2.3 | AGG Licence (permissive) |
 | abseil | Apache-2.0 |
-| fast_float | Apache-2.0, MIT or BSL-1.0 |
+| fast_float | Apache-2.0, MIT, or BSL-1.0 |
 | simdutf | Apache-2.0 or MIT |
 | LLVM libc | Apache-2.0 with LLVM exception |
 

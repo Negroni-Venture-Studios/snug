@@ -121,7 +121,7 @@ ask "Your company's name, as investors know it (you can change it later in Setti
 # shellcheck source=deploy/office.sh
 . ./office.sh
 say
-say "Word, PowerPoint and Excel files are shared as downloads. Snug can also show them"
+say "Word, PowerPoint, and Excel files are shared as downloads. Snug can also show them"
 say "in the browser, page by page, with LibreOffice in a container of its own under"
 say "gVisor. It needs 2 GB of memory. docs/office.md explains what it changes."
 if office_is_on; then office_default=yes; else office_default=no; fi

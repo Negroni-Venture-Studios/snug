@@ -85,11 +85,11 @@ def test_paths_come_only_from_generated_names(document: Document, name: str) -> 
         (b"", "empty"),
         (
             b"Hello, this is a Word document really",
-            r"Snug takes PDFs, Word, PowerPoint and Excel files \(\.docx, \.pptx and \.xlsx\)",
+            r"Snug takes PDFs, Word, PowerPoint, and Excel files \(\.docx, \.pptx, and \.xlsx\)",
         ),
         (
             b"\x89PNG\r\n\x1a\n" + b"\x00" * 100,
-            r"Snug takes PDFs, Word, PowerPoint and Excel files \(\.docx, \.pptx and \.xlsx\)",
+            r"Snug takes PDFs, Word, PowerPoint, and Excel files \(\.docx, \.pptx, and \.xlsx\)",
         ),
         (b"%PDF-1.7\n" + b"garbage " * 200, "could not be read"),
         (DECK[: len(DECK) // 3], "could not be read"),

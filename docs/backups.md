@@ -6,8 +6,8 @@ The standard deployment backs Snug up continuously to a storage bucket of your o
 
 | What | How often | History kept |
 |---|---|---|
-| The database: admins, links, rooms, the audit log, NDA acceptances, reading data and settings, including how email is sent | Litestream records every change within a second; the bucket gets a copy every 5 minutes | Any moment in the last 7 days can be restored |
-| Uploaded documents (`originals/`): PDFs, Office files and videos | Every 5 minutes | A deleted or replaced file is kept for 30 days |
+| The database: admins, links, rooms, the audit log, NDA acceptances, reading data, and settings, including how email is sent | Litestream records every change within a second; the bucket gets a copy every 5 minutes | Any moment in the last 7 days can be restored |
+| Uploaded documents (`originals/`): PDFs, Office files, and videos | Every 5 minutes | A deleted or replaced file is kept for 30 days |
 | Your logo and tab icon (`branding/`) | Every 5 minutes | As documents |
 
 The page images Snug renders and stamps, Office files' previews, the files it keeps while uploading, and DB-IP's country data are not backed up, since Snug rebuilds or fetches them again as needed.
@@ -25,11 +25,11 @@ The server holds the bucket's keys, so someone who takes control of it can delet
 Two containers beside Snug make the backups:
 
 - **Litestream** copies every change to the database into `backup/database` in Snug's data volume, within a second. Its settings are in `litestream.yml`.
-- **backup** runs rclone every 5 minutes. It copies `backup/database`, `originals/` and `branding/` to the bucket through an rclone crypt remote, which encrypts each file's contents (XSalsa20 and Poly1305) and its name (AES-256) before it leaves the server. Its script is `backup.sh`. `SNUG_BACKUP_EVERY` in `snug.env` sets the interval in seconds, 300 unless set; `snug doctor` still reports a problem after 15 minutes without a copy.
+- **backup** runs rclone every 5 minutes. It copies `backup/database`, `originals/`, and `branding/` to the bucket through an rclone crypt remote, which encrypts each file's contents (XSalsa20 and Poly1305) and its name (AES-256) before it leaves the server. Its script is `backup.sh`. `SNUG_BACKUP_EVERY` in `snug.env` sets the interval in seconds, 300 unless set; `snug doctor` still reports a problem after 15 minutes without a copy.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/backups-dark.svg">
-  <img alt="Litestream copies every database change to a replica on the same volume, and every 5 minutes rclone encrypts the replica, the uploads and the branding into your bucket, keeping anything it would overwrite or delete for 30 days. sudo snug restore sets the current data aside, copies everything back and rebuilds the database at any moment in the last 7 days." src="images/diagrams/backups-light.svg">
+  <img alt="Litestream copies every database change to a replica on the same volume, and every 5 minutes rclone encrypts the replica, the uploads, and the branding into your bucket, keeping anything it would overwrite or delete for 30 days. sudo snug restore sets the current data aside, copies everything back, and rebuilds the database at any moment in the last 7 days." src="images/diagrams/backups-light.svg">
 </picture>
 
 Only the backup container sees the bucket's keys and the encryption passwords, in `/opt/snug/backup/rclone.conf`, so a fault in Snug cannot reach the backups. The backup container can reach the internet, but not Snug.
@@ -83,9 +83,9 @@ sudo docker compose exec backup rclone lsf -R snug-backup:
 
 ## Restoring
 
-`snug restore` brings everything back from the bucket: the database, the uploaded documents and the branding images. Run it on the same server after a mistake. On a new server, `snug setup` runs it.
+`snug restore` brings everything back from the bucket: the database, the uploaded documents, and the branding images. Run it on the same server after a mistake. On a new server, `snug setup` runs it.
 
-On DigitalOcean, [Putting Snug on DigitalOcean](deploy-digitalocean.md#bringing-snug-back-on-a-new-server) goes through it step by step. On another provider, create the new server with cloud-init as [deployment.md](deployment.md) describes, and run `sudo snug setup`. After the domain, your company's name and whether to show Office files in the browser, it asks whether you are restoring Snug from an earlier server's backups. Type `yes`, then paste the backup settings saved in your password manager, from the first line, `# Snug's backups`, to the last, `password2 = ...`. Setup checks the bucket holds backups and restores them. Then sign in to check, and run `sudo snug doctor`.
+On DigitalOcean, [Putting Snug on DigitalOcean](deploy-digitalocean.md#bringing-snug-back-on-a-new-server) goes through it step by step. On another provider, create the new server with cloud-init as [deployment.md](deployment.md) describes, and run `sudo snug setup`. After the domain, your company's name, and whether to show Office files in the browser, it asks whether you are restoring Snug from an earlier server's backups. Type `yes`, then paste the backup settings saved in your password manager, from the first line, `# Snug's backups`, to the last, `password2 = ...`. Setup checks the bucket holds backups and restores them. Then sign in to check, and run `sudo snug doctor`.
 
 The email settings come back with the database, including a Google Workspace connection, which goes on sending. If the new server has a different domain, add its redirect address to the Google client too, as [email-google.md](email-google.md) describes, so the mailbox can be connected again when it needs to be.
 
