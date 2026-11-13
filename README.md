@@ -79,11 +79,11 @@ Version 1.1.2 is the latest release, with the container image `ghcr.io/negroni-v
 
 ## Windows, macOS and Linux
 
-Snug runs on a Linux server. You manage your data room in a web browser on Windows, macOS or Linux, and investors read it in theirs, on a computer or a phone.
+Snug runs on a Linux server, and you and your investors use it in a web browser, on Windows, macOS, Linux or a phone.
 
 ## Trying it on your own computer
 
-To try Snug on a Mac, follow [Trying Snug on your own computer](docs/deploy-localhost.md). It takes about fifteen minutes, starting with installing Docker Desktop. The same commands work on Linux. Docker Desktop runs on Windows too, but Snug has not been tried there.
+To try Snug on a Mac or a Linux computer, follow [Trying Snug on your own computer](docs/deploy-localhost.md). It takes about fifteen minutes, starting with installing Docker Desktop on a Mac or Docker Engine on Linux. Snug has not been tried on Windows, though Docker Desktop runs there too.
 
 ## Running it on a server
 
