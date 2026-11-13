@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-11-13
+
+Setup says how to create the first admin if that step fails. Also the README's platforms section, and the serial comma throughout.
+
 ### Changed
 
 - The README has a section on Windows, macOS, and Linux. Snug runs on a Linux server, and founders and investors use it in a web browser on any of them, or on a phone. The guide to trying Snug on your own computer covers a Mac and Linux; Snug has not been tried on Windows.
@@ -274,7 +278,8 @@ External security audits found these.
 - Project documents: README, contributing guide, security policy, code of conduct, trademarks note, and agent instructions.
 - DESIGN.md, recording the architecture, the agreed decisions, and the front-end design, with clickable mockups and the Snug logo in `docs/design/`.
 
-[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.0.0...v1.1.0
