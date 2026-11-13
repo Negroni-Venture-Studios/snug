@@ -79,7 +79,7 @@ Version 1.1.2 is the latest release, with the container image `ghcr.io/negroni-v
 
 ## Windows, macOS and Linux
 
-Snug runs on a Linux server, and everyone uses it in a web browser. You can manage your data room from Windows, macOS or Linux with nothing to install, and investors can read on a phone too.
+Snug runs on a Linux server. You manage your data room in a web browser on Windows, macOS or Linux, and investors read it in theirs, on a computer or a phone.
 
 ## Trying it on your own computer
 
