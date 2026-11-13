@@ -46,7 +46,7 @@ The command installs gVisor from gVisor's own packages, restarts Docker and with
 
 `sudo snug doctor` then shows the converter working, with its LibreOffice version:
 
-<img alt="snug doctor, ending with ok, Office converter, LibreOffice 25.2.3, in an image built on 12 November 2026." src="images/office/doctor.png">
+<img alt="snug doctor for Snug 1.1.2, with ok, Office converter, LibreOffice 25.2.3, in an image built on 13 November 2026." src="images/office/doctor.png">
 
 ## Keeping it up to date
 
