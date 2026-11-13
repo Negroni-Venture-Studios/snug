@@ -4,6 +4,14 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-11-13
+
+`snug version`, and the version in `snug doctor`.
+
+### Added
+
+- `sudo snug version` prints the version of Snug running, as the Overview shows it, and `sudo snug doctor` shows it on its first line. Before, `snug version` printed the version of Django, which Snug runs on.
+
 ## [1.1.1] - 2026-11-13
 
 Clearer wording in the *About this link* panel, and a correction to the backups guide.
@@ -257,7 +265,8 @@ External security audits found these.
 - Project documents: README, contributing guide, security policy, code of conduct, trademarks note, and agent instructions.
 - DESIGN.md, recording the architecture, the agreed decisions and the front-end design, with clickable mockups and the Snug logo in `docs/design/`.
 
-[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Negroni-Venture-Studios/snug/releases/tag/v1.0.0

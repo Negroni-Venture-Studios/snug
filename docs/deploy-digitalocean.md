@@ -292,7 +292,7 @@ Snug is up to date. To check everything is working: sudo snug doctor
 To show Word, PowerPoint and Excel files in the browser: sudo snug update --with-office
 ```
 
-The second line appears only while LibreOffice is not installed. Your documents, links, accounts and settings are kept. The Overview shows the new version under the line at the top.
+The second line appears only while LibreOffice is not installed. Your documents, links, accounts and settings are kept. The Overview shows the new version under the line at the top, and `sudo snug version` prints it in the console.
 
 To add LibreOffice later, resize the droplet to the $12.00/mo plan first, then run `sudo snug update --with-office`. On a server running Snug 1.0.0, run `sudo snug update` once before that: 1.0.0's command does not pass `--with-office` on. [Showing Office files in the browser](office.md) explains the rest.
 
