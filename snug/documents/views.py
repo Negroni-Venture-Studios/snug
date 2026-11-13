@@ -398,7 +398,7 @@ def _version_notice(document: Document, number: int) -> str:
             f"Version {number} uploaded. Links show it once its preview is ready, "
             f"and version {before} until then."
         )
-    return f"Version {number} uploaded. Every link to this document shows it now."
+    return f"Version {number} uploaded. Investors see it now."
 
 
 @never_cache

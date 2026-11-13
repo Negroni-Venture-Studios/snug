@@ -795,6 +795,12 @@ def test_too_many_pages_are_refused(monkeypatch: pytest.MonkeyPatch) -> None:
     assert caught.value.code == "too_many_pages"
 
 
+def test_too_many_pages_says_how_many_snug_shows() -> None:
+    assert str(sandbox.WorkerError("too_many_pages")) == (
+        f"This PDF has more than the {worker.MAX_PAGES:,} pages Snug can show."
+    )
+
+
 def test_gunicorn_master_makes_itself_undumpable(monkeypatch: pytest.MonkeyPatch) -> None:
     from snug import gunicorn_conf
 

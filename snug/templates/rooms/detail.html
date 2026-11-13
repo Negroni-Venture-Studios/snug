@@ -58,7 +58,7 @@
     <form class="panel form" method="post" action="{% url 'rooms:nda' room.token %}">
       {% csrf_token %}
       {% include "snug/partials/saved.html" with here="nda" %}
-      <label class="check"><input id="room-require-nda" type="checkbox" name="require_nda"{% if room.require_nda %} checked{% endif %}><span>Ask for the NDA before anything is shown<span class="hint">{% if nda %}Version {{ nda.number }}. Investors accept it once on each link, and again when it changes.{% else %}There is no NDA yet. Write it below: it becomes version 1, for every room and link that asks for it, and you can change it in Settings.{% endif %}</span></span></label>
+      <label class="check"><input id="room-require-nda" type="checkbox" name="require_nda"{% if room.require_nda %} checked{% endif %}><span>Ask for the NDA before anything is shown<span class="hint">{% if nda %}Version {{ nda.number }}. Investors accept it once on each link, and again when it changes.{% else %}There is no NDA yet. Write it below; any room or link that asks for the NDA will use it. You can change it in Settings.{% endif %}</span></span></label>
       {% if not nda %}<div class="field nda-first" data-nda-for="room-require-nda"><label for="room-nda-text">The NDA</label><textarea id="room-nda-text" name="nda_text" rows="6"{% if nda_error %} aria-invalid="true" aria-describedby="room-nda-error"{% endif %}>{{ nda_draft|default:'' }}</textarea>{% if nda_error %}<div class="error" id="room-nda-error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% endif %}</div>
       {% elif nda_error %}<div class="error" role="alert">{% icon "warning-circle" %}{{ nda_error }}</div>{% endif %}
       <div class="form-foot"><button class="btn" type="submit">Save</button></div>

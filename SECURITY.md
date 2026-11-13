@@ -21,8 +21,8 @@ You will get a response within 72 hours. We will work with you on a fix and agre
 
 In scope:
 
-- Snug's own code: authorisation, sessions, links, verification codes, file handling, the confined worker that reads PDFs, Excel workbooks and MP4 videos, video streaming, analytics, the admin interface, and email, including the Google Workspace connection.
-- The deployment files we ship: the container image, the Compose file, the Caddy and Litestream configuration, the backup, restore, setup and update scripts, the `snug` command, and cloud-init.
+- Snug's own code: authorisation, sessions, links, verification codes, file handling, the confined worker that reads PDFs, Word, PowerPoint and Excel files and MP4 videos, the LibreOffice converter and its container, video streaming, analytics, the admin interface, and email, including the Google Workspace connection.
+- The deployment files we ship: Snug's container image and the converter's, the Compose file, the Caddy and Litestream configuration, the backup, restore, setup, update and LibreOffice scripts, the `snug` command, and cloud-init.
 
 Out of scope:
 
@@ -32,7 +32,7 @@ Out of scope:
 
 ## Supported versions
 
-Security fixes go into the next release, and only the latest release is supported. To update a server, run `sudo snug update`. The `:edge` image, built from `main`, has fixes as soon as they merge.
+Security fixes go into the next release, and only the latest release is supported. To update a server, run `sudo snug update`. The `:edge` image, built from `main`, has fixes as soon as they merge. The converter's image is built again every Monday with Debian's latest LibreOffice security fixes, and `sudo snug update` installs it.
 
 ## How changes are checked
 
@@ -43,6 +43,7 @@ Every change to `main`, an administrator's included, goes through a pull request
 - the test suite, with the document worker's confinement tested on Linux;
 - the investor's journey and the admin controls in a real browser;
 - a smoke test of the container image, including a confined render;
+- the LibreOffice converter's image, converting a Word document, a presentation and a workbook under gVisor;
 - gitleaks over the full git history;
 - pip-audit against known vulnerabilities;
 - a licence check;

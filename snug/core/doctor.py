@@ -241,7 +241,7 @@ def geoip_data(now: datetime) -> Finding:
     if held is None:
         return _problem(
             label,
-            "UK-only links refuse everyone: there is no country data yet. Housekeeping "
+            "There is no country data yet, so UK-only links refuse everyone. Housekeeping "
             "downloads it from DB-IP; check that the server can reach download.db-ip.com.",
         )
     previous = f"{(now.replace(day=1) - timedelta(days=1)):%Y-%m}"
@@ -269,7 +269,7 @@ def office(now: datetime) -> Finding:
         return _problem(
             label,
             f"LibreOffice {status.version}, in an image built on {built}. A newer image, with "
-            "LibreOffice's latest security fixes, is waiting: run sudo snug update.",
+            "LibreOffice's latest security fixes, is waiting. Run sudo snug update.",
         )
     return _ok(label, f"LibreOffice {status.version}, in an image built on {built}.")
 

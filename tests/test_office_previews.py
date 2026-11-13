@@ -263,6 +263,11 @@ def test_a_previewed_deck_is_read_page_by_page(converter: Converter) -> None:
     assert f"/v/{issued.token}/pages/1-" in page
     assert "Board deck, a PowerPoint presentation, 4 pages" in page
     assert "<dt>Access</dt><dd>View in the browser, or download</dd>" in page
+    assert (
+        "when you open this presentation, how long you spend on each page, and when you "
+        "download it. Your email address is watermarked on every page and written into the "
+        "document properties of any copy you download." in page
+    )
     image = browser.get(f"/v/{issued.token}/pages/2-800.webp", secure=True)
     assert image.status_code == 200 and image["Content-Type"] == "image/webp"
 
@@ -365,3 +370,32 @@ def test_a_failed_preview_is_not_queued_again_by_itself(converter: Converter) ->
     previews.pump()
     assert fresh(version).preview == Preview.FAILED
     assert converter.jobs() == []
+
+
+# ---------------------------------------------------------------- after a restore
+
+
+def test_a_preview_lost_in_a_restore_is_made_again(converter: Converter) -> None:
+    # Previews are not backed up. Found 13 November 2026: after a restore onto
+    # a new server, a version marked ready had no PDF, and nothing remade it.
+    deck = previewed(converter, pages=4)
+    version = deck.latest_version()
+    assert version is not None and version.reads_as_pages
+    previews.preview_path(version).unlink()
+    previews.pump()  # housekeeping runs this as Snug starts, then every hour
+    version = fresh(version)
+    assert version.preview in (Preview.PENDING, Preview.CONVERTING)
+    assert not version.reads_as_pages  # a card meanwhile, never a broken page
+    converter.answer(make_pdf(*[(720, 540)] * 4))
+    previews.pump()
+    assert fresh(version).reads_as_pages
+
+
+def test_a_page_whose_pdf_has_gone_says_it_cannot_be_shown(converter: Converter) -> None:
+    deck = previewed(converter, pages=4)
+    version = deck.latest_version()
+    assert version is not None
+    previews.preview_path(version).unlink()
+    issued = link_to(deck)
+    response = opened(issued).get(f"/v/{issued.token}/pages/1-800.webp", secure=True)
+    assert response.status_code == 503

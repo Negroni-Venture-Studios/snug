@@ -30,7 +30,7 @@ CHUNK = 64 * 1024
 MESSAGES = {
     "password": "This PDF is protected by a password. Remove the password, then upload it again.",
     "empty": "This PDF has no pages.",
-    "too_many_pages": "This PDF has more than 2,000 pages, which is more than Snug can show.",
+    "too_many_pages": "This PDF has more than the 2,000 pages Snug can show.",
     "unreadable": "This file could not be read as a PDF. Export it to PDF again, then upload it.",
     "timeout": "This PDF took too long to read. Export it to PDF again, then upload it.",
     "memory": "This PDF needs more memory to read than Snug allows.",
@@ -304,7 +304,7 @@ VIDEO_MESSAGES = {
     "not_mp4": f"This file could not be read as an MP4 video. {EXPORT_MP4}",
     "quicktime": f"This is a QuickTime movie. {EXPORT_MP4}",
     "codec": (
-        "This video does not use H.264, which every browser plays. "
+        "This video does not use H.264. "
         "Export it as MP4 with H.264 video and AAC sound, then upload it again."
     ),
     "encrypted": "This video is protected against copying, so browsers cannot play it from Snug.",

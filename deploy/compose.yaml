@@ -117,8 +117,9 @@ services:
 
   # The LibreOffice converter (docs/office.md), only when COMPOSE_PROFILES
   # includes office: snug setup asks, and snug update --with-office adds it.
-  # One conversion per container: it exits after each file and Docker starts a
-  # fresh one, so nothing a file did survives to the next.
+  # One conversion per start: it exits after each file and Docker restarts it,
+  # with new processes, a new gVisor sandbox and an empty /tmp, so nothing a
+  # file did survives to the next.
   office:
     image: ${SNUG_OFFICE_IMAGE:-ghcr.io/negroni-venture-studios/snug-office:1.1.0}
     profiles: [office]

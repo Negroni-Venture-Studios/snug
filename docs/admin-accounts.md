@@ -124,10 +124,10 @@ The first time anyone opens a document through each link, every admin is emailed
 
 ## What is recorded
 
-Creating an admin, resetting or replacing a second factor, changing a password, and asking for and using a forgotten-password link are all written to the audit log, along with every sign-in. Passwords, authenticator keys and recovery codes are never written to the log.
+Inviting, creating or removing an admin, resetting or replacing a second factor, changing a password, and asking for and using a forgotten-password link are all written to the audit log, along with every sign-in. Passwords, authenticator keys and recovery codes are never written to the log.
 
 ## How the secrets are kept
 
 - **Passwords** are hashed with argon2id, using Django's defaults of 100 MiB of memory and two passes.
 - **Recovery codes** are random, 80 bits each, and stored only as SHA-256 hashes.
-- **Authenticator keys** have to be readable by Snug to check codes, so they are stored as they are. They live in the database on your server. The standard deployment's backups are encrypted with a key only you hold.
+- **Authenticator keys** have to be readable by Snug to check codes, so they are stored as they are, in the database on your server. The standard deployment's backups are encrypted with a key only you hold.

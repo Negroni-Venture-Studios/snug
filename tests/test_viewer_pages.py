@@ -88,6 +88,7 @@ def test_landing_asks_for_the_email_address(browser: Client, issued: service.Iss
     page = get(browser, path(issued)).content.decode()
     assert "You have been sent <strong>Seed deck</strong>" in page
     assert 'name="email"' in page and "Send code" in page
+    assert "Enter the email address that received this link." in page
     assert "18 pages" in page
     # The landing page never reveals who the link was sent to.
     assert INVESTOR not in page
@@ -162,7 +163,7 @@ def test_a_wrong_address_is_told_plainly(browser: Client, issued: service.Issued
     response = post(browser, path(issued, "/code/send"), {"email": STRANGER})
     assert response.status_code == 400
     page = response.content.decode()
-    assert "That is not the address this link was sent to" in page
+    assert "This link was not sent to that address." in page
     assert INVESTOR not in page
     assert django_mail.outbox == [] and not VerificationCode.objects.exists()
     event = AuditEvent.objects.get(action="viewer.code_refused")
@@ -176,7 +177,7 @@ def test_code_requests_are_rate_limited_per_link(browser: Client, issued: servic
         assert post(other, path(issued, "/code/send"), {"email": INVESTOR}).status_code == 200
     response = post(browser, path(issued, "/code/send"), {"email": INVESTOR})
     assert response.status_code == 429
-    assert "Too many attempts" in response.content.decode()
+    assert "Too many attempts. Wait 15 minutes, then try again." in response.content.decode()
     assert len(django_mail.outbox) == 5
 
 
@@ -197,12 +198,12 @@ def test_past_the_cap_on_wrong_addresses_the_answer_turns_neutral(
     assert plain == [400] * 10
     wrong = ask(10, "guess10@northfield.example")
     right = ask(11, INVESTOR)
-    neutral = "If that is the address this link was sent to, we have sent it a six-digit code"
+    neutral = "If this link was sent to that address, we have sent a six-digit code to it."
     for response in (wrong, right):
         page = response.content.decode()
         assert response.status_code == 200 and neutral in page
         assert INVESTOR not in page.replace('value="priya@northfield.example"', "")
-        assert "not the address" not in page
+        assert "not sent to that address" not in page
     assert [message.to for message in django_mail.outbox] == [[INVESTOR]]
 
 
@@ -295,9 +296,26 @@ def test_codes_to_one_inbox_are_rate_limited(document: Document) -> None:
     assert statuses[:10] == [200] * 10 and statuses[10] == 429
 
 
+@pytest.mark.usefixtures("email_on")
+def test_the_inbox_limit_says_to_wait_an_hour(document: Document) -> None:
+    # The inbox's window is an hour; the message said 15 minutes (13 November 2026).
+    links = [issue(document) for _ in range(11)]
+    for n, link in enumerate(links[:10]):
+        post(
+            Client(REMOTE_ADDR=f"203.0.113.{50 + n}"), path(link, "/code/send"), {"email": INVESTOR}
+        )
+    response = post(
+        Client(REMOTE_ADDR="203.0.113.99"), path(links[10], "/code/send"), {"email": INVESTOR}
+    )
+    assert response.status_code == 429
+    assert "Too many codes have been sent to this address. Try again in an hour." in (
+        response.content.decode()
+    )
+
+
 def test_without_email_the_page_says_so(browser: Client, issued: service.Issued) -> None:
     page = get(browser, path(issued)).content.decode()
-    assert "email is not set up" in page
+    assert "This link needs a code sent by email, but email is not set up" in page
     response = post(browser, path(issued, "/code/send"), {"email": INVESTOR})
     assert response.status_code == 503
     assert not VerificationCode.objects.exists()

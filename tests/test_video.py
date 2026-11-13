@@ -140,6 +140,13 @@ def test_a_refused_video_says_why_in_plain_words(tmp_path: Path) -> None:
     )
 
 
+def test_a_video_in_another_codec_is_told_what_to_export() -> None:
+    assert str(sandbox.WorkerError("codec", sandbox.VIDEO_MESSAGES)) == (
+        "This video does not use H.264. "
+        "Export it as MP4 with H.264 video and AAC sound, then upload it again."
+    )
+
+
 @pytest.mark.parametrize(
     "output", [b'{"seconds": 0}', b'{"seconds": 2, "width": 64}', b"not json", b"[]"]
 )

@@ -23,7 +23,7 @@ There is one agreement for the whole instance. If you need a different one for e
 
 ## Changing it
 
-Saving changed text makes a new version. Everyone asked for the NDA accepts the new version on their next visit, so every record matches the exact words that person agreed to. Earlier acceptances stay on record.
+Saving changed text makes a new version. Everyone asked for the NDA accepts the new version on their next visit, so every record matches the exact words that person agreed to. Earlier acceptances are kept.
 
 ## What is recorded
 

@@ -40,7 +40,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 .on-action { fill: var(--on-action); font-weight: 600; }
 </style>
 <title id="t">Uploading a document</title>
-<desc id="d">An upload passes a size limit in middleware, is received by Django, copied and hashed by ingest, given a kind from its first bytes, checked against the document's earlier versions and inspected by the confined worker, then saved as a new version in one transaction and audited. Any of the marked steps can refuse it, with a plain message beside the form.</desc>
+<desc id="d">An upload passes a size limit in middleware, is received by Django, copied and hashed by ingest, given a kind from its first bytes (an MP4 video, an Office file or a PDF), checked against the document's earlier versions and inspected by the confined worker, then saved as a new version in one transaction and audited. Any of the marked steps can refuse it, with a plain message beside the form.</desc>
 <defs>
   <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
   <marker id="tip-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-accent"/></marker>
@@ -79,7 +79,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <circle class="solid-danger" cx="932" cy="70" r="5"/>
 <text class="title" x="794" y="82">First bytes</text>
 <text class="mono" x="794" y="104">ftyp<tspan x="846">→ MP4</tspan></text>
-<text class="mono" x="794" y="121">PK<tspan x="846">→ workbook</tspan></text>
+<text class="mono" x="794" y="121">PK<tspan x="846">→ Office</tspan></text>
 <text class="mono" x="794" y="138">%PDF-<tspan x="846">→ PDF</tspan></text>
 <text class="mono" x="794" y="155">OLE<tspan x="846">→ refused</tspan></text>
 
@@ -96,14 +96,14 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <circle class="solid-danger" cx="220" cy="244" r="5"/>
 <text class="title" x="34" y="256">Same kind</text>
 <text class="label" x="34" y="278">as the document's earlier</text>
-<text class="label" x="34" y="295">versions: a deck stays</text>
+<text class="label" x="34" y="295">versions: a PDF stays</text>
 <text class="label" x="34" y="312">a PDF</text>
 
 <rect class="key" x="258" y="230" width="214" height="118" rx="8"/>
 <circle class="solid-danger" cx="458" cy="244" r="5"/>
 <text class="title" x="272" y="256">Worker inspects it</text>
 <text class="label" x="272" y="278">PDF: pages and sizes</text>
-<text class="label" x="272" y="295">workbook: sheets, no code</text>
+<text class="label" x="272" y="295">Office: format, no code</text>
 <text class="label" x="272" y="312">video: length, picture</text>
 <text class="label" x="272" y="329">size and codecs</text>
 
@@ -132,5 +132,5 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <text class="label" x="46" y="440">Any step marked with a dot can refuse the file. Snug shows a plain message beside the form,</text>
 <text class="label" x="46" y="458">records</text>
 <text class="mono" x="99" y="458">document.upload_refused</text>
-<text class="label" x="279" y="458">and deletes the temporary file. A new document is rolled back with it.</text>
+<text class="label" x="279" y="458">and deletes the temporary file. A new document is made only once its file passes.</text>
 </svg>

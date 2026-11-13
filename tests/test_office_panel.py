@@ -43,9 +43,7 @@ def test_while_it_waits_the_page_has_a_live_panel(
     assert 'role="status" aria-live="polite" data-preview-stage>Waiting for the converter' in page
     assert "You can write the description and create links while it is made." in page
     assert "Shared for download only" not in page  # a preview is coming
-    assert (
-        "Every link to this document will show the new version once its preview is ready." in page
-    )
+    assert "Investors see the new version once its preview is ready." in page
 
 
 def test_asking_for_the_panel_moves_the_queue_on(
@@ -96,7 +94,7 @@ def test_a_failed_preview_says_why_and_can_be_tried_again(
     said = panel(admin_browser, deck)
     assert "data-preview-poll" not in said
     assert "LibreOffice took longer than two minutes with this file." in said
-    assert "Investors can still download it." in said
+    assert "Investors see a card describing the file instead." in said
     retry = f"/admin/documents/{deck.token}/v{version.number}/preview"
     assert f'action="{retry}#preview"' in said
     response = admin_browser.post(retry, secure=True)
@@ -187,3 +185,48 @@ def test_without_the_converter_the_upload_page_says_office_files_are_downloaded(
 ) -> None:
     page = admin_browser.get(NEW, secure=True).content.decode()
     assert DOWNLOADED in page and PAGE_BY_PAGE not in page
+
+
+# ---------------------------------------------------------------- the link form
+
+READ_ONLY = "Without downloads, they can only read it in the browser."
+CARD_ONLY = "Without downloads, the link shows only what the file is."
+ROOM_CARD_ONLY = "Without downloads, an Office file shows only what it is."
+
+
+def test_the_link_form_says_a_previewed_file_is_still_read_without_downloads(
+    converter: Converter, admin_browser: Client
+) -> None:
+    # Found in the wording pass, 13 November 2026: it said investors saw only a card.
+    deck = previewed(converter)
+    page = admin_browser.get(f"/admin/links/for/{deck.token}", secure=True).content.decode()
+    assert READ_ONLY in page and CARD_ONLY not in page
+
+
+def test_the_link_form_says_a_file_without_a_preview_shows_only_a_card(
+    data_folder: object, admin_browser: Client
+) -> None:
+    deck = Document.objects.create(title="Board deck")
+    upload(deck, make_pptx(3))
+    page = admin_browser.get(f"/admin/links/for/{deck.token}", secure=True).content.decode()
+    assert CARD_ONLY in page and READ_ONLY not in page
+
+
+def test_a_rooms_link_form_mentions_the_card_only_without_previews(
+    data_folder: object, admin_browser: Client
+) -> None:
+    from snug.rooms.models import Room
+
+    room = Room.objects.create(name="Seed round")
+    page = admin_browser.get(f"/admin/links/for-room/{room.token}", secure=True)
+    assert ROOM_CARD_ONLY in page.content.decode()
+
+
+def test_with_previews_a_rooms_link_form_does_not_mention_the_card(
+    converter: Converter, admin_browser: Client
+) -> None:
+    from snug.rooms.models import Room
+
+    room = Room.objects.create(name="Seed round")
+    page = admin_browser.get(f"/admin/links/for-room/{room.token}", secure=True)
+    assert ROOM_CARD_ONLY not in page.content.decode()

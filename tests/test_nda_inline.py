@@ -65,7 +65,7 @@ def test_with_no_nda_the_link_form_offers_a_box_for_it(client: Client, deck: Doc
     tick = page[page.index('name="require_nda"') - 40 : page.index('name="require_nda"') + 80]
     assert "disabled" not in tick
     assert '<textarea id="nda-text" name="nda_text"' in page
-    assert "becomes version 1" in page
+    assert "There is no NDA yet. Write it below" in page
 
 
 def test_with_an_nda_the_link_form_has_no_box(client: Client, deck: Document) -> None:

@@ -5,17 +5,17 @@
   <div class="panel preview-progress">
     <progress></progress>
     <p role="status" aria-live="polite" data-preview-stage>{{ panel.stage }}</p>
-    <p class="hint">You can write the description and create links while it is made. Until then, investors see a card with a download button.</p>
+    <p class="hint">You can write the description and create links while it is made. Until then, investors see a card describing the file.</p>
   </div>
   {% elif panel.failed %}
   <div class="panel preview-progress">
     <div class="error" role="alert">{% icon "warning-circle" %}No preview. {{ panel.message }}</div>
-    <p class="hint">Investors can still download it.</p>
+    <p class="hint">Investors see a card describing the file instead.</p>
     <form method="post" action="{{ panel.retry_url }}#preview">{% csrf_token %}<button class="btn" type="submit">Try again</button></form>
   </div>
   {% elif panel.ready %}
   <div class="preview-frame"><img src="{% url 'documents:preview' document.token panel.version.number 1 %}"{% if panel.size %} width="{{ panel.size.width }}" height="{{ panel.size.height }}"{% endif %} alt="Page 1 of {{ document.title }}, version {{ panel.version.number }}"></div>
   <p class="chart-note">Ready, {{ panel.version.page_count }} page{{ panel.version.page_count|pluralize }}. Made by LibreOffice on your server; viewers also see their own watermark.</p>
-  <p class="hint" data-preview-reload hidden>Save the description, then reload the page: the rest of it now describes the pages.</p>
+  <p class="hint" data-preview-reload hidden>Save the description, then reload the page to bring the rest of it up to date.</p>
   {% endif %}
 </section>{% else %}<section id="preview" hidden></section>{% endif %}

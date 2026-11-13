@@ -179,7 +179,7 @@ def test_saving_the_client(client: Client, admin: Admin) -> None:
     # Saving lands on step 2, where the button to connect is, with the notice beside it.
     assert response["Location"] == "/admin/settings/?saved=email#google-mailbox"
     mailbox = step(panel(client, "?saved=email"), "google-mailbox")
-    assert "Saved your Google client. Now connect the mailbox Snug sends from." in mailbox
+    assert "Saved your Google client. Now connect the sending mailbox." in mailbox
     assert 'href="/admin/settings/email/google/connect"' in mailbox
     # The second code is announced before the trip to Google, not sprung on the return.
     assert "Back here, enter a code from your authenticator app to finish." in mailbox

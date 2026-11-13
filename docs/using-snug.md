@@ -29,9 +29,9 @@ Choose *Documents*, then *Upload a document*. Give it a title, which investors s
   <img alt="The upload form, with a title and a file, and a note on the kinds of file Snug takes." src="images/screenshots/upload-light.png">
 </picture>
 
-To replace a document, upload a new version from its page. Every link to it shows the new version at once, and the old reading data stays.
+To replace a document, upload a new version from its page. Every link to it shows the new version at once, or, for an Office file read in the browser, once its preview is ready. Reading data from earlier versions stays.
 
-To change a document's title, use **Rename** on its page. Investors see the new title at once.
+To change a document's title, use *Rename* on its page. Investors see the new title at once.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/documents-dark.png">
@@ -47,14 +47,14 @@ A document's page has its numbers at the top: viewers, visits, the median readin
   <img alt="The seed deck's page: six viewers, fourteen visits, a median reading time of 8 minutes 10 seconds, a bar chart of the average time on each of 18 pages, and a strip of shaded cells for each investor." src="images/screenshots/document-light.png">
 </picture>
 
-A Word, PowerPoint or Excel file has a description for investors, and a workbook's page also lists its sheets. With LibreOffice installed, its page also shows the preview being made, then its first page and how it was read, as a PDF's does ([office.md](office.md)). A video's page has a player, and its chart counts time in parts of 10 seconds.
+A Word, PowerPoint or Excel file's page has a box for a description investors see, and a workbook's page lists its sheets. With LibreOffice installed, the page shows the preview being made, then the first page and how it was read, as a PDF's does ([Showing Office files in the browser](office.md)). A video's page has a player, and its chart counts time in parts of 10 seconds.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/workbook-admin-dark.png">
   <img alt="A workbook's page: its description for investors, with a box to change it, and its sheets." src="images/screenshots/workbook-admin-light.png">
 </picture>
 
-*People* has everyone who has opened anything, most recent first, with what each person opened, how often they visited and downloaded, and their time.
+*People* has everyone who has opened anything, most recent first, with what each person opened, how often they visited and downloaded, and their time. Someone who opens the same document through more than one link or room has one row for it, with their time added up.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/people-dark.png">
@@ -69,7 +69,7 @@ Each link is for one person. On a document's page, choose *New link*, and fill i
 
 - **Email address**: the person you are sending it to. *Require email verification* is ticked to begin with, so they must type a code Snug emails to that address before they see anything.
 - **Note for yourself**: who they are, such as "Partner at Northfield Capital". Only admins see it.
-- **Message for them**: optional. They see it in the *About this link* panel, beside the page before they open the document and behind the *About this link* button at the top right while they read, and in the email with the link.
+- **Message for them**: optional. They see it in the email with the link, and in the *About this link* panel.
 - **Expires**: optional. The link stops working at the end of that day.
 - **Ask for the NDA first**, **Only from the UK** and **Allow download**, as you need them. The NDA is set up once, in Settings; [the NDA guide](nda.md) explains it.
 
@@ -89,7 +89,7 @@ Each link is for one person. On a document's page, choose *New link*, and fill i
 
 ## Rooms
 
-A room shares several documents through one link, in folders one level deep, such as Company, Financials and Legal. A document can be in any number of rooms. Removing a document from a room closes it to every link to that room at once.
+A room shares several documents through one link, in folders one level deep, such as Company, Financials and Legal. Create one under *Rooms*, then add documents and folders from its page. A document can be in any number of rooms. Adding a document to a room, or removing it, changes what every link to that room shows at once.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/room-dark.png">
@@ -100,7 +100,9 @@ A room can require the NDA, or admit only visitors in the UK, for every link to 
 
 ## What an investor sees
 
-A link opens a page with your company's name, what has been shared and a panel listing what you will see of their visit. If the link requires a code, they type the email address it was sent to, and Snug emails them six digits.
+A link opens a page with your company's name and what has been shared. Beside it, the *About this link* panel shows your message, the document or room, whether downloads are allowed, when the link expires, and what you will see of their visit. The panel stays beside the content on the code, NDA and room pages. In the reader and on a video's page, it opens from the *About this link* button at the top right.
+
+If the link requires a code, they type the email address it was sent to, and Snug emails them six digits.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/code-dark.png">
@@ -114,21 +116,23 @@ If the link requires the NDA, they read it, type their name and tick to accept b
   <img alt="The NDA page: Before you open Seed deck, the agreement's text, a box for their full name, a box to tick to accept, and what Snug records." src="images/screenshots/nda-light.png">
 </picture>
 
-A PDF is shown a page at a time, with their email address and the date across it and a line at the foot of each page. They can download it, if the link allows, with the same details stamped on every page.
+A PDF is shown a page at a time, with the buttons for moving between pages above it. Each page has their email address and the date across it, and a line at the foot. They can download it, if the link allows, with the same details stamped on every page.
 
 Pages are shown as images, so an investor who uses a screen reader needs to download the file. Links allow downloads unless you turn them off.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/reader-dark.png">
-  <img alt="Page 5 of the seed deck in the reader, with the investor's email address and the date written across it, a footer with the link, and buttons for the previous and next pages." src="images/screenshots/reader-light.png">
+  <img alt="Page 5 of the seed deck in the reader, with buttons for the previous and next pages above it, the investor's email address and the date written across it, a footer with the link, and the About this link button at the top right." src="images/screenshots/reader-light.png">
 </picture>
 
-A Word, PowerPoint or Excel file is shown as a card with your description and a button to download it, and a workbook's card lists its sheets. With LibreOffice installed, it opens in the reader instead, page by page, and its download button gives the file itself. Each copy has their email address, the date and the link written into its document properties.
+A Word, PowerPoint or Excel file is shown as a card with your description, and a workbook's card lists its sheets. If the link allows downloads, the card has a button to download the file; otherwise it shows only what the file is. With LibreOffice installed, the file opens in the reader instead, page by page, and its download button gives the file itself. Each copy has their email address, the date and the link written into its document properties.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/workbook-dark.png">
   <img alt="A workbook shared with an investor: its description, its sheets, and a button to download it." src="images/screenshots/workbook-light.png">
 </picture>
+
+A video plays in the browser, with their email address, the date and the link over it. A video download is the original file, without these details.
 
 ## The audit log
 
@@ -141,7 +145,7 @@ The audit log lists everything admins and investors do, newest first: signing in
 
 ## Settings
 
-Settings holds the admins, your own account, email, branding, the NDA, the privacy policy link, how long reading data is kept, and when the backups last ran. Each section has a link to its guide.
+Settings holds the admins, your own account, email, branding, whether Office files are shown in the browser, the NDA, the privacy policy link, how long reading data is kept, and when the backups last ran. Each section has a link to its guide.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-dark.png">
@@ -161,16 +165,16 @@ Email is set up in numbered steps, ending with a test email, as in [the Google W
 
 Branding sets how investors' pages look. Each part is saved on its own.
 
-- **Company name**, shown at the top of investors' pages when there is no logo, and in every email Snug sends. `snug setup` asks for it, and this is where to change it.
+- **Company name**, shown at the top of investors' pages when there is no logo, and in Snug's emails. `snug setup` asks for it, and this is where to change it.
 - **Accent colour**, for buttons and links on investors' pages. Snug adjusts it where needed to keep text readable, and the preview shows the result before you save. Leave it empty for Snug's own.
 - **Logo**, a PNG or JPEG up to 2 MB, shown at the top of investors' pages. Untick *Show the name beside the logo* if the logo already spells it out.
 - **Tab icon**, a square PNG or JPEG for investors' browser tabs. Without one, Snug uses your logo if it is roughly square, and otherwise your initial on your accent colour.
 
 ### Privacy and reading data
 
-Beside each document, investors are told what you will see: when they open it, how long they spend on each page, and that every page shows their email address. To add a link to your own privacy policy there, enter its address under **Privacy policy address**.
+In the *About this link* panel, investors are told what you will see: when they open each document, how long they spend on each page and, if the link allows downloads, when they download it. They are also told that their email address is watermarked on what they read. To add a link to your own privacy policy there, enter its address under **Privacy policy address**.
 
-**Keep reading data for** sets how long Snug keeps what each person read or watched once their link is revoked or expires: 12 months unless you change it, and anything from 1 to 120. While a link works, its reading data is kept. The link and the audit log are kept regardless.
+**Keep reading data for** sets how many months Snug keeps what each person read or watched after their link is revoked or expires, from 1 to 120. It is 12 unless you change it. While a link works, its reading data is kept. The link and the audit log are kept regardless.
 
 ### Backups
 

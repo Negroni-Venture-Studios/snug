@@ -4,32 +4,47 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
-## [1.1.0] - 2026-11-12
+## [1.1.0] - 2026-11-13
 
-Support for Word and PowerPoint files, and an optional LibreOffice converter that shows Office files in the browser.
+Support for Word and PowerPoint files, an optional LibreOffice converter that shows Office files in the browser, and pages that appear sooner.
 
 ### Added
 
 - Word documents (.docx) and PowerPoint presentations (.pptx) can be uploaded and shared for download, as Excel workbooks are. Each download has the investor's email address, the date and the link in its document properties, and the founder can add a description. A presentation's card shows its slide count.
-- An optional LibreOffice converter shows Word, PowerPoint and Excel files in the browser, as watermarked pages with time per page, while the download stays the original file. It runs in a container of its own under gVisor, with no network, one file per container. A document's page shows the preview's progress as it is made, and a new version waits for its preview before links show it.
-- `snug setup` asks whether to show Office files in the browser, and `sudo snug update --with-office` or `--without-office` adds or removes the converter later. From 1.0.0, run `sudo snug update` first, since 1.0.0's `snug` command does not pass these options on. Settings has an Office files panel, between Branding and NDA, with its LibreOffice version, whether an update is waiting, and a toggle for showing previews; `snug doctor` checks the converter.
+- An optional LibreOffice converter shows Word, PowerPoint and Excel files in the browser, as watermarked pages with the time spent on each, and a download is still the file itself. Each slide is a page, and each sheet of a workbook is a page sized to the sheet; a small sheet is shown at its own size, on a page as wide as A4. The converter runs in a container of its own under gVisor, with no network, and Docker restarts it after each file. A document's page shows the preview's progress as it is made, and a new version waits for its preview before links show it.
+- `snug setup` asks whether to show Office files in the browser, and `sudo snug update --with-office` or `--without-office` adds or removes the converter later. From 1.0.0, run `sudo snug update` first, since 1.0.0's `snug` command does not pass these options on. Settings has an Office files section, between Branding and NDA, with the LibreOffice version, whether an update is waiting, and a switch for showing Office files in the browser; `snug doctor` checks the converter.
+- A document can be renamed from its page, as a room can.
 
 ### Changed
 
-- Snug refuses a Word, PowerPoint or Excel file that fetches a template, picture or object from another computer when it is opened, including through a Word field such as INCLUDEPICTURE. A template on the author's own computer is allowed.
-- Snug refuses a Word document with a DDE field, or a workbook with a DDE or OLE link, which start another program when the file is opened, and a Word document that carries another, such as a web page, for Word to import when it opens.
+- Snug refuses a Word, PowerPoint or Excel file that fetches a template, picture or object from another computer when it is opened, including through a Word field such as INCLUDEPICTURE. A link to a template on a local disk is allowed, since Office looks for it on the reader's own computer.
+- Snug refuses a Word document with a DDE field, or a workbook with a DDE or OLE link, which start another program when the file is opened, and a Word document that contains another, such as a web page, for Word to import when it opens.
+- Snug refuses a Word field built from other fields, which it cannot check, unless it is one of the fields a mail merge uses to compare, calculate or set text.
 - An older .doc, .ppt or .xls file is refused with one message for all three, saying to save it as .docx, .pptx or .xlsx.
-- A presentation or document with a chart is taken. The chart's data is a workbook inside the file, and Snug checks it as it checks an upload.
+- Snug accepts a presentation or document with a chart. The chart's data is a workbook inside the file, and Snug checks it, and any other Office file inside an upload, as it checks an upload.
 - The README and guides state facts plainly, without hedges such as "at the time of writing" or notes on how Snug was tested before its release.
 - "What Snug does not do" in the README lists what Snug leaves out, each item starting with "No".
 - A room's Add a document panel says the documents listed are not in the room yet, and that adding one shares it with everyone who has a link to the room. No document is chosen until the admin chooses one.
-- A document can be renamed from its page, as a room can.
 - In the reader and on the video page, *About this link* opens from a button at the top right, beside *Download*, instead of sitting below the page, and *Previous*, *Next* and the page picker sit above the page.
-- A long file name in a document's list of versions wraps within its column instead of running over the description beside it.
-- A room's folders have a folder icon and a name a step above its documents' titles, for investors and admins alike. On an investor's room page each folder says how many documents it holds, and its documents are indented under it.
-- Pages appear sooner. On a one-CPU server the first page of a document took up to 11 seconds to appear, blank meanwhile. Page 1 is now rendered when the file is uploaded or its preview is ready, the next page is fetched only once the current one has arrived, the watermark is drawn about twenty times faster, and the confined worker no longer compiles Python's code each time it starts. A page says "Loading page 1" until it arrives.
-- A small sheet of a workbook is shown at its own size, on a page as wide as A4, instead of filling the reader.
+- A room's folders have a folder icon, and their names are larger and bolder than the documents' titles, for investors and admins alike. On an investor's room page each folder shows how many documents it holds, with its documents indented under it.
+- Pages appear sooner. On a one-CPU server the first page of a document took up to 11 seconds to appear, blank meanwhile. Page 1 is now rendered when the file is uploaded or its preview is ready, the next page is fetched only once the current one has arrived, the watermark is drawn about twenty times faster, and the confined worker no longer compiles Python's code each time it starts. Until a page arrives, the reader shows "Loading page" and its number.
 - The first pages are stamped with the investor's watermark while they are on the link's landing page, and each stamped page is kept until the end of the day, so a page they return to appears at once. Revoking a link deletes its stamped pages.
+- On a link that allows downloads, the privacy statement in *About this link* says the sender sees when the investor downloads. On a link that does not, it no longer mentions a downloaded copy.
+
+### Removed
+
+- The note under each page in the reader that a screen reader can read only the page numbers. [Using Snug](docs/using-snug.md) explains it to founders.
+
+### Fixed
+
+- A long file name in a document's list of versions wraps within its column instead of running over the description beside it.
+- `snug setup` asks a yes-or-no question again until the answer is yes or no, instead of taking any other answer as no.
+- The preview panel on a document's page, and the Office files hint in Settings, say that investors without a preview see a card describing the file. They used to promise a download button, which appears only on links that allow downloads.
+- When Office files are shown in the browser, the *Allow download* hint on a new link no longer says that, without downloads, investors see only what an Office file is.
+- When a link reaches its download limit, Snug says "Too many downloads on this link. Try again in an hour." It used to say to wait 15 minutes, but the limit is counted by the hour.
+- The Links page and the Overview say that links are created from a document's or a room's page, and a new room link's page says to send a replacement from the room's page.
+- When too many codes have been sent to one address, Snug says to try again in an hour, since that limit is counted by the hour. It used to say to wait 15 minutes.
+- After a restore onto a new server, Snug makes the Office files' previews again, which are not backed up, and shows the files as cards until each is ready. A page whose PDF has gone says it cannot be shown.
 
 ## [1.0.0] - 2026-11-11
 

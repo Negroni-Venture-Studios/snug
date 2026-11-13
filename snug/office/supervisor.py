@@ -5,8 +5,9 @@
 It runs in a container of its own (decided 12 November 2026), under gVisor,
 with no network, a read-only root, its own user, and only two folders shared
 with Snug: the inbox, which it can read and not change, and the outbox, which
-it can write. Docker starts a fresh container each time it exits, so no
-process and no temporary file survives from one conversion to the next.
+it can write. Docker restarts it each time it exits, in a new gVisor sandbox
+with an empty /tmp, so no process and no temporary file survives from one
+conversion to the next.
 
 Snug puts one job in the inbox at a time: a folder named by a random token,
 holding `job.json` ({"kind": "docx"}, "pptx" or "xlsx") and `input.<kind>`.

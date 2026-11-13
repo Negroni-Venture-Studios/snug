@@ -166,19 +166,26 @@ def pump(*, now: datetime | None = None) -> None:
 
 
 def _queue_unconverted() -> None:
-    """Queue Office files uploaded before the converter was installed.
+    """Queue Office files uploaded before the converter was installed, and lost previews.
 
     Only the current version: an earlier one is never read, so it is not
-    worth converting. A preview that failed is not queued again by itself;
-    the document's page offers Try again.
+    worth converting. A preview is not backed up, so after a restore onto a
+    new server a version can be marked ready with no PDF: it is made again,
+    and the file shows as a card meanwhile. A preview that failed is not
+    queued again by itself; the document's page offers Try again.
     """
     ready = DocumentVersion.Status.READY
     newer = DocumentVersion.objects.filter(
         document=OuterRef("document"), status=ready, number__gt=OuterRef("number")
     )
-    DocumentVersion.objects.filter(
-        kind__in=list(OFFICE), preview=Preview.NONE, status=ready
-    ).exclude(Exists(newer)).update(preview=Preview.PENDING)
+    current = DocumentVersion.objects.filter(kind__in=list(OFFICE), status=ready).exclude(
+        Exists(newer)
+    )
+    current.filter(preview=Preview.NONE).update(preview=Preview.PENDING)
+    lost = [v.pk for v in current.filter(preview=Preview.READY) if not preview_path(v).exists()]
+    if lost:
+        log.warning("Making %s lost Office preview(s) again", len(lost))
+        DocumentVersion.objects.filter(pk__in=lost).update(preview=Preview.PENDING)
 
 
 def busy() -> bool:

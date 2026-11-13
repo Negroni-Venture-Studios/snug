@@ -295,7 +295,7 @@ def test_email_is_set_up_in_steps_with_the_next_one_in_view(live_server: Any, pa
     page.locator("#email-setup").get_by_role("button", name="Save").click()
 
     expect(page).to_have_url(re.compile(r"#google-mailbox$"))
-    expect(mailbox).to_contain_text("Saved your Google client. Now connect the mailbox")
+    expect(mailbox).to_contain_text("Saved your Google client. Now connect the sending mailbox.")
     expect(page.get_by_role("link", name="Connect Google")).to_be_in_viewport()
 
     page.get_by_label("Another provider (SMTP)").check()

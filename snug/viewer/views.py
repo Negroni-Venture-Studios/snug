@@ -51,6 +51,10 @@ from snug.viewer.models import VerificationCode
 
 CHECK_ATTRIBUTE = "snug_viewer_check"
 TOO_MANY = "Too many attempts. Wait 15 minutes, then try again."
+# Ten codes to one inbox, counted by the hour (limits.SEND_PER_EMAIL).
+TOO_MANY_CODES = "Too many codes have been sent to this address. Try again in an hour."
+# Downloads are counted by the hour (limits.DOWNLOAD_PER_LINK).
+TOO_MANY_DOWNLOADS = "Too many downloads on this link. Try again in an hour."
 
 GateView = Callable[[HttpRequest, Link, str], HttpResponse]
 
@@ -246,9 +250,11 @@ def _send(link: Link, code: str, company: str, via: mail.Outgoing | None = None)
     )
 
 
-def _send_refused(request: HttpRequest, link: Link, token: str, typed: str) -> HttpResponse:
+def _send_refused(
+    request: HttpRequest, link: Link, token: str, typed: str, error: str = TOO_MANY
+) -> HttpResponse:
     _audit(request, "viewer.code_refused", link, typed, reason="rate_limited")
-    return _gate_page(request, link, token, error=TOO_MANY, typed=typed, status=429)
+    return _gate_page(request, link, token, error=error, typed=typed, status=429)
 
 
 # ---------------------------------------------------------------- pages
@@ -478,7 +484,7 @@ def page_image(
             email=access.session.email,
             day=timezone.localdate(),
         )
-    except WorkerError:
+    except (WorkerError, OSError):  # OSError: its PDF has gone, as after a restore
         return HttpResponse("This page could not be shown.", status=503, content_type="text/plain")
     response = HttpResponse(data, content_type="image/webp")
     # Kept briefly, by this browser only. Revoking stops new pages at once.
@@ -594,7 +600,7 @@ def download(request: HttpRequest, access: Access, token: str) -> HttpResponseBa
     if not access.link.allow_download or version is None:
         raise Http404
     if not ratelimit.allow(limits.DOWNLOAD_PER_LINK, str(access.link.pk)):
-        return HttpResponse(TOO_MANY, status=429, content_type="text/plain")
+        return HttpResponse(TOO_MANY_DOWNLOADS, status=429, content_type="text/plain")
     if version.is_video:
         # The original file: a video cannot carry a visible mark without re-encoding.
         _audit(
@@ -664,18 +670,20 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
         if neutral or over:
             return _code_page(request, link, token, neutral=True)
         error = (
-            "That is not the address this link was sent to. "
+            "This link was not sent to that address. "
             "Check for a typo, or ask the person who sent it."
         )
         return _gate_page(request, link, token, error=error, typed=typed, status=400)
 
-    if not ratelimit.allow(limits.SEND_PER_LINK, str(link.pk)) or not ratelimit.allow(
-        limits.SEND_PER_EMAIL, link.email
-    ):
+    per_link = ratelimit.allow(limits.SEND_PER_LINK, str(link.pk))
+    if not per_link or not ratelimit.allow(limits.SEND_PER_EMAIL, link.email):
         if neutral:
             _audit(request, "viewer.code_refused", link, typed, reason="rate_limited")
             return _code_page(request, link, token, neutral=True)
-        return _send_refused(request, link, token, typed)
+        # Each limit says how long it lasts: 15 minutes for a link, an hour for an inbox.
+        return _send_refused(
+            request, link, token, typed, TOO_MANY if not per_link else TOO_MANY_CODES
+        )
     if neutral:
         # Sent without waiting, so the reply takes as long as a wrong
         # address's would. A failure is logged by mail.send, not shown.

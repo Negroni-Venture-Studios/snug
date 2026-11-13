@@ -40,7 +40,7 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 .on-action { fill: var(--on-action); font-weight: 600; }
 </style>
 <title id="t">Snug's tables</title>
-<desc id="d">Snug's database tables in groups. Admins have recovery codes and setup links. A document has versions. A room has folders, and holds documents through room entries. A link points at one document or one room, and has viewer sessions, a verification code and NDA acceptances, each of a published NDA version. A visit belongs to a link, a document and a viewer session, and has a page view for each page or part. The audit log, site settings, email settings, stored checks and rate-limit windows stand alone.</desc>
+<desc id="d">Snug's database tables in groups. Admins have recovery codes and setup links. A document has versions, each with its kind, its pages and, for an Office file, its preview. A room has folders, and holds documents through room entries. A link points at one document or one room, and has viewer sessions, verification codes and NDA acceptances, each of a published NDA version. A visit belongs to a link, a document and a viewer session, and has a page view for each page or part. The audit log, site settings, email settings, stored checks and rate-limit windows stand alone.</desc>
 <rect class="bg" width="960" height="784"/>
 
 <!-- ADMINS -->
@@ -75,16 +75,17 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <!-- DOCUMENTS -->
 <rect class="zone" x="704" y="40" width="236" height="300" rx="10"/>
 <text class="heading" x="718" y="64">DOCUMENTS</text>
-<rect class="box" x="718" y="76" width="208" height="120" rx="8"/>
+<rect class="box" x="718" y="76" width="208" height="136" rx="8"/>
 <text class="title" x="734" y="100">DocumentVersion</text>
-<text class="mono" x="734" y="120">number</text>
-<text class="mono" x="734" y="138">kind: pdf, xlsx, mp4</text>
-<text class="mono" x="734" y="156">stored_name, sha256</text>
-<text class="mono" x="734" y="174">page_count, seconds</text>
-<rect class="box" x="718" y="236" width="208" height="84" rx="8"/>
-<text class="title" x="734" y="260">Document</text>
-<text class="mono" x="734" y="280">token, title</text>
-<text class="mono" x="734" y="298">description</text>
+<text class="mono" x="734" y="120">number, kind, status</text>
+<text class="mono" x="734" y="138">stored_name, sha256</text>
+<text class="mono" x="734" y="156">page_count, page_sizes</text>
+<text class="mono" x="734" y="174">sheets, slides, seconds</text>
+<text class="mono" x="734" y="192">preview, preview_error</text>
+<rect class="box" x="718" y="248" width="208" height="76" rx="8"/>
+<text class="title" x="734" y="272">Document</text>
+<text class="mono" x="734" y="292">token, title</text>
+<text class="mono" x="734" y="310">description</text>
 
 <!-- SHARING -->
 <rect class="zone" x="20" y="360" width="668" height="276" rx="10"/>
@@ -161,13 +162,13 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <path class="line" d="M376,76 V58 H696 V278 H718"/>
 <text class="small" x="382" y="72">n</text><text class="small" x="706" y="272">1</text>
 
-<path class="line" d="M822,196 V236"/>
-<text class="small" x="828" y="212">n</text><text class="small" x="828" y="230">1</text>
+<path class="line" d="M822,212 V248"/>
+<text class="small" x="828" y="228">n</text><text class="small" x="828" y="242">1</text>
 
 <path class="line-dashed" d="M376,400 V320"/>
-<path class="line-dashed" d="M446,400 V350 H790 V320"/>
+<path class="line-dashed" d="M446,400 V350 H790 V324"/>
 <text class="small" x="388" y="394">one of</text>
-<text class="small" x="382" y="334">1</text><text class="small" x="796" y="334">1</text>
+<text class="small" x="382" y="334">1</text><text class="small" x="796" y="337">1</text>
 
 <path class="line" d="M214,430 H286"/>
 <text class="small" x="220" y="424">n</text><text class="small" x="276" y="424">1</text>
@@ -182,8 +183,8 @@ text { font-family: Geist, sans-serif; font-size: 14px; fill: var(--text); }
 <text class="small" x="708" y="424">n</text><text class="small" x="680" y="424">1</text>
 <path class="line" d="M718,514 H466"/>
 <text class="small" x="708" y="508">n</text><text class="small" x="470" y="508">1</text>
-<path class="line" d="M880,400 V320"/>
-<text class="small" x="886" y="394">n</text><text class="small" x="886" y="334">1</text>
+<path class="line" d="M880,400 V324"/>
+<text class="small" x="886" y="394">n</text><text class="small" x="886" y="337">1</text>
 <path class="line" d="M822,524 V556"/>
 <text class="small" x="828" y="538">1</text><text class="small" x="828" y="552">n</text>
 

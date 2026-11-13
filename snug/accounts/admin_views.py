@@ -457,7 +457,7 @@ def _email_status(now: mail.Outgoing) -> str:
     if now.source == "snug.env":
         return (
             f"Using the SMTP settings in snug.env: {now.host}, as {now.from_address}. "
-            "Saving here replaces them."
+            "Settings saved here are used instead."
         )
     if now.kind == "outbox":
         return "On this computer, emails are written to the outbox folder in the data folder."
@@ -866,8 +866,8 @@ def email_test_view(request: HttpRequest) -> HttpResponse:
     )
     if not sent:
         error = (
-            "The test email could not be sent. Check the settings, and Snug's log for the "
-            "kind of error: sudo docker compose logs snug, in /opt/snug."
+            "The test email could not be sent. Check the settings, then Snug's log for the "
+            "reason: sudo docker compose logs snug, in /opt/snug."
         )
         return _settings_page(request, status=502, email_test_error=error)
     return redirect(f"/admin/settings/?saved=email-test#{TEST_STEP}")

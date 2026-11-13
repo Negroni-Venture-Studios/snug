@@ -101,9 +101,14 @@ def test_long_logs_are_paged(client: Client) -> None:
 
 
 def test_an_empty_log(client: Client) -> None:
-    assert (
-        "Nothing recorded yet" in client.get("/admin/audit/?q=nobody", secure=True).content.decode()
-    )
+    page = client.get("/admin/audit/", secure=True).content.decode()
+    assert "Nothing recorded yet" in page
+
+
+def test_a_filter_that_matches_nothing(client: Client) -> None:
+    page = client.get("/admin/audit/?q=nobody", secure=True).content.decode()
+    assert "Nothing matches that filter" in page
+    assert "Nothing recorded yet" not in page
 
 
 @pytest.mark.usefixtures("events")

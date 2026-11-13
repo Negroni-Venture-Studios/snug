@@ -57,7 +57,7 @@ def test_verifying_by_email_then_reading(live_server: Any, page: Page, document:
 
     page.get_by_label("Email address").fill("priya@northfeld.example")
     page.get_by_role("button", name="Send code").click()
-    expect(page.get_by_role("alert")).to_contain_text("not the address this link was sent to")
+    expect(page.get_by_role("alert")).to_contain_text("This link was not sent to that address")
 
     page.get_by_label("Email address").fill(INVESTOR)
     page.get_by_role("button", name="Send code").click()

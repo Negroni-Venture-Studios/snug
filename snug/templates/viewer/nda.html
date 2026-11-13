@@ -5,7 +5,7 @@
 <div class="gate-grid">
   <div class="gate nda">
     <h1>Before you open <strong>{{ title }}</strong></h1>
-    <p class="lede">{% if company %}{{ company }} asks{% else %}You are asked{% endif %} that you accept this agreement first.</p>
+    <p class="lede">{% if company %}{{ company }} asks that you accept{% else %}You are asked to accept{% endif %} this agreement first.</p>
     <div class="nda-text" tabindex="0" aria-label="The agreement">{{ nda.text|linebreaks }}</div>
     <form class="form" method="post" action="{% url 'viewer:nda' token=token %}" novalidate>
       {% csrf_token %}

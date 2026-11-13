@@ -1,7 +1,7 @@
 # The LibreOffice converter (docs/office.md): an optional second image, run
 # with runtime runsc (gVisor), no network, a read-only root and its own user.
 # It converts one Word, PowerPoint or Excel file to PDF, then exits, and Docker
-# starts a fresh container for the next (snug/office/supervisor.py).
+# restarts it for the next (snug/office/supervisor.py).
 #
 #   docker build -f converter/Dockerfile -t snug-office .
 #

@@ -44,10 +44,6 @@
       <h1 class="page-title">Seed deck</h1>
       <div class="page-meta num"><span>Version 3</span><span>18 pages</span><span>Uploaded 2 Nov 2026</span></div>
     </div>
-    <div class="actions">
-      <a class="btn" href="#">{{icon:upload-simple}}Upload new version</a>
-      <a class="btn btn-primary" href="#">{{icon:plus}}New link</a>
-    </div>
   </div>
 
   <div class="stats">
@@ -76,24 +72,24 @@
   </section>
 
   <section class="section">
-    <div class="section-head"><h2>Links to this document</h2><a href="#">All links</a></div>
+    <div class="section-head"><h2>Links</h2><a class="btn btn-primary" href="#">{{icon:plus}}New link</a></div>
     <div class="rows">
       <div class="item">
-        <div class="who"><span class="email">priya@northfield.example</span><span class="note">Partner, Northfield Capital</span></div>
+        <div class="who"><span class="email">priya@northfield.example</span><span class="note">Partner, Northfield Capital, <span class="mono">L-7Q2K</span></span></div>
         <span class="status status-ok">Active</span>
         <span class="muted">Verification on, no downloads</span>
         <span class="r muted exp">Expires 30 Nov</span>
-        <span class="r"><a class="btn btn-quiet btn-danger" href="#">Revoke</a></span>
+        <span class="r"><a class="btn btn-quiet" href="#">New link</a><a class="btn btn-quiet btn-danger" href="#">Revoke</a></span>
       </div>
       <div class="item">
-        <div class="who"><span class="email">lena@foxglove.example</span><span class="note">Foxglove Ventures</span></div>
+        <div class="who"><span class="email">lena@foxglove.example</span><span class="note">Foxglove Ventures, <span class="mono">L-3HXV</span></span></div>
         <span class="status status-warn">Expired</span>
         <span class="muted">Verification on, no downloads</span>
         <span class="r muted exp">Expired 1 Nov</span>
-        <span class="r"><a class="btn btn-quiet" href="#">Extend</a></span>
+        <span class="r"><a class="btn btn-quiet" href="#">New link</a><a class="btn btn-quiet btn-danger" href="#">Revoke</a></span>
       </div>
       <div class="item">
-        <div class="who"><span class="email">c.wright@example.org</span><span class="note">Former adviser</span></div>
+        <div class="who"><span class="email">c.wright@example.org</span><span class="note">Former adviser, <span class="mono">L-9DMR</span></span></div>
         <span class="status status-off">Revoked</span>
         <span class="muted">Verification on, downloads allowed</span>
         <span class="r muted exp">Revoked 28 Oct</span>
@@ -114,36 +110,30 @@
     <div class="header-tools"><span class="who-am-i">ruth@fernlea.example</span>{{toggle}}<a class="btn btn-quiet" href="#">{{icon:sign-out}}Sign out</a></div>
   </div>
   <nav class="tabs" aria-label="Sections">
-    <a href="#">Overview</a><a href="#">Documents</a><a href="#">Rooms</a><a href="#" aria-current="page">Links</a><a href="#">People</a><a href="#">Audit log</a><a href="#">Settings</a>
+    <a href="#">Overview</a><a href="#" aria-current="page">Documents</a><a href="#">Rooms</a><a href="#">Links</a><a href="#">People</a><a href="#">Audit log</a><a href="#">Settings</a>
   </nav>
 </header>
 <main class="admin">
-  <div class="crumbs"><a href="#">Links</a> / New link</div>
-  <div class="title-row"><div><h1 class="page-title">New link</h1><div class="page-meta">One link for one person, who must be able to read this inbox.</div></div></div>
+  <div class="crumbs"><a href="#">Documents</a> / <a href="#">Seed deck</a> / New link</div>
+  <div class="title-row"><div><h1 class="page-title">New link</h1><div class="page-meta">One link for one person, for Seed deck.</div></div></div>
   <div class="split">
     <form class="panel form" action="#" method="post">
       <div class="field"><label for="l-email">Email address</label><input id="l-email" type="email" value="sam@kittiwake.example" autocomplete="off"></div>
-      <div class="field"><label for="l-note">Note for yourself</label><input id="l-note" type="text" value="Kittiwake Partners"><div class="hint">Only admins see this.</div></div>
-      <div class="field"><label for="l-target">Share</label>
-        <select id="l-target"><option>Seed deck</option><option>Series A data room</option></select></div>
+      <div class="field"><label for="l-note">Note for yourself</label><input id="l-note" type="text" value="Kittiwake Partners"><div class="hint">Only admins see this, for example "Partner at Northfield Capital".</div></div>
+      <div class="field"><label for="l-message">Message for them</label><textarea id="l-message" rows="4">Thanks for taking the time. The appendix on page 18 has the cap table you asked about.</textarea><div class="hint">Optional, and plain text. They see it before they open the document, and in the email with the link.</div></div>
       <div class="field"><label for="l-exp">Expires</label><input id="l-exp" type="date" value="2026-12-05"><div class="hint">Leave empty for no expiry. You can revoke the link at any time.</div></div>
       <div class="field"><span class="label">Options</span>
         <div class="choices">
           <label class="check"><input type="checkbox" checked><span>Require email verification<span class="hint">Recommended. A forwarded link is then useless to anyone else.</span></span></label>
-          <label class="check"><input type="checkbox"><span>Allow download<span class="hint">A watermarked PDF built from the same pages.</span></span></label>
-          <label class="check"><input type="checkbox"><span>Require NDA acceptance</span></label>
-          <label class="check"><input type="checkbox"><span>UK only<span class="hint">Blocks viewers outside the UK. A VPN gets round this.</span></span></label>
+          <label class="check"><input type="checkbox"><span>Ask for the NDA first<span class="hint">They accept version 1 before they see the document.</span></span></label>
+          <label class="check"><input type="checkbox"><span>Only from the UK<span class="hint">Opens only for visitors in the UK, Jersey, Guernsey and the Isle of Man, by their internet address. A VPN can get round it. <a href="#">IP geolocation by DB-IP</a>.</span></span></label>
+          <label class="check"><input type="checkbox" checked><span>Allow download<span class="hint">The original PDF, stamped with their email address, the date and the link.</span></span></label>
         </div></div>
       <div class="form-foot"><button class="btn" type="button">Create and copy</button><button class="btn btn-primary" type="button">Create and email</button></div>
     </form>
     <div class="side-note">
-      <h2>After you create it</h2>
-      <div class="form">
-        <div class="notice notice-ok">{{icon:check}}<span>Link created and emailed to sam@kittiwake.example.</span></div>
-        <div class="link-out"><span>https://room.fernlea.example/v/q8Zt3mVhR2xK7pNw4LcJ9sYb6dFgA1eU5oTiWnE0rHs</span>
-          <button class="btn" type="button">{{icon:copy}}Copy</button></div>
-        <p>If links are stored hashed (an open question), this is the only time the full address is shown. You can resend the email or issue a new link later.</p>
-      </div>
+      <h2>What happens next</h2>
+      <p>You will see the link once, to copy. Snug cannot show it again. If you lose it, send a new link.</p>
     </div>
   </div>
 </main>
@@ -161,7 +151,7 @@
       <div>
         <div class="gate">
           <h1><strong>Fernlea Robotics</strong> has shared <strong>Seed deck</strong> with you</h1>
-          <p class="lede">Enter the email address this link was sent to. We will email you a six-digit code.</p>
+          <p class="lede">Enter the email address that received this link. We will email you a six-digit code.</p>
           <form class="form" action="#" method="post">
             <div class="field"><label for="v-email">Email address</label><input id="v-email" type="email" autocomplete="email" inputmode="email"></div>
             <button class="btn btn-brand" type="button">Send code</button>
@@ -169,10 +159,10 @@
         </div>
         <div class="gate">
           <h1>Check your email</h1>
-          <p class="lede">We sent a code to priya@northfield.example.</p>
+          <p class="lede">We sent a six-digit code to priya@northfield.example. It works for 10 minutes.</p>
           <form class="form" action="#" method="post">
             <div class="field"><label for="v-code">Six-digit code</label>
-              <input id="v-code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" value="482931" aria-invalid="true" aria-describedby="v-code-err">
+              <input id="v-code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="9" value="482931" aria-invalid="true" aria-describedby="v-code-err">
               <div class="error" id="v-code-err">{{icon:warning-circle}}That code is not right. You have 4 tries left.</div></div>
             <button class="btn btn-brand" type="button">Continue</button>
           </form>
@@ -181,13 +171,13 @@
       </div>
       <aside class="about" aria-label="About this link">
         <h2>About this link</h2>
+        <p class="cover">Thanks for taking the time. The appendix on page 18 has the cap table you asked about.</p>
         <dl>
-          <dt>From</dt><dd>Ruth Ellery, Fernlea Robotics</dd>
+          <dt>From</dt><dd>Fernlea Robotics</dd>
           <dt>Document</dt><dd>Seed deck, 18 pages</dd>
           <dt>Access</dt><dd>View in the browser</dd>
           <dt>Expires</dt><dd>30 Nov 2026</dd>
         </dl>
-        <div class="cover">Thanks for taking the time. The appendix on page 18 has the cap table you asked about.<span class="from">Ruth Ellery, CEO</span></div>
         <p class="privacy">Fernlea Robotics will see when you open this document and how long you spend on each page. Every page shows your email address as a watermark.</p>
       </aside>
     </div>
@@ -198,12 +188,19 @@
 <div class="screen v" data-screen-id="viewer-reader" hidden>
   <header class="v-head">
     <div class="founder-logo"><svg viewBox="0 0 32 32" aria-hidden="true"><path class="mark" d="M16 2c7.7 0 14 6.3 14 14s-6.3 14-14 14S2 23.7 2 16 8.3 2 16 2Zm0 6a8 8 0 1 0 8 8h-8V8Z"/></svg>Fernlea Robotics</div>
-    <div class="v-tools"><span class="doc">Seed deck</span>{{toggle}}</div>
+    <div class="v-tools"><span class="doc">Seed deck</span><button class="btn" type="button" aria-expanded="false">About this link</button>{{toggle}}</div>
   </header>
   <main class="v-main">
     <div class="reader">
+      <nav class="reader-controls" aria-label="Pages">
+        <button class="btn" type="button">{{icon:caret-left}}Previous</button>
+        <span class="pos">5 of 18</span>
+        <button class="btn" type="button">Next{{icon:caret-right}}</button>
+        <label class="visually-hidden" for="jump">Go to page</label>
+        <select id="jump"><option>Page 1</option><option selected>Page 5</option><option>Page 18</option></select>
+      </nav>
       <div class="page-frame">
-        <!-- In the product: <img width height src=".../p/5.webp" alt="Page 5 of 18">, watermark baked in by Pillow. Slide content is sample data. -->
+        <!-- In the product: <img width height src=".../pages/5-1600.webp" alt="Page 5 of 18">, stamped with the watermark by the confined worker. Slide content is sample data. -->
         <svg viewBox="0 0 1600 948" role="img" aria-label="Page 5 of 18">
           <defs>
             <pattern id="wm" patternUnits="userSpaceOnUse" width="560" height="190" patternTransform="rotate(-22)">
@@ -230,16 +227,8 @@
           <text class="wm-foot" x="1560" y="930" text-anchor="end">Link 7Q2K</text>
         </svg>
       </div>
-      <div class="reader-controls">
-        <button class="btn" type="button">{{icon:caret-left}}Previous</button>
-        <span class="pos">5 of 18</span>
-        <button class="btn" type="button">Next{{icon:caret-right}}</button>
-        <label class="visually-hidden" for="jump">Go to page</label>
-        <select id="jump"><option>Go to page</option><option>1</option><option>18</option></select>
-      </div>
     </div>
   </main>
-  <footer class="v-foot">Viewing as priya@northfield.example. The arrow keys turn pages.</footer>
 </div>
 
 </body>

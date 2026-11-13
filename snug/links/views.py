@@ -25,6 +25,7 @@ from snug.documents.models import Document
 from snug.links import service
 from snug.links.models import MAX_MESSAGE, Link
 from snug.nda import terms as nda_terms
+from snug.office import previews
 from snug.rooms.models import Room
 
 ISSUED = "snug.issued_link"
@@ -142,10 +143,12 @@ def link_new_room(request: HttpRequest, room_token: str) -> HttpResponse:
 
 def _download_kind(document: Document | None, room: Room | None) -> str:
     if room is not None:
-        return "room"
+        return "room_pages" if previews.shown() else "room"
     latest = document.latest_version() if document is not None else None
     if latest is not None and latest.is_video:
         return "video"
+    if latest is not None and latest.is_office and latest.reads_as_pages:
+        return "office_pages"
     if latest is not None and latest.is_workbook:
         return "workbook"
     return "office" if latest is not None and latest.is_office else "pdf"

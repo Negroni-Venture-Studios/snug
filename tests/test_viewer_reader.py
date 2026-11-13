@@ -208,9 +208,23 @@ def test_a_page_that_cannot_be_rendered_says_so(
 
 
 def test_the_reader_shows_the_about_panel_with_the_message(document: Document) -> None:
-    """docs/design.md: the cover message is in the About this link panel on every page."""
+    """docs/design.md: the cover message is in the About this link panel."""
     issued = issue(document, message="Ahead of Thursday's call.\nPage 5 is the one.")
     page = get(opened(issued), f"/v/{issued.token}").content.decode()
     assert 'aria-label="About this link"' in page
     assert "Ahead of Thursday&#x27;s call.<br>Page 5 is the one." in page
     assert "how long you spend on each page" in page
+
+
+def test_the_about_panel_says_downloads_are_seen_only_when_allowed(document: Document) -> None:
+    """Downloads are audited and shown on People, so the panel says so when a link allows them."""
+    with_download = issue(document)
+    page = get(opened(with_download), f"/v/{with_download.token}").content.decode()
+    assert (
+        "will see when you open this document, how long you spend on each page, "
+        "and when you download it." in page
+    )
+    view_only = issue(document, allow_download=False)
+    page = get(opened(view_only), f"/v/{view_only.token}").content.decode()
+    assert "will see when you open this document and how long you spend on each page." in page
+    assert "download it" not in page

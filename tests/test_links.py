@@ -405,5 +405,18 @@ def test_the_expiry_shown_is_the_day_chosen(client: Client, document: Document) 
     create(client, document, action="email", expires=day.isoformat())
     assert Link.objects.get().last_day == day
     assert f"It works until {day.day} {day:%B %Y}." in django_mail.outbox[0].body
+    assert "asked for this email address and sent a six-digit code." in django_mail.outbox[0].body
+
+
+@pytest.mark.usefixtures("email_on")
+def test_the_link_email_without_a_code_reads_as_one_paragraph(
+    client: Client, document: Document
+) -> None:
+    day = timezone.localdate() + timedelta(days=3)
+    data = {"email": INVESTOR, "note": "", "action": "email", "expires": day.isoformat()}
+    client.post(f"/admin/links/for/{document.token}", data, secure=True)
+    assert not Link.objects.get().require_verification
+    body = django_mail.outbox[0].body
+    assert f"This link is for you alone. It works until {day.day} {day:%B %Y}." in body
     listing = client.get("/admin/links/", secure=True).content.decode()
     assert f"Expires {day.day} {day:%b}" in listing

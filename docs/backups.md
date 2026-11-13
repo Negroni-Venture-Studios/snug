@@ -1,6 +1,6 @@
 # Backups
 
-The standard deployment backs Snug up continuously to a storage bucket of your own, such as DigitalOcean Spaces. Everything is encrypted on your server before it is uploaded, with a key only you hold.
+The standard deployment backs Snug up continuously to a storage bucket of your own, such as DigitalOcean Spaces. Everything is encrypted on your server, with your own key, before it is uploaded.
 
 ## What is backed up
 
@@ -83,9 +83,9 @@ sudo docker compose exec backup rclone lsf -R snug-backup:
 
 ## Restoring
 
-`snug restore` brings everything back from the bucket: the database, the uploaded documents and the branding images. Use it on the same server after a mistake, or on a new server if the old one is lost.
+`snug restore` brings everything back from the bucket: the database, the uploaded documents and the branding images. Run it on the same server after a mistake. On a new server, `snug setup` runs it.
 
-On DigitalOcean, [Putting Snug on DigitalOcean](deploy-digitalocean.md#bringing-snug-back-on-a-new-server) goes through it step by step. On another provider, create the new server with cloud-init as [deployment.md](deployment.md) describes, and run `sudo snug setup`. After the domain and your company's name, it asks whether you are restoring Snug from an earlier server's backups. Type `yes`, then paste the backup settings saved in your password manager, from the first line, `# Snug's backups`, to the last, `password2 = ...`. Setup checks the bucket holds backups and restores them. Then sign in to check, and run `sudo snug doctor`.
+On DigitalOcean, [Putting Snug on DigitalOcean](deploy-digitalocean.md#bringing-snug-back-on-a-new-server) goes through it step by step. On another provider, create the new server with cloud-init as [deployment.md](deployment.md) describes, and run `sudo snug setup`. After the domain, your company's name and whether to show Office files in the browser, it asks whether you are restoring Snug from an earlier server's backups. Type `yes`, then paste the backup settings saved in your password manager, from the first line, `# Snug's backups`, to the last, `password2 = ...`. Setup checks the bucket holds backups and restores them. Then sign in to check, and run `sudo snug doctor`.
 
 The email settings come back with the database, including a Google Workspace connection, which goes on sending. If the new server has a different domain, add its redirect address to the Google client too, as [email-google.md](email-google.md) describes, so the mailbox can be connected again when it needs to be.
 
@@ -103,7 +103,7 @@ To go back to an earlier moment within the last 7 days, give the time in UTC:
 sudo snug restore --at 2026-11-05T14:00:00Z
 ```
 
-If the server already has a database, `snug restore` asks you to type `replace` first. The data it replaces is kept, in a folder in the data volume named `previous-` and the time.
+If the server already has a database, `snug restore` asks you to type `replace` first. The data it replaces, with the page images rendered and stamped from it, is kept in a folder in the data volume named `previous-` and the time.
 
 Each Snug has a random identity, kept in the data volume and, from the first backup, in the bucket. The backup container never copies into a bucket that holds another Snug's backups. If a new server is started before it is restored, its backups stop with that problem until `snug restore` brings the bucket's data, and its identity, to the server.
 

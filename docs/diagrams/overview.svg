@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" width="1000" height="560" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" width="1000" height="640" role="img" aria-labelledby="t d">
 <title id="t">Snug on one server</title>
-<desc id="d">Founders and investors reach Snug through Caddy. Inside the Snug container, gunicorn's web workers serve requests and start a confined document worker for each job. Litestream and the rclone backup container share the data volume and copy it, encrypted, to the founder's bucket. Snug sends email through Google or an SMTP server and fetches country data from DB-IP.</desc>
+<desc id="d">Founders and investors reach Snug through Caddy. Inside the Snug container, gunicorn's web workers serve requests and start a confined document worker for each job. The optional LibreOffice converter runs in a container of its own, under gVisor with no network, and shares only an inbox and an outbox with Snug. Litestream and the rclone backup container share the data volume and copy it, encrypted, to the founder's bucket. Snug sends email through Google or an SMTP server and fetches country data from DB-IP.</desc>
 <defs>
   <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
   <marker id="tip-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-accent"/></marker>
 </defs>
-<rect class="bg" width="1000" height="560"/>
+<rect class="bg" width="1000" height="640"/>
 
 <!-- People -->
 <text class="heading" x="20" y="66">PEOPLE</text>
@@ -17,7 +17,7 @@
 <text class="mono" x="36" y="379">/v/&lt;token&gt;/</text>
 
 <!-- The server -->
-<rect class="zone-dashed" x="226" y="40" width="540" height="500" rx="12"/>
+<rect class="zone-dashed" x="226" y="40" width="540" height="580" rx="12"/>
 <text class="heading" x="246" y="66">YOUR SERVER</text>
 
 <rect class="box" x="246" y="236" width="138" height="72" rx="8"/>
@@ -40,9 +40,10 @@
 <!-- Data volume, drawn as a cylinder -->
 <path class="box" d="M414,386 v92 a82,16 0 0 0 164,0 v-92"/>
 <ellipse class="box" cx="496" cy="386" rx="82" ry="16"/>
-<text class="title" x="436" y="428">Data volume</text>
-<text class="label" x="436" y="448">database, uploads,</text>
-<text class="label" x="436" y="464">page cache, replica</text>
+<text class="title" x="436" y="424">Data volume</text>
+<text class="label" x="436" y="443">database, uploads,</text>
+<text class="label" x="436" y="459">page cache, previews,</text>
+<text class="label" x="436" y="475">replica</text>
 
 <rect class="box" x="606" y="366" width="140" height="64" rx="8"/>
 <text class="title" x="622" y="392">Litestream</text>
@@ -50,6 +51,15 @@
 <rect class="box" x="606" y="452" width="140" height="64" rx="8"/>
 <text class="title" x="622" y="478">rclone</text>
 <text class="label" x="622" y="500">encrypts, 5 minutes</text>
+
+<!-- The optional converter -->
+<rect class="box" x="246" y="540" width="332" height="64" rx="8"/>
+<text class="title" x="262" y="566">LibreOffice converter</text>
+<text class="small" x="436" y="566">optional</text>
+<text class="label" x="262" y="588">gVisor, no network, restarted for each file</text>
+<path class="line-dashed" d="M414,322 H400 V540" marker-start="url(#tip)" marker-end="url(#tip)"/>
+<text class="small" x="390" y="466" text-anchor="end">inbox and</text>
+<text class="small" x="390" y="482" text-anchor="end">outbox</text>
 
 <!-- Outside -->
 <text class="heading" x="806" y="66">OUTSIDE</text>

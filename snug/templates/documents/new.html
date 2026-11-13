@@ -3,7 +3,7 @@
 {% block title %}Upload a document to Snug{% endblock %}
 {% block content %}
 <div class="crumbs"><a href="{% url 'documents:list' %}">Documents</a> / Upload</div>
-<div class="title-row"><div><h1 class="page-title">Upload a document</h1><div class="page-meta">A PDF, or a Word, PowerPoint or Excel file (.docx, .pptx or .xlsx), up to {{ limit_mb }} MB, or an MP4 video, up to {{ video_mb }} MB. Later uploads become new versions of the same document.</div></div></div>
+<div class="title-row"><div><h1 class="page-title">Upload a document</h1><div class="page-meta">A PDF, or a Word, PowerPoint or Excel file (.docx, .pptx or .xlsx), up to {{ limit_mb }} MB, or an MP4 video, up to {{ video_mb }} MB. To replace a document, upload a new version from its page.</div></div></div>
 <form class="panel form narrow-form" method="post" action="{% url 'documents:new' %}" enctype="multipart/form-data" novalidate data-upload>
   {% csrf_token %}
   {% include "snug/partials/form_error.html" %}
