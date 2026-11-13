@@ -204,3 +204,58 @@ def test_a_rooms_folders_read_as_folders(live_server: Any, page: Page, document:
         page.locator(".room-index").screenshot(path=f"{shots}/room-folders.png")
     page.get_by_role("link", name="Seed deck").click()
     expect_page(page, 1, 3)
+
+
+def test_about_this_link_opens_from_the_top_right(
+    live_server: Any, page: Page, document: Document
+) -> None:
+    # Decided 13 November 2026: the panel drops down from a button beside
+    # Download, and Previous and Next sit above the page.
+    import os
+
+    shots = os.environ.get("SNUG_SHOT_DIR")
+    issued = issue(document, verify=False)
+    page.set_viewport_size({"width": 1280, "height": 800})
+    page.goto(f"{live_server.url}/v/{issued.token}")
+    page.get_by_role("button", name="Open Seed deck").click()
+    expect_page(page, 1, 3)
+    toggle = page.locator("summary", has_text="About this link")
+    panel = page.get_by_role("complementary", name="About this link")
+    expect(panel).to_be_hidden()
+    controls = page.get_by_role("navigation", name="Pages").bounding_box()
+    image = page.get_by_role("img", name="Page 1 of 3").bounding_box()
+    assert controls is not None and image is not None and controls["y"] < image["y"]
+    if shots:
+        page.screenshot(path=f"{shots}/reader-closed.png")
+    toggle.click()
+    expect(panel).to_be_visible()
+    fits_on_screen(page, panel)
+    button, box = toggle.bounding_box(), panel.bounding_box()
+    assert button is not None and box is not None
+    assert box["x"] + box["width"] >= button["x"] + button["width"]  # at the right, under it
+    if shots:
+        page.screenshot(path=f"{shots}/reader-open.png")
+    page.get_by_role("img", name="Page 1 of 3").click()  # anywhere else closes it
+    expect(panel).to_be_hidden()
+    toggle.click()
+    expect(panel).to_be_visible()
+    page.keyboard.press("Escape")
+    expect(panel).to_be_hidden()
+    expect(toggle).to_be_focused()
+    page.get_by_role("link", name="Next").click()
+    expect_page(page, 2, 3)
+    page.set_viewport_size({"width": 390, "height": 800})
+    words = page.locator(".about-toggle .label").bounding_box()  # kept for screen readers only
+    assert words is not None and words["width"] <= 1
+    expect(toggle).to_be_visible()  # the icon and caret
+    toggle.click()
+    expect(panel).to_be_visible()
+    fits_on_screen(page, panel)
+    if shots:
+        page.screenshot(path=f"{shots}/reader-phone.png")
+
+
+def fits_on_screen(page: Page, panel: Any) -> None:
+    box, width = panel.bounding_box(), page.viewport_size
+    assert box is not None and width is not None
+    assert box["x"] >= 0 and box["x"] + box["width"] <= width["width"], (box, width)

@@ -404,7 +404,19 @@ input.code-field { font-family: var(--mono); letter-spacing: 0.15em; }
    the bare video, goes full screen, so the mark goes with it. */
 .player { display: grid; gap: 1.1rem; justify-items: center; }
 /* Below the page or the video, where it moves nothing the reader is looking at. */
-.reader > .about, .player > .about { width: 100%; max-width: 32rem; margin-top: 1.5rem; }
+/* About this link, at the top right of the reader and the video page: a button
+   with an icon and a caret that turns when it is open, and the panel dropped
+   down over the page, at the right, so the page keeps its whole width. */
+/* Placed against the toolbar's right edge, which lines up with the page's at any width. */
+.v-tools { position: relative; }
+.about-toggle > summary { list-style: none; }
+.about-toggle > summary::-webkit-details-marker { display: none; }
+.about-toggle .caret { transition: transform 0.15s ease; }
+.about-toggle[open] .caret { transform: rotate(180deg); }
+.about-toggle[open] > summary { border-color: var(--text-3); }
+.about-pop { position: absolute; right: 0; top: calc(100% + 0.5rem); z-index: 20; width: min(26rem, calc(100vw - 2rem));
+    box-shadow: 0 12px 32px light-dark(rgba(28,25,23,0.16), rgba(0,0,0,0.5)); border-radius: var(--r); }
+.about-pop .about { margin: 0; }
 .video-frame { position: relative; width: 100%; border-radius: 2px; overflow: hidden; border: 1px solid var(--border); background: #000000; }
 .video-frame video { display: block; width: 100%; height: auto; max-height: 80vh; }
 .video-frame:fullscreen video { max-height: none; height: 100%; }
@@ -497,6 +509,8 @@ input.code-field { font-family: var(--mono); letter-spacing: 0.15em; }
     .header-tools .who-am-i { display: none; }
     .v-head, .v-main { padding-left: 1rem; padding-right: 1rem; }
     .v-head .doc { display: none; }
+    /* The icon and caret say what it is; the words stay for screen readers. */
+    .about-toggle .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     /* Previous, the position and Next stay on one row; the picker goes below. */
     .reader-controls { gap: 0.5rem; }
     .reader-controls .jump { flex-basis: 100%; justify-content: center; }
