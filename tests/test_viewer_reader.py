@@ -228,3 +228,15 @@ def test_the_about_panel_says_downloads_are_seen_only_when_allowed(document: Doc
     page = get(opened(view_only), f"/v/{view_only.token}").content.decode()
     assert "will see when you open this document and how long you spend on each page." in page
     assert "download it" not in page
+
+
+RECORDED = "Your IP address, browser and country are recorded with each visit."
+
+
+def test_the_about_panel_says_what_is_recorded_of_each_visit(document: Document) -> None:
+    # Every viewer event is audited with the visitor's IP address, browser and
+    # country, and the first-open email shows the country (13 November 2026).
+    issued = issue(document)
+    landing = get(Client(), f"/v/{issued.token}").content.decode()
+    reader = get(opened(issued), f"/v/{issued.token}").content.decode()
+    assert RECORDED in landing and RECORDED in reader

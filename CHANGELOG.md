@@ -4,6 +4,11 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Changed
+
+- The *About this link* panel tells investors that their IP address, browser and country are recorded with each visit, as the audit log and the first-open email show them.
+- The backups guide no longer says that versioning keeps deleted backups out of reach of someone who takes over the server, since the same keys can usually delete earlier versions too. It suggests object lock, or a copy taken from another computer.
+
 ## [1.1.0] - 2026-11-13
 
 Support for Word and PowerPoint files, an optional LibreOffice converter that shows Office files in the browser, and pages that appear sooner.

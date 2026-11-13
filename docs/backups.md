@@ -18,7 +18,7 @@ If the server is lost, you lose at most the last 5 minutes of changes.
 
 The bucket mirrors the server, but nothing is deleted from it straight away. Whatever a copy would delete or overwrite, including the database replica's own files, is moved to `deleted/<date>/` in the bucket and kept for 30 days. So if the server's data is wiped by mistake, the backups survive it for a month.
 
-The server holds the bucket's keys, so someone who takes control of it can delete the backups. Turning on versioning for the bucket, where your provider offers it, keeps deleted files out of their reach for as long as you choose.
+The server holds the bucket's keys, so someone who takes control of it can delete the backups. Versioning, where your provider offers it, keeps earlier versions of deleted or replaced files, which helps after a mistake, but the same keys can usually delete those versions too. For copies that outlast the server being taken over, use your provider's object lock if it has one, or copy the bucket from another computer with keys of its own.
 
 ## How it works
 
