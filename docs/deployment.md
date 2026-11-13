@@ -131,6 +131,7 @@ sudo snug createadmin --email someone@example.com
 sudo snug reset-2fa someone@example.com
 sudo snug check
 sudo snug doctor
+sudo snug version
 ```
 
 `sudo snug setup`, `sudo snug restore` and `sudo snug update` are the exceptions. They run on the server itself, because they stop and start the containers. [backups.md](backups.md) explains `snug restore`.
@@ -149,4 +150,4 @@ To download from another branch or tag, set `SNUG_REF`, as in `sudo env SNUG_REF
 
 Each release's Compose file pins both of Snug's images to that release, such as `snug:1.1.0` and `snug-office:1.1.0`. The converter's image for the newest release is rebuilt every Monday under the same tag, with Debian's latest LibreOffice security fixes, so with LibreOffice installed every `snug update` pulls it again. `snug update` also installs the gVisor release pinned in the new files, if it has changed.
 
-The Overview shows which Snug is running, under its status line: a release's version, or `edge` and the commit for a build of `main`.
+The Overview shows which Snug is running, under its status line: a release's version, or `edge` and the commit for a build of `main`. `sudo snug version` prints the same, and so does the first line of `sudo snug doctor`.

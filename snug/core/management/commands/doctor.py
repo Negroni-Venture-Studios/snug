@@ -15,6 +15,7 @@ from django.utils import timezone
 
 from snug.core import doctor, mail
 from snug.core.doctor import Finding
+from snug.core.version import running
 
 
 def _email_test(address: str) -> Finding:
@@ -72,7 +73,7 @@ class Command(BaseCommand):
                     )
                 )
 
-        self.stdout.write("Snug doctor\n")
+        self.stdout.write(f"Snug doctor, {running().name}\n")
         width = max(len(f.label) for f in findings) + 2
         for found in findings:
             self.stdout.write(f"{found.status:<10}{found.label:<{width}}{found.message}")

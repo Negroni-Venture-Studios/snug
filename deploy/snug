@@ -5,7 +5,8 @@
 #   sudo snug restore [--at TIME]    restore from the backups (restore.sh)
 #   sudo snug update [--with-office | --without-office]
 #                                    the latest server files and images (update.sh)
-#   sudo snug doctor                 any other command runs in Snug's container
+#   sudo snug doctor                 any other command runs in Snug's container,
+#   sudo snug version                such as these two
 #
 # SNUG_HOME is the folder holding compose.yaml: /opt/snug unless set.
 

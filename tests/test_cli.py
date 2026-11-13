@@ -96,6 +96,25 @@ def test_main_runs_management_commands(
     assert "no issues" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize("asked", ["version", "--version"])
+def test_snug_version_is_snugs_not_djangos(asked: str) -> None:
+    # 13 November 2026: `snug version` printed Django's version, 6.1.3, since
+    # Django answers `version` itself. It needs no settings, so it works on a
+    # server whose snug.env is broken.
+    result = run_snug(asked, env={"SNUG_BUILD_VERSION": "1.4.2"})
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "Snug 1.4.2\n"
+
+
+def test_snug_version_names_an_edge_builds_commit(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("SNUG_BUILD_VERSION", "edge")
+    monkeypatch.setenv("SNUG_BUILD_COMMIT", "3e7eeab0c9d2f1a4b5e6f708192a3b4c5d6e7f80")
+    assert main(["version"]) == 0
+    assert capsys.readouterr().out == "Snug edge, commit 3e7eeab\n"
+
+
 def test_main_creates_a_private_data_folder(tmp_path: Path) -> None:
     env_file = write_env(tmp_path)
     result = run_snug("--env-file", str(env_file), "check")

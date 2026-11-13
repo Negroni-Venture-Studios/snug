@@ -5,6 +5,7 @@
 `--env-file` loads settings from a file without overriding variables that are
 already set, as Docker Compose does. Useful commands:
 
+    snug version      the version of Snug running, as the Overview shows it
     snug serve        apply migrations, then serve with gunicorn
     snug migrate      apply migrations only
     snug check        check the configuration and the project
@@ -31,6 +32,14 @@ def main(argv: list[str] | None = None) -> int:
             for key, value in read_env_file(Path(args[1])).items():
                 os.environ.setdefault(key, value)
             args = args[2:]
+
+        # Snug's version, not Django's: Django answers `version` before it
+        # looks for a command of that name. It needs no settings.
+        if args in (["version"], ["--version"]):
+            from snug.core.version import running
+
+            print(running().name)
+            return 0
 
         os.environ.setdefault("DJANGO_SETTINGS_MODULE", "snug.settings")
         import django

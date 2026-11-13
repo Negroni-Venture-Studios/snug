@@ -73,7 +73,7 @@ More screenshots are in [Using Snug](docs/using-snug.md).
 
 ## Status
 
-Version 1.1.1 is the latest release, with the container image `ghcr.io/negroni-venture-studios/snug:1.1.1`. Since 1.1.0, Snug takes Word and PowerPoint files, and has an optional LibreOffice converter that shows Office files in the browser.
+Version 1.1.2 is the latest release, with the container image `ghcr.io/negroni-venture-studios/snug:1.1.2`. Since 1.1.0, Snug takes Word and PowerPoint files, and has an optional LibreOffice converter that shows Office files in the browser.
 
 [What Snug protects against](docs/security.md) sets out the limits of its watermarks, the NDA record and UK-only mode. Planned work is in the [issues labelled enhancement](https://github.com/Negroni-Venture-Studios/snug/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
 

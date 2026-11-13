@@ -392,9 +392,11 @@ def test_the_report_lists_every_check_and_fails_on_a_problem(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+    monkeypatch.setenv("SNUG_BUILD_VERSION", "1.4.2")
     report, status = run_doctor()
     labels = [line.split("  ")[0:2] for line in report.splitlines()]
-    assert report.splitlines()[0] == "Snug doctor"
+    # The version leads, so a report pasted into an issue includes it (13 November 2026).
+    assert report.splitlines()[0] == "Snug doctor, Snug 1.4.2"
     for name in ("Housekeeping", "Backups", "Document worker", "DNS", "HTTPS", "Email"):
         assert any(name in line for line in report.splitlines()), (name, labels)
     assert "problem   Email" in report  # not set up in this test
