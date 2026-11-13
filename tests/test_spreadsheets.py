@@ -203,7 +203,8 @@ def test_a_workbook_link_shows_a_card_with_its_sheets(model: Document) -> None:
         "see when you open this workbook, how long its page is open, and when you download it"
         in page
     )
-    assert "Your email address is written into your copy's document properties." in page
+    # The card says it under the download button, so the panel does not (13 November 2026).
+    assert page.count("document properties") == 1
     assert "watermark" not in page
 
 

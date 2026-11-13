@@ -6,6 +6,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Changed
 
+- *About this link* no longer says that the investor's email address is watermarked on what they read, since they can see it, or repeats what an Office file's card says under its download button. Beside a preview's pages it still says that their email address is written into the document properties of a downloaded copy.
 - The *About this link* panel tells investors that their IP address, browser and country are recorded with each visit, as the audit log and the first-open email show them.
 - The backups guide no longer says that versioning keeps deleted backups out of reach of someone who takes over the server, since the same keys can usually delete earlier versions too. It suggests object lock, or a copy taken from another computer.
 

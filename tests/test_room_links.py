@@ -16,6 +16,7 @@ from snug.links import service
 from snug.links.models import Link
 from snug.rooms.models import Folder, Room, RoomDocument
 from snug.viewer.access import NotVerified, Unavailable, authorise
+from tests import test_viewer_reader as reader
 from tests.test_viewer_access import verified_browser
 
 pytestmark = pytest.mark.django_db
@@ -207,7 +208,7 @@ def test_a_rooms_privacy_line_does_not_assume_every_document_has_pages(room: Roo
     assert (
         "when you open each document, how long you spend on it, and when you download it." in page
     )
-    assert "Every page and video shows your email address as a watermark." in page
+    assert "watermark" not in reader.about_panel(page)
 
 
 def test_an_empty_room_says_so() -> None:

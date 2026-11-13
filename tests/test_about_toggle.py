@@ -81,6 +81,12 @@ def test_the_video_page_has_the_toggle_too(demo: Document) -> None:
     assert page.index(TOGGLE) < page.index('<main class="v-main">')
 
 
+def test_the_video_page_leaves_the_watermark_unsaid(demo: Document) -> None:
+    sent = videos.issue(demo)
+    page = videos.opened(sent).get(f"/v/{sent.token}", secure=True).content.decode()
+    assert "watermark" not in reader.about_panel(page)
+
+
 def test_the_landing_page_keeps_the_panel_beside_it(document: Document) -> None:
     sent = reader.issue(document)
     page = reader.get(Client(), f"/v/{sent.token}").content.decode()
