@@ -77,9 +77,9 @@ Version 1.1.2 is the latest release, with the container image `ghcr.io/negroni-v
 
 [What Snug protects against](docs/security.md) sets out the limits of its watermarks, the NDA record and UK-only mode. Planned work is in the [issues labelled enhancement](https://github.com/Negroni-Venture-Studios/snug/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
 
-## Windows, macOS and Linux
+## Windows, macOS, and Linux
 
-Snug runs on a Linux server, and you and your investors use it in a web browser, on Windows, macOS, Linux or a phone.
+Snug runs on a Linux server, and you and your investors use it in a web browser, on Windows, macOS, Linux, or a phone.
 
 ## Trying it on your own computer
 
