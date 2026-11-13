@@ -14,7 +14,7 @@ x-logging: &logging
 
 services:
   snug:
-    image: ${SNUG_IMAGE:-ghcr.io/negroni-venture-studios/snug:1.1.0}
+    image: ${SNUG_IMAGE:-ghcr.io/negroni-venture-studios/snug:1.1.1}
     restart: unless-stopped
     env_file: snug.env
     environment:
@@ -121,7 +121,7 @@ services:
   # with new processes, a new gVisor sandbox and an empty /tmp, so nothing a
   # file did survives to the next.
   office:
-    image: ${SNUG_OFFICE_IMAGE:-ghcr.io/negroni-venture-studios/snug-office:1.1.0}
+    image: ${SNUG_OFFICE_IMAGE:-ghcr.io/negroni-venture-studios/snug-office:1.1.1}
     profiles: [office]
     # gVisor: LibreOffice's system calls reach gVisor's own kernel, not the server's.
     runtime: ${SNUG_OFFICE_RUNTIME:-runsc}

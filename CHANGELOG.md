@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-13
+
+Clearer wording in the *About this link* panel, and a correction to the backups guide.
+
 ### Changed
 
 - *About this link* no longer says that the investor's email address is watermarked on what they read, since they can see it, or repeats what an Office file's card says under its download button. Beside a preview's pages it still says that their email address is written into the document properties of a downloaded copy.
@@ -253,6 +257,7 @@ External security audits found these.
 - Project documents: README, contributing guide, security policy, code of conduct, trademarks note, and agent instructions.
 - DESIGN.md, recording the architecture, the agreed decisions and the front-end design, with clickable mockups and the Snug logo in `docs/design/`.
 
-[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Negroni-Venture-Studios/snug/releases/tag/v1.0.0
