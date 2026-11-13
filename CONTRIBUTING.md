@@ -58,6 +58,7 @@ The second builds a demo company's data room (`tests/demo.py`), opens each page 
   - the CodeQL `analyze` jobs
   - `e2e (real browser)`, the investor's journey and the admin controls in Chromium through Playwright
   - `image smoke test`, which builds the container image and checks that its document worker renders a PDF page confined
+  - `office converter`, which builds the LibreOffice converter's image and converts a Word document, a deck and a workbook under gVisor
 - Force pushes and deletion of `main` are blocked.
 - CI is the gate; no approving review count is required. Stale reviews are dismissed when new commits arrive.
 

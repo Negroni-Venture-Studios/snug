@@ -66,7 +66,7 @@ Every admin has the same rights, and signs in with a password and a code from an
 
 ## What Snug records about investors
 
-Snug records each visitor's email address, IP address and country, and how long they spent on each page. In the *About this link* panel, investors are told that you will see when they open each document, how long they spend on each page and, if the link allows downloads, when they download it. On the NDA page they are also told that their IP address is recorded. The reading data is deleted a set time after their link ends, 12 months unless you change it in Settings; the audit log is kept.
+Snug records each visitor's email address, IP address and country, and how long they spent on each page. In the *About this link* panel, investors are told that you will see when they open each document, how long they spend on each page and, if the link allows downloads, when they download it, and that their IP address, browser and country are recorded with each visit. The reading data is deleted a set time after their link ends, 12 months unless you change it in Settings; the audit log is kept.
 
 ## Reporting a security problem
 
