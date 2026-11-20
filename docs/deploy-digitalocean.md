@@ -317,7 +317,13 @@ You need the backup settings you saved in your password manager in step 7. Witho
    | `Show Office files in the browser? Type yes or no [no]` | `yes` if the old server showed them, on the $12.00/mo plan, or press Return for no |
    | `Are you restoring Snug from an earlier server's backups? Type yes or no [no]` | `yes` |
 
-   Snug asks you to paste the backup settings. Copy the whole of them from your password manager, from the first line, `# Snug's backups`, to the last, `password2 = ...`, and paste them into the console. Snug says `Found the backups: setup will restore them`, fetches them, and says:
+   Snug asks you to paste the backup settings. Copy the whole of them from your password manager, from the first line, `# Snug's backups`, to the last, `password2 = ...`, and paste them into the console. Snug shows the bucket they are for and when its newest backup was copied. Check it is your Snug's bucket, then:
+
+   | Snug asks | You type |
+   |---|---|
+   | `Restore Snug from these backups? Type yes or no [no]` | `yes` |
+
+   Snug fetches the backups, and says:
 
    ```
    Snug is restored at https://room.yourcompany.com. Sign in as before.

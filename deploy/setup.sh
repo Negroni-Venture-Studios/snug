@@ -192,8 +192,22 @@ elif [ "$existing" = no ] && yes_or_no "Are you restoring Snug from an earlier s
 		say "for this Snug, that the bucket and its key still exist, and run sudo snug setup again."
 		exit 1
 	fi
+	# Settings pasted from anywhere but this Snug's own password manager would
+	# restore someone else's database, with their admins (issue #170). Say
+	# which bucket these are, and when it was last copied to, and ask.
+	where=$(sed -n 's/^remote *= *bucket://p' backup/rclone.conf | head -n 1)
+	endpoint=$(sed -n 's/^endpoint *= *//p' backup/rclone.conf | head -n 1)
+	last=$(rclone lsf --format t snug-backup:database 2> /dev/null | sort | tail -n 1 || true)
+	say "These settings are for the bucket ${where:-named in them}${endpoint:+, at $endpoint}."
+	[ -z "$last" ] || say "Its newest backup was copied at $last UTC."
+	if ! yes_or_no "Restore Snug from these backups?" "no" || [ "$reply" != yes ]; then
+		rm -f backup/rclone.conf
+		say "Nothing has been restored. Run sudo snug setup again with the backup settings"
+		say "saved for this Snug."
+		exit 1
+	fi
 	restoring=yes
-	say "Found the backups: setup will restore them."
+	say "Setup will restore the backups."
 else
 	say "Backups go to a storage bucket of your own, encrypted on this server first."
 	say "docs/backups.md explains how to create a DigitalOcean Spaces bucket and a key."
