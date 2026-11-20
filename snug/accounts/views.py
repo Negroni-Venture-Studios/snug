@@ -34,6 +34,15 @@ WRONG_CODE = {
 }
 
 
+def _first_refusal(limit: ratelimit.Limit, ip: str, account: str) -> bool:
+    """Whether to audit a rate-limited sign-in: once a window per address and account.
+
+    Audit rows are kept for good, so a flood of refusals must not each add one
+    (security audit, 19 November 2026, F7).
+    """
+    return ratelimit.once(limit, ip) and ratelimit.once(limit, f"account:{account}")
+
+
 def _audit(
     request: HttpRequest, action: str, target: str, *, actor: str = "", **details: Any
 ) -> None:
@@ -84,7 +93,8 @@ def login_view(request: HttpRequest) -> HttpResponse:
     if not ratelimit.allow(limits.PASSWORD_PER_IP, ip) or not ratelimit.allow(
         limits.PASSWORD_PER_ACCOUNT, email
     ):
-        _audit(request, "admin.login_failed", email, step="password", reason="rate_limited")
+        if _first_refusal(limits.PASSWORD_PER_IP, ip, email):
+            _audit(request, "admin.login_failed", email, step="password", reason="rate_limited")
         return render(request, "accounts/login.html", {**context, "error": TOO_MANY}, status=429)
 
     # authenticate() hashes a dummy password for unknown addresses, so a wrong
@@ -123,7 +133,8 @@ def _second_step(
 
     ip = _identity(request)
     if not ratelimit.allow(per_ip, ip) or not ratelimit.allow(per_admin, str(admin.pk)):
-        _audit(request, "admin.login_failed", admin.email, step=method, reason="rate_limited")
+        if _first_refusal(per_ip, ip, admin.email):
+            _audit(request, "admin.login_failed", admin.email, step=method, reason="rate_limited")
         return render(request, template, {"error": TOO_MANY}, status=429)
 
     submitted = request.POST.get("code", "")
