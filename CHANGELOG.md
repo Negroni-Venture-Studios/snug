@@ -6,6 +6,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Security
 
+- A request refused by a rate limit, or a UK-only link opened from abroad, is now written to the audit log once in each limit's window for an address and an account or link, not once per request. Audit entries are kept for good and backed up, so one client sending refused requests could grow the database and its backups as fast as it could send them.
 - An NDA acceptance is now recorded only for the version the investor was shown. If the NDA was changed while their page was open, Snug shows them the new text and records nothing until they accept it. Before, the acceptance was recorded against the new version, which they had not seen.
 - After ten wrong addresses on a link, a wrong code now gets the same neutral reply until any code sent in that time has expired. Before, the neutral replies ended on the hour, and a wrong code just after it could tell someone guessing addresses whether their last batch held the right one.
 - The document worker can no longer have the kernel signal another of Snug's processes. On Linux 6.7 to 6.11, where Landlock does not yet scope signals, a compromised worker could name another process as the owner of a pipe or socket with `fcntl` or `ioctl`, and the kernel would signal it, stopping Snug until Docker restarted it. The worker's seccomp filter now refuses those commands, and so does the LibreOffice converter's.

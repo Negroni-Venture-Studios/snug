@@ -71,15 +71,25 @@ def _see_other(token: str, name: str = "viewer:entry") -> HttpResponse:
     return response
 
 
+def _first_refusal(request: HttpRequest, limit: ratelimit.Limit, link: Link) -> bool:
+    """Whether to audit a refusal: once a window per address and link.
+
+    Audit rows are kept for good, so a flood of refused requests must not each
+    add one (security audit, 19 November 2026, F7).
+    """
+    return ratelimit.once(limit, _ip(request)) and ratelimit.once(limit, f"link:{link.pk}")
+
+
 def _outside(request: HttpRequest, refused: OutsideUK) -> HttpResponse:
     """A UK-only link opened from elsewhere, or from somewhere nobody can place."""
-    _audit(
-        request,
-        "viewer.outside_uk",
-        refused.link,
-        actor="",
-        country=refused.country or "unknown",
-    )
+    if _first_refusal(request, limits.OUTSIDE_UK_AUDIT, refused.link):
+        _audit(
+            request,
+            "viewer.outside_uk",
+            refused.link,
+            actor="",
+            country=refused.country or "unknown",
+        )
     return render(request, "viewer/outside.html", status=403)
 
 
@@ -254,7 +264,8 @@ def _send(link: Link, code: str, company: str, via: mail.Outgoing | None = None)
 def _send_refused(
     request: HttpRequest, link: Link, token: str, typed: str, error: str = TOO_MANY
 ) -> HttpResponse:
-    _audit(request, "viewer.code_refused", link, typed, reason="rate_limited")
+    if _first_refusal(request, limits.SEND_PER_IP, link):
+        _audit(request, "viewer.code_refused", link, typed, reason="rate_limited")
     return _gate_page(request, link, token, error=error, typed=typed, status=429)
 
 
@@ -703,7 +714,8 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
     per_link = ratelimit.allow(limits.SEND_PER_LINK, str(link.pk))
     if not per_link or not ratelimit.allow(limits.SEND_PER_EMAIL, link.email):
         if neutral:
-            _audit(request, "viewer.code_refused", link, typed, reason="rate_limited")
+            if _first_refusal(request, limits.SEND_PER_IP, link):
+                _audit(request, "viewer.code_refused", link, typed, reason="rate_limited")
             return _neutral_page(request, link, token)
         # Each limit says how long it lasts: 15 minutes for a link, an hour for an inbox.
         return _send_refused(
@@ -735,7 +747,8 @@ def verify_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
     if request.method == "GET":
         return _see_other(token)
     if not ratelimit.allow(limits.CHECK_PER_IP, _ip(request)):
-        _audit(request, "viewer.code_wrong", link, _typed_email(request), reason="rate_limited")
+        if _first_refusal(request, limits.CHECK_PER_IP, link):
+            _audit(request, "viewer.code_wrong", link, _typed_email(request), reason="rate_limited")
         return _code_page(request, link, token, error=TOO_MANY, status=429)
 
     result = codes.check(link, request.POST.get("code", "")[:20])

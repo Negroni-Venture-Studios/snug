@@ -61,6 +61,17 @@ def exceeded(limit: Limit, identity: str, now: float | None = None) -> bool:
     return (count or 0) >= limit.limit
 
 
+def once(limit: Limit, identity: str, now: float | None = None) -> bool:
+    """True the first time this is asked for an identity in `limit`'s window.
+
+    For something to do at most once a window, such as auditing a refusal:
+    each refused request is counted by the limit itself, and a flood of them
+    should not each add a row that is kept for good.
+    """
+    marker = Limit(f"{limit.scope}.once", limit=1, window=limit.window)
+    return hit(marker, identity, now) == 1
+
+
 def purge_expired(older_than: int = 24 * 60 * 60, now: float | None = None) -> int:
     """Remove windows that ended long ago. Returns how many were removed."""
     cutoff = int(time.time() if now is None else now) - older_than

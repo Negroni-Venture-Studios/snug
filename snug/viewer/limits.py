@@ -29,5 +29,9 @@ DOWNLOAD_PER_LINK = Limit("viewer.download.link", limit=30, window=60 * 60)
 # about 60 in 15 minutes, so this allows ten tabs at once.
 BEAT_PER_IP = Limit("viewer.beat.ip", limit=600, window=WINDOW)
 
+# A UK-only link opened from abroad is refused every time, and audited once an
+# hour for each address and link (snug.viewer.views._first_refusal).
+OUTSIDE_UK_AUDIT = Limit("viewer.outside_uk.audit", limit=1, window=60 * 60)
+
 # Opening a link that needs no verification, from one address.
 OPEN_PER_IP = Limit("viewer.open.ip", limit=30, window=WINDOW)
