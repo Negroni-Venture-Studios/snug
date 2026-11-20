@@ -29,6 +29,7 @@ import json
 import os
 import re
 import resource
+import secrets
 import shutil
 import signal
 import stat
@@ -72,11 +73,17 @@ POLL = 0.5
 HEARTBEAT = 30
 
 
+# Left in the outbox when a conversion failed closed, so the next container
+# answers that job without running LibreOffice on the file again.
+SURVIVORS = ".survivors"
+
+
 class Job:
     """One file to convert, as Snug left it in the inbox."""
 
-    def __init__(self, token: str, kind: str, source: Path) -> None:
+    def __init__(self, token: str, kind: str, source: Path, *, failed_closed: bool = False) -> None:
         self.token, self.kind, self.source = token, kind, source
+        self.failed_closed = failed_closed
 
 
 def next_job(inbox: Path, outbox: Path) -> Job | None:
@@ -97,13 +104,22 @@ def next_job(inbox: Path, outbox: Path) -> Job | None:
         except (OSError, ValueError, AttributeError):
             continue
         if kind in FILTERS and (folder / f"input.{kind}").is_file():
-            return Job(token, kind, folder / f"input.{kind}")
+            failed_closed = (outbox / f"{token}{SURVIVORS}").exists()
+            return Job(token, kind, folder / f"input.{kind}", failed_closed=failed_closed)
     return None
 
 
 def _is_linux() -> bool:
     """A function, so type checkers on other systems still check the Linux branch."""
     return sys.platform == "linux"
+
+
+def _prctl(option: int, *args: object) -> bool:
+    """Call prctl(2), on Linux, with up to four arguments. Returns whether it succeeded."""
+    import ctypes
+
+    padded = (*args, 0, 0, 0, 0)[:4]
+    return int(ctypes.CDLL(None, use_errno=True).prctl(option, *padded)) == 0
 
 
 def confine_child() -> None:  # pragma: no cover - runs only in the child, after fork
@@ -114,8 +130,7 @@ def confine_child() -> None:  # pragma: no cover - runs only in the child, after
         return
     import ctypes
 
-    libc = ctypes.CDLL(None, use_errno=True)
-    if libc.prctl(38, 1, 0, 0, 0) != 0:  # PR_SET_NO_NEW_PRIVS
+    if not _prctl(38, 1):  # PR_SET_NO_NEW_PRIVS
         raise OSError("no_new_privs refused")
     program = seccomp.seccomp_filter(os.uname().machine, os.getpid(), unix_sockets=True)
     if program is None:
@@ -126,7 +141,7 @@ def confine_child() -> None:  # pragma: no cover - runs only in the child, after
 
     buffer = ctypes.create_string_buffer(program, len(program))
     fprog = SockFprog(len(program) // 8, ctypes.cast(buffer, ctypes.c_void_p))
-    if libc.prctl(22, 2, ctypes.byref(fprog), 0, 0) != 0:  # PR_SET_SECCOMP, MODE_FILTER
+    if not _prctl(22, 2, ctypes.byref(fprog)):  # PR_SET_SECCOMP, MODE_FILTER
         raise OSError("seccomp refused")
 
 
@@ -301,11 +316,110 @@ def _kill(process: subprocess.Popen[bytes]) -> None:
 
 
 def _write(outbox: Path, name: str, data: bytes) -> None:
-    """Write a file to the outbox under a temporary name, then rename it into place."""
-    partial = outbox / f".{name}.partial"
-    partial.write_bytes(data)
-    partial.chmod(0o644)
-    partial.replace(outbox / name)
+    """Write a file to the outbox under a temporary name, then rename it into place.
+
+    LibreOffice runs as this user and can write to the outbox, so anything at
+    a name it could guess may be a link or a pipe that blocks for ever
+    (security audit, 19 November 2026, F3). The temporary name is random,
+    and the file is created new, relative to the folder, without following
+    links or waiting.
+    """
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    # The outbox is mode 1733: the converter may add files but not list them,
+    # so the folder is opened as a path (Linux), which needs no read access.
+    as_path = getattr(os, "O_PATH", os.O_RDONLY)
+    folder = os.open(outbox, as_path | os.O_DIRECTORY | nofollow)
+    try:
+        partial = f".{secrets.token_hex(16)}.partial"
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | nofollow | os.O_NONBLOCK
+        handle = os.open(partial, flags, 0o600, dir_fd=folder)
+        try:
+            os.fchmod(handle, 0o644)
+            view = memoryview(data)
+            while view:
+                view = view[os.write(handle, view) :]
+        finally:
+            os.close(handle)
+        try:
+            os.rename(partial, name, src_dir_fd=folder, dst_dir_fd=folder)
+        except OSError:
+            # Something not a file is at the name, such as a folder a hostile
+            # file made: move it aside, for Snug to clear, and try once more.
+            stray = f".{secrets.token_hex(16)}.stray"
+            os.rename(name, stray, src_dir_fd=folder, dst_dir_fd=folder)
+            os.rename(partial, name, src_dir_fd=folder, dst_dir_fd=folder)
+    finally:
+        os.close(folder)
+
+
+def _become_subreaper() -> None:
+    """Have orphaned descendants become this process's children, on Linux.
+
+    In the container the supervisor is the first process, and orphans come to
+    it anyway; the call makes the same true wherever it runs, as in tests.
+    """
+    if not _is_linux():
+        return
+    if not _prctl(36, 1):  # PR_SET_CHILD_SUBREAPER
+        # Not fatal: as the container's first process it inherits orphans
+        # anyway. Said on the log, so a failure elsewhere is not silent.
+        sys.stderr.write(json.dumps({"subreaper": "refused"}) + "\n")
+
+
+def _descendants(root: int) -> set[int]:
+    """The live processes descended from `root`, read from /proc."""
+    children: dict[int, list[int]] = {}
+    for entry in Path("/proc").iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            stat_line = (entry / "stat").read_text()
+        except OSError:
+            continue
+        # pid (comm) state ppid ...: comm may hold spaces and brackets.
+        fields = stat_line.rpartition(")")[2].split()
+        if len(fields) < 2 or fields[0] == "Z":
+            continue
+        children.setdefault(int(fields[1]), []).append(int(entry.name))
+    found: set[int] = set()
+    waiting = [root]
+    while waiting:
+        for pid in children.get(waiting.pop(), []):
+            if pid not in found:
+                found.add(pid)
+                waiting.append(pid)
+    return found
+
+
+def end_descendants(rounds: int = 50) -> bool:
+    """Kill every process descended from this one, and reap them, on Linux.
+
+    LibreOffice's own process group is killed after each run, but a process
+    can leave the group by starting a session of its own. As a subreaper the
+    supervisor inherits any orphan, so walking /proc from its own pid finds
+    them all (security audit, 19 November 2026, F3). In the container the
+    supervisor is the first process, and kill(-1) also signals every other
+    process there at once, so one forking as fast as it can is caught too.
+    Returns whether none is left: the caller must not answer otherwise.
+    """
+    if not _is_linux():
+        return True
+    me = os.getpid()
+    for _ in range(rounds):
+        if me == 1:
+            with contextlib.suppress(ProcessLookupError, PermissionError):
+                os.kill(-1, signal.SIGKILL)  # every process here but this one
+        found = _descendants(me)
+        for pid in found:
+            with contextlib.suppress(ProcessLookupError, PermissionError):
+                os.kill(pid, signal.SIGKILL)
+        with contextlib.suppress(ChildProcessError):
+            while os.waitpid(-1, os.WNOHANG)[0]:
+                pass
+        if not found:
+            return True
+        time.sleep(0.05)
+    return not _descendants(me)
 
 
 def publish(outbox: Path, token: str, result: bytes | str) -> None:
@@ -344,13 +458,19 @@ def serve(
     min_lifetime: float = MIN_LIFETIME,
     poll: float = POLL,
     patience: float | None = None,
+    contain: bool = True,
 ) -> int:
     """Wait for one job, convert it, answer, and return once the container has lived long enough.
 
     `patience` bounds the wait, for tests; the container waits for ever.
+    `contain` makes this process a subreaper and has it end every process
+    descended from it before answering. Tests that call this inside their
+    own process turn it off, so it never touches theirs.
     """
     began = time.monotonic()
     started = datetime.now(UTC)
+    if contain:
+        _become_subreaper()
     _write(outbox, "status.json", json.dumps(status(facts_file, started)).encode())
     beat = time.monotonic()
     root = work_root or Path(tempfile.gettempdir())
@@ -361,9 +481,22 @@ def serve(
         if patience is not None and time.monotonic() - began > patience:
             return 1
         time.sleep(poll)
+    if job.failed_closed:
+        # A process from this file's last conversion could not be ended. This
+        # is a fresh sandbox, so answering is safe; converting it again is not.
+        publish(outbox, job.token, "survivors")
+        time.sleep(max(0.0, min_lifetime - (time.monotonic() - began)))
+        return 0
     result = convert(job, work_root=root, template=template, soffice=soffice, confine=confine)
-    publish(outbox, job.token, result)
+    # Live out the minimum, end everything the conversion started, and only
+    # then answer: Snug hands over the next file as soon as it has the answer.
     time.sleep(max(0.0, min_lifetime - (time.monotonic() - began)))
+    if contain and not end_descendants():
+        # Fail closed: no answer, and Docker's restart ends the whole sandbox.
+        sys.stderr.write(json.dumps({"conversion": "not answered", "reason": "survivors"}) + "\n")
+        _write(outbox, f"{job.token}{SURVIVORS}", b"")
+        return 3
+    publish(outbox, job.token, result)
     return 0
 
 
