@@ -11,6 +11,7 @@ configuration to make sure of it:
 
 import hashlib
 from collections.abc import Callable
+from datetime import timedelta
 from functools import wraps
 from typing import Any
 
@@ -654,6 +655,25 @@ def download(request: HttpRequest, access: Access, token: str) -> HttpResponseBa
     return response
 
 
+def _neutral_page(request: HttpRequest, link: Link, token: str) -> HttpResponse:
+    """The neutral reply to a request for a code, kept up for wrong codes too.
+
+    A code sent now lives CODE_MINUTES, so until then a wrong code must read
+    the same whether one was sent or not, even after the wrong-address
+    window ends on the hour (security audit, 19 November 2026, F6).
+    """
+    until = timezone.now() + timedelta(minutes=codes.CODE_MINUTES)
+    Link.objects.filter(pk=link.pk).update(neutral_until=until)
+    return _code_page(request, link, token, neutral=True)
+
+
+def _still_neutral(link: Link) -> bool:
+    if ratelimit.exceeded(limits.WRONG_EMAIL_PER_LINK, str(link.pk)):
+        return True
+    until = Link.objects.filter(pk=link.pk).values_list("neutral_until", flat=True).first()
+    return until is not None and until > timezone.now()
+
+
 @never_cache
 @require_POST
 @viewer_gate
@@ -673,7 +693,7 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
         over = not ratelimit.allow(limits.WRONG_EMAIL_PER_LINK, str(link.pk))
         _audit(request, "viewer.code_refused", link, typed, reason="wrong_email")
         if neutral or over:
-            return _code_page(request, link, token, neutral=True)
+            return _neutral_page(request, link, token)
         error = (
             "This link was not sent to that address. "
             "Check for a typo, or ask the person who sent it."
@@ -684,7 +704,7 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
     if not per_link or not ratelimit.allow(limits.SEND_PER_EMAIL, link.email):
         if neutral:
             _audit(request, "viewer.code_refused", link, typed, reason="rate_limited")
-            return _code_page(request, link, token, neutral=True)
+            return _neutral_page(request, link, token)
         # Each limit says how long it lasts: 15 minutes for a link, an hour for an inbox.
         return _send_refused(
             request, link, token, typed, TOO_MANY if not per_link else TOO_MANY_CODES
@@ -697,7 +717,7 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
         via = mail.outgoing()
         mail.in_background(lambda: _send(link, code, company, via))
         _audit(request, "viewer.code_sent", link, link.email, background=True)
-        return _code_page(request, link, token, neutral=True)
+        return _neutral_page(request, link, token)
     if not _send(link, codes.issue(link), company_name()):
         VerificationCode.objects.filter(link=link).delete()
         _audit(request, "viewer.code_failed_to_send", link, link.email)
@@ -733,7 +753,7 @@ def verify_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
         tries_left=result.tries_left,
         limited=result.limited,
     )
-    if ratelimit.exceeded(limits.WRONG_EMAIL_PER_LINK, str(link.pk)):
+    if _still_neutral(link):
         # In neutral mode, "tries left" would mean a code was sent, and
         # "expired" or the daily cap that none was or one was: each answers a
         # guess about the address. So every wrong code reads the same.
