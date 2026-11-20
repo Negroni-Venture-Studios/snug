@@ -24,6 +24,8 @@ case "$*" in
 	*"--entrypoint test snug -e /var/lib/snug/snug.sqlite3"*) [ "$HAS_DATABASE" = yes ] ;;
 	*"--entrypoint rclone backup lsf snug-backup:database"*)
 		[ "$BUCKET_HAS_BACKUPS" = yes ] && echo 0001.ltx ;;
+	*"--entrypoint rclone backup lsf --format t snug-backup:database"*)
+		[ "$BUCKET_HAS_BACKUPS" = yes ] && printf '2026-11-18 09:30:00\n2026-11-19 22:14:05\n' ;;
 	*"exec snug snug createadmin"*) [ "$ADMIN_FAILS" != yes ] ;;
 	*) exit 0 ;;
 esac
@@ -213,17 +215,55 @@ def test_a_new_server_restores_from_pasted_backup_settings(server: Path) -> None
         server,
         has_database=False,
         bucket_has_backups=True,
-        answers="yes\n" + SAVED_SETTINGS + "ignored after the last line\n",
+        answers="yes\n" + SAVED_SETTINGS + "yes\n",
     )
     assert "restore.sh " in calls
     assert (server / "backup" / "rclone.conf").read_text() == SAVED_SETTINGS
     assert stat.S_IMODE((server / "backup" / "rclone.conf").stat().st_mode) == 0o600
 
 
+def test_pasted_settings_show_their_bucket_before_restoring(server: Path) -> None:
+    # Issue #170: settings pasted from anywhere but this Snug's own password
+    # manager would restore someone else's database, with their admins.
+    # Setup now says which bucket it found, and when it was last copied to,
+    # and asks before restoring.
+    (server / "backup" / "rclone.conf").unlink()
+    run_setup(
+        server,
+        has_database=False,
+        bucket_has_backups=True,
+        answers="yes\n" + SAVED_SETTINGS + "yes\n",
+    )
+    lines = (server.parent / "screen").read_text().splitlines()
+    bucket = (
+        "These settings are for the bucket fernlea-backups/snug, at lon1.digitaloceanspaces.com."
+    )
+    newest = "Its newest backup was copied at 2026-11-19 22:14:05 UTC."
+    asked = next(n for n, line in enumerate(lines) if "Restore Snug from these backups?" in line)
+    assert lines.index(bucket) < lines.index(newest) < asked
+
+
+@pytest.mark.parametrize("answer", ["no\n", ""])
+def test_not_confirming_the_bucket_restores_nothing(server: Path, answer: str) -> None:
+    (server / "backup" / "rclone.conf").unlink()
+    calls = run_setup(
+        server,
+        has_database=False,
+        bucket_has_backups=True,
+        answers="yes\n" + SAVED_SETTINGS + answer,
+        succeeds=False,
+    )
+    assert not any(call.startswith("restore.sh") for call in calls)
+    assert not any("up --detach" in call for call in calls)
+    assert not (server / "backup" / "rclone.conf").exists()
+    assert "Nothing has been restored" in (server.parent / "screen").read_text()
+
+
 def test_pasted_settings_with_windows_line_endings_are_cleaned(server: Path) -> None:
     (server / "backup" / "rclone.conf").unlink()
     pasted = SAVED_SETTINGS.replace("\n", "\r\n")
-    run_setup(server, has_database=False, bucket_has_backups=True, answers="yes\n" + pasted)
+    answers = "yes\n" + pasted + "yes\n"
+    run_setup(server, has_database=False, bucket_has_backups=True, answers=answers)
     assert (server / "backup" / "rclone.conf").read_text() == SAVED_SETTINGS
 
 
