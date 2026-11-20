@@ -193,11 +193,17 @@ jobs:
           sleep 15
           docker compose exec -T snug cat /var/lib/snug/backup/problem | grep -q "another Snug's backups"
 
+          # A preview and a part-uploaded file from this server's own timeline:
+          # restore must move them aside with the rest (security audit, F2).
+          docker compose exec -T snug sh -c 'mkdir -p /var/lib/snug/previews /var/lib/snug/tmp && echo stale > /var/lib/snug/previews/stale.pdf && echo partial > /var/lib/snug/tmp/upload'
           echo replace | sh restore.sh
           seen=$(docker compose exec -T snug snug shell --command \
             "from snug.core.models import SiteSettings as S; print(S.load().company_name)" | tail -n 1)
           test "$seen" = "Restore Check Ltd"
           test "$(docker compose exec -T snug cat /var/lib/snug/originals/kept.pdf)" = "the-deck"
+          docker compose exec -T snug test ! -e /var/lib/snug/previews/stale.pdf
+          docker compose exec -T snug test ! -e /var/lib/snug/tmp/upload
+          docker compose exec -T snug sh -c 'test -e /var/lib/snug/previous-*/previews/stale.pdf && test -e /var/lib/snug/previous-*/tmp/upload'
           sleep 15
           docker compose exec -T snug test ! -e /var/lib/snug/backup/problem
       - name: snug restore works on a server where Snug never started

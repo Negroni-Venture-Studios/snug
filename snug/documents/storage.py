@@ -62,9 +62,17 @@ def original_path(version: DocumentVersion) -> Path:
 
 
 def preview_path(version: DocumentVersion) -> Path:
-    if version.pk is None:
-        raise ValueError("Version is not saved.")
-    return _inside(previews_dir(), previews_dir() / f"{int(version.pk)}.pdf")
+    """An Office version's preview, named for its stored file, never its id.
+
+    A restored database reuses ids for other documents, so a preview named by
+    id and left from before a restore would be shown as the wrong document's
+    pages (security audit, 19 November 2026, F2). A stored name is random and
+    belongs to one file.
+    """
+    if not STORED_NAME.match(version.stored_name):
+        raise ValueError("Stored name is not a generated name.")
+    stem = version.stored_name.split(".", 1)[0]
+    return _inside(previews_dir(), previews_dir() / f"{stem}.pdf")
 
 
 def pdf_path(version: DocumentVersion) -> Path:

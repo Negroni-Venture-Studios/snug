@@ -6,6 +6,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Security
 
+- `sudo snug restore` over existing data now moves Office files' previews and part-uploaded files aside with the rest, and a preview is named for its version's stored file rather than its number. Before, a restored version could show another document's pages, stamped as its own, from a preview left over from before the restore. Updating remakes each Office preview once, under its new name, showing the file as a card meanwhile.
 - A request refused by a rate limit, or a UK-only link opened from abroad, is now written to the audit log once in each limit's window for an address and an account or link, not once per request. Audit entries are kept for good and backed up, so one client sending refused requests could grow the database and its backups as fast as it could send them.
 - An NDA acceptance is now recorded only for the version the investor was shown. If the NDA was changed while their page was open, Snug shows them the new text and records nothing until they accept it. Before, the acceptance was recorded against the new version, which they had not seen.
 - After ten wrong addresses on a link, a wrong code now gets the same neutral reply until any code sent in that time has expired. Before, the neutral replies ended on the hour, and a wrong code just after it could tell someone guessing addresses whether their last batch held the right one.
