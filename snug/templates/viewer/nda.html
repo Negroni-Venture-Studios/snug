@@ -6,9 +6,11 @@
   <div class="gate nda">
     <h1>Before you open <strong>{{ title }}</strong></h1>
     <p class="lede">{% if company %}{{ company }} asks that you accept{% else %}You are asked to accept{% endif %} this agreement first.</p>
+    {% if changed %}{% include "snug/partials/form_error.html" with error="The agreement changed while this page was open. Read it again below before you accept." %}{% endif %}
     <div class="nda-text" tabindex="0" aria-label="The agreement">{{ nda.text|linebreaks }}</div>
     <form class="form" method="post" action="{% url 'viewer:nda' token=token %}" novalidate>
       {% csrf_token %}
+      <input type="hidden" name="version" value="{{ nda.number }}">
       <div class="field"><label for="name">Your full name</label><input id="name" name="name" type="text" autocomplete="name" maxlength="200" required value="{{ name }}"{% if errors.name %} aria-invalid="true" aria-describedby="name-error"{% endif %}>
         {% if errors.name %}<div class="error" id="name-error" role="alert">{% icon "warning-circle" %}{{ errors.name }}</div>{% endif %}</div>
       <div class="field"><label class="check"><input type="checkbox" name="accept"{% if errors.accept %} aria-invalid="true" aria-describedby="accept-error"{% endif %}><span>I accept this agreement</span></label>
