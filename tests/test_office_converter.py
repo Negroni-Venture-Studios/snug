@@ -255,6 +255,7 @@ def test_one_job_is_answered_then_the_supervisor_exits(
         confine=None,
         min_lifetime=0,
         poll=0.01,
+        contain=False,
     )
     assert code == 0
     answered = [p for p in outbox.iterdir() if p.suffix == ".pdf"]
@@ -318,6 +319,7 @@ def test_a_process_that_cannot_be_ended_means_no_answer(
     inbox, outbox, work, template = exchange
     put_job(inbox, TOKEN, "docx", b"a real file")
     monkeypatch.setattr(supervisor, "end_descendants", lambda: False)
+    monkeypatch.setattr(supervisor, "_become_subreaper", lambda: None)
     code = supervisor.serve(
         inbox=inbox,
         outbox=outbox,
@@ -407,6 +409,7 @@ def test_the_answer_waits_for_the_minimum_lifetime(
             "confine": None,
             "min_lifetime": 1.5,
             "poll": 0.01,
+            "contain": False,
         },
     )
     started = time.monotonic()
@@ -438,6 +441,7 @@ def test_waiting_with_nothing_to_do_still_reports_status(
         soffice=soffice,
         confine=None,
         poll=0.01,
+        contain=False,
         patience=0.05,
     )
     assert code == 1

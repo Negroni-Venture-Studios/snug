@@ -437,14 +437,19 @@ def serve(
     min_lifetime: float = MIN_LIFETIME,
     poll: float = POLL,
     patience: float | None = None,
+    contain: bool = True,
 ) -> int:
     """Wait for one job, convert it, answer, and return once the container has lived long enough.
 
     `patience` bounds the wait, for tests; the container waits for ever.
+    `contain` makes this process a subreaper and has it end every process
+    descended from it before answering. Tests that call this inside their
+    own process turn it off, so it never touches theirs.
     """
     began = time.monotonic()
     started = datetime.now(UTC)
-    _become_subreaper()
+    if contain:
+        _become_subreaper()
     _write(outbox, "status.json", json.dumps(status(facts_file, started)).encode())
     beat = time.monotonic()
     root = work_root or Path(tempfile.gettempdir())
@@ -459,7 +464,7 @@ def serve(
     # Live out the minimum, end everything the conversion started, and only
     # then answer: Snug hands over the next file as soon as it has the answer.
     time.sleep(max(0.0, min_lifetime - (time.monotonic() - began)))
-    if not end_descendants():
+    if contain and not end_descendants():
         # Fail closed: no answer, and Docker's restart ends the whole sandbox.
         sys.stderr.write(json.dumps({"conversion": "not answered", "reason": "survivors"}) + "\n")
         return 3
