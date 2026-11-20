@@ -78,7 +78,12 @@ def opened(issued: service.Issued) -> Client:
 
 
 def accept(browser: Client, issued: service.Issued, **fields: str) -> Any:
-    data = {"name": "Priya Shah", "accept": "on"}
+    """Post the NDA form, as for the newest version unless `version` is given.
+
+    Read from the table, not terms.current(), which some tests replace.
+    """
+    newest = NdaVersion.objects.order_by("-number").first()
+    data = {"name": "Priya Shah", "accept": "on", "version": str(newest.number if newest else "")}
     data.update(fields)
     return browser.post(f"/v/{issued.token}/nda", data, secure=True)
 
@@ -244,6 +249,42 @@ def test_accepting_records_everything_the_brief_asks(room: Room) -> None:
     assert record.version.number == 1
     assert AuditEvent.objects.filter(action="viewer.nda_accepted", actor=INVESTOR).exists()
     assert browser.get(f"/v/{issued.token}", secure=True).status_code == 200
+
+
+def test_acceptance_is_for_the_version_the_investor_was_shown(room: Room, nda: NdaVersion) -> None:
+    # Security audit, 19 November 2026 (F5, #193): an NDA edited while the page
+    # was open was recorded as accepted, a text the investor never saw.
+    issued = share(room=room)
+    browser = opened(issued)
+    page = browser.get(f"/v/{issued.token}/nda", secure=True).content.decode()
+    assert TEXT in page and 'name="version" value="1"' in page
+    changed = "The recipient will keep the contents of this room confidential for two years."
+    terms.publish(changed, by=None)
+
+    response = accept(browser, issued, version="1")
+    page = response.content.decode()
+    assert response.status_code == 409
+    assert "changed while this page was open" in page
+    assert changed in page and 'name="version" value="2"' in page
+    assert 'value="Priya Shah"' in page  # the name is kept
+    assert not NdaAcceptance.objects.exists()
+    assert not AuditEvent.objects.filter(action="viewer.nda_accepted").exists()
+    still = browser.get(f"/v/{issued.token}", secure=True)
+    assert still.status_code == 303 and still["Location"] == f"/v/{issued.token}/nda"
+
+    assert accept(browser, issued, version="2").status_code == 303
+    record = NdaAcceptance.objects.get()
+    assert record.version.number == 2
+    assert record.text_sha256 == hashlib.sha256(changed.encode()).hexdigest()
+
+
+@pytest.mark.usefixtures("nda")
+@pytest.mark.parametrize("version", ["", "0", "one", "2"])
+def test_a_missing_or_wrong_version_records_nothing(room: Room, version: str) -> None:
+    issued = share(room=room)
+    response = accept(opened(issued), issued, version=version)
+    assert response.status_code == 409
+    assert not NdaAcceptance.objects.exists()
 
 
 @pytest.mark.usefixtures("nda")

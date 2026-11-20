@@ -553,6 +553,11 @@ def nda(request: HttpRequest, access: Access, token: str) -> HttpResponse:
         return render(request, "viewer/nda.html", context)
 
     name = " ".join(request.POST.get("name", "").split())[:200]
+    # The acceptance must be of the text the investor was shown. If the NDA
+    # changed while the page was open, show the new text and record nothing.
+    if request.POST.get("version") != str(version.number):
+        context.update(changed=True, name=name)
+        return render(request, "viewer/nda.html", context, status=409)
     errors = {}
     if not name:
         errors["name"] = "Enter your name."
