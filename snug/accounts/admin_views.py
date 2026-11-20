@@ -1113,6 +1113,18 @@ def setup_view(request: HttpRequest, token: str) -> HttpResponse:
 
     errors: dict[str, str] = {}
     password: str | None = None
+    # A reset link is emailed, so the mailbox alone must not set up a new
+    # authenticator: with one, the forgotten-password page would accept it
+    # and change the password too.
+    if row.purpose == AdminSetup.Purpose.RESET and not row.admin.check_password(
+        request.POST.get("current", "")
+    ):
+        _audit(request, "admin.setup_failed", "", row.admin.email, reason="password")
+        if setup.wrong_password(row, limits.RESET_CODE_FAILURES_PER_LINK):
+            spent = {"current": "Too many wrong passwords. Ask for a new link."}
+            return _setup_page(request, row, secret, errors=spent, status=400)
+        wrong = {"current": "That is not your current password."}
+        return _setup_page(request, row, secret, errors=wrong, status=400)
     if row.purpose == AdminSetup.Purpose.INVITE:
         password = request.POST.get("password", "")
         if password != request.POST.get("password2", ""):

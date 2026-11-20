@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Security
+
+- The page for setting up a new authenticator, opened from the link emailed when another admin resets your second factor or when you replace your own, now asks for your password. Before, someone who could read an admin's email while that link was waiting could add their own authenticator, then use the forgotten-password link to change the admin's password as well. Five wrong passwords spend the link.
+
 ## [1.1.3] - 2026-11-13
 
 Setup says how to create the first admin if that step fails. Also the README's platforms section, and the serial comma throughout.

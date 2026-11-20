@@ -45,7 +45,7 @@ You cannot remove yourself, and Snug never lets the last admin be removed. For a
 
 ## Resetting another admin's second factor
 
-If another admin has lost their phone and their recovery codes, choose **Reset second factor** beside them in **Settings**, and enter a fresh code from your own authenticator. Their old authenticator and recovery codes stop working at once, and they are signed out everywhere. They are emailed a link, which works for 72 hours, to set up their authenticator again. Their password does not change, and every admin is emailed.
+If another admin has lost their phone and their recovery codes, choose **Reset second factor** beside them in **Settings**, and enter a fresh code from your own authenticator. Their old authenticator and recovery codes stop working at once, and they are signed out everywhere. They are emailed a link, which works for 72 hours, to set up their authenticator again. The page it opens asks for their password, which does not change. If they have forgotten that too, set a new one on the server first with `sudo snug reset-password`. Every admin is emailed.
 
 To replace your own authenticator, see [Replacing your authenticator](#replacing-your-authenticator).
 
@@ -102,14 +102,14 @@ It asks for the new password twice. Like the link, it signs you out everywhere a
 For a new phone: in **Settings**, under **Your account**, find **Replace your authenticator**. Enter your password, and a code from your current authenticator app or one of your recovery codes, then choose **Replace authenticator**. Snug then:
 
 1. stops your old authenticator and recovery codes working at once, which also signs you out everywhere;
-2. takes you straight to a page that shows a new QR code, asks for a code from the new app, and shows ten new recovery codes;
+2. takes you straight to a page that asks for your password again, shows a new QR code, asks for a code from the new app, and shows ten new recovery codes;
 3. emails you the same page's link, which works for 72 hours, in case you close the tab before finishing;
 4. emails every admin to say you replaced your authenticator, and writes it to the audit log.
 
 ## Losing your phone
 
 - If you still have your recovery codes, sign in with one of them, then replace your authenticator as above.
-- If you have lost the recovery codes too, another admin can reset your second factor from the admin interface, if email is set up.
+- If you have lost the recovery codes too, another admin can reset your second factor from the admin interface, if email is set up. The link you are emailed asks for your password.
 - If you are the only admin, run this on the server:
 
 ```bash

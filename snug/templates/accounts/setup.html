@@ -4,9 +4,13 @@
 {% block scripts %}{% load static %}<script src="{% static 'snug/js/reveal.js' %}" defer></script>{% endblock %}
 {% block card %}
 <h1>{% if invite %}Set up your account{% else %}Set up your authenticator{% endif %}</h1>
-<p class="lede">For {{ row.admin.email }}. {% if invite %}Choose a password, then add Snug to an authenticator app such as 1Password, Google Authenticator, or Authy.{% else %}Add Snug to your authenticator app again. The old one has stopped working.{% endif %}</p>
+<p class="lede">For {{ row.admin.email }}. {% if invite %}Choose a password, then add Snug to an authenticator app such as 1Password, Google Authenticator, or Authy.{% else %}Enter your password, then add Snug to your authenticator app again. The old one has stopped working.{% endif %}</p>
 <form class="form" method="post" action="{{ request.path }}" novalidate>
   {% csrf_token %}
+  {% if not invite %}
+  <div class="field"><label for="current">Your password</label>{% include "snug/partials/password_field.html" with id="current" autocomplete="current-password" autofocus=True invalid=errors.current %}
+    {% if errors.current %}<div class="error" id="current-error" role="alert">{% icon "warning-circle" %}{{ errors.current }}</div>{% else %}<div class="hint">The one you sign in with. It stays the same.</div>{% endif %}</div>
+  {% endif %}
   {% if invite %}
   <div class="field"><label for="password">Password</label>{% include "snug/partials/password_field.html" with id="password" autocomplete="new-password" minlength="12" autofocus=True invalid=errors.password %}
     {% if errors.password %}<div class="error" id="password-error" role="alert">{% icon "warning-circle" %}{{ errors.password }}</div>{% else %}<div class="hint">At least 12 characters. A few unrelated words work well.</div>{% endif %}</div>
@@ -15,7 +19,7 @@
   <div class="field"><span class="label">Scan this QR code</span>
     <div class="qr-tile">{{ qr|safe }}</div>
     <div class="hint">Or enter this key by hand: <span class="key" data-key="{{ secret }}">{{ key }}</span></div></div>
-  <div class="field"><label for="code">Six-digit code from the app</label><input id="code" name="code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required{% if not invite %} autofocus{% endif %}{% if errors.code %} aria-invalid="true" aria-describedby="code-error"{% endif %}>
+  <div class="field"><label for="code">Six-digit code from the app</label><input id="code" name="code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required{% if errors.code %} aria-invalid="true" aria-describedby="code-error"{% endif %}>
     {% if errors.code %}<div class="error" id="code-error" role="alert">{% icon "warning-circle" %}{{ errors.code }}</div>{% endif %}</div>
   <button class="btn btn-primary" type="submit">Finish setting up</button>
 </form>
