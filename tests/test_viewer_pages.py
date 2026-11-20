@@ -234,6 +234,71 @@ def test_in_neutral_mode_a_wrong_code_never_says_whether_one_was_sent(
         assert "tries left" not in page and "expired" not in page
 
 
+def make_neutral(link: Link) -> None:
+    from snug.core import ratelimit
+    from snug.viewer import limits
+
+    for _ in range(limits.WRONG_EMAIL_PER_LINK.limit):
+        ratelimit.hit(limits.WRONG_EMAIL_PER_LINK, str(link.pk))
+
+
+def the_hour_turns() -> None:
+    """The wrong-address window ends, as it does on the hour."""
+    from snug.core.models import RateLimitWindow
+
+    RateLimitWindow.objects.all().delete()
+
+
+@pytest.mark.usefixtures("email_on")
+def test_a_wrong_code_stays_neutral_after_the_hour_turns(
+    document: Document, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Security audit, 19 November 2026 (F6, #194): neutral mode ended on the
+    # hour, while a code sent under it lived ten minutes more. A wrong code
+    # after the hour then said "tries left" if the batch held the right
+    # address and "expired" if not.
+    monkeypatch.setattr("snug.core.mail.in_background", lambda task: task())
+    with_right, without = issue(document), issue(document)
+    pages = []
+    for issued, emails in (
+        (with_right, ["guess@northfield.example", INVESTOR]),
+        (without, ["guess@northfield.example", "other@northfield.example"]),
+    ):
+        make_neutral(issued.link)
+        browser = Client(REMOTE_ADDR="198.51.100.200")
+        for email in emails:
+            post(browser, path(issued, "/code/send"), {"email": email})
+        pages.append((browser, issued))
+    the_hour_turns()
+    replies = []
+    for browser, issued in pages:
+        response = post(browser, path(issued, "/code"), {"code": "000000"})
+        replies.append((response.status_code, response.content.decode()))
+    for status, page in replies:
+        assert status == 400 and "That code is not right." in page
+        assert "tries left" not in page and "expired" not in page
+
+
+@pytest.mark.usefixtures("email_on")
+def test_plain_replies_return_once_any_neutral_code_has_expired(
+    document: Document, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    monkeypatch.setattr("snug.core.mail.in_background", lambda task: task())
+    issued = issue(document)
+    make_neutral(issued.link)
+    browser = Client(REMOTE_ADDR="198.51.100.200")
+    post(browser, path(issued, "/code/send"), {"email": INVESTOR})
+    the_hour_turns()
+    later = timezone.now() + timedelta(minutes=11)
+    monkeypatch.setattr("django.utils.timezone.now", lambda: later)
+    response = post(browser, path(issued, "/code"), {"code": "000000"})
+    assert "expired or been used up" in response.content.decode()
+
+
 @pytest.mark.usefixtures("email_on", "neutral")
 def test_in_neutral_mode_the_daily_cap_reads_like_a_wrong_code(
     issued: service.Issued, monkeypatch: pytest.MonkeyPatch

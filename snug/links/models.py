@@ -72,6 +72,9 @@ class Link(models.Model):
     # When this link first showed anyone a document: claimed once, for the
     # first-open email (snug.analytics.notify).
     first_opened_at = models.DateTimeField(null=True, blank=True)
+    # Until when a wrong code gets the neutral reply: as long as a code sent
+    # in neutral mode could still be live (snug.viewer.views.verify_code).
+    neutral_until = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ("-created_at",)
