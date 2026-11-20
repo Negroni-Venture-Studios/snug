@@ -234,11 +234,13 @@ def test_pasted_settings_show_their_bucket_before_restoring(server: Path) -> Non
         bucket_has_backups=True,
         answers="yes\n" + SAVED_SETTINGS + "yes\n",
     )
-    screen = (server.parent / "screen").read_text()
-    found = screen.index("fernlea-backups/snug")
-    assert "lon1.digitaloceanspaces.com" in screen[found:]
-    assert "2026-11-19 22:14" in screen[found:]
-    assert screen.index("Restore Snug from these backups?") > found
+    lines = (server.parent / "screen").read_text().splitlines()
+    bucket = (
+        "These settings are for the bucket fernlea-backups/snug, at lon1.digitaloceanspaces.com."
+    )
+    newest = "Its newest backup was copied at 2026-11-19 22:14:05 UTC."
+    asked = next(n for n, line in enumerate(lines) if "Restore Snug from these backups?" in line)
+    assert lines.index(bucket) < lines.index(newest) < asked
 
 
 @pytest.mark.parametrize("answer", ["no\n", ""])
