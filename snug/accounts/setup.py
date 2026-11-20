@@ -123,6 +123,24 @@ def complete(row: AdminSetup, *, password: str | None, secret: str, step: int) -
         return recovery.issue(admin)
 
 
+def wrong_password(row: AdminSetup, limit: int) -> bool:
+    """Count a wrong password on a reset link. Returns True if that spent the link.
+
+    Kept on the link, as for forgotten-password links, so the count never
+    resets while the link works.
+    """
+    with transaction.atomic():
+        link = AdminSetup.objects.select_for_update().filter(pk=row.pk).first()
+        if link is None:
+            return True
+        link.failures += 1
+        if link.failures >= limit:
+            link.delete()
+            return True
+        link.save(update_fields=["failures"])
+    return False
+
+
 def remove(target: Admin) -> bool:
     """Remove an admin. Refuses, changing nothing, if no working admin would remain.
 

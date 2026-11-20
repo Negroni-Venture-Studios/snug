@@ -208,10 +208,12 @@ def test_after_a_reset_the_admin_sets_up_a_new_authenticator(
     assert url
     browser = Client()
     page = browser.get(url.group(1), secure=True).content.decode()
-    assert 'name="password"' not in page
+    # Their password is asked for, not changed (tests/test_reset_links.py).
+    assert 'name="password"' not in page and 'name="current"' in page
     secret = re.search(r'data-key="([A-Z2-7]+)"', page)
     assert secret
-    response = browser.post(url.group(1), {"code": pyotp.TOTP(secret.group(1)).now()}, secure=True)
+    data = {"code": pyotp.TOTP(secret.group(1)).now(), "current": PASSWORD}
+    response = browser.post(url.group(1), data, secure=True)
     assert response.status_code == 200
     account = Admin.objects.get(email=OTHER)
     assert account.totp_secret == secret.group(1) and account.check_password(PASSWORD)
