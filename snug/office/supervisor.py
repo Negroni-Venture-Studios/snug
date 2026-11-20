@@ -73,11 +73,17 @@ POLL = 0.5
 HEARTBEAT = 30
 
 
+# Left in the outbox when a conversion failed closed, so the next container
+# answers that job without running LibreOffice on the file again.
+SURVIVORS = ".survivors"
+
+
 class Job:
     """One file to convert, as Snug left it in the inbox."""
 
-    def __init__(self, token: str, kind: str, source: Path) -> None:
+    def __init__(self, token: str, kind: str, source: Path, *, failed_closed: bool = False) -> None:
         self.token, self.kind, self.source = token, kind, source
+        self.failed_closed = failed_closed
 
 
 def next_job(inbox: Path, outbox: Path) -> Job | None:
@@ -98,13 +104,22 @@ def next_job(inbox: Path, outbox: Path) -> Job | None:
         except (OSError, ValueError, AttributeError):
             continue
         if kind in FILTERS and (folder / f"input.{kind}").is_file():
-            return Job(token, kind, folder / f"input.{kind}")
+            failed_closed = (outbox / f"{token}{SURVIVORS}").exists()
+            return Job(token, kind, folder / f"input.{kind}", failed_closed=failed_closed)
     return None
 
 
 def _is_linux() -> bool:
     """A function, so type checkers on other systems still check the Linux branch."""
     return sys.platform == "linux"
+
+
+def _prctl(option: int, *args: object) -> bool:
+    """Call prctl(2), on Linux, with up to four arguments. Returns whether it succeeded."""
+    import ctypes
+
+    padded = (*args, 0, 0, 0, 0)[:4]
+    return int(ctypes.CDLL(None, use_errno=True).prctl(option, *padded)) == 0
 
 
 def confine_child() -> None:  # pragma: no cover - runs only in the child, after fork
@@ -115,8 +130,7 @@ def confine_child() -> None:  # pragma: no cover - runs only in the child, after
         return
     import ctypes
 
-    libc = ctypes.CDLL(None, use_errno=True)
-    if libc.prctl(38, 1, 0, 0, 0) != 0:  # PR_SET_NO_NEW_PRIVS
+    if not _prctl(38, 1):  # PR_SET_NO_NEW_PRIVS
         raise OSError("no_new_privs refused")
     program = seccomp.seccomp_filter(os.uname().machine, os.getpid(), unix_sockets=True)
     if program is None:
@@ -127,7 +141,7 @@ def confine_child() -> None:  # pragma: no cover - runs only in the child, after
 
     buffer = ctypes.create_string_buffer(program, len(program))
     fprog = SockFprog(len(program) // 8, ctypes.cast(buffer, ctypes.c_void_p))
-    if libc.prctl(22, 2, ctypes.byref(fprog), 0, 0) != 0:  # PR_SET_SECCOMP, MODE_FILTER
+    if not _prctl(22, 2, ctypes.byref(fprog)):  # PR_SET_SECCOMP, MODE_FILTER
         raise OSError("seccomp refused")
 
 
@@ -326,7 +340,14 @@ def _write(outbox: Path, name: str, data: bytes) -> None:
                 view = view[os.write(handle, view) :]
         finally:
             os.close(handle)
-        os.rename(partial, name, src_dir_fd=folder, dst_dir_fd=folder)
+        try:
+            os.rename(partial, name, src_dir_fd=folder, dst_dir_fd=folder)
+        except OSError:
+            # Something not a file is at the name, such as a folder a hostile
+            # file made: move it aside, for Snug to clear, and try once more.
+            stray = f".{secrets.token_hex(16)}.stray"
+            os.rename(name, stray, src_dir_fd=folder, dst_dir_fd=folder)
+            os.rename(partial, name, src_dir_fd=folder, dst_dir_fd=folder)
     finally:
         os.close(folder)
 
@@ -339,10 +360,10 @@ def _become_subreaper() -> None:
     """
     if not _is_linux():
         return
-    import ctypes
-
-    with contextlib.suppress(OSError, AttributeError):
-        ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0)  # PR_SET_CHILD_SUBREAPER
+    if not _prctl(36, 1):  # PR_SET_CHILD_SUBREAPER
+        # Not fatal: as the container's first process it inherits orphans
+        # anyway. Said on the log, so a failure elsewhere is not silent.
+        sys.stderr.write(json.dumps({"subreaper": "refused"}) + "\n")
 
 
 def _descendants(root: int) -> set[int]:
@@ -386,7 +407,7 @@ def end_descendants(rounds: int = 50) -> bool:
     me = os.getpid()
     for _ in range(rounds):
         if me == 1:
-            with contextlib.suppress(ProcessLookupError):
+            with contextlib.suppress(ProcessLookupError, PermissionError):
                 os.kill(-1, signal.SIGKILL)  # every process here but this one
         found = _descendants(me)
         for pid in found:
@@ -460,6 +481,12 @@ def serve(
         if patience is not None and time.monotonic() - began > patience:
             return 1
         time.sleep(poll)
+    if job.failed_closed:
+        # A process from this file's last conversion could not be ended. This
+        # is a fresh sandbox, so answering is safe; converting it again is not.
+        publish(outbox, job.token, "survivors")
+        time.sleep(max(0.0, min_lifetime - (time.monotonic() - began)))
+        return 0
     result = convert(job, work_root=root, template=template, soffice=soffice, confine=confine)
     # Live out the minimum, end everything the conversion started, and only
     # then answer: Snug hands over the next file as soon as it has the answer.
@@ -467,6 +494,7 @@ def serve(
     if contain and not end_descendants():
         # Fail closed: no answer, and Docker's restart ends the whole sandbox.
         sys.stderr.write(json.dumps({"conversion": "not answered", "reason": "survivors"}) + "\n")
+        _write(outbox, f"{job.token}{SURVIVORS}", b"")
         return 3
     publish(outbox, job.token, result)
     return 0

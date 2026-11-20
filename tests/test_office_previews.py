@@ -102,6 +102,26 @@ def test_an_error_answer_leaves_the_file_shared_as_a_download(converter: Convert
     assert version.page_count == 0
 
 
+def test_a_conversion_that_failed_closed_reads_as_such(converter: Converter) -> None:
+    # Review of #203: the converter leaves `<token>.survivors` when it could
+    # not end what a conversion started, and the next container answers with
+    # "survivors". Snug keeps the marker while the job is in hand, says why
+    # in the admin's words, and clears both once the answer is read.
+    version = upload(Document.objects.create(title="Board deck"), make_pptx(3))
+    previews.pump()
+    token = fresh(version).preview_token
+    marker = previews._outbox() / f"{token}.survivors"
+    marker.write_bytes(b"")
+    previews.pump()
+    assert marker.exists()  # not a stray while its job is in hand
+    converter.answer(error="survivors")
+    previews.pump()
+    version = fresh(version)
+    assert (version.preview, version.preview_error) == (Preview.FAILED, "survivors")
+    assert "could not be stopped" in previews.MESSAGES["survivors"]
+    assert not marker.exists()
+
+
 @pytest.mark.parametrize("answer", [b"%PDF-1.7 but nothing a PDF reader can open", b"<html>"])
 def test_a_bad_pdf_is_refused_by_snugs_own_worker(converter: Converter, answer: bytes) -> None:
     version = upload(Document.objects.create(title="Board deck"), make_pptx(3))

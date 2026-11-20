@@ -47,7 +47,7 @@ Preview = DocumentVersion.Preview
 STALE = timedelta(minutes=5)
 MAX_ANSWER = 512 * 1024 * 1024
 # The error codes the converter sends; anything else is read as "unreadable".
-ERRORS = frozenset({"timeout", "unreadable", "too_large", "unconfined"})
+ERRORS = frozenset({"timeout", "unreadable", "too_large", "unconfined", "survivors"})
 STATUS = "status.json"
 # How long the thread an upload starts keeps the queue moving.
 DRIVE_FOR = timedelta(minutes=15)
@@ -61,6 +61,10 @@ MESSAGES = {
     "unconfined": (
         "The converter could not confine LibreOffice, so it did not open the file. "
         "Run sudo snug doctor on the server."
+    ),
+    "survivors": (
+        "Something LibreOffice started while reading this file could not be stopped, "
+        "so the file was not converted."
     ),
     "no_answer": (
         "The converter did not answer within five minutes. Run sudo snug doctor on the server."
@@ -297,7 +301,7 @@ def _finish(version: DocumentVersion, answer: bytes | str) -> None:
     token = version.preview_token
     if token:
         shutil.rmtree(_inbox() / token, ignore_errors=True)
-        for suffix in (".pdf", ".error"):
+        for suffix in (".pdf", ".error", ".survivors"):
             (_outbox() / f"{token}{suffix}").unlink(missing_ok=True)
     outcome = _keep(version, answer) if isinstance(answer, bytes) else answer
     with transaction.atomic():
@@ -335,7 +339,7 @@ def _clear_strays(keep: str) -> None:
     """Remove anything shared with the converter but the job in hand and its status."""
     for folder, wanted_names in (
         (_inbox(), {keep}),
-        (_outbox(), {STATUS, f"{keep}.pdf", f"{keep}.error"}),
+        (_outbox(), {STATUS, f"{keep}.pdf", f"{keep}.error", f"{keep}.survivors"}),
     ):
         with contextlib.suppress(FileNotFoundError):
             for entry in folder.iterdir():

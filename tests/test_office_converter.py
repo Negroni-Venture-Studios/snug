@@ -333,6 +333,49 @@ def test_a_process_that_cannot_be_ended_means_no_answer(
     )
     assert code != 0
     assert not (outbox / f"{TOKEN}.pdf").exists() and not (outbox / f"{TOKEN}.error").exists()
+    assert (outbox / f"{TOKEN}.survivors").exists()
+
+
+def test_the_next_container_answers_a_job_that_failed_closed(
+    exchange: tuple[Path, ...], soffice: str, tmp_path: Path
+) -> None:
+    # Review of #203: without this, each new container ran LibreOffice on the
+    # same hostile file again until Snug gave up five minutes later.
+    inbox, outbox, work, template = exchange
+    put_job(inbox, TOKEN, "docx", b"slow")  # LibreOffice would take a minute with this
+    (outbox / f"{TOKEN}.survivors").write_bytes(b"")
+    started = time.monotonic()
+    code = supervisor.serve(
+        inbox=inbox,
+        outbox=outbox,
+        work_root=work,
+        template=template,
+        facts_file=tmp_path / "none.json",
+        soffice=soffice,
+        confine=None,
+        min_lifetime=0,
+        poll=0.01,
+        contain=False,
+    )
+    assert code == 0 and time.monotonic() - started < 10  # LibreOffice never ran
+    assert json.loads((outbox / f"{TOKEN}.error").read_text()) == {"error": "survivors"}
+
+
+def test_as_the_first_process_it_signals_everything_at_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Review of #203: in its container the supervisor is process 1, and
+    # kill(-1) reaches every other process there in one call.
+    import os
+    import signal
+
+    sent: list[tuple[int, int]] = []
+    monkeypatch.setattr(supervisor, "_is_linux", lambda: True)
+    monkeypatch.setattr(os, "getpid", lambda: 1)
+    monkeypatch.setattr(os, "kill", lambda pid, sig: sent.append((pid, sig)))
+    monkeypatch.setattr(supervisor, "_descendants", lambda root: set())
+    assert supervisor.end_descendants(rounds=1) is True
+    assert sent == [(-1, signal.SIGKILL)]
 
 
 @linux_only
@@ -387,6 +430,20 @@ def test_answers_are_written_to_an_outbox_the_converter_cannot_list(
     assert (outbox / f"{TOKEN}.pdf").stat().st_mode & 0o777 == 0o644
 
 
+def test_a_folder_planted_at_an_answers_name_cannot_stop_it(exchange: tuple[Path, ...]) -> None:
+    # Review of #203: renaming a file over a directory fails, and Snug keeps
+    # anything named status.json, so a folder planted there by a compromised
+    # LibreOffice would have stopped every later converter as it started.
+    _, outbox, _, _ = exchange
+    for name in ("status.json", f"{TOKEN}.pdf"):
+        (outbox / name).mkdir()
+        (outbox / name / "inside").write_text("planted")
+    supervisor._write(outbox, "status.json", b"{}")
+    supervisor.publish(outbox, TOKEN, b"%PDF-1.7 the answer")
+    assert (outbox / "status.json").read_bytes() == b"{}"
+    assert (outbox / f"{TOKEN}.pdf").read_bytes() == b"%PDF-1.7 the answer"
+
+
 def test_the_answer_waits_for_the_minimum_lifetime(
     exchange: tuple[Path, ...], soffice: str, tmp_path: Path
 ) -> None:
@@ -407,18 +464,16 @@ def test_the_answer_waits_for_the_minimum_lifetime(
             "facts_file": tmp_path / "none.json",
             "soffice": soffice,
             "confine": None,
-            "min_lifetime": 1.5,
+            "min_lifetime": 3,
             "poll": 0.01,
             "contain": False,
         },
     )
-    started = time.monotonic()
     worker.start()
+    time.sleep(1.5)  # converted by now, but not yet three seconds old
+    assert worker.is_alive() and not (outbox / f"{TOKEN}.pdf").exists()
     worker.join(10)
-    answered = (outbox / f"{TOKEN}.pdf").stat().st_mtime
-    assert not worker.is_alive()
-    assert time.monotonic() - started >= 1.5
-    assert answered >= time.time() - (time.monotonic() - started) + 1.4
+    assert not worker.is_alive() and (outbox / f"{TOKEN}.pdf").exists()
 
 
 def test_an_error_is_answered_as_json(exchange: tuple[Path, ...]) -> None:
