@@ -29,6 +29,7 @@ import json
 import os
 import re
 import resource
+import secrets
 import shutil
 import signal
 import stat
@@ -301,11 +302,93 @@ def _kill(process: subprocess.Popen[bytes]) -> None:
 
 
 def _write(outbox: Path, name: str, data: bytes) -> None:
-    """Write a file to the outbox under a temporary name, then rename it into place."""
-    partial = outbox / f".{name}.partial"
-    partial.write_bytes(data)
-    partial.chmod(0o644)
-    partial.replace(outbox / name)
+    """Write a file to the outbox under a temporary name, then rename it into place.
+
+    LibreOffice runs as this user and can write to the outbox, so anything at
+    a name it could guess may be a link or a pipe that blocks for ever
+    (security audit, 19 November 2026, F3). The temporary name is random,
+    and the file is created new, relative to the folder, without following
+    links or waiting.
+    """
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    folder = os.open(outbox, os.O_RDONLY | os.O_DIRECTORY | nofollow)
+    try:
+        partial = f".{secrets.token_hex(16)}.partial"
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | nofollow | os.O_NONBLOCK
+        handle = os.open(partial, flags, 0o644, dir_fd=folder)
+        try:
+            os.fchmod(handle, 0o644)
+            view = memoryview(data)
+            while view:
+                view = view[os.write(handle, view) :]
+        finally:
+            os.close(handle)
+        os.rename(partial, name, src_dir_fd=folder, dst_dir_fd=folder)
+    finally:
+        os.close(folder)
+
+
+def _become_subreaper() -> None:
+    """Have orphaned descendants become this process's children, on Linux.
+
+    In the container the supervisor is the first process, and orphans come to
+    it anyway; the call makes the same true wherever it runs, as in tests.
+    """
+    if not _is_linux():
+        return
+    import ctypes
+
+    with contextlib.suppress(OSError, AttributeError):
+        ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0)  # PR_SET_CHILD_SUBREAPER
+
+
+def _descendants(root: int) -> set[int]:
+    """The live processes descended from `root`, read from /proc."""
+    children: dict[int, list[int]] = {}
+    for entry in Path("/proc").iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            stat_line = (entry / "stat").read_text()
+        except OSError:
+            continue
+        # pid (comm) state ppid ...: comm may hold spaces and brackets.
+        fields = stat_line.rpartition(")")[2].split()
+        if len(fields) < 2 or fields[0] == "Z":
+            continue
+        children.setdefault(int(fields[1]), []).append(int(entry.name))
+    found: set[int] = set()
+    waiting = [root]
+    while waiting:
+        for pid in children.get(waiting.pop(), []):
+            if pid not in found:
+                found.add(pid)
+                waiting.append(pid)
+    return found
+
+
+def end_descendants(rounds: int = 50) -> None:
+    """Kill every process descended from this one, and reap them, on Linux.
+
+    LibreOffice's own process group is killed after each run, but a process
+    can leave the group by starting a session of its own. As a subreaper the
+    supervisor inherits any orphan, so walking /proc from its own pid finds
+    them all (security audit, 19 November 2026, F3).
+    """
+    if not _is_linux():
+        return
+    me = os.getpid()
+    for _ in range(rounds):
+        found = _descendants(me)
+        for pid in found:
+            with contextlib.suppress(ProcessLookupError, PermissionError):
+                os.kill(pid, signal.SIGKILL)
+        with contextlib.suppress(ChildProcessError):
+            while os.waitpid(-1, os.WNOHANG)[0]:
+                pass
+        if not found:
+            return
+        time.sleep(0.05)
 
 
 def publish(outbox: Path, token: str, result: bytes | str) -> None:
@@ -351,6 +434,7 @@ def serve(
     """
     began = time.monotonic()
     started = datetime.now(UTC)
+    _become_subreaper()
     _write(outbox, "status.json", json.dumps(status(facts_file, started)).encode())
     beat = time.monotonic()
     root = work_root or Path(tempfile.gettempdir())
@@ -362,8 +446,11 @@ def serve(
             return 1
         time.sleep(poll)
     result = convert(job, work_root=root, template=template, soffice=soffice, confine=confine)
-    publish(outbox, job.token, result)
+    # Live out the minimum, end everything the conversion started, and only
+    # then answer: Snug hands over the next file as soon as it has the answer.
     time.sleep(max(0.0, min_lifetime - (time.monotonic() - began)))
+    end_descendants()
+    publish(outbox, job.token, result)
     return 0
 
 

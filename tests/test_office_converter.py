@@ -7,6 +7,7 @@ LibreOffice is confined by a seccomp filter built by the same code as the
 document worker's, allowing Unix sockets alone.
 """
 
+import contextlib
 import json
 import sys
 import time
@@ -101,8 +102,23 @@ if data == b"dirlink":
 if data == b"big":
     open(made, "wb").write(b"%PDF-1.7\\n" + b"x" * 4096)
     sys.exit(0)
+lingerer = None
+if data == b"linger":
+    # A process that leaves LibreOffice's group and outlives it, as code run
+    # inside a compromised LibreOffice could.
+    reader, writer = os.pipe()
+    if os.fork() == 0:
+        os.setsid()
+        child = os.fork()
+        if child == 0:
+            time.sleep(60)
+            os._exit(0)
+        os.write(writer, str(child).encode())
+        os._exit(0)
+    os.close(writer)
+    lingerer = int(os.read(reader, 32))
 body = b"junk" if data == b"junk" else b"%PDF-1.7\\n"
-record = {"args": args, "env": dict(os.environ), "cwd": os.getcwd()}
+record = {"args": args, "env": dict(os.environ), "cwd": os.getcwd(), "lingerer": lingerer}
 with open(os.path.join(out, "input.pdf"), "wb") as made:
     made.write(body + json.dumps(record).encode())
 """
@@ -246,6 +262,112 @@ def test_one_job_is_answered_then_the_supervisor_exits(
     made_by(answered[0].read_bytes())
     state = json.loads((outbox / "status.json").read_text())
     assert (state["libreoffice"], state["built"]) == ("25.2.3.2", "2026-11-12")
+
+
+linux_only = pytest.mark.skipif(sys.platform != "linux", reason="/proc and subreapers are Linux")
+
+
+@linux_only
+def test_nothing_from_one_conversion_outlives_its_answer(
+    exchange: tuple[Path, ...], soffice: str, tmp_path: Path
+) -> None:
+    # Security audit, 19 November 2026 (F3, #191): a process that started a
+    # session of its own survived the kill of LibreOffice's group, and lived
+    # on while Snug handed over the next file. The supervisor now kills
+    # everything descended from it before it answers. It runs in a process
+    # of its own here, as in its container, so that is all it can reach.
+    import os
+    import subprocess
+
+    inbox, outbox, work, template = exchange
+    put_job(inbox, TOKEN, "docx", b"linger")
+    code = (
+        "import sys\n"
+        "from pathlib import Path\n"
+        "from snug.office import supervisor\n"
+        f"sys.exit(supervisor.serve(inbox=Path({str(inbox)!r}), outbox=Path({str(outbox)!r}),\n"
+        f"    work_root=Path({str(work)!r}), template=Path({str(template)!r}),\n"
+        f"    facts_file=Path({str(tmp_path / 'none.json')!r}), soffice={soffice!r},\n"
+        "    confine=None, min_lifetime=0, poll=0.01, patience=20))\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=Path(__file__).resolve().parent.parent,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    lingerer = made_by((outbox / f"{TOKEN}.pdf").read_bytes())["lingerer"]
+    assert isinstance(lingerer, int) and lingerer > 0
+    try:
+        os.kill(lingerer, 0)
+    except ProcessLookupError:
+        return
+    os.kill(lingerer, 9)
+    pytest.fail("a process from the conversion outlived the answer")
+
+
+def test_a_pipe_planted_in_the_outbox_cannot_stop_the_answer(exchange: tuple[Path, ...]) -> None:
+    # F3's second gap: the answer was written to a name anyone could predict,
+    # opened by path, so a pipe planted there blocked the supervisor for ever.
+    import os
+    import threading
+
+    _, outbox, _, _ = exchange
+    for name in (f".{TOKEN}.pdf.partial", ".status.json.partial"):
+        os.mkfifo(outbox / name)
+    done = threading.Event()
+
+    def answer() -> None:
+        supervisor.publish(outbox, TOKEN, b"%PDF-1.7 the answer")
+        supervisor._write(outbox, "status.json", b"{}")
+        done.set()
+
+    worker = threading.Thread(target=answer, daemon=True)
+    worker.start()
+    try:
+        assert done.wait(5), "writing the answer blocked on a planted pipe"
+    finally:
+        for name in (f".{TOKEN}.pdf.partial", ".status.json.partial"):
+            # Open each pipe for reading, so a blocked writer is let go.
+            with contextlib.suppress(OSError):
+                os.close(os.open(outbox / name, os.O_RDONLY | os.O_NONBLOCK))
+    assert (outbox / f"{TOKEN}.pdf").read_bytes() == b"%PDF-1.7 the answer"
+
+
+def test_the_answer_waits_for_the_minimum_lifetime(
+    exchange: tuple[Path, ...], soffice: str, tmp_path: Path
+) -> None:
+    # The supervisor answers only once its container has lived long enough,
+    # so nothing from this conversion is still running when Snug hands over
+    # the next file.
+    import threading
+
+    inbox, outbox, work, template = exchange
+    put_job(inbox, TOKEN, "docx", b"a real file")
+    worker = threading.Thread(
+        target=supervisor.serve,
+        kwargs={
+            "inbox": inbox,
+            "outbox": outbox,
+            "work_root": work,
+            "template": template,
+            "facts_file": tmp_path / "none.json",
+            "soffice": soffice,
+            "confine": None,
+            "min_lifetime": 1.5,
+            "poll": 0.01,
+        },
+    )
+    started = time.monotonic()
+    worker.start()
+    worker.join(10)
+    answered = (outbox / f"{TOKEN}.pdf").stat().st_mtime
+    assert not worker.is_alive()
+    assert time.monotonic() - started >= 1.5
+    assert answered >= time.time() - (time.monotonic() - started) + 1.4
 
 
 def test_an_error_is_answered_as_json(exchange: tuple[Path, ...]) -> None:
