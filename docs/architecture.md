@@ -137,7 +137,7 @@ Files live in the data folder, `SNUG_DATA_DIR`:
 ├── originals/            uploads, under random names: <32 hex>.pdf, .docx, .pptx, .xlsx or .mp4
 ├── renders/              page images, a cache: <version id>/<page>-<width>.webp
 ├── stamped/              pages stamped for a link, kept for the day: <day>/<link id>/…
-├── previews/             Office files' PDFs from the converter: <version id>.pdf
+├── previews/             Office files' PDFs from the converter: <stored name>.pdf
 ├── tmp/                  uploads in progress
 ├── branding/             the logo and icon
 ├── geoip/                DB-IP's country data, fetched monthly
@@ -200,7 +200,7 @@ With `SNUG_OFFICE` set, each Word, PowerPoint, or Excel upload is queued for a p
 
 1. `snug.office.previews.pump` moves the queue on one step: it collects the converter's answer for the file in hand, then copies the next file into the converter's inbox, in a folder named with a random token and renamed into place all at once. A lock file keeps two processes from pumping together. An upload starts a thread that pumps for up to 15 minutes, the document page's panel pumps each time it asks for its state, and housekeeping pumps every hour. Each pump also queues the current version of any Office document without a preview, such as one uploaded before the converter was installed, or one whose preview was lost in a restore.
 2. The converter's container (`converter/Dockerfile`, under gVisor, with no network) runs `snug.office.supervisor`, which converts one file and exits; Docker restarts it for the next. The supervisor copies the file into its own temporary folder and runs `soffice.bin` with the import filter for the kind, a fresh profile from `converter/registrymodifications.xcu`, an environment of five variables, limits on CPU and file size, a 2-minute deadline, and the seccomp filter from `snug.rendering.seccomp` with Unix sockets allowed. If the filter cannot be applied, LibreOffice does not start. It writes `<token>.pdf`, or `<token>.error`, to the outbox, and its status to `status.json`.
-3. The next pump reads the answer without following links, deletes the job and the answer, and has the document worker inspect the PDF. A good PDF is kept as `previews/<version id>.pdf`, and its page count and sizes become the version's, so the reader, analytics, and page rendering treat it as a PDF (`DocumentVersion.reads_as_pages`). The download is still the stamped original.
+3. The next pump reads the answer without following links, deletes the job and the answer, and has the document worker inspect the PDF. A good PDF is kept as `previews/<stored name>.pdf`, named for the version's stored file so that one left from before a restore matches nothing, and its page count and sizes become the version's, so the reader, analytics, and page rendering treat it as a PDF (`DocumentVersion.reads_as_pages`). The download is still the stamped original.
 
 A new version of a document is `preparing` until its preview is ready or has failed, so `latest_version` keeps returning the one before. The document page's Preview panel (`documents/partials/preview_panel.html`) is drawn by the server; `admin.js` asks `preview_status` for it every 2 seconds while it waits.
 

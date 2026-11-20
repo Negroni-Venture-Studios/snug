@@ -186,6 +186,10 @@ def _queue_unconverted() -> None:
     if lost:
         log.warning("Making %s lost Office preview(s) again", len(lost))
         DocumentVersion.objects.filter(pk__in=lost).update(preview=Preview.PENDING)
+        # Before 1.2.0 a preview was named by the version's id. That file is
+        # never read now, and may be another document's after a restore.
+        for pk in lost:
+            (storage.previews_dir() / f"{int(pk)}.pdf").unlink(missing_ok=True)
 
 
 def busy() -> bool:

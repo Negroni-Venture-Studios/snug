@@ -103,7 +103,7 @@ To go back to an earlier moment within the last 7 days, give the time in UTC:
 sudo snug restore --at 2026-11-05T14:00:00Z
 ```
 
-If the server already has a database, `snug restore` asks you to type `replace` first. The data it replaces, with the page images rendered and stamped from it, is kept in a folder in the data volume named `previous-` and the time.
+If the server already has a database, `snug restore` asks you to type `replace` first. The data it replaces, with the page images rendered and stamped from it, Office files' previews, and any files part-way through uploading, is kept in a folder in the data volume named `previous-` and the time.
 
 Each Snug has a random identity, kept in the data volume and, from the first backup, in the bucket. The backup container never copies into a bucket that holds another Snug's backups. If a new server is started before it is restored, its backups stop with that problem until `snug restore` brings the bucket's data, and its identity, to the server.
 

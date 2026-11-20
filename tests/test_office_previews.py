@@ -391,6 +391,35 @@ def test_a_preview_lost_in_a_restore_is_made_again(converter: Converter) -> None
     assert fresh(version).reads_as_pages
 
 
+def test_a_preview_left_from_another_timeline_is_never_shown(converter: Converter) -> None:
+    # Security audit, 19 November 2026 (F2, #190): previews were named by the
+    # version's id, which a restored database reuses for other documents. A
+    # preview left in the data volume from before a restore was then served,
+    # stamped, as another document's pages. A preview is now named for the
+    # version's own stored file, so one from another timeline matches nothing.
+    from snug.documents import storage
+
+    deck = previewed(converter, pages=4)
+    version = deck.latest_version()
+    assert version is not None
+    path = previews.preview_path(version)
+    assert path.name == version.stored_name.split(".")[0] + ".pdf"
+
+    # What a restore over existing data looked like: this version's preview
+    # gone, another document's PDF at the old id-based name.
+    path.unlink()
+    foreign = storage.previews_dir() / f"{version.pk}.pdf"
+    foreign.write_bytes(make_pdf(*[(400, 400)] * 2))
+    previews.pump()
+    version = fresh(version)
+    assert version.preview in (Preview.PENDING, Preview.CONVERTING)
+    assert not version.reads_as_pages
+    issued = link_to(deck)
+    response = opened(issued).get(f"/v/{issued.token}/pages/1-800.webp", secure=True)
+    assert response.status_code != 200
+    assert not foreign.exists()  # the old id-named file is removed
+
+
 def test_a_page_whose_pdf_has_gone_says_it_cannot_be_shown(converter: Converter) -> None:
     deck = previewed(converter, pages=4)
     version = deck.latest_version()
