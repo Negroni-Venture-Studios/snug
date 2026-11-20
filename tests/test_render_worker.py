@@ -351,7 +351,9 @@ SYSCALLS = {
             "read": 0,
             "write": 1,
             "mmap": 9,
+            "ioctl": 16,
             "getpid": 39,
+            "fcntl": 72,
             "socket": 41,
             "kill": 62,
             "ptrace": 101,
@@ -385,6 +387,8 @@ SYSCALLS = {
             "read": 63,
             "write": 64,
             "mmap": 222,
+            "ioctl": 29,
+            "fcntl": 25,
             "getpid": 172,
             "socket": 198,
             "kill": 129,
@@ -501,6 +505,53 @@ def test_the_filter_lets_the_worker_signal_only_itself(machine: str) -> None:
             )
 
 
+# fcntl and ioctl commands, from linux/fcntl.h, asm-generic/fcntl.h, and
+# asm-generic/sockios.h. The first five name a process to be signalled when a
+# file is ready; the others are ordinary calls the worker's libraries make.
+F_SETOWN, F_SETSIG, F_SETOWN_EX = 8, 10, 15
+FIOSETOWN, SIOCSPGRP = 0x8901, 0x8902
+F_SETFD, F_GETFL, F_SETFL, F_GETOWN = 2, 3, 4, 9
+FIONREAD, TCGETS = 0x541B, 0x5401
+
+
+@pytest.mark.parametrize("machine", sorted(SYSCALLS))
+def test_the_filter_refuses_naming_another_process_to_signal(machine: str) -> None:
+    # Security audit, 19 November 2026 (F4, #192): below Landlock ABI 6,
+    # fcntl(F_SETOWN) with O_ASYNC let a compromised worker have the kernel
+    # signal another process of Snug's user. ioctl(FIOSETOWN) does the same
+    # on a socket, and socketpair() gives the worker one.
+    arch, numbers = SYSCALLS[machine]
+    program = seccomp.seccomp_filter(machine, WORKER_PID)
+    assert program is not None
+    refused = [("fcntl", F_SETOWN), ("fcntl", F_SETSIG), ("fcntl", F_SETOWN_EX)]
+    refused += [("ioctl", FIOSETOWN), ("ioctl", SIOCSPGRP)]
+    for name, command in refused:
+        for target in (WORKER_PID, WORKER_PID + 1, 0, -WORKER_PID):
+            assert _seccomp(program, arch, numbers[name], 3, command, target) == SECCOMP_EPERM, (
+                name,
+                command,
+                target,
+            )
+        # The kernel reads the command as 32 bits, so higher bits change nothing.
+        high = (1 << 32) | command
+        assert _seccomp(program, arch, numbers[name], 3, high, 1) == SECCOMP_EPERM, (name, high)
+    for name, command in [("fcntl", F_SETFD), ("fcntl", F_GETFL), ("fcntl", F_SETFL)]:
+        assert _seccomp(program, arch, numbers[name], 3, command, 0) == SECCOMP_ALLOW, command
+    assert _seccomp(program, arch, numbers["fcntl"], 3, F_GETOWN) == SECCOMP_ALLOW
+    for command in (FIONREAD, TCGETS):
+        assert _seccomp(program, arch, numbers["ioctl"], 3, command, 0) == SECCOMP_ALLOW, command
+
+
+@pytest.mark.parametrize("machine", sorted(SYSCALLS))
+def test_the_converters_filter_refuses_them_too(machine: str) -> None:
+    arch, numbers = SYSCALLS[machine]
+    program = seccomp.seccomp_filter(machine, WORKER_PID, unix_sockets=True)
+    assert program is not None
+    assert _seccomp(program, arch, numbers["fcntl"], 3, F_SETOWN, 1) == SECCOMP_EPERM
+    assert _seccomp(program, arch, numbers["ioctl"], 3, FIOSETOWN, 1) == SECCOMP_EPERM
+    assert _seccomp(program, arch, numbers["fcntl"], 3, F_GETFL) == SECCOMP_ALLOW
+
+
 @pytest.mark.parametrize("machine", sorted(SYSCALLS))
 def test_the_filter_allows_everything_else(machine: str) -> None:
     arch, numbers = SYSCALLS[machine]
@@ -543,6 +594,39 @@ def test_a_confined_worker_can_signal_only_itself(tmp_path: Path) -> None:
     lines = result.stdout.splitlines()
     assert lines[0].endswith(", no sockets"), result.stdout + result.stderr
     assert lines[1:] == ["sent refused refused refused", "caught"], result.stdout + result.stderr
+
+
+@linux_only
+def test_a_confined_worker_cannot_name_another_process_to_signal(tmp_path: Path) -> None:
+    # Unconfined, the sleep would die of SIGIO when the pipe became readable.
+    setup = (
+        "import fcntl, os, socket, subprocess, time\n"
+        "sleeper = subprocess.Popen(['sleep', '30'])\n"
+        "reader, writer = os.pipe()\n"
+        "ours, theirs = socket.socketpair()\n"
+    )
+    script = (
+        "def attempt(call, *args):\n"
+        "    try:\n"
+        "        call(*args)\n"
+        "        return 'done'\n"
+        "    except PermissionError:\n"
+        "        return 'refused'\n"
+        "print(attempt(fcntl.fcntl, reader, 8, sleeper.pid),\n"  # F_SETOWN
+        "      attempt(fcntl.fcntl, reader, 10, 0),\n"  # F_SETSIG
+        "      attempt(fcntl.ioctl, ours.fileno(), 0x8901, sleeper.pid.to_bytes(4, 'little')),\n"
+        "      attempt(fcntl.fcntl, reader, fcntl.F_GETFL))\n"
+        "fcntl.fcntl(reader, fcntl.F_SETFL, fcntl.fcntl(reader, fcntl.F_GETFL) | os.O_ASYNC)\n"
+        "theirs.setblocking(False)\n"
+        "os.write(writer, b'ready'); theirs.send(b'ready')\n"
+        "time.sleep(0.5)\n"
+        "print('alive' if sleeper.poll() is None else 'killed')\n"
+        "sleeper.kill()\n"
+    )
+    result = _confined(script, tmp_path, setup=setup)
+    lines = result.stdout.splitlines()
+    assert lines[0].endswith(", no sockets"), result.stdout + result.stderr
+    assert lines[1:] == ["refused refused refused done", "alive"], result.stdout + result.stderr
 
 
 @linux_only

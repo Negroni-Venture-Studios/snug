@@ -6,6 +6,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Security
 
+- The document worker can no longer have the kernel signal another of Snug's processes. On Linux 6.7 to 6.11, where Landlock does not yet scope signals, a compromised worker could name another process as the owner of a pipe or socket with `fcntl` or `ioctl`, and the kernel would signal it, stopping Snug until Docker restarted it. The worker's seccomp filter now refuses those commands, and so does the LibreOffice converter's.
 - The page for setting up a new authenticator, opened from the link emailed when another admin resets your second factor or when you replace your own, now asks for your password. Before, someone who could read an admin's email while that link was waiting could add their own authenticator, then use the forgotten-password link to change the admin's password as well. Five wrong passwords spend the link.
 
 ## [1.1.3] - 2026-11-13

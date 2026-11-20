@@ -35,13 +35,20 @@ _REFUSED = (
 )
 # The syscalls that send a signal: allowed only to the worker itself.
 _SIGNALLING = ("kill", "tkill", "tgkill", "rt_sigqueueinfo", "rt_tgsigqueueinfo")
+# fcntl and ioctl commands that name a process for the kernel to signal when a
+# file or socket is ready (O_ASYNC): F_SETOWN, F_SETSIG, and F_SETOWN_EX, and
+# FIOSETOWN and SIOCSPGRP on a socket, which socketpair() still gives the
+# worker. The kernel reads the command as 32 bits.
+_OWNER_COMMANDS = {"fcntl": (8, 10, 15), "ioctl": (0x8901, 0x8902)}
 # Each architecture's audit value and syscall numbers.
 _SECCOMP_ARCHES = {
     "x86_64": (
         0xC000003E,
         {
+            "ioctl": 16,
             "socket": 41,
             "kill": 62,
+            "fcntl": 72,
             "ptrace": 101,
             "rt_sigqueueinfo": 129,
             "setpriority": 141,
@@ -70,6 +77,8 @@ _SECCOMP_ARCHES = {
     "aarch64": (
         0xC00000B7,
         {
+            "fcntl": 25,
+            "ioctl": 29,
             "ioprio_set": 30,
             "ptrace": 117,
             "sched_setparam": 118,
@@ -131,9 +140,11 @@ def seccomp_filter(machine: str, pid: int, *, unix_sockets: bool = False) -> byt
     call in _REFUSED, so the worker cannot trace, re-prioritise or read the
     memory of another process. It lets the worker send a signal only to
     itself (abort() does), never to another process or process group, and
-    change only its own limits. Landlock scopes signals only from ABI 6. Any
-    other architecture or ABI (32-bit compatibility calls, x32) is killed
-    outright rather than filtered.
+    change only its own limits. It refuses the fcntl and ioctl commands that
+    ask the kernel to signal a chosen process when a file or socket is ready,
+    which reach other processes without any signalling call. Landlock scopes
+    both kinds of signal only from ABI 6. Any other architecture or ABI
+    (32-bit compatibility calls, x32) is killed outright rather than filtered.
 
     `unix_sockets` is for the LibreOffice converter, which may talk to
     itself over a Unix socket: socket() is then allowed for AF_UNIX alone,
@@ -145,8 +156,9 @@ def seccomp_filter(machine: str, pid: int, *, unix_sockets: bool = False) -> byt
     load, jump_eq, jump_ge, ret = 0x20, 0x15, 0x35, 0x06  # BPF_LD|W|ABS, JEQ, JGE, RET
     allow, eperm, kill = 0x7FFF0000, 0x00050000 | 1, 0x80000000
     # The target of a signal or of prlimit64: the low 32 bits of its first
-    # argument, which is all of a pid_t.
-    target = 16
+    # argument, which is all of a pid_t. An fcntl or ioctl command: the low
+    # 32 bits of its second.
+    target, command = 16, 24
     af_unix = 1
 
     lines: list[str | _Instruction] = [
@@ -161,6 +173,7 @@ def seccomp_filter(machine: str, pid: int, *, unix_sockets: bool = False) -> byt
         for name in _REFUSED
     ]
     lines += [(jump_eq, numbers[name], "signal", None) for name in _SIGNALLING]
+    lines += [(jump_eq, numbers[name], name, None) for name in _OWNER_COMMANDS]
     lines += [
         (jump_eq, numbers["prlimit64"], "limits", None),
         (ret, allow, None, None),  # anything else
@@ -170,6 +183,12 @@ def seccomp_filter(machine: str, pid: int, *, unix_sockets: bool = False) -> byt
         "signal",
         (load, target, None, None),
         (jump_eq, pid, "allow", "refuse"),  # the worker itself; never 0, its process group
+    ]
+    for name, commands in _OWNER_COMMANDS.items():
+        lines += [name, (load, command, None, None)]
+        lines += [(jump_eq, value, "refuse", None) for value in commands]
+        lines.append((ret, allow, None, None))
+    lines += [
         "limits",
         (load, target, None, None),
         (jump_eq, 0, "allow", None),  # 0 is the caller: glibc's getrlimit and setrlimit
