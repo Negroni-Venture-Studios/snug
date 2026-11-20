@@ -1,5 +1,6 @@
 """The document worker runs apart from Snug: limited, confined and given nothing secret."""
 
+import contextlib
 import errno
 import io
 import json
@@ -599,9 +600,12 @@ def test_a_confined_worker_can_signal_only_itself(tmp_path: Path) -> None:
 @linux_only
 def test_a_confined_worker_cannot_name_another_process_to_signal(tmp_path: Path) -> None:
     # Unconfined, the sleep would die of SIGIO when the pipe became readable.
+    # It holds none of the script's output pipes, and the test kills it: the
+    # confined script cannot, since it may signal only itself.
     setup = (
         "import fcntl, os, socket, subprocess, time\n"
-        "sleeper = subprocess.Popen(['sleep', '30'])\n"
+        "quiet = subprocess.DEVNULL\n"
+        "sleeper = subprocess.Popen(['sleep', '30'], stdin=quiet, stdout=quiet, stderr=quiet)\n"
         "reader, writer = os.pipe()\n"
         "ours, theirs = socket.socketpair()\n"
     )
@@ -621,10 +625,13 @@ def test_a_confined_worker_cannot_name_another_process_to_signal(tmp_path: Path)
         "os.write(writer, b'ready'); theirs.send(b'ready')\n"
         "time.sleep(0.5)\n"
         "print('alive' if sleeper.poll() is None else 'killed')\n"
-        "sleeper.kill()\n"
+        "print(sleeper.pid)\n"
     )
     result = _confined(script, tmp_path, setup=setup)
     lines = result.stdout.splitlines()
+    if lines and lines[-1].isdigit():
+        with contextlib.suppress(ProcessLookupError):
+            os.kill(int(lines.pop()), signal.SIGKILL)
     assert lines[0].endswith(", no sockets"), result.stdout + result.stderr
     assert lines[1:] == ["refused refused refused done", "alive"], result.stdout + result.stderr
 
