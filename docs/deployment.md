@@ -144,7 +144,7 @@ sudo snug update
 
 `snug update` downloads the files in `/opt/snug` from the newest release on GitHub, as cloud-init does, and replaces them only once every one has arrived. `snug.env` and `backup/` are never touched. It then installs the new `snug` command, pulls the new images, and restarts the containers that changed. Snug applies any database migrations when it starts.
 
-To download from another branch or tag, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`.
+`snug update` never moves a server back: if the newest release on GitHub is older than the one the server runs, it changes nothing and says so. To download from another branch or tag, older or not, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`.
 
 `sudo snug update --with-office` also installs LibreOffice, and `sudo snug update --without-office` removes it, as [office.md](office.md) explains. On a server running Snug 1.0.0, run `sudo snug update` first: 1.0.0's command does not pass either option on.
 

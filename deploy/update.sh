@@ -47,6 +47,39 @@ if [ -z "$ref" ]; then
 			;;
 	esac
 fi
+# Never backwards (issue #169): releases/latest is the most recently
+# published release, not the highest version, so a release published again
+# could otherwise move this server back, and a migration the older code does
+# not know could then break it. SNUG_REF goes back on purpose.
+#
+# older A B: whether release A is older than release B. Versions are X.Y.Z,
+# or X.Y.Z-rc.N for a candidate, which ranks below its own release.
+older() {
+	awk -v a="${1#v}" -v b="${2#v}" '
+		function key(v, k,   n, f, i) {
+			n = split(v, f, /[.-]/)
+			if (n != 3 && !(n == 5 && f[4] == "rc")) return 0
+			for (i = 1; i <= n; i++) if (i != 4 && f[i] !~ /^[0-9]+$/) return 0
+			k[1] = f[1] + 0; k[2] = f[2] + 0; k[3] = f[3] + 0
+			k[4] = n == 5 ? f[5] + 0 : 1000000000
+			return 1
+		}
+		BEGIN {
+			if (!key(a, x) || !key(b, y)) exit 1
+			for (i = 1; i <= 4; i++) if (x[i] != y[i]) exit !(x[i] < y[i])
+			exit 1
+		}'
+}
+if [ -z "${SNUG_REF:-}" ]; then
+	# The release this server runs: the version its compose.yaml pins for Snug's image.
+	running=$(sed -n 's|.*ghcr\.io/negroni-venture-studios/snug:\([0-9][0-9a-z.-]*\).*|\1|p' compose.yaml 2>/dev/null | head -n 1)
+	if [ -n "$running" ] && older "$ref" "$running"; then
+		echo "snug update: the newest release on GitHub, $ref, is older than this server's Snug, $running." >&2
+		echo "Nothing has changed. To install $ref anyway: sudo env SNUG_REF=$ref snug update" >&2
+		exit 1
+	fi
+fi
+
 echo "Updating to $ref."
 base="https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/$ref/deploy"
 files="compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh update.sh office.sh snug"

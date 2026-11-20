@@ -269,3 +269,56 @@ def test_an_unknown_option_changes_nothing(server: Path) -> None:
     assert result.returncode == 2
     assert "Usage: sudo snug update [--with-office | --without-office]" in result.stderr
     assert log == []
+
+
+# ---------------------------------------------------------------- never backwards
+
+
+def installed(server: Path, version: str) -> None:
+    """The release this server runs, as its compose.yaml pins Snug's image."""
+    images = "ghcr.io/negroni-venture-studios"
+    (server / "compose.yaml").write_text(
+        f"services:\n  snug:\n    image: ${{SNUG_IMAGE:-{images}/snug:{version}}}\n"
+        f"  office:\n    image: ${{SNUG_OFFICE_IMAGE:-{images}/snug-office:{version}}}\n"
+    )
+
+
+@pytest.mark.parametrize(
+    ("running", "newest"),
+    [
+        ("1.5.0", "v1.4.2"),
+        ("1.4.10", "v1.4.9"),  # by number, not by letter
+        ("2.0.0", "v1.9.9"),
+        ("1.4.2", "v1.4.2-rc.3"),  # a release ranks above its own candidates
+    ],
+)
+def test_it_refuses_to_go_back_to_an_older_release(server: Path, running: str, newest: str) -> None:
+    # Issue #169: `releases/latest` is the most recently published release,
+    # not the highest version, so a re-published older release would move
+    # every updating server back.
+    installed(server, running)
+    result, calls = run_update(server, latest=f"{RELEASES}/tag/{newest}")
+    output = result.stdout + result.stderr
+    assert result.returncode != 0
+    assert "Nothing has changed" in output and f"SNUG_REF={newest}" in output
+    assert not [call for call in calls if "/deploy/" in call]
+    pinned = (server / "compose.yaml").read_text()
+    assert f"ghcr.io/negroni-venture-studios/snug:{running}" in pinned
+
+
+@pytest.mark.parametrize(
+    ("running", "newest"),
+    [("1.4.1", "v1.4.2"), ("1.4.2-rc.1", "v1.4.2"), ("1.4.2", "v1.4.2"), ("1.4.9", "v1.4.10")],
+)
+def test_it_goes_forward_or_stays(server: Path, running: str, newest: str) -> None:
+    installed(server, running)
+    result, calls = run_update(server, latest=f"{RELEASES}/tag/{newest}")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert [call for call in calls if "/deploy/" in call]
+
+
+def test_snug_ref_can_go_back_on_purpose(server: Path) -> None:
+    installed(server, "1.5.0")
+    result, calls = run_update(server, ref="v1.4.2")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert any("/v1.4.2/deploy/" in call for call in calls)
