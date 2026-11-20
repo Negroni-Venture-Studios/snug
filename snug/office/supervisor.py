@@ -311,11 +311,14 @@ def _write(outbox: Path, name: str, data: bytes) -> None:
     links or waiting.
     """
     nofollow = getattr(os, "O_NOFOLLOW", 0)
-    folder = os.open(outbox, os.O_RDONLY | os.O_DIRECTORY | nofollow)
+    # The outbox is mode 1733: the converter may add files but not list them,
+    # so the folder is opened as a path (Linux), which needs no read access.
+    as_path = getattr(os, "O_PATH", os.O_RDONLY)
+    folder = os.open(outbox, as_path | os.O_DIRECTORY | nofollow)
     try:
         partial = f".{secrets.token_hex(16)}.partial"
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | nofollow | os.O_NONBLOCK
-        handle = os.open(partial, flags, 0o644, dir_fd=folder)
+        handle = os.open(partial, flags, 0o600, dir_fd=folder)
         try:
             os.fchmod(handle, 0o644)
             view = memoryview(data)
@@ -367,18 +370,24 @@ def _descendants(root: int) -> set[int]:
     return found
 
 
-def end_descendants(rounds: int = 50) -> None:
+def end_descendants(rounds: int = 50) -> bool:
     """Kill every process descended from this one, and reap them, on Linux.
 
     LibreOffice's own process group is killed after each run, but a process
     can leave the group by starting a session of its own. As a subreaper the
     supervisor inherits any orphan, so walking /proc from its own pid finds
-    them all (security audit, 19 November 2026, F3).
+    them all (security audit, 19 November 2026, F3). In the container the
+    supervisor is the first process, and kill(-1) also signals every other
+    process there at once, so one forking as fast as it can is caught too.
+    Returns whether none is left: the caller must not answer otherwise.
     """
     if not _is_linux():
-        return
+        return True
     me = os.getpid()
     for _ in range(rounds):
+        if me == 1:
+            with contextlib.suppress(ProcessLookupError):
+                os.kill(-1, signal.SIGKILL)  # every process here but this one
         found = _descendants(me)
         for pid in found:
             with contextlib.suppress(ProcessLookupError, PermissionError):
@@ -387,8 +396,9 @@ def end_descendants(rounds: int = 50) -> None:
             while os.waitpid(-1, os.WNOHANG)[0]:
                 pass
         if not found:
-            return
+            return True
         time.sleep(0.05)
+    return not _descendants(me)
 
 
 def publish(outbox: Path, token: str, result: bytes | str) -> None:
@@ -449,7 +459,10 @@ def serve(
     # Live out the minimum, end everything the conversion started, and only
     # then answer: Snug hands over the next file as soon as it has the answer.
     time.sleep(max(0.0, min_lifetime - (time.monotonic() - began)))
-    end_descendants()
+    if not end_descendants():
+        # Fail closed: no answer, and Docker's restart ends the whole sandbox.
+        sys.stderr.write(json.dumps({"conversion": "not answered", "reason": "survivors"}) + "\n")
+        return 3
     publish(outbox, job.token, result)
     return 0
 

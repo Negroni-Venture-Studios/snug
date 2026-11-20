@@ -309,6 +309,38 @@ def test_nothing_from_one_conversion_outlives_its_answer(
     pytest.fail("a process from the conversion outlived the answer")
 
 
+def test_a_process_that_cannot_be_ended_means_no_answer(
+    exchange: tuple[Path, ...], soffice: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Fail closed (security review of #203): if anything from the conversion
+    # is still running after every round, the supervisor exits without
+    # answering, and Docker's restart ends the whole sandbox.
+    inbox, outbox, work, template = exchange
+    put_job(inbox, TOKEN, "docx", b"a real file")
+    monkeypatch.setattr(supervisor, "end_descendants", lambda: False)
+    code = supervisor.serve(
+        inbox=inbox,
+        outbox=outbox,
+        work_root=work,
+        template=template,
+        facts_file=tmp_path / "none.json",
+        soffice=soffice,
+        confine=None,
+        min_lifetime=0,
+        poll=0.01,
+    )
+    assert code != 0
+    assert not (outbox / f"{TOKEN}.pdf").exists() and not (outbox / f"{TOKEN}.error").exists()
+
+
+@linux_only
+def test_ending_descendants_says_when_one_will_not_go(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(supervisor, "_descendants", lambda root: {2**22 + 7})  # never goes
+    assert supervisor.end_descendants(rounds=2) is False
+    monkeypatch.setattr(supervisor, "_descendants", lambda root: set())
+    assert supervisor.end_descendants(rounds=2) is True
+
+
 def test_a_pipe_planted_in_the_outbox_cannot_stop_the_answer(exchange: tuple[Path, ...]) -> None:
     # F3's second gap: the answer was written to a name anyone could predict,
     # opened by path, so a pipe planted there blocked the supervisor for ever.
@@ -335,6 +367,22 @@ def test_a_pipe_planted_in_the_outbox_cannot_stop_the_answer(exchange: tuple[Pat
             with contextlib.suppress(OSError):
                 os.close(os.open(outbox / name, os.O_RDONLY | os.O_NONBLOCK))
     assert (outbox / f"{TOKEN}.pdf").read_bytes() == b"%PDF-1.7 the answer"
+
+
+@linux_only
+def test_answers_are_written_to_an_outbox_the_converter_cannot_list(
+    exchange: tuple[Path, ...],
+) -> None:
+    # As in the container: the outbox is mode 1733, so the converter can add
+    # files but not read the folder. Found by CI on #203.
+    _, outbox, _, _ = exchange
+    outbox.chmod(0o1333)  # the test owns the folder, so the owner loses read access too
+    try:
+        supervisor.publish(outbox, TOKEN, b"%PDF-1.7 the answer")
+    finally:
+        outbox.chmod(0o755)
+    assert (outbox / f"{TOKEN}.pdf").read_bytes() == b"%PDF-1.7 the answer"
+    assert (outbox / f"{TOKEN}.pdf").stat().st_mode & 0o777 == 0o644
 
 
 def test_the_answer_waits_for_the_minimum_lifetime(
