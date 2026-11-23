@@ -344,7 +344,10 @@ def test_what_counts_as_confined(how: str, full: bool) -> None:
 
 # What a seccomp program can return, from linux/seccomp.h.
 SECCOMP_ALLOW, SECCOMP_EPERM, SECCOMP_KILL = 0x7FFF0000, 0x00050001, 0x80000000
-# The calls the filter names, from each architecture's syscall table.
+SECCOMP_ENOSYS = 0x00050000 | 38  # ENOSYS on Linux; macOS numbers it 78
+# The calls the filters name, from each architecture's syscall table: the
+# kernel's headers, asm/unistd_64.h for x86_64 and asm-generic/unistd.h for
+# aarch64, never seccomp.py's own tables.
 SYSCALLS = {
     "x86_64": (
         0xC000003E,
@@ -380,6 +383,51 @@ SYSCALLS = {
             "process_madvise": 440,
             "sched_setattr": 314,
             "process_mrelease": 448,
+            "readv": 19,
+            "writev": 20,
+            "pread64": 17,
+            "pwrite64": 18,
+            "lseek": 8,
+            "close": 3,
+            "openat": 257,
+            "fstat": 5,
+            "newfstatat": 262,
+            "statx": 332,
+            "dup": 32,
+            "dup3": 292,
+            "getdents64": 217,
+            "brk": 12,
+            "munmap": 11,
+            "mremap": 25,
+            "mprotect": 10,
+            "madvise": 28,
+            "futex": 202,
+            "sched_yield": 24,
+            "rt_sigaction": 13,
+            "rt_sigprocmask": 14,
+            "rt_sigreturn": 15,
+            "sigaltstack": 131,
+            "clock_gettime": 228,
+            "clock_nanosleep": 230,
+            "nanosleep": 35,
+            "gettimeofday": 96,
+            "getppid": 110,
+            "gettid": 186,
+            "getrandom": 318,
+            "exit": 60,
+            "exit_group": 231,
+            "restart_syscall": 219,
+            "keyctl": 250,
+            "bpf": 321,
+            "userfaultfd": 323,
+            "perf_event_open": 298,
+            "unshare": 272,
+            "mount": 165,
+            "execve": 59,
+            "clone": 56,
+            "wait4": 61,
+            "socketpair": 53,
+            "memfd_create": 319,
         },
     ),
     "aarch64": (
@@ -416,6 +464,51 @@ SYSCALLS = {
             "process_madvise": 440,
             "sched_setattr": 274,
             "process_mrelease": 448,
+            "readv": 65,
+            "writev": 66,
+            "pread64": 67,
+            "pwrite64": 68,
+            "lseek": 62,
+            "close": 57,
+            "openat": 56,
+            "fstat": 80,
+            "newfstatat": 79,
+            "statx": 291,
+            "dup": 23,
+            "dup3": 24,
+            "getdents64": 61,
+            "brk": 214,
+            "munmap": 215,
+            "mremap": 216,
+            "mprotect": 226,
+            "madvise": 233,
+            "futex": 98,
+            "sched_yield": 124,
+            "rt_sigaction": 134,
+            "rt_sigprocmask": 135,
+            "rt_sigreturn": 139,
+            "sigaltstack": 132,
+            "clock_gettime": 113,
+            "clock_nanosleep": 115,
+            "nanosleep": 101,
+            "gettimeofday": 169,
+            "getppid": 173,
+            "gettid": 178,
+            "getrandom": 278,
+            "exit": 93,
+            "exit_group": 94,
+            "restart_syscall": 128,
+            "keyctl": 219,
+            "bpf": 280,
+            "userfaultfd": 282,
+            "perf_event_open": 241,
+            "unshare": 97,
+            "mount": 40,
+            "execve": 221,
+            "clone": 220,
+            "wait4": 260,
+            "socketpair": 199,
+            "memfd_create": 279,
         },
     ),
 }
@@ -562,6 +655,66 @@ def test_the_filter_allows_everything_else(machine: str) -> None:
         assert _seccomp(program, arch, numbers[name], WORKER_PID + 1) == SECCOMP_ALLOW, name
 
 
+# Calls no part of the worker makes, each a way into the kernel or out of
+# the worker: keys, BPF programs, userfaultfd and perf events (each a
+# common route to a kernel exploit), namespaces and mounts, running another
+# program, starting a process or waiting for one, and new sockets or memory files.
+OFF_THE_LIST = (
+    "keyctl",
+    "bpf",
+    "userfaultfd",
+    "perf_event_open",
+    "unshare",
+    "mount",
+    "execve",
+    "clone",
+    "wait4",
+    "socketpair",
+    "memfd_create",
+)
+
+
+@pytest.mark.parametrize("machine", sorted(SYSCALLS))
+def test_the_worker_filter_refuses_every_call_off_its_list(machine: str) -> None:
+    # Issue #148: the filter allowed everything it did not name, so a call
+    # nobody had thought of reached the kernel. Off the list, the answer is
+    # ENOSYS, as if the kernel had no such call, so a library falls back to
+    # a call on the list where it has one.
+    arch, numbers = SYSCALLS[machine]
+    program = seccomp.seccomp_filter(machine, WORKER_PID)
+    assert program is not None
+    for name in OFF_THE_LIST:
+        assert _seccomp(program, arch, numbers[name], 0, 0) == SECCOMP_ENOSYS, name
+
+
+@pytest.mark.parametrize("machine", sorted(SYSCALLS))
+def test_the_worker_filter_allows_the_calls_on_its_list(machine: str) -> None:
+    arch, numbers = SYSCALLS[machine]
+    program = seccomp.seccomp_filter(machine, WORKER_PID)
+    assert program is not None
+    for name in seccomp.WORKER_CALLS:
+        # Signals and limits only for the worker itself; fcntl and ioctl with a harmless command.
+        args = (WORKER_PID, 0) if name in (*SIGNALLING, "prlimit64") else (3, 3)
+        assert _seccomp(program, arch, numbers[name], *args) == SECCOMP_ALLOW, name
+
+
+def test_every_call_on_the_worker_list_exists_on_both_architectures() -> None:
+    for machine, (_, numbers) in SYSCALLS.items():
+        assert set(seccomp.WORKER_CALLS) <= set(numbers), machine
+    assert not set(seccomp.WORKER_CALLS) & set(OFF_THE_LIST)
+
+
+@pytest.mark.parametrize("machine", sorted(SYSCALLS))
+def test_the_converter_filter_still_allows_what_it_does_not_name(machine: str) -> None:
+    # LibreOffice needs far more calls than the worker, and gVisor has its
+    # own allowlist of host calls beneath it, so the converter keeps a denylist.
+    arch, numbers = SYSCALLS[machine]
+    program = seccomp.seccomp_filter(machine, WORKER_PID, unix_sockets=True)
+    assert program is not None
+    for name in ("keyctl", "wait4", "clone", "memfd_create"):
+        assert _seccomp(program, arch, numbers[name], 0, 0) == SECCOMP_ALLOW, name
+
+
 def test_the_filter_kills_calls_from_any_other_architecture() -> None:
     program = seccomp.seccomp_filter("x86_64", WORKER_PID)
     assert program is not None
@@ -622,18 +775,24 @@ def test_a_confined_worker_cannot_name_another_process_to_signal(tmp_path: Path)
         "      attempt(fcntl.fcntl, reader, fcntl.F_GETFL))\n"
         "fcntl.fcntl(reader, fcntl.F_SETFL, fcntl.fcntl(reader, fcntl.F_GETFL) | os.O_ASYNC)\n"
         "theirs.setblocking(False)\n"
-        "os.write(writer, b'ready'); theirs.send(b'ready')\n"
+        # write, not send(): sendto is not among the calls the worker may make
+        "os.write(writer, b'ready'); os.write(theirs.fileno(), b'ready')\n"
         "time.sleep(0.5)\n"
-        "print('alive' if sleeper.poll() is None else 'killed')\n"
         "print(sleeper.pid)\n"
     )
     result = _confined(script, tmp_path, setup=setup)
     lines = result.stdout.splitlines()
+    alive = False
     if lines and lines[-1].isdigit():
+        # Whether the sleep survived, asked from here: the worker cannot wait for it.
+        sleeper = int(lines.pop())
         with contextlib.suppress(ProcessLookupError):
-            os.kill(int(lines.pop()), signal.SIGKILL)
+            os.kill(sleeper, 0)
+            alive = True
+            os.kill(sleeper, signal.SIGKILL)
     assert lines[0].endswith(", no sockets"), result.stdout + result.stderr
-    assert lines[1:] == ["refused refused refused done", "alive"], result.stdout + result.stderr
+    assert lines[1:] == ["refused refused refused done"], result.stdout + result.stderr
+    assert alive, "the sleep died of SIGIO"
 
 
 @linux_only
@@ -649,10 +808,16 @@ def test_a_confined_worker_cannot_change_another_process(tmp_path: Path) -> None
         "        return 'refused'\n"
         "print(resource.getrlimit(resource.RLIMIT_NOFILE)[0] > 0)\n"
         "print(attempt(resource.prlimit, os.getppid(), resource.RLIMIT_NOFILE),\n"
-        "      attempt(os.setpriority, os.PRIO_PROCESS, 0, os.getpriority(os.PRIO_PROCESS, 0)),\n"
-        "      attempt(os.sched_setaffinity, 0, os.sched_getaffinity(0)))\n"
+        "      attempt(os.setpriority, os.PRIO_PROCESS, 0, priority),\n"
+        "      attempt(os.sched_setaffinity, 0, processors))\n"
     )
-    result = _confined(script, tmp_path, setup="import os, resource")
+    # Read before confining: the worker has no need to read either.
+    setup = (
+        "import os, resource\n"
+        "priority = os.getpriority(os.PRIO_PROCESS, 0)\n"
+        "processors = os.sched_getaffinity(0)\n"
+    )
+    result = _confined(script, tmp_path, setup=setup)
     lines = result.stdout.splitlines()
     assert lines[0].endswith(", no sockets"), result.stdout + result.stderr
     assert lines[1:] == ["True", "refused refused refused"], result.stdout + result.stderr
@@ -680,6 +845,22 @@ def test_a_confined_worker_cannot_trace_or_read_processes(tmp_path: Path) -> Non
     lines = result.stdout.splitlines()
     assert lines[0].endswith(", no sockets"), result.stdout + result.stderr
     assert lines[1:] == [f"-1 {errno.EPERM}"] * 2, result.stdout + result.stderr
+
+
+@linux_only
+def test_a_confined_worker_cannot_reach_calls_off_its_list(tmp_path: Path) -> None:
+    # keyctl exists on every kernel Snug runs on, so unconfined it fails
+    # with EINVAL or EOPNOTSUPP for these arguments, never ENOSYS.
+    numbers = SYSCALLS[os.uname().machine][1]
+    script = (
+        "libc = ctypes.CDLL(None, use_errno=True)\n"
+        f"for nr in ({numbers['keyctl']}, {numbers['memfd_create']}, {numbers['unshare']}):\n"
+        "    print(libc.syscall(nr, 0, 0, 0, 0, 0), ctypes.get_errno())\n"
+    )
+    result = _confined(script, tmp_path, setup="import ctypes")
+    lines = result.stdout.splitlines()
+    assert lines[0].endswith(", no sockets"), result.stdout + result.stderr
+    assert lines[1:] == [f"-1 {errno.ENOSYS}"] * 3, result.stdout + result.stderr
 
 
 # ---------------------------------------------------------------- failing closed

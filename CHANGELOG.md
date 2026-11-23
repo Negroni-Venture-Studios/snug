@@ -6,6 +6,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Security
 
+- The document worker's seccomp filter now allows only the 44 system calls the worker makes, and answers any other as if the kernel had no such call. Before, it refused a fixed list and allowed everything else, so a compromised worker could still reach parts of the kernel it never uses, such as keys, BPF programs, `userfaultfd`, and performance events, which are common routes to a kernel exploit. The LibreOffice converter's filter is unchanged.
 - The LibreOffice converter now ends every process a conversion started before it answers, and writes its answers under a random name that nothing in its outbox can block. Before, a process started inside a compromised LibreOffice could leave its process group, outlive the conversion, and read and answer the next file Snug sent, or leave a pipe in the outbox that stopped the converter for good.
 - When you restore by pasting backup settings into `sudo snug setup`, it now shows which bucket they are for and when its newest backup was copied, and asks before restoring. Before, settings pasted from the wrong place would have restored another Snug's database, with its admins.
 - `sudo snug update` no longer moves a server back to an older release. GitHub's latest release is the one published most recently, not the highest version, so an older release published again would have moved every updating server back. To go back on purpose, set `SNUG_REF`.
