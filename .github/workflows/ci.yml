@@ -48,9 +48,19 @@ jobs:
       - name: Deployment scripts pass shellcheck
         run: shellcheck --shell=sh --external-sources deploy/backup.sh deploy/restore.sh deploy/setup.sh deploy/update.sh deploy/office.sh deploy/snug
       - name: cloud-init file is valid
+        # cloud-init alone, without its recommended packages, whose setup
+        # (packagekit, dbus) hung on the runners from 23 November 2026. A
+        # line before each stage, and a limit, so a hang shows where it stopped.
+        timeout-minutes: 6
         run: |
-          docker run --rm --volume "$PWD/deploy:/deploy:ro" ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852 sh -c \
-            'apt-get update -qq && apt-get install -y -qq cloud-init > /dev/null && cloud-init schema --config-file /deploy/cloud-init.yaml'
+          docker run --rm -e DEBIAN_FRONTEND=noninteractive --volume "$PWD/deploy:/deploy:ro" ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852 sh -c '
+            set -e
+            echo "Updating the package lists"
+            apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update -qq
+            echo "Installing cloud-init"
+            apt-get install -y -qq --no-install-recommends cloud-init > /tmp/install.log 2>&1 || { tail -20 /tmp/install.log; exit 1; }
+            echo "Checking the file"
+            cloud-init schema --config-file /deploy/cloud-init.yaml' < /dev/null
 
   typecheck:
     name: typecheck
