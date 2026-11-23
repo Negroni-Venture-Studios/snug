@@ -1115,16 +1115,19 @@ def setup_view(request: HttpRequest, token: str) -> HttpResponse:
     password: str | None = None
     # A reset link is emailed, so the mailbox alone must not set up a new
     # authenticator: with one, the forgotten-password page would accept it
-    # and change the password too.
-    if row.purpose == AdminSetup.Purpose.RESET and not row.admin.check_password(
-        request.POST.get("current", "")
-    ):
-        _audit(request, "admin.setup_failed", "", row.admin.email, reason="password")
-        if setup.wrong_password(row, limits.RESET_CODE_FAILURES_PER_LINK):
-            spent = {"current": "Too many wrong passwords. Ask for a new link."}
+    # and change the password too. Each attempt is counted before its
+    # password is checked, so no more than five are ever checked on a link.
+    spent = {"current": "Too many wrong passwords. Ask for a new link."}
+    counted = row.purpose == AdminSetup.Purpose.RESET
+    if counted:
+        if not setup.attempt(row, limits.RESET_CODE_FAILURES_PER_LINK):
             return _setup_page(request, row, secret, errors=spent, status=400)
-        wrong = {"current": "That is not your current password."}
-        return _setup_page(request, row, secret, errors=wrong, status=400)
+        if not row.admin.check_password(request.POST.get("current", "")):
+            _audit(request, "admin.setup_failed", "", row.admin.email, reason="password")
+            if setup.wrong_password(row, limits.RESET_CODE_FAILURES_PER_LINK):
+                return _setup_page(request, row, secret, errors=spent, status=400)
+            wrong = {"current": "That is not your current password."}
+            return _setup_page(request, row, secret, errors=wrong, status=400)
     if row.purpose == AdminSetup.Purpose.INVITE:
         password = request.POST.get("password", "")
         if password != request.POST.get("password2", ""):
@@ -1138,6 +1141,8 @@ def setup_view(request: HttpRequest, token: str) -> HttpResponse:
     if step is None:
         errors["code"] = "That code is not right. Check the app's clock is set automatically."
     if errors or step is None:
+        if counted:
+            setup.give_back(row)  # the password was right
         return _setup_page(request, row, secret, errors=errors, status=400)
 
     email = row.admin.email
