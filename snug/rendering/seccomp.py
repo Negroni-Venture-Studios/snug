@@ -33,6 +33,66 @@ _REFUSED = (
     "sched_setattr",
     "process_mrelease",
 )
+# The only calls the document worker may make once confined (issue #148).
+# Anything else is answered ENOSYS, as if the kernel had no such call, so a
+# library falls back to one of these where it has a fallback. The list comes
+# from tracing every mode of the worker in Snug's tests (strace, from its
+# prctl(PR_SET_SECCOMP) on), on arm64 and amd64, plus calls on the same
+# resources a path the tests do not reach might use: its own files and
+# memory, waiting, time, randomness, and its own signals. Files are still
+# Landlock's to allow or refuse; signals, limits, fcntl, and ioctl are
+# narrowed further below. _REFUSED are refused with EPERM first.
+WORKER_CALLS = (
+    # files it holds, and the fonts Landlock lets it read
+    "read",
+    "write",
+    "readv",
+    "writev",
+    "pread64",
+    "pwrite64",
+    "lseek",
+    "close",
+    "openat",
+    "fstat",
+    "newfstatat",
+    "statx",
+    "getdents64",
+    "dup",
+    "dup3",
+    "fcntl",
+    "ioctl",
+    # memory
+    "brk",
+    "mmap",
+    "munmap",
+    "mremap",
+    "mprotect",
+    "madvise",
+    # waiting and time
+    "futex",
+    "sched_yield",
+    "clock_gettime",
+    "clock_nanosleep",
+    "nanosleep",
+    "gettimeofday",
+    "restart_syscall",
+    # its own signals
+    "rt_sigaction",
+    "rt_sigprocmask",
+    "rt_sigreturn",
+    "sigaltstack",
+    "kill",
+    "tkill",
+    "tgkill",
+    # who it is, randomness, its limits, and exiting
+    "getpid",
+    "getppid",
+    "gettid",
+    "getrandom",
+    "prlimit64",
+    "exit",
+    "exit_group",
+)
 # The syscalls that send a signal: allowed only to the worker itself.
 _SIGNALLING = ("kill", "tkill", "tgkill", "rt_sigqueueinfo", "rt_tgsigqueueinfo")
 # fcntl and ioctl commands that name a process for the kernel to signal when a
@@ -72,6 +132,44 @@ _SECCOMP_ARCHES = {
             "process_madvise": 440,
             "sched_setattr": 314,
             "process_mrelease": 448,
+            "read": 0,
+            "write": 1,
+            "readv": 19,
+            "writev": 20,
+            "pread64": 17,
+            "pwrite64": 18,
+            "lseek": 8,
+            "close": 3,
+            "openat": 257,
+            "fstat": 5,
+            "newfstatat": 262,
+            "statx": 332,
+            "getdents64": 217,
+            "dup": 32,
+            "dup3": 292,
+            "brk": 12,
+            "mmap": 9,
+            "munmap": 11,
+            "mremap": 25,
+            "mprotect": 10,
+            "madvise": 28,
+            "futex": 202,
+            "sched_yield": 24,
+            "clock_gettime": 228,
+            "clock_nanosleep": 230,
+            "nanosleep": 35,
+            "gettimeofday": 96,
+            "restart_syscall": 219,
+            "rt_sigaction": 13,
+            "rt_sigprocmask": 14,
+            "rt_sigreturn": 15,
+            "sigaltstack": 131,
+            "getpid": 39,
+            "getppid": 110,
+            "gettid": 186,
+            "getrandom": 318,
+            "exit": 60,
+            "exit_group": 231,
         },
     ),
     "aarch64": (
@@ -104,6 +202,44 @@ _SECCOMP_ARCHES = {
             "process_madvise": 440,
             "sched_setattr": 274,
             "process_mrelease": 448,
+            "read": 63,
+            "write": 64,
+            "readv": 65,
+            "writev": 66,
+            "pread64": 67,
+            "pwrite64": 68,
+            "lseek": 62,
+            "close": 57,
+            "openat": 56,
+            "fstat": 80,
+            "newfstatat": 79,
+            "statx": 291,
+            "getdents64": 61,
+            "dup": 23,
+            "dup3": 24,
+            "brk": 214,
+            "mmap": 222,
+            "munmap": 215,
+            "mremap": 216,
+            "mprotect": 226,
+            "madvise": 233,
+            "futex": 98,
+            "sched_yield": 124,
+            "clock_gettime": 113,
+            "clock_nanosleep": 115,
+            "nanosleep": 101,
+            "gettimeofday": 169,
+            "restart_syscall": 128,
+            "rt_sigaction": 134,
+            "rt_sigprocmask": 135,
+            "rt_sigreturn": 139,
+            "sigaltstack": 132,
+            "getpid": 172,
+            "getppid": 173,
+            "gettid": 178,
+            "getrandom": 278,
+            "exit": 93,
+            "exit_group": 94,
         },
     ),
 }
@@ -135,6 +271,9 @@ def _assemble(lines: list[str | _Instruction]) -> bytes:
 def seccomp_filter(machine: str, pid: int, *, unix_sockets: bool = False) -> bytes | None:
     """A seccomp program for the process `pid`. Refused calls get EPERM.
 
+    The document worker's program allows only WORKER_CALLS, narrowed as
+    below, and answers every other call ENOSYS.
+
     It refuses to create sockets: Landlock's network rules cover TCP only, so
     without this a compromised worker could still send UDP. It refuses every
     call in _REFUSED, so the worker cannot trace, re-prioritise or read the
@@ -148,13 +287,16 @@ def seccomp_filter(machine: str, pid: int, *, unix_sockets: bool = False) -> byt
 
     `unix_sockets` is for the LibreOffice converter, which may talk to
     itself over a Unix socket: socket() is then allowed for AF_UNIX alone,
-    and refused for every network family. The worker never gets it.
+    and refused for every network family. The worker never gets it. The
+    converter's program allows anything it does not refuse: LibreOffice
+    needs far more calls than the worker, and gVisor beneath it has its own
+    allowlist of host calls.
     """
     if machine not in _SECCOMP_ARCHES:
         return None
     arch, numbers = _SECCOMP_ARCHES[machine]
     load, jump_eq, jump_ge, ret = 0x20, 0x15, 0x35, 0x06  # BPF_LD|W|ABS, JEQ, JGE, RET
-    allow, eperm, kill = 0x7FFF0000, 0x00050000 | 1, 0x80000000
+    allow, eperm, enosys, kill = 0x7FFF0000, 0x00050000 | 1, 0x00050000 | 38, 0x80000000
     # The target of a signal or of prlimit64: the low 32 bits of its first
     # argument, which is all of a pid_t. An fcntl or ioctl command: the low
     # 32 bits of its second.
@@ -174,9 +316,16 @@ def seccomp_filter(machine: str, pid: int, *, unix_sockets: bool = False) -> byt
     ]
     lines += [(jump_eq, numbers[name], "signal", None) for name in _SIGNALLING]
     lines += [(jump_eq, numbers[name], name, None) for name in _OWNER_COMMANDS]
+    lines.append((jump_eq, numbers["prlimit64"], "limits", None))
+    if unix_sockets:
+        lines.append((ret, allow, None, None))  # anything else, for the converter
+    else:
+        handled = {"prlimit64", *_SIGNALLING, *_OWNER_COMMANDS}
+        lines += [
+            (jump_eq, numbers[name], "allow", None) for name in WORKER_CALLS if name not in handled
+        ]
+        lines.append((ret, enosys, None, None))  # anything else, for the worker
     lines += [
-        (jump_eq, numbers["prlimit64"], "limits", None),
-        (ret, allow, None, None),  # anything else
         "socket",
         (load, target, None, None),  # the family: socket's first argument
         (jump_eq, af_unix, "allow", "refuse"),

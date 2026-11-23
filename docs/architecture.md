@@ -184,7 +184,7 @@ The worker then:
 1. limits itself to 1 GiB of memory, 60 seconds of CPU, 64 MB written to any file, and 32 open files, with no core dumps and no new processes;
 2. loads what its mode needs (`PRELOADS`), so nothing has to load later: Pillow and PDFium to draw a page, Pillow alone to stamp one, and for every other mode both, with pypdf and the Office file reader run once on tiny files;
 3. reads its input, except a video, which it reads in pieces once it is confined;
-4. confines itself: no new privileges, then a Landlock ruleset that allows nothing but reading the system's fonts and refuses TCP, then a seccomp filter that refuses to create any socket, or to reach into another process: tracing it, reading or writing its memory, signalling it, naming it to be signalled when a file is ready (`fcntl` `F_SETOWN` and the like), re-prioritising it, or changing its limits;
+4. confines itself: no new privileges, then a Landlock ruleset that allows nothing but reading the system's fonts and refuses TCP, then a seccomp filter that allows only the system calls the worker makes (`WORKER_CALLS` in `snug.rendering.seccomp`, answering any other with `ENOSYS`), and among those refuses to create any socket, or to reach into another process: tracing it, reading or writing its memory, signalling it, naming it to be signalled when a file is ready (`fcntl` `F_SETOWN` and the like), re-prioritising it, or changing its limits;
 5. refuses to go on unless Landlock ABI 4 or later (Linux 6.7), the filter, and the memory limit are all in place;
 6. does its job and writes the answer to the pipe: a line of JSON, or the image or file it made.
 
