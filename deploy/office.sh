@@ -2,7 +2,7 @@
 # installing gVisor's runsc, which it runs under. Sourced by setup.sh and
 # update.sh, from this folder, as root.
 
-# gVisor's release, pinned to the newest at least two weeks old (AGENTS.md).
+# gVisor's release, pinned so that every server installs the same one.
 # snug update installs a newer one when a Snug release moves this.
 GVISOR_RELEASE=20261026
 

@@ -95,6 +95,6 @@ Write the test that proves the change, and confirm it fails for the reason you e
 
 ### Versions
 
-Pin new dependencies, tools, and GitHub Actions to releases at least two weeks old. Pin Actions by commit SHA, with the version in a comment.
+Pin dependencies, tools, and GitHub Actions to released versions, never pre-releases. Pin Actions by commit SHA, with the version in a comment.
 
-The exception is a **security release from an upstream we already depend on**, such as a Django patch release that fixes a CVE. Take it at once, and say so in the pull request.
+Take Dependabot's pull requests as they arrive. Read the diff and the release notes, check a major version against what Snug uses, and merge once it looks sound and CI is green. Never close one by hand, which tells Dependabot to skip that version for good; it closes superseded ones itself.

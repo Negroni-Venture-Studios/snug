@@ -255,7 +255,7 @@ jobs:
           load: true
           tags: snug-office:smoke
       - name: Install gVisor's runsc
-        # Pinned to the newest release at least two weeks old (AGENTS.md).
+        # Pinned to the same release as deploy/office.sh.
         run: |
           curl -fsSL https://gvisor.dev/archive.key | sudo gpg --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases 20261026 main" \
