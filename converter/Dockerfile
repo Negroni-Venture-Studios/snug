@@ -34,11 +34,12 @@ RUN version="$(dpkg-query --show --showformat='${Version}' libreoffice-core-nogu
 # The supervisor and the seccomp filter, as a package of their own: none of Snug comes with them.
 COPY snug/rendering/seccomp.py /usr/local/lib/python3.14/site-packages/snug/rendering/seccomp.py
 COPY snug/office/supervisor.py /usr/local/lib/python3.14/site-packages/snug/office/supervisor.py
+COPY snug/office/view.py /usr/local/lib/python3.14/site-packages/snug/office/view.py
 COPY converter/registrymodifications.xcu /opt/snug-office/profile/registrymodifications.xcu
 RUN touch /usr/local/lib/python3.14/site-packages/snug/__init__.py \
           /usr/local/lib/python3.14/site-packages/snug/rendering/__init__.py \
           /usr/local/lib/python3.14/site-packages/snug/office/__init__.py \
- && python3 -I -c "import snug.office.supervisor" \
+ && python3 -I -c "import snug.office.supervisor, snug.office.view" \
  && groupadd --system --gid 10002 office \
  && useradd --system --uid 10002 --gid office --home-dir /nonexistent --shell /usr/sbin/nologin office \
  # Mount points owned as Snug's are, whichever container first fills a new volume.

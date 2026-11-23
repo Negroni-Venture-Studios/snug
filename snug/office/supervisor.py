@@ -41,6 +41,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
+from snug.office import view
 from snug.rendering import seccomp
 
 INBOX = Path("/exchange/inbox")
@@ -229,6 +230,13 @@ def _run(
     """Run LibreOffice once: its exit code, or "timeout" or "unconfined"."""
     if timeout <= 0:
         return "timeout"
+    preexec = confine
+    viewed = confine is confine_child and _is_linux()
+    if viewed:
+        # In a view of its own, which applies the limits and the filter inside
+        # it, so LibreOffice cannot reach the inbox or the outbox (issue #205).
+        argv = [sys.executable, "-I", "-m", "snug.office.view", str(work), "--", *argv]
+        preexec = None
     try:
         process = subprocess.Popen(  # noqa: S603 - a fixed program, with the job's paths only
             argv,
@@ -238,7 +246,7 @@ def _run(
             stdout=subprocess.DEVNULL,
             stderr=errors,
             start_new_session=True,
-            preexec_fn=confine,  # the supervisor runs no threads, so this is safe
+            preexec_fn=preexec,  # the supervisor runs no threads, so this is safe
         )
     except subprocess.SubprocessError:
         return "unconfined"  # the child could not apply its limits or filter: fail closed
@@ -248,6 +256,8 @@ def _run(
         _kill(process)
         return "timeout"
     _kill(process)  # anything it left in its group
+    if viewed and code == view.UNVIEWED:
+        return "unconfined"  # no view, so LibreOffice never ran: fail closed
     return code
 
 
@@ -285,6 +295,15 @@ def _read_output(out: Path) -> bytes | str:
     except OSError:
         return "unreadable"
     try:
+        # gVisor follows a link to a folder despite O_NOFOLLOW, so check that
+        # the name is the folder itself and is what was opened. Nothing is
+        # left running to swap it between the two.
+        named, opened = os.lstat(out), os.fstat(folder)
+        if not stat.S_ISDIR(named.st_mode) or (named.st_dev, named.st_ino) != (
+            opened.st_dev,
+            opened.st_ino,
+        ):
+            return "unreadable"
         handle = os.open("input.pdf", os.O_RDONLY | nofollow | os.O_NONBLOCK, dir_fd=folder)
     except OSError:
         return "unreadable"
