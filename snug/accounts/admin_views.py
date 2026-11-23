@@ -1116,7 +1116,8 @@ def setup_view(request: HttpRequest, token: str) -> HttpResponse:
     # A reset link is emailed, so the mailbox alone must not set up a new
     # authenticator: with one, the forgotten-password page would accept it
     # and change the password too. Each attempt is counted before its
-    # password is checked, so no more than five are ever checked on a link.
+    # password is checked, so no more than five wrong passwords are ever
+    # checked on a link. A right password with a wrong code is given back.
     spent = {"current": "Too many wrong passwords. Ask for a new link."}
     counted = row.purpose == AdminSetup.Purpose.RESET
     if counted:
