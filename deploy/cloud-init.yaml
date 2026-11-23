@@ -146,15 +146,25 @@ runcmd:
       */releases/tag/*) ref="${latest##*/}" ;;
       *) echo "Could not find Snug's newest release on GitHub." >&2; exit 1 ;;
     esac
-    base="https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/$ref/deploy"
     cd /opt/snug
-    for file in compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh update.sh office.sh snug; do
-      curl -fsSL --retry 5 -o "$file" "$base/$file"
-    done
-    curl -fsSL --retry 5 -o snug.env "$base/snug.env.example"
+    # update.sh fetches the rest, checks every file against the checksums
+    # published with the release, pins its images by digest, and installs
+    # the snug command, as snug update does on a running server.
+    base="https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/$ref/deploy"
+    curl -fsSL --retry 5 -o update.sh "$base/update.sh"
+    if grep -q -e '--files-only' update.sh; then
+      sh update.sh --files-only
+    else
+      # A release from before 1.2.0, which publishes no checksums. Remove
+      # this once 1.2.0 is out.
+      for name in compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh office.sh snug snug.env.example; do
+        curl -fsSL --retry 5 -o "$name" "$base/$name"
+      done
+      install -m 755 snug /usr/local/bin/snug
+    fi
+    cp snug.env.example snug.env
     chmod 600 snug.env
     ln -sf snug.env .env
-    install -m 755 snug /usr/local/bin/snug
 
 # Restart once at the end if the updates above need it, such as a new kernel,
 # so the server is up to date before Snug is set up.
