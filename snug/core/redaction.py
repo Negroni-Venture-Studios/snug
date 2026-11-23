@@ -9,7 +9,21 @@ anything is written. AGENTS.md: never log tokens.
 import logging
 import re
 
-_SECRET_PATH = re.compile(r"(/v/|/admin/setup/)[^/\s?#\"']+")
+
+def _spelled_any_way(path: str) -> str:
+    """A pattern for PATH with each character as itself or percent-encoded.
+
+    gunicorn logs the raw request line of a request it refuses, so a path
+    such as /%76/<token>, which Django would decode to /v/<token>, reaches
+    the log as it was sent (follow-up audit of 1.2.0).
+    """
+    return "".join(f"(?:{re.escape(char)}|%{ord(char):02x})" for char in path)
+
+
+_SECRET_PATH = re.compile(
+    f"({_spelled_any_way('/v/')}|{_spelled_any_way('/admin/setup/')})" + r"[^/\s?#\"']+",
+    re.IGNORECASE,  # for %2f as well as %2F; that /V/ is redacted too does no harm
+)
 _formatter = logging.Formatter()
 
 

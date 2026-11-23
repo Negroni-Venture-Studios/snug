@@ -26,6 +26,14 @@ SETUP = "s3Tup_TokEn-9988abcdXYZ"
         (f"/admin/setup/{SETUP}", "/admin/setup/[redacted]"),
         ("/admin/documents/abc123", "/admin/documents/abc123"),  # needs a login, not a secret
         ("/v/", "/v/"),
+        # gunicorn logs the raw request line of a request it refuses, so a path
+        # with its letters percent-encoded reaches the log as sent (follow-up
+        # audit of 1.2.0). Django decodes it to the same route.
+        (f"/%76/{LINK}", "/%76/[redacted]"),
+        (f"/%2Fv%2f{LINK}", "/%2Fv%2f[redacted]"),
+        (f"GET /%76/{LINK}\x00 HTTP/1.1", "GET /%76/[redacted] HTTP/1.1"),
+        (f"/admin/%73etup/{SETUP}", "/admin/%73etup/[redacted]"),
+        (f"/%61dmin/setup%2F{SETUP}", "/%61dmin/setup%2F[redacted]"),
     ],
 )
 def test_redact(text: str, expected: str) -> None:
