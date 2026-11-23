@@ -45,12 +45,14 @@ jobs:
             tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName)
             echo "ref=refs/tags/$tag" >> "$GITHUB_OUTPUT"
             echo "release=$tag" >> "$GITHUB_OUTPUT"
+            echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
             echo "tags=$IMAGE:${tag#v},$IMAGE:latest" >> "$GITHUB_OUTPUT"
           elif [ "$REF" = refs/heads/main ]; then
             echo "ref=$REF" >> "$GITHUB_OUTPUT"
             echo "tags=$IMAGE:edge" >> "$GITHUB_OUTPUT"
           else
             echo "ref=$REF" >> "$GITHUB_OUTPUT"
+            echo "version=${REF_NAME#v}" >> "$GITHUB_OUTPUT"
             case "$REF_NAME" in
               *-*) echo "tags=$IMAGE:${REF_NAME#v}" >> "$GITHUB_OUTPUT" ;;  # a release candidate
               *) echo "tags=$IMAGE:${REF_NAME#v},$IMAGE:latest" >> "$GITHUB_OUTPUT" ;;
@@ -90,15 +92,25 @@ jobs:
             SNUG_OFFICE_BUILT=${{ steps.which.outputs.built }}
           provenance: true
           sbom: true
-      # A rebuild of a published release's image. A new tag's image waits for
-      # its release, whose Release checksums workflow publishes the digest.
+      # The digest this build pushed, kept for the Release checksums workflow,
+      # which publishes it with a new release (issue #168).
+      - name: Keep the image's digest for its release
+        if: steps.present.outputs.build == 'yes' && steps.which.outputs.version != ''
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          echo "$DIGEST" | grep -Eqx 'sha256:[0-9a-f]{64}'
+          echo "$DIGEST" > snug-office-image.digest
+      - if: steps.present.outputs.build == 'yes' && steps.which.outputs.version != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: snug-office-image-digest-${{ steps.which.outputs.version }}
+          path: snug-office-image.digest
+          retention-days: 90
+      # A rebuild of a published release's image replaces the digest on the release.
       - name: Replace the converter's digest on the release
         if: steps.present.outputs.build == 'yes' && steps.which.outputs.release != ''
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE: ${{ steps.which.outputs.release }}
-          DIGEST: ${{ steps.build.outputs.digest }}
-        run: |
-          echo "$DIGEST" | grep -Eqx 'sha256:[0-9a-f]{64}'
-          echo "$DIGEST" > snug-office-image.digest
-          gh release upload "$RELEASE" --repo "$GITHUB_REPOSITORY" --clobber snug-office-image.digest
+        run: gh release upload "$RELEASE" --repo "$GITHUB_REPOSITORY" --clobber snug-office-image.digest

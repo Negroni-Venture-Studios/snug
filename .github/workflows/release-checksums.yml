@@ -13,6 +13,13 @@ name: Release checksums
 # snug update pins both images in compose.yaml by these digests, so Docker
 # refuses any other image pushed under the release's tags. Someone able to
 # push to GitHub's container registry cannot change a release's assets.
+#
+# The digests are the ones the Image and Office image workflows' own builds
+# pushed, kept as artifacts of those runs, never read from the registry,
+# whose tags are what this guards against. Only an artifact from a push or
+# scheduled run of the right workflow in this repository counts, so a pull
+# request from a fork cannot supply one. If the registry's tag no longer
+# points to that digest, the release gets no digests and this fails.
 # Run it by hand, with the tag, to publish them for a release again.
 on:
   release:
@@ -33,6 +40,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write  # to add the assets to the release
+      actions: read  # to find the builds' artifacts
     env:
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
@@ -49,14 +57,38 @@ jobs:
           # shellcheck disable=SC2086  # one argument per file
           (cd deploy && sha256sum $files) > deploy.sha256
           cat deploy.sha256
-      - name: The digests of the release's images
+      - name: The digests of the release's images, from their builds
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          # digest IMAGE WORKFLOW: the digest in the newest artifact named for
+          # this version, from a push or scheduled run of WORKFLOW in this repository.
+          digest() {
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=$1-image-digest-${TAG#v}&per_page=100" \
+              --jq '.artifacts[] | select(.expired | not)
+                    | select(.workflow_run.head_repository_id == .workflow_run.repository_id)
+                    | .workflow_run.id' |
+            while read -r run; do
+              gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '"\(.path) \(.event)"' |
+                grep -Eqx "\.github/workflows/$2(@.*)? (push|schedule|workflow_dispatch)" || continue
+              rm -rf "artifact-$1"
+              gh run download "$run" --repo "$GITHUB_REPOSITORY" --name "$1-image-digest-${TAG#v}" --dir "artifact-$1"
+              cat "artifact-$1/$1-image.digest"
+              break
+            done
+          }
+          digest snug image.yml > snug-image.digest
+          digest snug-office office-image.yml > snug-office-image.digest
           for image in snug snug-office; do
-            digest=$(docker buildx imagetools inspect "ghcr.io/negroni-venture-studios/$image:${TAG#v}" \
+            built=$(cat "$image-image.digest")
+            echo "$built" | grep -Eqx 'sha256:[0-9a-f]{64}' || { echo "No digest from $image's build." >&2; exit 1; }
+            tagged=$(docker buildx imagetools inspect "ghcr.io/negroni-venture-studios/$image:${TAG#v}" \
               --format '{{json .Manifest}}' | jq -r .digest)
-            echo "$digest" | grep -Eqx 'sha256:[0-9a-f]{64}'
-            echo "$digest" > "$image-image.digest"
-            echo "$image: $digest"
+            if [ "$built" != "$tagged" ]; then
+              echo "$image:${TAG#v} in the registry is $tagged, not $built, which its build pushed." >&2
+              exit 1
+            fi
+            echo "$image: $built"
           done
       - name: Add them to the release
         env:
