@@ -1,5 +1,7 @@
-# The converter's image needs its supervisor, the seccomp filter and its own folder; nothing else of Snug.
+# The converter's image needs its supervisor, the view it runs LibreOffice in, the seccomp
+# filter, and its own folder; nothing else of Snug.
 *
 !converter/
 !snug/office/supervisor.py
+!snug/office/view.py
 !snug/rendering/seccomp.py

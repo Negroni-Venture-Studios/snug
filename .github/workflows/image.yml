@@ -340,7 +340,49 @@ jobs:
           pdftotext exchange/outbox/smokelinked000000000000.pdf - | tee linked.txt
           grep -q placeholder linked.txt
           if grep -q libreoffice linked.txt; then echo "the linked file was pulled into the PDF"; exit 1; fi
+      - name: LibreOffice cannot reach the shared folders (issue #205)
+        # A stand-in for LibreOffice, run in its view as the supervisor runs
+        # it, tries to see the inbox and answer for the next job. The folders
+        # are writable by anyone here, so only the view can stop it.
+        run: |
+          mkdir -p probe/inbox/smokenext00000000000 probe/outbox
+          chmod -R 0777 probe
+          docker run --rm --runtime=runsc --network=none --read-only \
+            --tmpfs /tmp:size=64m,mode=1777 --cap-drop=ALL --security-opt=no-new-privileges \
+            -v "$PWD/probe/inbox:/exchange/inbox:ro" -v "$PWD/probe/outbox:/exchange/outbox" \
+            --entrypoint python3 snug-office:smoke -I -c "
+          import subprocess, sys, tempfile
+          work = tempfile.mkdtemp(dir='/tmp')
+          probe = '\n'.join([
+              'import os',
+              'print(os.path.exists(\'/exchange\'))',
+              'try:',
+              '    open(\'/exchange/outbox/smokenext00000000000.pdf\', \'wb\').write(b\'%PDF-1.7\')',
+              '    print(\'answered\')',
+              'except OSError:',
+              '    print(\'cannot-answer\')',
+          ])
+          result = subprocess.run(
+              [sys.executable, '-I', '-m', 'snug.office.view', work, '--', sys.executable, '-I', '-c', probe],
+              capture_output=True, text=True,
+          )
+          print(result.stdout, result.stderr)
+          assert result.returncode == 0, result.returncode
+          assert result.stdout.split() == ['False', 'cannot-answer'], result.stdout
+          "
+          test -z "$(ls probe/outbox)"
       - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d  # v10.4.0
+      - name: The converter's tests, under gVisor
+        # The converter runs under gVisor, which differs from Linux in places:
+        # it follows a link to a folder despite O_NOFOLLOW. Its view needs
+        # user namespaces, which gVisor allows and this runner refuses.
+        run: |
+          docker run --rm --runtime=runsc --user "$(id -u):$(id -g)" -e HOME=/tmp \
+            -e UV_PROJECT_ENVIRONMENT=/tmp/venv -e UV_CACHE_DIR=/tmp/uv-cache \
+            -v "$PWD:/src:ro" -v "$(command -v uv):/usr/local/bin/uv:ro" \
+            python:3.14.10-slim-trixie@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f \
+            sh -c 'cp -r /src /tmp/snug && cd /tmp/snug && uv sync --locked --quiet &&
+              uv run pytest -q -p no:cacheprovider -rs tests/test_office_view.py tests/test_office_converter.py'
       - name: Snug's confined worker reads each PDF
         run: |
           uv sync --locked --quiet
