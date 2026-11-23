@@ -1,0 +1,66 @@
+name: Release checksums
+
+# What snug update checks before it uses anything it downloads (issue #168),
+# published as assets of each release when it is published:
+#
+#   deploy.sha256             the SHA-256 of each file in deploy/ that a server
+#                             downloads, the list in deploy/update.sh
+#   snug-image.digest         the digest of the release's Snug image
+#   snug-office-image.digest  the digest of its converter image, which the
+#                             Office image workflow replaces each Monday,
+#                             when it rebuilds the converter
+#
+# snug update pins both images in compose.yaml by these digests, so Docker
+# refuses any other image pushed under the release's tags. Someone able to
+# push to GitHub's container registry cannot change a release's assets.
+# Run it by hand, with the tag, to publish them for a release again.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The release's tag, such as v1.2.0"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: publish the checksums
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write  # to add the assets to the release
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - name: A release's tag
+        run: echo "$TAG" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: refs/tags/${{ env.TAG }}
+          persist-credentials: false
+      - name: Checksums of the deploy files
+        run: |
+          files=$(sed -n 's/^files="\(.*\)"$/\1/p' deploy/update.sh)
+          test -n "$files"
+          # shellcheck disable=SC2086  # one argument per file
+          (cd deploy && sha256sum $files) > deploy.sha256
+          cat deploy.sha256
+      - name: The digests of the release's images
+        run: |
+          for image in snug snug-office; do
+            digest=$(docker buildx imagetools inspect "ghcr.io/negroni-venture-studios/$image:${TAG#v}" \
+              --format '{{json .Manifest}}' | jq -r .digest)
+            echo "$digest" | grep -Eqx 'sha256:[0-9a-f]{64}'
+            echo "$digest" > "$image-image.digest"
+            echo "$image: $digest"
+          done
+      - name: Add them to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber \
+            deploy.sha256 snug-image.digest snug-office-image.digest

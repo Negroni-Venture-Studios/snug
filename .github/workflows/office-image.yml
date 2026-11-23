@@ -4,7 +4,9 @@ name: Office image
 # A version tag publishes :1.1.0 and :latest, and main publishes :edge. Every
 # Monday the newest release's image is built again, with Debian's latest
 # LibreOffice security fixes, and published under the same tags, which
-# snug update then pulls. Pull requests test it in the Image workflow.
+# snug update then pulls; its digest replaces snug-office-image.digest on the
+# release, which snug update pins it by (the Release checksums workflow).
+# Pull requests test it in the Image workflow.
 on:
   push:
     branches: [main]
@@ -28,7 +30,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
-      contents: read
+      contents: write  # to replace the converter's digest on the release
       packages: write
     steps:
       - name: Which source to build, and its tags
@@ -42,6 +44,7 @@ jobs:
           if [ "$EVENT" = schedule ] || [ "$EVENT" = workflow_dispatch ]; then
             tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName)
             echo "ref=refs/tags/$tag" >> "$GITHUB_OUTPUT"
+            echo "release=$tag" >> "$GITHUB_OUTPUT"
             echo "tags=$IMAGE:${tag#v},$IMAGE:latest" >> "$GITHUB_OUTPUT"
           elif [ "$REF" = refs/heads/main ]; then
             echo "ref=$REF" >> "$GITHUB_OUTPUT"
@@ -73,6 +76,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
+        id: build
         if: steps.present.outputs.build == 'yes'
         with:
           context: .
@@ -86,3 +90,15 @@ jobs:
             SNUG_OFFICE_BUILT=${{ steps.which.outputs.built }}
           provenance: true
           sbom: true
+      # A rebuild of a published release's image. A new tag's image waits for
+      # its release, whose Release checksums workflow publishes the digest.
+      - name: Replace the converter's digest on the release
+        if: steps.present.outputs.build == 'yes' && steps.which.outputs.release != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE: ${{ steps.which.outputs.release }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          echo "$DIGEST" | grep -Eqx 'sha256:[0-9a-f]{64}'
+          echo "$DIGEST" > snug-office-image.digest
+          gh release upload "$RELEASE" --repo "$GITHUB_REPOSITORY" --clobber snug-office-image.digest

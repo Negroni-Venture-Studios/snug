@@ -2,11 +2,18 @@
 # snug update: bring this server's Snug up to date.
 #
 # Run on the server as sudo snug update. It downloads the deploy files of
-# the newest release from GitHub, as cloud-init did when the server was
-# made, replacing them only once every one has arrived. snug.env and
-# backup/, with the settings and the backup key, are never touched. Then it
-# pulls the new images and restarts what changed. Snug applies any database
-# migrations as it starts. docs/deployment.md explains it.
+# the newest release from GitHub, and checks each one against the checksums
+# published with the release. It pins the release's two images by the
+# digests published with it, so Docker refuses any other image under their
+# tags (issue #168). The files replace the old ones as a set once every one
+# has arrived and been checked, and an interrupted switch is finished by
+# the next run (issue #171). snug.env and backup/, with the settings and the
+# backup key, are never touched. Then it pulls the new images and restarts
+# what changed. Snug applies any database migrations as it starts.
+#
+# With --files-only it stops once the files are in place: cloud-init and a
+# hand installation run it that way, before snug setup. docs/deployment.md
+# explains it.
 
 set -eu
 cd "$(dirname "$0")"
@@ -18,10 +25,12 @@ usage() {
 
 # --with-office adds the LibreOffice converter, --without-office removes it (docs/office.md).
 office=""
+files_only=no
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--with-office) office=on ;;
 		--without-office) office=off ;;
+		--files-only) files_only=yes ;;
 		*) usage ;;
 	esac
 	shift
@@ -31,6 +40,26 @@ if [ "$(id -u)" != 0 ]; then
 	echo "snug update must run as root: sudo snug update" >&2
 	exit 1
 fi
+
+files="compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh update.sh office.sh snug snug.env.example"
+
+# An update's files arrive in .update-new, and .update-new/.ready marks that
+# all of them have been checked and the switch has begun. If the last update
+# stopped part way through it, finish it before anything else, so the files
+# are never left a mix of two releases.
+new=.update-new
+switch() {
+	for path in "$new"/*; do
+		[ ! -e "$path" ] || mv "$path" "${path##*/}"
+	done
+	rm -rf "$new"
+	install -m 755 "$(pwd)/snug" /usr/local/bin/snug
+}
+if [ -e "$new/.ready" ]; then
+	echo "Finishing the update that was interrupted..."
+	switch
+fi
+rm -rf "$new"
 
 # The newest release, from where GitHub redirects its latest release, unless
 # SNUG_REF is set to a branch or tag. If the lookup fails, stop: never fall back
@@ -82,24 +111,62 @@ fi
 
 echo "Updating to $ref."
 base="https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/$ref/deploy"
-files="compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh update.sh office.sh snug"
+assets="https://github.com/Negroni-Venture-Studios/snug/releases/download/$ref"
+
+# stop MESSAGE...: say why, leave everything as it was, and exit.
+stop() {
+	rm -rf "$new"
+	for line in "$@"; do echo "snug update: $line" >&2; done
+	echo "Nothing has changed." >&2
+	exit 1
+}
 
 echo "Downloading Snug's server files..."
-fresh=".update-$$"
-rm -rf "$fresh"
-mkdir "$fresh"
+mkdir "$new"
 for file in $files; do
-	if ! curl -fsSL --retry 5 -o "$fresh/$file" "$base/$file"; then
-		rm -rf "$fresh"
-		echo "snug update: could not download $file. Nothing has changed." >&2
-		exit 1
-	fi
+	curl -fsSL --retry 5 -o "$new/$file" "$base/$file" || stop "could not download $file."
 done
-for file in $files; do
-	mv "$fresh/$file" "$file"
-done
-rm -rf "$fresh"
-install -m 755 "$(pwd)/snug" /usr/local/bin/snug
+
+# The checksums and digests published with the release, by the Release
+# checksums workflow, as assets of the release on GitHub. Someone able to
+# replace an image in GitHub's container registry cannot change them. A
+# branch or a release candidate, chosen with SNUG_REF, has no release to
+# publish them with, so its files and images are used unchecked.
+if curl -fsSL --retry 5 -o "$new/.sha256" "$assets/deploy.sha256"; then
+	for image in snug snug-office; do
+		curl -fsSL --retry 5 -o "$new/.$image" "$assets/$image-image.digest" ||
+			stop "could not download the digest of $ref's $image image." "Try again in a few minutes."
+	done
+	for file in $files; do
+		want=$(awk -v f="$file" '$2 == f || $2 == "*" f { print $1; exit }' "$new/.sha256")
+		have=$(sha256sum "$new/$file" | cut -d ' ' -f 1)
+		[ -n "$want" ] && [ "$want" = "$have" ] || stop "$file does not match the checksum published with $ref."
+	done
+	for image in snug snug-office; do
+		digest=$(cat "$new/.$image")
+		printf '%s\n' "$digest" | grep -Eqx 'sha256:[0-9a-f]{64}' ||
+			stop "what is published as the digest of $ref's $image image is not a digest."
+		# image: ${SNUG_IMAGE:-ghcr.io/negroni-venture-studios/snug:1.2.0} gains @<digest>.
+		sed "s|\(ghcr\.io/negroni-venture-studios/$image:[0-9A-Za-z.-]*\)}|\1@$digest}|" \
+			"$new/compose.yaml" > "$new/.compose"
+		mv "$new/.compose" "$new/compose.yaml"
+		grep -q "/$image:[0-9A-Za-z.-]*@$digest}" "$new/compose.yaml" ||
+			stop "could not pin $ref's $image image in compose.yaml."
+	done
+	rm -f "$new/.sha256" "$new/.snug" "$new/.snug-office"
+elif [ -z "${SNUG_REF:-}" ]; then
+	stop "could not download the checksums published with $ref." "Try again in a few minutes."
+else
+	echo "$ref has no published checksums, so its files and images are used without checking them."
+fi
+
+: > "$new/.ready"
+switch
+
+if [ "$files_only" = yes ]; then
+	echo "Snug's server files are in place."
+	exit 0
+fi
 
 # shellcheck source=deploy/office.sh
 . ./office.sh
