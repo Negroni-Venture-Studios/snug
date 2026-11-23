@@ -62,15 +62,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # digest IMAGE WORKFLOW: the digest in the newest artifact named for
-          # this version, from a push or scheduled run of WORKFLOW in this repository.
+          # this version, from a run of WORKFLOW in this repository: a push of
+          # this tag's own commit, or the converter's Monday or manual rebuild,
+          # which runs from main and builds the newest release's tag.
+          commit=$(git rev-parse HEAD)
           digest() {
             gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=$1-image-digest-${TAG#v}&per_page=100" \
               --jq '.artifacts[] | select(.expired | not)
                     | select(.workflow_run.head_repository_id == .workflow_run.repository_id)
                     | .workflow_run.id' |
             while read -r run; do
-              gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '"\(.path) \(.event)"' |
-                grep -Eqx "\.github/workflows/$2(@.*)? (push|schedule|workflow_dispatch)" || continue
+              info=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" \
+                --jq '"\(.path) \(.event) \(.head_sha) \(.head_branch)"')
+              # shellcheck disable=SC2086  # four words, none with spaces
+              set -- "$1" "$2" $info
+              echo "$3" | grep -Eqx "\.github/workflows/${2%.yml}\.yml(@refs/(heads|tags)/[A-Za-z0-9._/-]+)?" || continue
+              case "$4" in
+                push) [ "$5" = "$commit" ] || continue ;;
+                schedule | workflow_dispatch) [ "$6" = main ] || continue ;;
+                *) continue ;;
+              esac
               rm -rf "artifact-$1"
               gh run download "$run" --repo "$GITHUB_REPOSITORY" --name "$1-image-digest-${TAG#v}" --dir "artifact-$1"
               cat "artifact-$1/$1-image.digest"
@@ -81,7 +92,12 @@ jobs:
           digest snug-office office-image.yml > snug-office-image.digest
           for image in snug snug-office; do
             built=$(cat "$image-image.digest")
-            echo "$built" | grep -Eqx 'sha256:[0-9a-f]{64}' || { echo "No digest from $image's build." >&2; exit 1; }
+            # Exactly sha256: and 64 hexadecimal digits: nothing else, no second line.
+            hex=${built#sha256:}
+            if [ "$built" != "sha256:$hex" ] || [ "${#hex}" -ne 64 ]; then
+              echo "No digest from $image's build." >&2; exit 1
+            fi
+            case "$hex" in *[!0-9a-f]*) echo "No digest from $image's build." >&2; exit 1 ;; esac
             tagged=$(docker buildx imagetools inspect "ghcr.io/negroni-venture-studios/$image:${TAG#v}" \
               --format '{{json .Manifest}}' | jq -r .digest)
             if [ "$built" != "$tagged" ]; then

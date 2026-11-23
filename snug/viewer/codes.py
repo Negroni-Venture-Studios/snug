@@ -26,7 +26,8 @@ MAX_FAILURES = 5
 # With five tries per code, this allows ten codes' worth of guesses a day: a
 # one-in-20,000 chance of guessing right, and each new code emails the owner.
 # Only checks against a live code count, so using up the day takes about ten
-# codes, each emailed to the link's owner and rate limited per link.
+# codes, each emailed to the link's owner and rate limited per link. An
+# expired code is deleted before it is looked for, so it counts as no code.
 CHECKS_PER_LINK_PER_DAY = ratelimit.Limit("viewer.code.check.link", limit=50, window=24 * 60 * 60)
 _CODE = re.compile(r"[0-9]{6}")
 # People paste codes with spaces, or type them in two groups of three.
@@ -61,6 +62,11 @@ def issue(link: Link) -> str:
 
 def check(link: Link, typed: str) -> Result:
     """Try a code. A correct code is used up; a wrong one counts against it."""
+    # An expired code reads exactly as no code (follow-up audit of 1.2.0, a
+    # remaining path for F6): left until housekeeping, with the day's checks
+    # spent, it read "Too many attempts" where no code read "expired", which
+    # once the neutral period ended said whether one had been sent.
+    VerificationCode.objects.filter(link=link, expires_at__lte=timezone.now()).delete()
     live = VerificationCode.objects.filter(link=link).first()
     if live is None:
         # Nothing to guess, so nothing is counted: posting codes to a link

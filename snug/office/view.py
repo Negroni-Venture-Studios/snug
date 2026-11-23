@@ -29,6 +29,7 @@ Standard library only, like the supervisor.
 import contextlib
 import ctypes
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -87,13 +88,37 @@ def _mount(
         raise Unviewed(f"mount {target}: {os.strerror(ctypes.get_errno())}")
 
 
-def _bind(libc: ctypes.CDLL, source: str, target: str, *, writable: bool = False) -> None:
-    """Bind SOURCE at TARGET, read-only unless writable, with no set-user-id or device files."""
-    _mount(libc, source, target, None, MS_BIND | MS_REC)
+def _remount(libc: ctypes.CDLL, target: str, *, writable: bool) -> None:
+    """Remount the bind at TARGET with no set-user-id or device files, keeping its own flags."""
     flags = MS_BIND | MS_REMOUNT | MS_NOSUID | MS_NODEV | (0 if writable else MS_RDONLY)
-    held = os.statvfs(source).f_flag
+    held = os.statvfs(target).f_flag
     flags |= sum(flag for bit, flag in _KEPT.items() if held & bit)
     _mount(libc, None, target, None, flags)
+
+
+def _mounts_under(target: str) -> list[str]:
+    """The mount points below TARGET, from this namespace's mount table, outermost first."""
+    found = []
+    for line in Path("/proc/self/mountinfo").read_text().splitlines():
+        # The fifth field; mountinfo writes a space, tab, newline, or backslash as \ooo.
+        point = re.sub(r"\\([0-7]{3})", lambda octal: chr(int(octal.group(1), 8)), line.split()[4])
+        if point.startswith(target + "/"):
+            found.append(point)
+    return sorted(set(found), key=len)
+
+
+def _bind(libc: ctypes.CDLL, source: str, target: str, *, writable: bool = False) -> None:
+    """Bind SOURCE at TARGET, read-only unless writable, with no set-user-id or device files.
+
+    The bind takes the mounts below SOURCE with it, such as the files Docker
+    mounts in /etc, and each is remounted read-only too, rather than relying
+    on Docker to have mounted them so.
+    """
+    _mount(libc, source, target, None, MS_BIND | MS_REC)
+    _remount(libc, target, writable=writable)
+    if not writable:
+        for below in _mounts_under(target):
+            _remount(libc, below, writable=False)
 
 
 def build(work: Path) -> None:  # pragma: no cover - needs user namespaces, as under gVisor

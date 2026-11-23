@@ -4,7 +4,7 @@
 <data>/renders/<version id>/<page>-<width>.webp   rendered pages (a cache)
 <data>/stamped/<day>/<link id>/<version id>-<page>-<width>-<mark>.webp
                                            pages stamped for a link's investor, kept for the day
-<data>/previews/<version id>.pdf           Office files' PDFs, from the converter (a cache)
+<data>/previews/<stored name>.pdf          Office files' PDFs, from the converter (a cache)
 <data>/tmp/                                uploads in progress
 """
 

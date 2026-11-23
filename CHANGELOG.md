@@ -4,20 +4,29 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-23
+
+The security release: every finding of a security audit of 1.1.3 is fixed, `snug update` checks what it downloads, the document worker may make only the system calls it needs, and LibreOffice can no longer see the converter's shared folders.
+
+### Changed
+
+- Snug's web server is now gunicorn 27, which refuses some malformed requests that 26 accepted, such as a `Transfer-Encoding` that does not end in `chunked`. Browsers and Caddy, which sits in front of Snug, never send them.
+
 ### Security
 
 - LibreOffice now runs in a view of the converter's container that holds only the file it is converting and a read-only copy of the system. Before, a file that took over LibreOffice could see the converter's shared folders: it could answer for itself while still running, and so be handed the next file Snug sent. The converter also no longer follows a link LibreOffice leaves in place of its output folder, which gVisor allowed.
-- `sudo snug update` and a new server's startup script now check every file they download against checksums published with the release, and pin Snug's two images by the digests published with it, so Docker refuses any other image under the release's tags. Before, someone able to replace an image in GitHub's container registry, without access to the repository, would have had it run by every server that updated. The files are also switched in as a set: if an update is interrupted part way through, the next `sudo snug update` finishes it first. This works from the update after 1.2.0, since the update to 1.2.0 runs 1.1.3's `snug update`.
-- The document worker's seccomp filter now allows only the 44 system calls the worker makes, and answers any other as if the kernel had no such call. Before, it refused a fixed list and allowed everything else, so a compromised worker could still reach parts of the kernel it never uses, such as keys, BPF programs, `userfaultfd`, and performance events, which are common routes to a kernel exploit. The LibreOffice converter's filter is unchanged.
+- `sudo snug update` and a new server's startup script now check every file they download against checksums published with the release, and pin Snug's two images by the digests published with it, so Docker refuses any other image under the release's tags. Before, someone able to replace an image in GitHub's container registry, without access to the repository, would have had it run by every server that updated. The files are also switched in as a set: if an update is interrupted part way through, the next `sudo snug update` finishes it first. The update to 1.2.0 itself runs 1.1.3's `snug update`, which checks nothing and leaves the images pulled by tag, so once a server is on 1.2.0, run `sudo snug update` once more: it checks the files and pins both images.
+- The document worker's seccomp filter now allows only the system calls the worker makes, and answers any other as if the kernel had no such call. Before, it refused a fixed list and allowed everything else, so a compromised worker could still reach parts of the kernel it never uses, such as keys, BPF programs, `userfaultfd`, and performance events, which are common routes to a kernel exploit. The LibreOffice converter's filter is unchanged.
 - The LibreOffice converter now ends every process a conversion started before it answers, and writes its answers under a random name that nothing in its outbox can block. Before, a process started inside a compromised LibreOffice could leave its process group, outlive the conversion, and read and answer the next file Snug sent, or leave a pipe in the outbox that stopped the converter for good.
 - When you restore by pasting backup settings into `sudo snug setup`, it now shows which bucket they are for and when its newest backup was copied, and asks before restoring. Before, settings pasted from the wrong place would have restored another Snug's database, with its admins.
 - `sudo snug update` no longer moves a server back to an older release. GitHub's latest release is the one published most recently, not the highest version, so an older release published again would have moved every updating server back. To go back on purpose, set `SNUG_REF`.
 - `sudo snug restore` over existing data now moves Office files' previews and part-uploaded files aside with the rest, and a preview is named for its version's stored file rather than its number. Before, a restored version could show another document's pages, stamped as its own, from a preview left over from before the restore. Updating remakes each Office preview once, under its new name, showing the file as a card meanwhile.
 - A request refused by a rate limit, or a UK-only link opened from abroad, is now written to the audit log once in each limit's window for an address and an account or link, not once per request. Audit entries are kept for good and backed up, so one client sending refused requests could grow the database and its backups as fast as it could send them.
 - An NDA acceptance is now recorded only for the version the investor was shown. If the NDA was changed while their page was open, Snug shows them the new text and records nothing until they accept it. Before, the acceptance was recorded against the new version, which they had not seen.
-- After ten wrong addresses on a link, a wrong code now gets the same neutral reply until any code sent in that time has expired. Before, the neutral replies ended on the hour, and a wrong code just after it could tell someone guessing addresses whether their last batch held the right one.
+- After ten wrong addresses on a link, a wrong code now gets the same neutral reply until any code sent in that time has expired, and an expired code then reads exactly as no code. Before, the neutral replies ended on the hour, and a wrong code just after it could tell someone guessing addresses whether their last batch held the right one.
 - The document worker can no longer have the kernel signal another of Snug's processes. On Linux 6.7 to 6.11, where Landlock does not yet scope signals, a compromised worker could name another process as the owner of a pipe or socket with `fcntl` or `ioctl`, and the kernel would signal it, stopping Snug until Docker restarted it. The worker's seccomp filter now refuses those commands, and so does the LibreOffice converter's.
 - The page for setting up a new authenticator, opened from the link emailed when another admin resets your second factor or when you replace your own, now asks for your password. Before, someone who could read an admin's email while that link was waiting could add their own authenticator, then use the forgotten-password link to change the admin's password as well. Five wrong passwords spend the link.
+- Link and setup tokens are now kept out of the logs when a request's path spells `/v/` or `/admin/setup/` with percent-encoded characters, as in `/%76/`. gunicorn logs the whole request line of a request it refuses, so such a path reached the log with its token.
 
 ## [1.1.3] - 2026-11-13
 
@@ -293,7 +302,8 @@ External security audits found these.
 - Project documents: README, contributing guide, security policy, code of conduct, trademarks note, and agent instructions.
 - DESIGN.md, recording the architecture, the agreed decisions, and the front-end design, with clickable mockups and the Snug logo in `docs/design/`.
 
-[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.0...v1.1.1

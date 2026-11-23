@@ -26,7 +26,7 @@ Snug runs on one Linux server as four containers under Docker Compose, and a fif
    sudo snug setup
    ```
 
-cloud-init installs Docker, from Docker's own repository; Ubuntu's automatic security updates; a firewall that lets in only SSH, HTTP, and HTTPS; a 1 GB swap file, used only under memory pressure; and Snug's files in `/opt/snug`, checked against the release's checksums, with the `snug` command in `/usr/local/bin`. It does not start Snug.
+cloud-init installs Docker, from Docker's own repository; Ubuntu's automatic security updates; a firewall that lets in only SSH, HTTP, and HTTPS; a 1 GB swap file, used only under memory pressure; and Snug's files in `/opt/snug`, with the `snug` command in `/usr/local/bin`. It fetches `update.sh` over HTTPS from the newest release, which fetches the rest and checks each file against the release's checksums. It does not start Snug.
 
 `snug setup` asks for the domain, the company's name, whether to show Office files in the browser, and the backup bucket. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password, and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. Email is set up afterwards, in Settings, under Email: [email-google.md](email-google.md) for Google Workspace, [email.md](email.md) for any other provider.
 
@@ -143,7 +143,9 @@ sudo snug update
 
 `snug update` downloads the files in `/opt/snug` from the newest release on GitHub, as cloud-init does, and checks each one against the checksums published with the release. It pins Snug's two images by the digests published with the release, such as `snug:1.2.0@sha256:…`, so Docker refuses any other image pushed under the release's tag. If anything is missing or does not match, it changes nothing and says so. It replaces the files only once every one has arrived and been checked, and if it is interrupted while replacing them, the next `snug update` finishes the job first. `snug.env` and `backup/` are never touched. It then installs the new `snug` command, pulls the new images, and restarts the containers that changed. Snug applies any database migrations when it starts.
 
-`snug update` never moves a server back: if the newest release on GitHub is older than the one the server runs, it changes nothing and says so. To download from another branch or tag, older or not, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`. A branch or a release candidate has no published checksums, so its files and images are used without checking, and `snug update` says so.
+A server updated to 1.2.0 from 1.1.3 ran 1.1.3's `snug update`, which checks nothing. Run `sudo snug update` once more on it: that run checks every file and pins both images by digest.
+
+`snug update` never moves a server back: if the newest release on GitHub is older than the one the server runs, it changes nothing and says so. To download from another branch or tag, older or not, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`. A branch, a release candidate, or a release before 1.2.0 has no published checksums, so its files and images are used without checking, and `snug update` says so. For a release from 1.2.0 on, `snug update` stops if it cannot download them.
 
 `sudo snug update --with-office` also installs LibreOffice, and `sudo snug update --without-office` removes it, as [office.md](office.md) explains. On a server running Snug 1.0.0, run `sudo snug update` first: 1.0.0's command does not pass either option on.
 

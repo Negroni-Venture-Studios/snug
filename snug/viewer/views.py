@@ -15,6 +15,7 @@ from datetime import timedelta
 from functools import wraps
 from typing import Any
 
+from django.db.models import Q
 from django.http import FileResponse, Http404, HttpRequest, HttpResponse, HttpResponseRedirect
 from django.http.response import HttpResponseBase
 from django.shortcuts import render
@@ -674,7 +675,10 @@ def _neutral_page(request: HttpRequest, link: Link, token: str) -> HttpResponse:
     window ends on the hour (security audit, 19 November 2026, F6).
     """
     until = timezone.now() + timedelta(minutes=codes.CODE_MINUTES)
-    Link.objects.filter(pk=link.pk).update(neutral_until=until)
+    # Only ever later, so two requests at once cannot shorten it.
+    Link.objects.filter(pk=link.pk).filter(
+        Q(neutral_until__isnull=True) | Q(neutral_until__lt=until)
+    ).update(neutral_until=until)
     return _code_page(request, link, token, neutral=True)
 
 

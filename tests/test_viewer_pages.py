@@ -507,3 +507,33 @@ def test_viewer_pages_are_not_cached_and_set_no_admin_session(
     response = get(browser, path(issued))
     assert "no-store" in response["Cache-Control"]
     assert not any("session" in name and "viewer" not in name for name in browser.cookies)
+
+
+def test_an_expired_code_reads_the_same_as_no_code(document: Document) -> None:
+    # Follow-up audit of 1.2.0, a remaining path for F6. With the link's daily
+    # allowance of checks spent, a link that still held an expired code read
+    # "Too many attempts" while one with none read "expired": once the
+    # neutral period had ended, that told a guesser whether their last batch
+    # of addresses held the right one, until housekeeping removed the code.
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from snug.core import ratelimit
+    from snug.viewer import codes
+    from snug.viewer.models import VerificationCode
+
+    with_expired, without = issue(document), issue(document)
+    gone = timezone.now() - timedelta(minutes=1)
+    VerificationCode.objects.create(link=with_expired.link, code_hash="0" * 64, expires_at=gone)
+    replies = []
+    for issued in (with_expired, without):
+        Link.objects.filter(pk=issued.link.pk).update(neutral_until=gone)
+        for _ in range(codes.CHECKS_PER_LINK_PER_DAY.limit):
+            ratelimit.hit(codes.CHECKS_PER_LINK_PER_DAY, str(issued.link.pk))
+        response = post(Client(REMOTE_ADDR="198.51.100.201"), path(issued, "/code"), {"code": "1"})
+        replies.append((response.status_code, response.content.decode().split("<main", 1)[-1]))
+    (status_a, page_a), (status_b, page_b) = replies
+    assert status_a == status_b
+    assert ("expired or been used up" in page_a) == ("expired or been used up" in page_b)
+    assert ("Too many attempts" in page_a) == ("Too many attempts" in page_b)

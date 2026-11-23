@@ -187,3 +187,65 @@ def test_an_invite_still_chooses_a_password(admin: Admin) -> None:
     signed_in(admin).post("/admin/settings/admins/invite", data, secure=True)
     page, _ = scan(Client(), emailed_link("jo@fernlea.example"))
     assert 'name="password"' in page and 'name="current"' not in page
+
+
+# ---------------------------------------------------------------- overlapping requests
+#
+# Follow-up audit of 1.2.0, F8. Each attempt is counted, under the link's row
+# lock, before its password is checked, and none is counted past the fifth.
+# Together those hold the limit of five however requests arrive.
+
+
+def counted_when_checked(monkeypatch: pytest.MonkeyPatch, account: Admin) -> list[int]:
+    """The link's count of attempts at the moment each password is checked."""
+    seen: list[int] = []
+    real = Admin.check_password
+
+    def check(self: Admin, raw: str) -> bool:
+        seen.append(AdminSetup.objects.get(admin=account).failures)
+        return real(self, raw)
+
+    monkeypatch.setattr(Admin, "check_password", check)
+    return seen
+
+
+def test_each_attempt_is_counted_before_its_password_is_checked(
+    admin: Admin, other: Admin, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    link = reset_by_another_admin(admin, other)
+    browser = Client()
+    _, key = scan(browser, link)
+    seen = counted_when_checked(monkeypatch, other)
+    for _ in range(limits.RESET_CODE_FAILURES_PER_LINK):
+        finish(browser, link, key, current=GUESS)
+    assert seen == list(range(1, limits.RESET_CODE_FAILURES_PER_LINK + 1))
+
+
+def test_no_password_is_checked_once_five_attempts_are_counted(
+    admin: Admin, other: Admin, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # As when the fifth attempt is still in flight: counted, not yet answered.
+    link = reset_by_another_admin(admin, other)
+    browser = Client()
+    _, key = scan(browser, link)
+    AdminSetup.objects.filter(admin=other).update(failures=limits.RESET_CODE_FAILURES_PER_LINK)
+    seen = counted_when_checked(monkeypatch, other)
+    response = finish(browser, link, key, current=PASSWORD)
+    assert response.status_code == 400
+    assert "Ask for a new link" in response.content.decode()
+    assert seen == []
+    assert Admin.objects.get(email=OTHER).totp_confirmed_at is None
+
+
+def test_a_right_password_with_a_wrong_code_spends_no_attempt(admin: Admin, other: Admin) -> None:
+    # An admin who mistypes their authenticator's code keeps their link: the
+    # attempt counted for the password is given back once it proves right.
+    link = reset_by_another_admin(admin, other)
+    browser = Client()
+    _, key = scan(browser, link)
+    wrong_code = f"{(int(pyotp.TOTP(key).now()) + 1) % 1_000_000:06d}"
+    for _ in range(limits.RESET_CODE_FAILURES_PER_LINK + 1):
+        data = {"code": wrong_code, "current": PASSWORD}
+        assert browser.post(link, data, secure=True).status_code == 400
+    assert AdminSetup.objects.get(admin=other).failures == 0
+    assert finish(browser, link, key, current=PASSWORD).status_code == 200

@@ -129,10 +129,26 @@ done
 
 # The checksums and digests published with the release, by the Release
 # checksums workflow, as assets of the release on GitHub. Someone able to
-# replace an image in GitHub's container registry cannot change them. A
-# branch or a release candidate, chosen with SNUG_REF, has no release to
-# publish them with, so its files and images are used unchecked.
-if curl -fsSL --retry 5 -o "$new/.sha256" "$assets/deploy.sha256"; then
+# replace an image in GitHub's container registry cannot change them. Every
+# release from 1.2.0 on publishes them, so for one, failing to download
+# them stops the update. Only a branch, a release candidate, or an older
+# release, chosen with SNUG_REF, has none, which GitHub answers with a 404,
+# and its files and images are used unchecked. Any other failure stops it.
+
+# publishes_checksums REF: whether REF is a release from 1.2.0 on.
+publishes_checksums() {
+	printf '%s\n' "${1#v}" | grep -Eqx '[0-9]+\.[0-9]+\.[0-9]+' || return 1
+	case "$1" in v*) ;; *) return 1 ;; esac
+	! older "$1" v1.2.0
+}
+status=$(curl -sSL --retry 5 -o "$new/.sha256" -w '%{http_code}' "$assets/deploy.sha256") || status=failed
+checked=yes
+if [ "$status" = 404 ] && [ -n "${SNUG_REF:-}" ] && ! publishes_checksums "$ref"; then
+	checked=no
+elif [ "$status" != 200 ]; then
+	stop "could not download the checksums published with $ref." "Try again in a few minutes."
+fi
+if [ "$checked" = yes ]; then
 	for image in snug snug-office; do
 		curl -fsSL --retry 5 -o "$new/.$image" "$assets/$image-image.digest" ||
 			stop "could not download the digest of $ref's $image image." "Try again in a few minutes."
@@ -156,9 +172,8 @@ if curl -fsSL --retry 5 -o "$new/.sha256" "$assets/deploy.sha256"; then
 			stop "could not pin $ref's $image image in compose.yaml."
 	done
 	rm -f "$new/.sha256" "$new/.snug" "$new/.snug-office"
-elif [ -z "${SNUG_REF:-}" ]; then
-	stop "could not download the checksums published with $ref." "Try again in a few minutes."
 else
+	rm -f "$new/.sha256"
 	echo "$ref has no published checksums, so its files and images are used without checking them."
 fi
 

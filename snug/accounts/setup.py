@@ -123,22 +123,51 @@ def complete(row: AdminSetup, *, password: str | None, secret: str, step: int) -
         return recovery.issue(admin)
 
 
-def wrong_password(row: AdminSetup, limit: int) -> bool:
-    """Count a wrong password on a reset link. Returns True if that spent the link.
+def attempt(row: AdminSetup, limit: int) -> bool:
+    """Count an attempt on a reset link, before its password is checked.
 
+    Returns False, counting nothing, once `limit` attempts are counted, so no
+    more passwords are checked. Counted first, under the link's row lock, so
+    requests that overlap cannot have more than `limit` checked between them.
     Kept on the link, as for forgotten-password links, so the count never
     resets while the link works.
     """
     with transaction.atomic():
+        link = (
+            AdminSetup.objects.select_for_update()
+            .filter(pk=row.pk, expires_at__gt=timezone.now())
+            .first()
+        )
+        if link is None or link.failures >= limit:
+            return False
+        link.failures += 1
+        link.save(update_fields=["failures"])
+    return True
+
+
+def wrong_password(row: AdminSetup, limit: int) -> bool:
+    """After an attempt's password proved wrong. Returns True if the link is now spent."""
+    with transaction.atomic():
         link = AdminSetup.objects.select_for_update().filter(pk=row.pk).first()
         if link is None:
             return True
-        link.failures += 1
         if link.failures >= limit:
             link.delete()
             return True
-        link.save(update_fields=["failures"])
     return False
+
+
+def give_back(row: AdminSetup) -> None:
+    """After an attempt's password proved right: it no longer counts against the link.
+
+    So an admin who mistypes their authenticator's code keeps their link. Only
+    a right password gives one back, so it adds no guesses at the password.
+    """
+    with transaction.atomic():
+        link = AdminSetup.objects.select_for_update().filter(pk=row.pk).first()
+        if link is not None and link.failures > 0:
+            link.failures -= 1
+            link.save(update_fields=["failures"])
 
 
 def remove(target: Admin) -> bool:
