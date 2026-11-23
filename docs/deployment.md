@@ -26,7 +26,7 @@ Snug runs on one Linux server as four containers under Docker Compose, and a fif
    sudo snug setup
    ```
 
-cloud-init installs Docker, from Docker's own repository; Ubuntu's automatic security updates; a firewall that lets in only SSH, HTTP, and HTTPS; a 1 GB swap file, used only under memory pressure; and Snug's files in `/opt/snug`, with the `snug` command in `/usr/local/bin`. It does not start Snug.
+cloud-init installs Docker, from Docker's own repository; Ubuntu's automatic security updates; a firewall that lets in only SSH, HTTP, and HTTPS; a 1 GB swap file, used only under memory pressure; and Snug's files in `/opt/snug`, checked against the release's checksums, with the `snug` command in `/usr/local/bin`. It does not start Snug.
 
 `snug setup` asks for the domain, the company's name, whether to show Office files in the browser, and the backup bucket. It generates the secret key and the backup's encryption passwords, shows you the backup settings to keep in your password manager, starts Snug, and asks for the first admin's address, password, and authenticator. [admin-accounts.md](admin-accounts.md) explains the rest of the admin's setup. Email is set up afterwards, in Settings, under Email: [email-google.md](email-google.md) for Google Workspace, [email.md](email.md) for any other provider.
 
@@ -36,18 +36,17 @@ On a new server, `snug setup` asks whether you are restoring Snug from an earlie
 
 ### On another server
 
-On any Linux server with Docker Engine and its Compose plugin, fetch the newest release's files and run `snug setup`:
+On any Linux server with Docker Engine and its Compose plugin, fetch the newest release's `update.sh`, let it fetch and check the rest, and run `snug setup`:
 
 ```bash
 sudo mkdir -p /opt/snug/backup && cd /opt/snug
 release=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/Negroni-Venture-Studios/snug/releases/latest)
-release=${release##*/}
-for file in compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh update.sh office.sh snug; do
-  sudo curl -fsSLO "https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/$release/deploy/$file"
-done
-sudo install -m 755 snug /usr/local/bin/snug
+sudo curl -fsSLO "https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/${release##*/}/deploy/update.sh"
+sudo sh update.sh --files-only
 sudo snug setup
 ```
+
+`update.sh --files-only` downloads the release's files, checks them, and pins its images, as `snug update` does, then installs the `snug` command and stops.
 
 Open ports 80 and 443 to the internet. Caddy needs port 80 to prove to Let's Encrypt that it controls the domain, and redirects everything else on it to HTTPS.
 
@@ -68,7 +67,7 @@ Compose treats `$` in `snug.env` as the start of a variable. Wrap any value cont
 
 | | Snug | Caddy |
 |---|---|---|
-| Image | `ghcr.io/negroni-venture-studios/snug` at the release's version, such as `:1.1.0`; set `SNUG_IMAGE` in `snug.env` to use another, such as `:edge`, a build of the latest code on `main` | `caddy`, pinned by digest |
+| Image | `ghcr.io/negroni-venture-studios/snug` at the release's version, such as `:1.1.0`, pinned by the digest published with the release; set `SNUG_IMAGE` in `snug.env` to use another, such as `:edge`, a build of the latest code on `main` | `caddy`, pinned by digest |
 | Data | The `snug-data` volume, mounted at `/var/lib/snug` | The `caddy-data` volume, holding its certificates |
 | Ports | None on the server; only Caddy can reach it | 80 and 443, with 443 over UDP for HTTP/3 |
 | Filesystem | Read-only, apart from the data folder and `/tmp` | Read-only, apart from its volumes and `/tmp` |
@@ -142,12 +141,12 @@ sudo snug version
 sudo snug update
 ```
 
-`snug update` downloads the files in `/opt/snug` from the newest release on GitHub, as cloud-init does, and replaces them only once every one has arrived. `snug.env` and `backup/` are never touched. It then installs the new `snug` command, pulls the new images, and restarts the containers that changed. Snug applies any database migrations when it starts.
+`snug update` downloads the files in `/opt/snug` from the newest release on GitHub, as cloud-init does, and checks each one against the checksums published with the release. It pins Snug's two images by the digests published with the release, such as `snug:1.2.0@sha256:…`, so Docker refuses any other image pushed under the release's tag. If anything is missing or does not match, it changes nothing and says so. It replaces the files only once every one has arrived and been checked, and if it is interrupted while replacing them, the next `snug update` finishes the job first. `snug.env` and `backup/` are never touched. It then installs the new `snug` command, pulls the new images, and restarts the containers that changed. Snug applies any database migrations when it starts.
 
-`snug update` never moves a server back: if the newest release on GitHub is older than the one the server runs, it changes nothing and says so. To download from another branch or tag, older or not, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`.
+`snug update` never moves a server back: if the newest release on GitHub is older than the one the server runs, it changes nothing and says so. To download from another branch or tag, older or not, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`. A branch or a release candidate has no published checksums, so its files and images are used without checking, and `snug update` says so.
 
 `sudo snug update --with-office` also installs LibreOffice, and `sudo snug update --without-office` removes it, as [office.md](office.md) explains. On a server running Snug 1.0.0, run `sudo snug update` first: 1.0.0's command does not pass either option on.
 
-Each release's Compose file pins both of Snug's images to that release, such as `snug:1.1.0` and `snug-office:1.1.0`. The converter's image for the newest release is rebuilt every Monday under the same tag, with Debian's latest LibreOffice security fixes, so with LibreOffice installed every `snug update` pulls it again. `snug update` also installs the gVisor release pinned in the new files, if it has changed.
+Each release's Compose file pins both of Snug's images to that release, such as `snug:1.1.0` and `snug-office:1.1.0`. The converter's image for the newest release is rebuilt every Monday under the same tag, with Debian's latest LibreOffice security fixes, and its digest on the release is replaced with the new one, so with LibreOffice installed every `snug update` pins and pulls the rebuilt image. `snug update` also installs the gVisor release pinned in the new files, if it has changed.
 
 The Overview shows which Snug is running, under its status line: a release's version, or `edge` and the commit for a build of `main`. `sudo snug version` prints the same, and so does the first line of `sudo snug doctor`.

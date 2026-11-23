@@ -5,6 +5,7 @@ docker, id and install that record what was asked of them. Nothing reaches
 GitHub, Docker or the network.
 """
 
+import hashlib
 import os
 import shutil
 import stat
@@ -24,9 +25,21 @@ FILES = [
     "update.sh",
     "office.sh",
     "snug",
+    "snug.env.example",
 ]
 
-# Writes "new <file>" to the -o path, unless the file is named in $BROKEN.
+# The release's Compose file, as GitHub serves it: both of Snug's images at its version.
+IMAGES = "ghcr.io/negroni-venture-studios"
+COMPOSE = (
+    f"services:\n  snug:\n    image: ${{SNUG_IMAGE:-{IMAGES}/snug:1.4.2}}\n"
+    f"  office:\n    image: ${{SNUG_OFFICE_IMAGE:-{IMAGES}/snug-office:1.4.2}}\n"
+)
+SNUG_DIGEST = "sha256:" + "5a" * 32
+OFFICE_DIGEST = "sha256:" + "0f" * 32
+
+# Writes "new <file>" to the -o path, or the file of that name in $SERVED, unless
+# the file is named in $BROKEN. A release's assets come from $ASSETS, and are
+# missing (a 404) if not there.
 CURL = """#!/bin/sh
 echo "curl $*" >> "$LOG"
 # The lookup of the newest release prints where GitHub redirected it.
@@ -41,6 +54,12 @@ while [ $# -gt 0 ]; do
 done
 name=${url##*/}
 [ "$name" = "$BROKEN" ] && exit 22
+case "$url" in
+	*/releases/download/*)
+		[ -f "$ASSETS/$name" ] || exit 22
+		cp "$ASSETS/$name" "$out"; exit 0 ;;
+esac
+if [ -f "$SERVED/$name" ]; then cp "$SERVED/$name" "$out"; exit 0; fi
 # office.sh is sourced, so it must be the real script.
 if [ "$name" = office.sh ]; then cp "$OFFICE_SH" "$out"; exit 0; fi
 printf 'new %s\\n' "$name" > "$out"
@@ -87,6 +106,40 @@ def server(tmp_path: Path) -> Path:
     return here
 
 
+def served(name: str) -> bytes:
+    """A deploy file as the stand-in for curl serves it."""
+    if name == "office.sh":
+        return (DEPLOY / name).read_bytes()
+    if name == "compose.yaml":
+        return COMPOSE.encode()
+    return f"new {name}\n".encode()
+
+
+def publish(server: Path, **assets: str | None) -> Path:
+    """The release's assets: checksums of what is served, and the two digests.
+
+    A keyword replaces an asset's text (deploy_sha256, snug_image_digest,
+    snug_office_image_digest), and None leaves it out.
+    """
+    folder = server.parent / "assets"
+    folder.mkdir(exist_ok=True)
+    sums = "".join(f"{hashlib.sha256(served(name)).hexdigest()}  {name}\n" for name in FILES)
+    texts: dict[str, str | None] = {
+        "deploy.sha256": sums,
+        "snug-image.digest": SNUG_DIGEST + "\n",
+        "snug-office-image.digest": OFFICE_DIGEST + "\n",
+    }
+    for key, text in assets.items():
+        name = key.replace("_", "-").replace("-sha256", ".sha256").replace("-digest", ".digest")
+        assert name in texts, name
+        texts[name] = text
+    for name, text in texts.items():
+        (folder / name).unlink(missing_ok=True)
+        if text is not None:
+            (folder / name).write_text(text)
+    return folder
+
+
 def run_update(
     server: Path,
     *,
@@ -103,11 +156,19 @@ def run_update(
         (root / folder).mkdir(parents=True, exist_ok=True)
     meminfo = server.parent / "meminfo"
     meminfo.write_text(f"MemTotal:       {memory_mb * 1024} kB\n")
+    assets = server.parent / "assets"
+    if not assets.exists():
+        publish(server)
+    files = server.parent / "served"
+    files.mkdir(exist_ok=True)
+    (files / "compose.yaml").write_text(COMPOSE)
     env = {
         **os.environ,
         "PATH": f"{server.parent / 'bin'}:{os.environ['PATH']}",
         "LOG": str(log),
         "BROKEN": broken,
+        "ASSETS": str(assets),
+        "SERVED": str(files),
         "LATEST": latest,
         "OFFICE_SH": str(DEPLOY / "office.sh"),
         "OFFICE_MEMINFO": str(meminfo),
@@ -130,9 +191,8 @@ def test_it_replaces_the_files_then_pulls_and_restarts(server: Path) -> None:
     result, calls = run_update(server)
     assert result.returncode == 0, result.stdout + result.stderr
     for name in FILES:
-        # office.sh is sourced, so the stand-in gives the real one.
-        new = (DEPLOY / name).read_text() if name == "office.sh" else f"new {name}\n"
-        assert (server / name).read_text() == new, name
+        if name != "compose.yaml":  # pinned, below
+            assert (server / name).read_bytes() == served(name), name
     fetched = [call for call in calls if call.startswith("curl") and "/deploy/" in call]
     assert all("/Negroni-Venture-Studios/snug/v1.4.2/deploy/" in call for call in fetched)
     assert f"install -m 755 {server / 'snug'} /usr/local/bin/snug" in calls
@@ -160,10 +220,19 @@ def listed(text: str, start: str) -> list[str]:
     return line.split(start, 1)[1].strip().strip('";').removesuffix("; do").split()
 
 
-def test_it_fetches_the_same_files_as_a_new_server() -> None:
-    cloud_init = listed((DEPLOY / "cloud-init.yaml").read_text(), "for file in")
+def test_it_fetches_the_files_the_release_has_checksums_for() -> None:
     update = listed((DEPLOY / "update.sh").read_text(), 'files="')
-    assert update == cloud_init == FILES
+    assert update == FILES
+    # The workflow takes its list from update.sh, so the two cannot differ.
+    workflow = (DEPLOY.parent / ".github/workflows/release-checksums.yml").read_text()
+    assert "deploy/update.sh" in workflow
+
+
+def test_a_new_server_gets_its_files_through_update() -> None:
+    # cloud-init runs update.sh rather than downloading the files itself, so a
+    # new server's files are checked, and its images pinned, the same way.
+    cloud_init = (DEPLOY / "cloud-init.yaml").read_text()
+    assert "sh update.sh --files-only" in cloud_init
 
 
 RELEASES = "https://github.com/Negroni-Venture-Studios/snug/releases"
@@ -322,3 +391,129 @@ def test_snug_ref_can_go_back_on_purpose(server: Path) -> None:
     result, calls = run_update(server, ref="v1.4.2")
     assert result.returncode == 0, result.stdout + result.stderr
     assert any("/v1.4.2/deploy/" in call for call in calls)
+
+
+# ------------------------------------------------------ checked against the release (#168)
+
+
+def test_it_pins_the_images_published_with_the_release(server: Path) -> None:
+    result, calls = run_update(server)
+    assert result.returncode == 0, result.stdout + result.stderr
+    compose = (server / "compose.yaml").read_text()
+    assert f"{IMAGES}/snug:1.4.2@{SNUG_DIGEST}}}" in compose
+    assert f"{IMAGES}/snug-office:1.4.2@{OFFICE_DIGEST}}}" in compose
+    downloads = f"{RELEASES}/download/v1.4.2/"
+    for asset in ("deploy.sha256", "snug-image.digest", "snug-office-image.digest"):
+        assert any(f"{downloads}{asset}" in call for call in calls), asset
+
+
+def unchanged(server: Path, result: subprocess.CompletedProcess[str], calls: list[str]) -> None:
+    assert result.returncode != 0
+    assert "Nothing has changed" in result.stdout + result.stderr
+    assert (server / "compose.yaml").read_text() == "old compose.yaml\n"
+    assert (server / "setup.sh").read_text() == "old setup.sh\n"
+    assert not any(call.startswith(("docker", "install")) for call in calls)
+    assert not list(server.glob(".update-*"))
+
+
+def test_a_file_that_does_not_match_its_checksum_changes_nothing(server: Path) -> None:
+    # What someone able to change the file between GitHub and this server would cause.
+    sums = (publish(server) / "deploy.sha256").read_text()
+    wrong = hashlib.sha256(b"something else\n").hexdigest()
+    publish(
+        server, deploy_sha256=sums.replace(hashlib.sha256(served("setup.sh")).hexdigest(), wrong)
+    )
+    result, calls = run_update(server)
+    unchanged(server, result, calls)
+    assert "setup.sh does not match the checksum published with v1.4.2" in result.stderr
+
+
+def test_a_file_the_checksums_leave_out_changes_nothing(server: Path) -> None:
+    sums = (publish(server) / "deploy.sha256").read_text()
+    publish(
+        server,
+        deploy_sha256="".join(
+            line + "\n" for line in sums.splitlines() if not line.endswith("  backup.sh")
+        ),
+    )
+    result, calls = run_update(server)
+    unchanged(server, result, calls)
+    assert "backup.sh does not match the checksum published with v1.4.2" in result.stderr
+
+
+@pytest.mark.parametrize(
+    "missing", ["deploy_sha256", "snug_image_digest", "snug_office_image_digest"]
+)
+def test_a_release_without_its_checksums_changes_nothing(server: Path, missing: str) -> None:
+    publish(server, **{missing: None})
+    result, calls = run_update(server)
+    unchanged(server, result, calls)
+    assert "Try again in a few minutes" in result.stderr
+
+
+@pytest.mark.parametrize(
+    "digest", ["sha256:" + "5a" * 31, "latest", "sha256:" + "5A" * 32, SNUG_DIGEST + "} x"]
+)
+def test_a_digest_that_is_not_one_changes_nothing(server: Path, digest: str) -> None:
+    publish(server, snug_image_digest=digest + "\n")
+    result, calls = run_update(server)
+    unchanged(server, result, calls)
+    assert "is not a digest" in result.stderr
+
+
+def test_snug_ref_without_checksums_goes_ahead_and_says_so(server: Path) -> None:
+    # A branch, or a release candidate, has no release to publish checksums with.
+    publish(server, deploy_sha256=None, snug_image_digest=None, snug_office_image_digest=None)
+    result, _ = run_update(server, ref="some-branch")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "some-branch has no published checksums" in result.stdout
+    assert "@sha256:" not in (server / "compose.yaml").read_text()
+
+
+def test_snug_ref_with_checksums_still_checks_them(server: Path) -> None:
+    sums = (publish(server) / "deploy.sha256").read_text()
+    publish(server, deploy_sha256=sums.replace(hashlib.sha256(b"new snug\n").hexdigest(), "0" * 64))
+    result, calls = run_update(server, ref="v1.4.2")
+    unchanged(server, result, calls)
+
+
+# ---------------------------------------------------------------- switched in as a set (#171)
+
+
+def test_an_interrupted_switch_is_finished_before_anything_else(server: Path) -> None:
+    # The last update stopped part way through moving its checked files into place.
+    staged = server / ".update-new"
+    staged.mkdir()
+    (staged / ".ready").touch()
+    (staged / "backup.sh").write_text("interrupted backup.sh\n")
+    (staged / "snug").write_text("interrupted snug\n")
+    result, calls = run_update(server, broken="restore.sh")  # and this one fails
+    assert "Finishing the update that was interrupted" in result.stdout
+    assert (server / "backup.sh").read_text() == "interrupted backup.sh\n"
+    assert (server / "snug").read_text() == "interrupted snug\n"
+    assert f"install -m 755 {server / 'snug'} /usr/local/bin/snug" in calls
+    assert not staged.exists()
+    assert "could not download restore.sh" in result.stderr
+
+
+def test_an_unfinished_download_left_behind_is_discarded(server: Path) -> None:
+    staged = server / ".update-new"
+    staged.mkdir()
+    (staged / "backup.sh").write_text("half downloaded\n")  # never checked: no .ready
+    result, _ = run_update(server, broken="restore.sh")
+    assert "interrupted" not in result.stdout
+    assert (server / "backup.sh").read_text() == "old backup.sh\n"
+    assert not staged.exists()
+
+
+def test_files_only_puts_the_files_in_place_and_starts_nothing(server: Path) -> None:
+    # As cloud-init and a hand installation use it, before snug setup.
+    for name in FILES:
+        (server / name).unlink(missing_ok=True)
+    shutil.copy(DEPLOY / "update.sh", server / "update.sh")
+    result, calls = run_update(server, args=("--files-only",))
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert f"{IMAGES}/snug:1.4.2@{SNUG_DIGEST}}}" in (server / "compose.yaml").read_text()
+    assert (server / "snug.env.example").read_bytes() == served("snug.env.example")
+    assert f"install -m 755 {server / 'snug'} /usr/local/bin/snug" in calls
+    assert not any(call.startswith(("docker", "apt-get", "runsc")) for call in calls)
