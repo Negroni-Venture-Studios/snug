@@ -1,9 +1,7 @@
 # Snug's container image: one image, run by Docker Compose behind Caddy.
 #
 # Base images are pinned by digest, so a build always starts from the same
-# bytes; Dependabot proposes new digests. Python 3.14.10 is an expedited
-# security release (CVE-2026-115557, CVE-2026-114583), taken under the
-# exception for security releases in AGENTS.md.
+# bytes; Dependabot proposes new digests.
 
 FROM ghcr.io/astral-sh/uv:0.13.9@sha256:d3b601f0c7b118bc1753febf7c41cc80981df678445e0254284eecf84db79a7d AS uv
 
