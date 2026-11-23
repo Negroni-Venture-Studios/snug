@@ -38,26 +38,35 @@ SNUG_DIGEST = "sha256:" + "5a" * 32
 OFFICE_DIGEST = "sha256:" + "0f" * 32
 
 # Writes "new <file>" to the -o path, or the file of that name in $SERVED, unless
-# the file is named in $BROKEN. A release's assets come from $ASSETS, and are
-# missing (a 404) if not there.
+# the file is named in $BROKEN, which fails with curl's exit status $BROKEN_EXIT
+# (22, an HTTP error, unless set). A release's assets come from $ASSETS, and
+# are missing (a 404) if not there. Asked for the HTTP status with -w, it
+# prints it: 200, 404, or what $ASSETS/<name>.status holds.
 CURL = """#!/bin/sh
 echo "curl $*" >> "$LOG"
-# The lookup of the newest release prints where GitHub redirected it.
-case " $* " in *" -w "*) printf '%s' "$LATEST"; exit 0 ;; esac
-out=""; url=""
+out=""; url=""; format=""
 while [ $# -gt 0 ]; do
 	case "$1" in
 		-o) out="$2"; shift 2 ;;
+		-w) format="$2"; shift 2 ;;
 		-*) shift ;;
 		*) url="$1"; shift ;;
 	esac
 done
+# The lookup of the newest release prints where GitHub redirected it.
+case "$url" in */releases/latest) printf '%s' "$LATEST"; exit 0 ;; esac
 name=${url##*/}
-[ "$name" = "$BROKEN" ] && exit 22
+[ "$name" = "$BROKEN" ] && exit "${BROKEN_EXIT:-22}"
 case "$url" in
 	*/releases/download/*)
-		[ -f "$ASSETS/$name" ] || exit 22
-		cp "$ASSETS/$name" "$out"; exit 0 ;;
+		if [ -f "$ASSETS/$name.status" ]; then
+			echo "an error page" > "$out"; printf '%s' "$(cat "$ASSETS/$name.status")"; exit 0
+		fi
+		if [ -f "$ASSETS/$name" ]; then
+			cp "$ASSETS/$name" "$out"; [ -z "$format" ] || printf 200; exit 0
+		fi
+		[ -n "$format" ] || exit 22
+		echo "Not Found" > "$out"; printf 404; exit 0 ;;
 esac
 if [ -f "$SERVED/$name" ]; then cp "$SERVED/$name" "$out"; exit 0; fi
 # office.sh is sourced, so it must be the real script.
@@ -144,6 +153,7 @@ def run_update(
     server: Path,
     *,
     broken: str = "",
+    broken_exit: str = "22",
     latest: str = NEWEST,
     ref: str | None = None,
     args: tuple[str, ...] = (),
@@ -167,6 +177,7 @@ def run_update(
         "PATH": f"{server.parent / 'bin'}:{os.environ['PATH']}",
         "LOG": str(log),
         "BROKEN": broken,
+        "BROKEN_EXIT": broken_exit,
         "ASSETS": str(assets),
         "SERVED": str(files),
         "LATEST": latest,
@@ -517,3 +528,57 @@ def test_files_only_puts_the_files_in_place_and_starts_nothing(server: Path) -> 
     assert (server / "snug.env.example").read_bytes() == served("snug.env.example")
     assert f"install -m 755 {server / 'snug'} /usr/local/bin/snug" in calls
     assert not any(call.startswith(("docker", "apt-get", "runsc")) for call in calls)
+
+
+# -------------------------------------------------- a release's checksums must arrive (F9)
+
+
+@pytest.mark.parametrize(
+    ("how", "status", "exit_code"),
+    [
+        ("a server error", "503", ""),
+        ("a timeout", "", "28"),
+        ("a reset", "", "56"),
+        ("missing", "", ""),
+    ],
+)
+def test_snug_ref_on_a_release_never_goes_ahead_without_its_checksums(
+    server: Path, how: str, status: str, exit_code: str
+) -> None:
+    # Follow-up audit of 1.2.0, F9: with SNUG_REF set, any failed download of
+    # deploy.sha256 was taken for a ref with no checksums, so the release's
+    # files went in unchecked and its images unpinned. A release from 1.2.0
+    # on always publishes them, so for one, no failure is a reason to go ahead.
+    assets = publish(server)
+    broken = ""
+    if status:
+        (assets / "deploy.sha256.status").write_text(status)
+    elif exit_code:
+        broken = "deploy.sha256"
+    else:
+        (assets / "deploy.sha256").unlink()  # a 404
+    result, calls = run_update(server, ref="v1.4.2", broken=broken, broken_exit=exit_code or "22")
+    unchanged(server, result, calls)
+    assert "no published checksums" not in result.stdout, how
+
+
+@pytest.mark.parametrize("ref", ["some-branch", "v1.4.2-rc.1", "v1.1.3"])
+def test_snug_ref_without_a_release_that_publishes_checksums_goes_ahead(
+    server: Path, ref: str
+) -> None:
+    # A branch, a release candidate, and a release from before 1.2.0 have no
+    # checksums to publish.
+    publish(server, deploy_sha256=None, snug_image_digest=None, snug_office_image_digest=None)
+    result, _ = run_update(server, ref=ref)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert f"{ref} has no published checksums" in result.stdout
+
+
+@pytest.mark.parametrize("ref", ["some-branch", "v1.4.2-rc.1", "v1.1.3"])
+def test_snug_ref_without_a_release_still_stops_on_a_failed_download(
+    server: Path, ref: str
+) -> None:
+    # Only a 404 says a ref has no checksums. Anything else is a failure.
+    (publish(server) / "deploy.sha256.status").write_text("503")
+    result, calls = run_update(server, ref=ref)
+    unchanged(server, result, calls)
