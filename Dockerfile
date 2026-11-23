@@ -5,10 +5,10 @@
 # security release (CVE-2026-115557, CVE-2026-114583), taken under the
 # exception for security releases in AGENTS.md.
 
-FROM ghcr.io/astral-sh/uv:0.13.1@sha256:4a1f3666816dafadd20ceb71eac9a7d56d7ef30279f7d64048519ab901ada336 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.9@sha256:d3b601f0c7b118bc1753febf7c41cc80981df678445e0254284eecf84db79a7d AS uv
 
 # ---------------------------------------------------------------- build
-FROM python:3.14.10-slim-trixie@sha256:af8a5aa14780025dbfbcfbc81bd8a91ebd87711dd5b0f48ed71090949dd7cb1d AS build
+FROM python:3.14.10-slim-trixie@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f AS build
 
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 \
@@ -35,7 +35,7 @@ RUN SNUG_SECRET_KEY="build-only-$(head -c 48 /dev/urandom | base64 | tr -d '/+=\
  && rm -rf /tmp/build-data
 
 # ---------------------------------------------------------------- runtime
-FROM python:3.14.10-slim-trixie@sha256:af8a5aa14780025dbfbcfbc81bd8a91ebd87711dd5b0f48ed71090949dd7cb1d
+FROM python:3.14.10-slim-trixie@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
 
 LABEL org.opencontainers.image.source="https://github.com/Negroni-Venture-Studios/snug" \
       org.opencontainers.image.description="Snug: a self-hosted data room for early-stage founders" \
