@@ -140,7 +140,9 @@ if curl -fsSL --retry 5 -o "$new/.sha256" "$assets/deploy.sha256"; then
 	for file in $files; do
 		want=$(awk -v f="$file" '$2 == f || $2 == "*" f { print $1; exit }' "$new/.sha256")
 		have=$(sha256sum "$new/$file" | cut -d ' ' -f 1)
-		[ -n "$want" ] && [ "$want" = "$have" ] || stop "$file does not match the checksum published with $ref."
+		if [ -z "$want" ] || [ "$want" != "$have" ]; then
+			stop "$file does not match the checksum published with $ref."
+		fi
 	done
 	for image in snug snug-office; do
 		digest=$(cat "$new/.$image")
