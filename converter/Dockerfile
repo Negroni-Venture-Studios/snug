@@ -6,7 +6,7 @@
 #   docker build -f converter/Dockerfile -t snug-office .
 #
 # The same Python base as Snug's own image, so one pin covers both.
-FROM python:3.14.10-slim-trixie@sha256:af8a5aa14780025dbfbcfbc81bd8a91ebd87711dd5b0f48ed71090949dd7cb1d
+FROM python:3.14.10-slim-trixie@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
 
 LABEL org.opencontainers.image.source="https://github.com/Negroni-Venture-Studios/snug" \
       org.opencontainers.image.description="Snug's LibreOffice converter: Office files to PDF, in a sandbox" \
