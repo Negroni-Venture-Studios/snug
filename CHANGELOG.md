@@ -4,6 +4,14 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-23
+
+The security release: every finding of a security audit of 1.1.3 is fixed, `snug update` checks what it downloads, the document worker may make only the system calls it needs, and LibreOffice can no longer see the converter's shared folders.
+
+### Changed
+
+- Snug's web server is now gunicorn 27, which refuses some malformed requests that 26 accepted, such as a `Transfer-Encoding` that does not end in `chunked`. Browsers and Caddy, which sits in front of Snug, never send them.
+
 ### Security
 
 - LibreOffice now runs in a view of the converter's container that holds only the file it is converting and a read-only copy of the system. Before, a file that took over LibreOffice could see the converter's shared folders: it could answer for itself while still running, and so be handed the next file Snug sent. The converter also no longer follows a link LibreOffice leaves in place of its output folder, which gVisor allowed.
@@ -293,7 +301,8 @@ External security audits found these.
 - Project documents: README, contributing guide, security policy, code of conduct, trademarks note, and agent instructions.
 - DESIGN.md, recording the architecture, the agreed decisions, and the front-end design, with clickable mockups and the Snug logo in `docs/design/`.
 
-[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.0...v1.1.1
