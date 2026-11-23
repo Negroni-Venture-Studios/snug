@@ -296,8 +296,9 @@ def _read_output(out: Path) -> bytes | str:
         return "unreadable"
     try:
         # gVisor follows a link to a folder despite O_NOFOLLOW, so check that
-        # the name is the folder itself and is what was opened. Nothing is
-        # left running to swap it between the two.
+        # the name is the folder itself and is what was opened. The read is
+        # through the folder opened, so even with something left running, as
+        # after a timeout, swapping the name afterwards cannot redirect it.
         named, opened = os.lstat(out), os.fstat(folder)
         if not stat.S_ISDIR(named.st_mode) or (named.st_dev, named.st_ino) != (
             opened.st_dev,

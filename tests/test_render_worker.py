@@ -613,7 +613,8 @@ def test_the_filter_refuses_naming_another_process_to_signal(machine: str) -> No
     # Security audit, 19 November 2026 (F4, #192): below Landlock ABI 6,
     # fcntl(F_SETOWN) with O_ASYNC let a compromised worker have the kernel
     # signal another process of Snug's user. ioctl(FIOSETOWN) does the same
-    # on a socket, and socketpair() gives the worker one.
+    # on a socket, which only the converter can now make (#148), but both
+    # filters refuse it.
     arch, numbers = SYSCALLS[machine]
     program = seccomp.seccomp_filter(machine, WORKER_PID)
     assert program is not None

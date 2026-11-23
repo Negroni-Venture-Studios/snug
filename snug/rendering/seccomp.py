@@ -97,8 +97,9 @@ WORKER_CALLS = (
 _SIGNALLING = ("kill", "tkill", "tgkill", "rt_sigqueueinfo", "rt_tgsigqueueinfo")
 # fcntl and ioctl commands that name a process for the kernel to signal when a
 # file or socket is ready (O_ASYNC): F_SETOWN, F_SETSIG, and F_SETOWN_EX, and
-# FIOSETOWN and SIOCSPGRP on a socket, which socketpair() still gives the
-# worker. The kernel reads the command as 32 bits.
+# FIOSETOWN and SIOCSPGRP on a socket. The worker's allowlist refuses
+# socketpair(), so only the converter can hold one, but both filters refuse
+# the commands. The kernel reads the command as 32 bits.
 _OWNER_COMMANDS = {"fcntl": (8, 10, 15), "ioctl": (0x8901, 0x8902)}
 # Each architecture's audit value and syscall numbers.
 _SECCOMP_ARCHES = {
