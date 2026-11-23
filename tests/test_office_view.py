@@ -24,23 +24,26 @@ import pytest
 from snug.office import supervisor, view
 
 
-def _namespaces_allowed() -> bool:
-    unshare = getattr(os, "unshare", None)  # Linux only
-    if unshare is None:
+def _view_can_be_built() -> bool:
+    """Whether the launcher can build a view here, asked of the launcher itself.
+
+    On Ubuntu 24.04, unshare() succeeds but AppArmor leaves the namespace
+    without the power to map users, so only the whole view tells.
+    """
+    if not hasattr(os, "unshare"):
         return False
-    child = os.fork()
-    if child == 0:  # pragma: no cover - the child
-        try:
-            unshare(view.CLONE_NEWUSER | view.CLONE_NEWNS | view.CLONE_NEWPID)
-        except OSError:
-            os._exit(1)
-        os._exit(0)
-    return os.waitstatus_to_exitcode(os.waitpid(child, 0)[1]) == 0
+    probe = subprocess.run(
+        [sys.executable, "-I", "-m", "snug.office.view", "/tmp", "--", "/bin/true"],  # noqa: S108
+        capture_output=True,
+        timeout=60,
+        check=False,
+    )
+    return probe.returncode == 0
 
 
-ALLOWED = _namespaces_allowed()
-in_a_view = pytest.mark.skipif(not ALLOWED, reason="user namespaces are refused here")
-without_a_view = pytest.mark.skipif(ALLOWED, reason="user namespaces are allowed here")
+ALLOWED = _view_can_be_built()
+in_a_view = pytest.mark.skipif(not ALLOWED, reason="no view can be built here")
+without_a_view = pytest.mark.skipif(ALLOWED, reason="a view can be built here")
 
 
 # The program to run in the view: the system's Python, under /usr, rather than
