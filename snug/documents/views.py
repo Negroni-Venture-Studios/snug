@@ -10,25 +10,29 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
-from django.db.models import Prefetch
+from django.db.models import Count, Max, Prefetch, Q
 from django.http import FileResponse, Http404, HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404, render
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
 from snug.accounts.models import Admin
 from snug.analytics import charts, summary
+from snug.analytics.models import Visit
 from snug.audit.models import AuditEvent, record
 from snug.core import notices, ranges
 from snug.core.client import client_ip, user_agent
 from snug.documents import storage
 from snug.documents.ingest import Checked, UploadRejectedError, check, store
 from snug.documents.models import MAX_DESCRIPTION, Document, DocumentVersion
+from snug.links.models import Link
 from snug.office import previews
 from snug.rendering import pages, sandbox
+from snug.rooms.models import RoomDocument
 
 MAX_TITLE = 200
 PREVIEW_WIDTH = 800
@@ -122,13 +126,51 @@ def document_list(request: HttpRequest) -> HttpResponse:
     ready = DocumentVersion.objects.filter(status=DocumentVersion.Status.READY).order_by("-number")
     documents = Document.objects.prefetch_related(Prefetch("versions", queryset=ready))
     rows = [(document, next(iter(document.versions.all()), None)) for document in documents]
+    links, viewed = _in_use()
     making = set(
         DocumentVersion.objects.filter(
             preview__in=(DocumentVersion.Preview.PENDING, DocumentVersion.Preview.CONVERTING)
         ).values_list("document_id", flat=True)
     )
-    context = {"tab": "documents", "rows": rows, "making": making}
+    context = {
+        "tab": "documents",
+        "rows": [
+            (document, latest, links.get(document.pk, 0), viewed.get(document.pk))
+            for document, latest in rows
+        ],
+        "making": making,
+    }
     return render(request, "documents/list.html", context)
+
+
+def _in_use() -> tuple[dict[int, int], dict[int, Any]]:
+    """Each document's active links, direct or through a room, and its last view."""
+    live = Q(revoked_at__isnull=True) & (
+        Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
+    )
+    active = Link.objects.filter(live)
+    links: dict[int, int] = dict(
+        active.filter(document__isnull=False)
+        .values("document")
+        .annotate(n=Count("pk"))
+        .values_list("document", "n")
+    )
+    by_room = dict(
+        active.filter(room__isnull=False)
+        .values("room")
+        .annotate(n=Count("pk"))
+        .values_list("room", "n")
+    )
+    for room, document in RoomDocument.objects.filter(room__in=by_room).values_list(
+        "room", "document"
+    ):
+        links[document] = links.get(document, 0) + by_room[room]
+    viewed = dict(
+        Visit.objects.values("document")
+        .annotate(last=Max("last_seen_at"))
+        .values_list("document", "last")
+    )
+    return links, viewed
 
 
 @never_cache

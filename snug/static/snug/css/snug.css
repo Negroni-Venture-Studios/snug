@@ -551,7 +551,8 @@ input.code-field { font-family: var(--mono); letter-spacing: 0.15em; }
 form.inline { display: inline; }
 
 /* ---------- Documents ---------- */
-.doc-rows .item, .version-rows .item { grid-template-columns: minmax(14rem, 1.6fr) 7rem 7rem 8rem; }
+.version-rows .item { grid-template-columns: minmax(14rem, 1.6fr) 7rem 7rem 8rem; }
+.doc-rows .item { grid-template-columns: minmax(14rem, 1.6fr) 5.5rem 7rem 7.5rem 7rem 6.5rem; }
 /* One grid for the whole list, shared by every row through subgrid: a row
    without buttons (your own) keeps its status and date under the others. */
 .admin-rows { display: grid; grid-template-columns: minmax(14rem, 1.6fr) 6rem 11rem minmax(12rem, auto); column-gap: 1.5rem; }

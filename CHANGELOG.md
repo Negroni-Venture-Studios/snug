@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- The Documents list shows how many active links open each document, directly or through a room, and the day it was last viewed.
+
 ## [1.2.0] - 2026-11-23
 
 The security release: every finding of a security audit of 1.1.3 is fixed, `snug update` checks what it downloads, the document worker may make only the system calls it needs, and LibreOffice can no longer see the converter's shared folders.
