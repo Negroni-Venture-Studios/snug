@@ -548,6 +548,7 @@ def test_every_row_list_keeps_its_columns(
     sign_in(live_server, page)
     page.set_viewport_size({"width": width, "height": 900})
     for path, rows in (
+        ("documents/", ".doc-rows .item"),
         ("links/", ".link-rows .item"),
         (f"rooms/{room.token}", ".room-rows .item"),
         (f"documents/{deck.token}", ".version-rows .item"),

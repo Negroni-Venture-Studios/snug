@@ -33,9 +33,11 @@ To replace a document, upload a new version from its page. Every link to it show
 
 To change a document's title, use *Rename* on its page. Investors see the new title at once.
 
+*Documents* lists every document with how many active links open it, directly or through a room, and the day someone last viewed it, so you can see which are in use.
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/documents-dark.png">
-  <img alt="The documents list: each document with its current version, what it is, such as 18 pages or an Excel workbook with 4 sheets, and when it was uploaded." src="images/screenshots/documents-light.png">
+  <img alt="The documents list: each document with its current version, what it is, such as 18 pages or an Excel workbook with 4 sheets, how many active links open it, when it was last viewed, and when it was uploaded." src="images/screenshots/documents-light.png">
 </picture>
 
 ## Seeing who read what
