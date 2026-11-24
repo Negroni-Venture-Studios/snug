@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Fixed
+
+- An admin whose link to set up their authenticator again had expired, or been used up by wrong passwords, could not sign in and could not be invited, since they were already an admin. Another admin can now choose *Send a new link* beside them in Settings. The page for a used link says who can send another.
+
 ## [1.3.0] - 2026-11-24
 
 For keeping track of a raise with many links: *Extend* for a link's expiry, filters on the Links page, links and last views on the Documents list, and a weekly email digest.

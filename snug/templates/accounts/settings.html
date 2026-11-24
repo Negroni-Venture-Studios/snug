@@ -6,14 +6,14 @@
 <div class="title-row"><div><h1 class="page-title">Settings</h1></div></div>
 <div class="section" id="admins">
 <div class="section-head"><h2>Admins</h2><span class="head-side"><p>All admins have the same rights. Snug emails every admin when this list changes.</p>{% include "accounts/partials/doc_link.html" with page="admin-accounts.md" label="The admin accounts guide" %}</span></div>
-{% if done == "removed" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Removed. Every admin has been emailed.</span></div>{% elif done == "reset" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Second factor reset. They have been emailed a link to set it up again.</span></div>{% endif %}
+{% if done == "removed" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Removed. Every admin has been emailed.</span></div>{% elif done == "reset" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Second factor reset. They have been emailed a link to set it up again.</span></div>{% elif done == "resent" %}<div class="notice notice-ok" role="status">{% icon "check" %}<span>Sent. They have been emailed a new link to set up their authenticator.</span></div>{% endif %}
 <div class="rows admin-rows">
   {% for row in admins %}
   <div class="item">
     <div class="who"><span class="email">{{ row.account.email }}</span>{% if row.account == request.user %}<span class="note">You</span>{% endif %}</div>
     {% if row.account.is_active and row.account.totp_confirmed_at %}<span class="status status-ok">Active</span>{% elif row.account.is_active %}<span class="status status-warn">Resetting</span>{% elif row.setup %}<span class="status status-warn">Invited</span>{% else %}<span class="status status-off">Invite expired</span>{% endif %}
     <span class="r muted num">{% if row.setup %}Link works until {{ row.setup.expires_at|date:"j M, H:i" }}{% else %}Added {{ row.account.created_at|date:"j M Y" }}{% endif %}</span>
-    <span class="r link-actions">{% if row.account != request.user %}{% if row.account.totp_confirmed_at %}<a class="btn btn-quiet" href="{% url 'accounts:reset' %}?email={{ row.account.email|urlencode:'@' }}">Reset second factor</a>{% endif %}<a class="btn btn-quiet btn-danger" href="{% url 'accounts:remove' %}?email={{ row.account.email|urlencode:'@' }}">{% if row.account.is_active %}Remove{% else %}Cancel invite{% endif %}</a>{% endif %}</span>
+    <span class="r link-actions">{% if row.account != request.user %}{% if row.account.totp_confirmed_at %}<a class="btn btn-quiet" href="{% url 'accounts:reset' %}?email={{ row.account.email|urlencode:'@' }}">Reset second factor</a>{% elif row.account.is_active %}<a class="btn btn-quiet" href="{% url 'accounts:reset' %}?email={{ row.account.email|urlencode:'@' }}">Send a new link</a>{% endif %}<a class="btn btn-quiet btn-danger" href="{% url 'accounts:remove' %}?email={{ row.account.email|urlencode:'@' }}">{% if row.account.is_active %}Remove{% else %}Cancel invite{% endif %}</a>{% endif %}</span>
   </div>
   {% endfor %}
 </div>
