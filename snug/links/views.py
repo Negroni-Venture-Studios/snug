@@ -24,7 +24,14 @@ from snug.core.client import client_ip, user_agent
 from snug.documents.models import Document
 from snug.links import service
 from snug.links.freemail import FREE_MAIL
-from snug.links.models import MAX_MESSAGE, Link, LinkPerson, is_domain, plain_address
+from snug.links.models import (
+    MAX_MESSAGE,
+    Link,
+    LinkPerson,
+    is_domain,
+    plain_address,
+    plain_domain,
+)
 from snug.nda import terms as nda_terms
 from snug.office import previews
 from snug.rooms.models import Room
@@ -101,11 +108,6 @@ def _deliver(request: HttpRequest, issued: service.Issued, wanted: bool) -> bool
     return sent
 
 
-# A domain such as fund.com: labels of letters, digits and hyphens, and a top
-# level with at least one letter (so punycode works and an IP address does not).
-_DOMAIN = re.compile(
-    r"(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+(?=[a-z0-9-]*[a-z])[a-z0-9-]{2,63}"
-)
 _SEPARATORS = re.compile(r"[\s,;]+")
 
 
@@ -119,7 +121,7 @@ def parse_entries(raw: str) -> tuple[list[str], str]:
         if "@" in entry:
             if not plain_address(entry):
                 return [], WHO_ERROR
-        elif not _DOMAIN.fullmatch(entry):
+        elif not plain_domain(entry):
             return [], WHO_ERROR
         elif entry in FREE_MAIL:
             return [], (

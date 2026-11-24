@@ -50,6 +50,23 @@ _NOT_PLAIN = frozenset(' \t\r\n"(),:;<>[]\\')
 _DOMAIN_LABEL = re.compile(r"[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?")
 
 
+def plain_domain(entry: str) -> str:
+    """The domain in lower case if it is one a link can list, such as fund.com, else "".
+
+    Labels of letters, digits and hyphens, at least two, and a top level with
+    a letter, so an IP address is not a domain.
+    """
+    domain = entry.strip().casefold()
+    labels = domain.split(".")
+    if len(domain) > 253 or len(labels) < 2:
+        return ""
+    if not all(len(label) <= 63 and _DOMAIN_LABEL.fullmatch(label) for label in labels):
+        return ""
+    if labels[-1].isdigit():
+        return ""
+    return domain
+
+
 def plain_address(email: str) -> str:
     """The address in lower case if it is a plain one, as codes are sent to, else "".
 
