@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- *Extend*, beside *Revoke* on a link, gives it a later last day, or no expiry, and keeps the same link working, so you no longer have to send a new link to give someone more time. It also makes an expired link work again. Each extension is in the audit log.
+
 ## [1.2.0] - 2026-11-23
 
 The security release: every finding of a security audit of 1.1.3 is fixed, `snug update` checks what it downloads, the document worker may make only the system calls it needs, and LibreOffice can no longer see the converter's shared folders.

@@ -1,4 +1,4 @@
-"""The admin's link pages: create, show once, list, revoke and reissue."""
+"""The admin's link pages: create, show once, list, revoke, reissue and extend."""
 
 import base64
 import binascii
@@ -320,3 +320,53 @@ def link_reissue(request: HttpRequest, ref: str) -> HttpResponse:
     _audit(request, "link.reissued", link)
     wanted = request.POST.get("action") == "email" and mail.enabled()
     return _show_once(request, issued, emailed=_deliver(request, issued, wanted))
+
+
+def _long_date(day: date) -> str:
+    return f"{day.day} {day:%B %Y}"
+
+
+@never_cache
+@login_required
+@require_http_methods(["GET", "POST"])
+def link_extend(request: HttpRequest, ref: str) -> HttpResponse:
+    link = get_object_or_404(Link.objects.select_related("document", "room"), ref=ref)
+    last = link.last_day
+    # A revoked link stays revoked, and one with no expiry has nothing to extend.
+    if link.is_revoked() or last is None or link.expires_at is None:
+        return redirect(link.target_url())
+    current = link.expires_at
+    # The first day the form accepts: after today, and after the link's last day.
+    earliest = max(timezone.localdate(), last) + timedelta(days=1)
+    context: dict[str, Any] = {
+        "tab": "links",
+        "link": link,
+        "last_day": _long_date(last),
+        "earliest": earliest.isoformat(),
+        "value": (earliest + timedelta(days=13)).isoformat(),
+    }
+    if request.method == "GET":
+        return render(request, "links/extend.html", context)
+
+    raw = request.POST.get("expires", "").strip()
+    expires_at, error = _parse_expiry(raw)
+    if not error and expires_at is not None and expires_at <= current:
+        error = f"Choose a day after {_long_date(last)}, its last day now."
+    if error:
+        context.update(value=raw[:40], error=error)
+        return render(request, "links/extend.html", context, status=400)
+
+    service.extend(link, expires_at)
+    until = link.last_day
+    _audit(
+        request,
+        "link.extended",
+        link,
+        **{"from": last.isoformat(), "to": until.isoformat() if until else None},
+    )
+    after = f"it now works until {_long_date(until)}" if until else "it now has no expiry"
+    text = (
+        f"Extended {link.label} for {link.email}, and {after}. "
+        "Its address is unchanged, so there is nothing new to send."
+    )
+    return notices.saved(request, link.target_url(), "links", text)

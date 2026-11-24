@@ -11,4 +11,5 @@ urlpatterns = [
     path("issued", views.link_issued, name="issued"),
     path("<str:ref>/revoke", views.link_revoke, name="revoke"),
     path("<str:ref>/reissue", views.link_reissue, name="reissue"),
+    path("<str:ref>/extend", views.link_extend, name="extend"),
 ]

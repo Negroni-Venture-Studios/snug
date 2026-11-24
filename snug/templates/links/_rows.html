@@ -5,7 +5,7 @@
     {% if link.status == "active" %}<span class="status status-ok">Active</span>{% elif link.status == "expired" %}<span class="status status-warn">Expired</span>{% else %}<span class="status status-off">Revoked</span>{% endif %}
     <span class="muted">{% if link.require_verification %}Verification on{% else %}No verification{% endif %}, {% if link.allow_download %}downloads allowed{% else %}no downloads{% endif %}{% if link.uk_only or link.room.uk_only %}, UK only{% endif %}</span>
     <span class="r muted num">{% if link.status == "revoked" %}Revoked {{ link.revoked_at|date:"j M" }}{% elif link.expires_at %}{% if link.status == "expired" %}Expired{% else %}Expires{% endif %} {{ link.last_day|date:"j M" }}{% else %}No expiry{% endif %}</span>
-    <span class="r link-actions">{% if link.status != "revoked" %}<a class="btn btn-quiet" href="{% url 'links:reissue' link.ref %}">New link</a><a class="btn btn-quiet btn-danger" href="{% url 'links:revoke' link.ref %}">Revoke</a>{% endif %}</span>
+    <span class="r link-actions">{% if link.status != "revoked" %}<a class="btn btn-quiet" href="{% url 'links:reissue' link.ref %}">New link</a>{% if link.expires_at %}<a class="btn btn-quiet" href="{% url 'links:extend' link.ref %}">Extend</a>{% endif %}<a class="btn btn-quiet btn-danger" href="{% url 'links:revoke' link.ref %}">Revoke</a>{% endif %}</span>
   </div>
   {% empty %}
   <p class="empty-line">No links yet.</p>
