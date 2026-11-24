@@ -34,7 +34,7 @@ from snug.core.models import SiteSettings, company_name
 from snug.documents import storage
 from snug.documents.models import PART_SECONDS, DocumentVersion
 from snug.documents.storage import RENDER_WIDTHS
-from snug.links.models import Link
+from snug.links.models import Link, plain_address
 from snug.nda import terms
 from snug.rendering import pages as rendering
 from snug.rendering.sandbox import WorkerError
@@ -235,7 +235,7 @@ def _code_page(
     # shown, and the forms carry back whatever was typed: the code proves
     # only the address it was sent to.
     typed = _typed_email(request)
-    shown = typed.strip().casefold() if _matches(typed, link) and not neutral else ""
+    shown = plain_address(typed) if _matches(typed, link) and not neutral else ""
     context = _context(
         link,
         token,
@@ -726,7 +726,8 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
         )
         return _gate_page(request, link, token, error=error, typed=typed, status=400)
 
-    address = typed.strip().casefold()
+    # The plain address the link admitted, which is the one the code goes to.
+    address = plain_address(typed)
     # Codes to one address on this link, to one inbox across every link, and,
     # since any address at a domain is a right one, to how many different
     # addresses the link sends in an hour (issue #174): a stranger cannot use
@@ -782,7 +783,7 @@ def verify_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
             _audit(request, "viewer.code_wrong", link, _typed_email(request), reason="rate_limited")
         return _code_page(request, link, token, error=TOO_MANY, status=429)
 
-    address = _typed_email(request).strip().casefold()
+    address = plain_address(_typed_email(request))
     # A code proves only the address it was sent to, and only while the link
     # still admits it.
     result = codes.check(link, address, request.POST.get("code", "")[:20])

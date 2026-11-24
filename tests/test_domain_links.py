@@ -119,6 +119,17 @@ def test_a_link_for_one_address_keeps_its_email(document: Document) -> None:
         ("northfield.example", False),
         (STRANGER, False),
         ("", False),
+        # Parsed as mail would be: only a plain address, with one @, is compared
+        # (commit security review, 24 November 2026).
+        (f"attacker@evil.example, {PRIYA}", False),
+        (f"attacker@evil.example,{PRIYA}", False),
+        (f"attacker@evil.example {PRIYA}", False),
+        (f"<attacker@evil.example>{PRIYA}", False),
+        ('"attacker@evil.example"@northfield.example', False),
+        ("attacker@evil.example@northfield.example", False),
+        ("priya(comment)@northfield.example", False),
+        ("priya..x@northfield.example", False),
+        (f"{PRIYA}\n", True),  # surrounding whitespace is trimmed
     ],
 )
 def test_who_a_link_admits(firm: service.Issued, email: str, admitted: bool) -> None:
@@ -302,3 +313,12 @@ def test_the_landing_page_asks_for_a_work_address_and_names_no_one(firm: service
     page = Client().get(f"/v/{firm.token}", secure=True).content.decode()
     assert "Enter your work email address." in page
     assert "northfield.example" not in page and ADVISER not in page
+
+
+@pytest.mark.usefixtures("email_on")
+def test_a_second_recipient_cannot_be_slipped_in(firm: service.Issued) -> None:
+    client = Client(REMOTE_ADDR="203.0.113.9")
+    typed = f"attacker@evil.example, {PRIYA}"
+    response = post(client, f"/v/{firm.token}/code/send", {"email": typed})
+    assert response.status_code == 400
+    assert not django_mail.outbox

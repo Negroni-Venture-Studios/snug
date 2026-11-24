@@ -11,11 +11,14 @@ full link is shown once, when it is created or reissued.
 """
 
 import hashlib
+import re
 import secrets
 from datetime import date, datetime, timedelta
 from typing import Any
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import models
 from django.utils import timezone
 
@@ -39,6 +42,23 @@ def new_ref() -> str:
 
 # The longest cover message, in characters.
 MAX_MESSAGE = 1000
+
+
+# A plain address: one @, and nothing a mail header could read as a second
+# recipient, a comment, or a quoted part (spaces, commas, quotes, brackets).
+_PLAIN_ADDRESS = re.compile(r"[^\s@\"(),:;<>\[\]\\]+@[a-z0-9]([a-z0-9.-]*[a-z0-9])?")
+
+
+def plain_address(email: str) -> str:
+    """The address in lower case if it is a plain one, as codes are sent to, else ""."""
+    address = email.strip().casefold()
+    if not _PLAIN_ADDRESS.fullmatch(address) or ".." in address:
+        return ""
+    try:
+        validate_email(address)
+    except ValidationError:
+        return ""
+    return address
 
 
 def domain_of(email: str) -> str:
@@ -134,8 +154,10 @@ class Link(models.Model):
 
     def listed(self, email: str) -> bool:
         """Whether one of the link's entries admits this address, blocked or not."""
-        address = email.strip().casefold()
-        if "@" not in address:
+        # Only a plain address is compared, so the domain checked is the one
+        # mail is delivered to: "x@evil.example, y@fund.com" admits nobody.
+        address = plain_address(email)
+        if not address:
             return False
         for entry in self.entry_list:
             if address == entry or (is_domain(entry) and domain_of(address) == entry):
@@ -147,7 +169,7 @@ class Link(models.Model):
         return self.listed(email) and not (
             self.pk is not None
             and LinkPerson.objects.filter(
-                link=self, email=email.strip().casefold(), blocked_at__isnull=False
+                link=self, email=plain_address(email), blocked_at__isnull=False
             ).exists()
         )
 
