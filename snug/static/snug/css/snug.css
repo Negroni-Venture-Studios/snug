@@ -637,5 +637,5 @@ input[type="file"]::file-selector-button {
     .link-rows { display: block; }
     .link-rows .item { grid-template-columns: 1fr auto; }
     .link-rows .item > .muted { display: none; }
-    .link-actions { grid-column: 1 / -1; justify-content: flex-start; }
+    .link-actions { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: wrap; }
 }
