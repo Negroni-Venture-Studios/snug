@@ -73,7 +73,7 @@ More screenshots are in [Using Snug](docs/using-snug.md).
 
 ## Status
 
-Version 1.3.0 is the latest release, with the container image `ghcr.io/negroni-venture-studios/snug:1.3.0`. It adds *Extend* for a link's expiry, filters on the Links page, links and last views on the Documents list, and a weekly email digest. Since 1.2.0, `snug update` checks what it downloads. Since 1.1.0, Snug takes Word and PowerPoint files, and has an optional LibreOffice converter that shows Office files in the browser.
+Version 1.4.0 is the latest release, with the container image `ghcr.io/negroni-venture-studios/snug:1.4.0`. It adds links for several people or a whole firm's email domain, each person reading under their own address, with blocking of one person on a link. Since 1.3.0, links can be extended and filtered, and admins can get a weekly digest; since 1.2.0, `snug update` checks what it downloads. Since 1.1.0, Snug takes Word and PowerPoint files, and has an optional LibreOffice converter that shows Office files in the browser.
 
 [What Snug protects against](docs/security.md) sets out the limits of its watermarks, the NDA record, and UK-only mode. Planned work is in the [issues labelled enhancement](https://github.com/Negroni-Venture-Studios/snug/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
 
