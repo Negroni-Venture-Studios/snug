@@ -81,6 +81,73 @@ set_env() {
 rclone() { docker compose run --rm --no-deps -T --entrypoint rclone backup "$@" < /dev/null; }
 
 # Whether this server already has a Snug database.
+# show_settings: backup/rclone.conf for the password manager, then wait for
+# "saved", and clear it from the terminal.
+show_settings() {
+	say
+	say "Copy everything between the lines into your password manager now. It is"
+	say "the only way to read the backups if this server is lost."
+	say "------------------------------------------------------------------------"
+	cat backup/rclone.conf
+	say "------------------------------------------------------------------------"
+	answer=""
+	while [ "$answer" != "saved" ]; do
+		printf 'Type saved once it is in your password manager: '
+		read -r answer || exit 1
+	done
+	if [ -t 1 ]; then
+		# The screen, then the scrollback, so the settings cannot be scrolled back to.
+		printf '\033[H\033[2J\033[3J'
+		say "The backup settings have been cleared from the screen."
+	fi
+}
+
+# change_bucket: another bucket or key in backup/rclone.conf, keeping the two
+# passwords that encrypt the backups, so those already made can still be read
+# (issue #147). Nothing changes unless Snug can reach the new bucket.
+change_bucket() {
+	conf=backup/rclone.conf
+	ask "Spaces region" "$(sed -n 's/^endpoint *= *\([^.]*\)\.digitaloceanspaces\.com$/\1/p' "$conf" | head -n 1)"
+	region="$reply"
+	ask "Bucket name" "$(sed -n 's|^remote *= *bucket:\(.*\)/snug$|\1|p' "$conf" | head -n 1)"
+	bucket="$reply"
+	ask "Access key" "$(sed -n 's/^access_key_id *= *//p' "$conf" | head -n 1)"
+	access="$reply"
+	secret "Secret key (press Enter to keep the current one)"
+	secret_key="$reply"
+	if [ -z "$region" ] || [ -z "$bucket" ] || [ -z "$access" ]; then
+		say "A region, a bucket, and a key are all needed. Nothing has changed."
+		exit 1
+	fi
+	umask 077
+	NEW_ACCESS="$access" NEW_SECRET="$secret_key" NEW_ENDPOINT="$region.digitaloceanspaces.com" \
+		NEW_REMOTE="bucket:$bucket/snug" awk '
+		/^access_key_id *=/ { print "access_key_id = " ENVIRON["NEW_ACCESS"]; next }
+		/^secret_access_key *=/ && ENVIRON["NEW_SECRET"] != "" {
+			print "secret_access_key = " ENVIRON["NEW_SECRET"]; next
+		}
+		/^endpoint *=/ { print "endpoint = " ENVIRON["NEW_ENDPOINT"]; next }
+		/^remote *= *bucket:/ { print "remote = " ENVIRON["NEW_REMOTE"]; next }
+		{ print }
+	' "$conf" > "$conf.new"
+	umask 022
+	# Readable by the backup container's user, which checks it next.
+	chown 10001:10001 "$conf.new"
+	chmod 600 "$conf.new"
+	if ! rclone --config /config/rclone/rclone.conf.new lsf --max-depth 1 "bucket:$bucket" > /dev/null 2>&1; then
+		rm -f "$conf.new"
+		say "Snug could not reach the bucket $bucket at $region.digitaloceanspaces.com with"
+		say "that key. Nothing has changed. Check the bucket and the key, and run sudo snug"
+		say "setup again."
+		exit 1
+	fi
+	mv "$conf.new" "$conf"
+	show_settings
+	say "Backups go to the new bucket within five minutes."
+	say "The old bucket keeps the backups already in it. Delete it once Settings shows"
+	say "a copy in the new one."
+}
+
 has_database() { docker compose run --rm --no-deps -T --entrypoint test snug -e /var/lib/snug/snug.sqlite3 < /dev/null; }
 
 [ -f snug.env ] || : > snug.env
@@ -157,6 +224,11 @@ if [ -s backup/rclone.conf ]; then
 	if [ "$existing" = yes ]; then
 		say "This server already has Snug's data, so setup keeps it. To restore from the"
 		say "backups instead, run sudo snug restore."
+		say
+		say "To move the backups to another bucket, or replace the bucket's key, setup can"
+		say "change them here. The two passwords that encrypt the backups stay the same."
+		yes_or_no "Change the bucket or its key?" "no"
+		[ "$reply" = no ] || change_bucket
 	elif [ -n "$(rclone lsf snug-backup:database 2> /dev/null || true)" ]; then
 		restoring=yes
 		say "Found backups in its bucket: setup will restore them."
@@ -246,22 +318,7 @@ else
 			password2 = $salt
 		CONF
 		umask 022
-		say
-		say "Copy everything between the lines into your password manager now. It is"
-		say "the only way to read the backups if this server is lost."
-		say "------------------------------------------------------------------------"
-		cat backup/rclone.conf
-		say "------------------------------------------------------------------------"
-		answer=""
-		while [ "$answer" != "saved" ]; do
-			printf 'Type saved once it is in your password manager: '
-			read -r answer || exit 1
-		done
-		if [ -t 1 ]; then
-			# The screen, then the scrollback, so the settings cannot be scrolled back to.
-			printf '\033[H\033[2J\033[3J'
-			say "The backup settings have been cleared from the screen."
-		fi
+		show_settings
 	fi
 fi
 if [ -s backup/rclone.conf ]; then

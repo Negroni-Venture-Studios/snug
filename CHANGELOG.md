@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- `sudo snug setup` on a running server can now change the backup bucket or its key, keeping the two passwords that encrypt the backups. Before, there was no supported way to correct a wrong bucket or key, and making new settings meant new passwords that could not read the backups already made.
+
 ### Fixed
 
 - An admin whose link to set up their authenticator again had expired, or been used up by wrong passwords, could not sign in and could not be invited, since they were already an admin. Another admin can now choose *Send a new link* beside them in Settings. The page for a used link says who can send another.
