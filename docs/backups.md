@@ -43,6 +43,12 @@ Only the backup container sees the bucket's keys and the encryption passwords, i
 
 **Copy the settings `snug setup` shows you into your password manager.** They are in `/opt/snug/backup/rclone.conf`, and hold the bucket's key and the two encryption passwords. The passwords are the only way to read the backups.
 
+### Changing the bucket or its key
+
+To move the backups to another bucket, or to replace the bucket's key, run `sudo snug setup` on the running server and answer *yes* to *Change the bucket or its key?* It asks for the region, the bucket, and the key, with the current ones as suggestions, and for the secret key, where pressing Enter keeps the current one. It changes nothing unless it can reach the bucket with the new key. The two encryption passwords stay the same, so the backups already made can still be read.
+
+Setup then shows the new settings: replace the copy in your password manager with them. Within five minutes the backup container copies everything to the new bucket. The old bucket keeps the backups already in it. Delete it once *Backups* in Settings shows a recent copy.
+
 ### By hand
 
 For a bucket elsewhere, write `rclone.conf` yourself from [deploy/rclone.conf.example](../deploy/rclone.conf.example) before running `snug setup`, which then uses it as it is. rclone supports most S3-compatible stores. Each of the two encryption passwords comes from this command, run in `/opt/snug` like the other `docker compose` commands here:

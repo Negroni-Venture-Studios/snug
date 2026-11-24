@@ -27,6 +27,8 @@ case "$*" in
 	*"--entrypoint rclone backup lsf --format t snug-backup:database"*)
 		[ "$BUCKET_HAS_BACKUPS" = yes ] && printf '2026-11-18 09:30:00\n2026-11-19 22:14:05\n' ;;
 	*"exec snug snug createadmin"*) [ "$ADMIN_FAILS" != yes ] ;;
+	*"backup --config /config/rclone/rclone.conf.new lsf --max-depth 1 bucket:"*)
+		[ "$BUCKET_REACHABLE" != no ] ;;
 	*) exit 0 ;;
 esac
 """
@@ -81,6 +83,7 @@ def run_setup(
     no_docker: bool = False,
     office: str = "\n",
     memory_mb: int = 2048,
+    bucket_reachable: bool = True,
 ) -> list[str]:
     """Run setup.sh; what it printed is left in `screen`, beside the server folder.
 
@@ -97,6 +100,7 @@ def run_setup(
         "BUCKET_HAS_BACKUPS": "yes" if bucket_has_backups else "no",
         "NO_DOCKER": "yes" if no_docker else "no",
         "ADMIN_FAILS": "yes" if admin_fails else "no",
+        "BUCKET_REACHABLE": "yes" if bucket_reachable else "no",
         "OFFICE_MEMINFO": str(meminfo(server, memory_mb)),
         "OFFICE_ROOT": str(server.parent / "root"),
     }
@@ -412,3 +416,89 @@ def test_an_answer_that_is_neither_yes_nor_no_is_asked_again(server: Path) -> No
     printed = (server.parent / "screen").read_text()
     assert "Type yes or no." in printed
     assert "SNUG_OFFICE='true'" in (server / "snug.env").read_text()
+
+
+# ---------------------------------------------------------------- changing the bucket (#147)
+
+
+def running_with_saved_settings(server: Path) -> Path:
+    conf = server / "backup" / "rclone.conf"
+    conf.write_text(SAVED_SETTINGS)
+    return conf
+
+
+def test_a_running_server_keeps_its_bucket_unless_asked(server: Path) -> None:
+    conf = running_with_saved_settings(server)
+    calls = run_setup(server, has_database=True, bucket_has_backups=True)
+    assert conf.read_text() == SAVED_SETTINGS
+    assert not any("rclone.conf.new" in call for call in calls)
+    assert "Change the bucket or its key?" in (server.parent / "screen").read_text()
+
+
+def test_the_bucket_and_key_are_changed_and_the_encryption_kept(server: Path) -> None:
+    conf = running_with_saved_settings(server)
+    # Yes, then the region, bucket, access key, secret key, and saved.
+    answers = "yes\nams3\nfernlea-backups-2\nDO00NEWKEY\nnew-secret\nsaved\n"
+    calls = run_setup(server, has_database=True, bucket_has_backups=True, answers=answers)
+    settings = conf.read_text()
+    assert "endpoint = ams3.digitaloceanspaces.com" in settings
+    assert "remote = bucket:fernlea-backups-2/snug" in settings
+    assert "access_key_id = DO00NEWKEY" in settings
+    assert "secret_access_key = new-secret" in settings
+    # The two passwords that encrypt the backups are the same, so earlier ones still read.
+    assert "password = fernlea-password" in settings
+    assert "password2 = fernlea-salt" in settings
+    assert settings.count("\n[") == 2  # still the two sections, nothing added
+    assert stat.S_IMODE(conf.stat().st_mode) == 0o600
+    assert not (server / "backup" / "rclone.conf.new").exists()
+    checked = [call for call in calls if "rclone.conf.new" in call]
+    assert checked and "bucket:fernlea-backups-2" in checked[0]
+    assert calls[-1] == "docker compose up --detach --wait"
+    screen = (server.parent / "screen").read_text()
+    assert screen.index("secret_access_key = new-secret") < screen.index("Type saved")
+    assert "The old bucket keeps the backups already in it" in screen
+
+
+def test_pressing_enter_keeps_each_setting(server: Path) -> None:
+    conf = running_with_saved_settings(server)
+    # Yes, Enter for the region, the bucket, and the access key, a new secret key, saved.
+    answers = "yes\n\n\n\nnew-secret\nsaved\n"
+    run_setup(server, has_database=True, bucket_has_backups=True, answers=answers)
+    settings = conf.read_text()
+    assert "endpoint = lon1.digitaloceanspaces.com" in settings
+    assert "remote = bucket:fernlea-backups/snug" in settings
+    assert "access_key_id = DO00FERNLEA" in settings
+    assert "secret_access_key = new-secret" in settings
+    screen = (server.parent / "screen").read_text()
+    assert "Spaces region [lon1]" in screen
+    assert "Bucket name [fernlea-backups]" in screen
+    assert "Access key [DO00FERNLEA]" in screen
+    assert "fernlea-secret" not in screen  # the old secret key is never shown
+
+
+def test_an_empty_secret_key_keeps_the_old_one(server: Path) -> None:
+    conf = running_with_saved_settings(server)
+    answers = "yes\n\nfernlea-backups-2\n\n\nsaved\n"
+    run_setup(server, has_database=True, bucket_has_backups=True, answers=answers)
+    settings = conf.read_text()
+    assert "remote = bucket:fernlea-backups-2/snug" in settings
+    assert "secret_access_key = fernlea-secret" in settings
+
+
+def test_a_bucket_snug_cannot_reach_changes_nothing(server: Path) -> None:
+    conf = running_with_saved_settings(server)
+    answers = "yes\nams3\nfernlea-typo\nDO00NEWKEY\nnew-secret\n"
+    calls = run_setup(
+        server,
+        has_database=True,
+        bucket_has_backups=True,
+        answers=answers,
+        bucket_reachable=False,
+        succeeds=False,
+    )
+    assert conf.read_text() == SAVED_SETTINGS
+    assert not (server / "backup" / "rclone.conf.new").exists()
+    assert not any("up --detach" in call for call in calls)
+    screen = (server.parent / "screen").read_text()
+    assert "could not reach the bucket fernlea-typo" in screen
+    assert "Nothing has changed" in screen
