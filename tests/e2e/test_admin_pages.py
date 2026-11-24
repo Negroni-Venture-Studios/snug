@@ -184,6 +184,36 @@ def test_a_link_is_extended_from_the_links_page(live_server: Any, page: Page) ->
     assert Link.find(issued.token) is not None
 
 
+def test_links_are_filtered_from_the_links_page(live_server: Any, page: Page) -> None:
+    from snug.documents.models import Document
+    from snug.links import service
+
+    deck = Document.objects.create(title="Seed deck")
+    fields: dict[str, Any] = {
+        "note": "",
+        "expires_at": None,
+        "require_verification": True,
+        "allow_download": True,
+        "created_by": None,
+    }
+    service.create(document=deck, email="priya@northfield.example", **fields)
+    gone = service.create(document=deck, email="tom@harbourcap.example", **fields)
+    service.revoke(gone.link, by=None)
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/links/")
+    rows = page.locator(".link-rows .item")
+    expect(rows).to_have_count(2)
+    page.get_by_label("Status").select_option("revoked")
+    page.get_by_role("button", name="Filter").click()
+    expect(rows).to_have_count(1)
+    expect(rows.first).to_contain_text("tom@harbourcap.example")
+    page.get_by_role("link", name="Clear").click()
+    page.get_by_label("Search").fill("northfield")
+    page.get_by_label("Search").press("Enter")
+    expect(rows).to_have_count(1)
+    expect(rows.first).to_contain_text("priya@northfield.example")
+
+
 # ---------------------------------------------------------------- upload progress
 
 

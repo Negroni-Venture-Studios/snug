@@ -2,5 +2,17 @@
 {% block title %}Snug links{% endblock %}
 {% block content %}
 <div class="title-row"><div><h1 class="page-title">Links</h1><div class="page-meta">Every link, newest first. Create links from a document's or a room's page.</div></div></div>
+<form class="filters" method="get" action="{% url 'links:list' %}">
+  <label class="visually-hidden" for="status">Status</label>
+  <select id="status" name="status"><option value="">Every link</option>{% for key, label in statuses %}<option value="{{ key }}"{% if key == status %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+  <label class="visually-hidden" for="q">Search</label>
+  <input class="wide" id="q" name="q" type="search" placeholder="Email, note, reference, document, or room" value="{{ q }}">
+  <button class="btn" type="submit">Filter</button>
+  {% if filtered %}<a class="btn btn-quiet" href="{% url 'links:list' %}">Clear</a>{% endif %}
+</form>
+{% if filtered and not links %}
+<div class="empty"><h2>No links match that filter</h2></div>
+{% else %}
 {% include "links/_rows.html" with show_document=True %}
+{% endif %}
 {% endblock %}
