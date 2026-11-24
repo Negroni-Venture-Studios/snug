@@ -1066,11 +1066,37 @@ def reset_view(request: HttpRequest) -> HttpResponse:
     return redirect("/admin/settings/?reset=1#admins")
 
 
+# Wrong passwords on all of an admin's reset links since their last reset,
+# after which no new link is sent: each would be five more guesses for
+# whoever reads their mailbox.
+RESEND_PASSWORD_FAILURES = 10
+
+
+def _password_failures_since_reset(target: Admin) -> int:
+    reset = (
+        AuditEvent.objects.filter(action="admin.second_factor_reset", target=target.email)
+        .order_by("-at")
+        .values_list("at", flat=True)
+        .first()
+    )
+    failures = AuditEvent.objects.filter(
+        action="admin.setup_failed", target=target.email, details__reason="password"
+    )
+    return (failures.filter(at__gte=reset) if reset else failures).count()
+
+
 def _resend(request: HttpRequest, target: Admin, by: Admin) -> HttpResponse:
     """A new reset link for an admin who has none that works, replacing any other.
 
     It asks for their current password, as the first did.
     """
+    if _password_failures_since_reset(target) >= RESEND_PASSWORD_FAILURES:
+        error = (
+            f"Their links have had {RESEND_PASSWORD_FAILURES} wrong passwords since the reset, "
+            "so Snug sends no more. On the server, run sudo snug reset-password and then "
+            "sudo snug reset-2fa, with their email address."
+        )
+        return _change_page(request, target, "resend", error=error, status=400)
     token = setup.new_token()
     if not setup.send_reset(target, token, by):
         error = "The email could not be sent, so nothing has changed. Try again."

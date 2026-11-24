@@ -14,7 +14,7 @@ from django.test import Client
 
 from snug.accounts import setup
 from snug.accounts.models import Admin, AdminSetup
-from snug.audit.models import AuditEvent
+from snug.audit.models import AuditEvent, record
 from tests.test_admin_changes import admin, change, client, other
 from tests.test_admin_invites import EMAIL, OTHER
 
@@ -108,3 +108,35 @@ def test_the_used_up_link_says_who_can_send_another(client: Client) -> None:
     page = Client().get("/admin/setup/not-a-real-token", secure=True).content.decode()
     assert "Ask another admin to send you a new one, from Settings, under Admins." in page
     assert "sudo snug reset-2fa" in page
+
+
+def test_no_more_links_after_ten_wrong_passwords(
+    client: Client, admin: Admin, stuck: Admin
+) -> None:
+    # Each link would be five more guesses for whoever reads their mailbox.
+    for _ in range(10):
+        record(
+            "admin.setup_failed",
+            actor_type=AuditEvent.ActorType.VIEWER,
+            target=OTHER,
+            details={"reason": "password"},
+        )
+    response = change(client, admin, "reset", OTHER)
+    assert response.status_code == 400
+    assert "sudo snug reset-password" in response.content.decode()
+    assert not AdminSetup.objects.exists()
+
+
+def test_wrong_passwords_before_the_reset_do_not_count(
+    client: Client, admin: Admin, other: Admin
+) -> None:
+    for _ in range(10):
+        record(
+            "admin.setup_failed",
+            actor_type=AuditEvent.ActorType.VIEWER,
+            target=OTHER,
+            details={"reason": "password"},
+        )
+    change(client, admin, "reset", OTHER)  # a fresh reset starts the count again
+    AdminSetup.objects.all().delete()
+    assert change(client, admin, "reset", OTHER).status_code == 302

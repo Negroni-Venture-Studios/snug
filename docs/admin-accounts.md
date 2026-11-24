@@ -47,7 +47,7 @@ You cannot remove yourself, and Snug never lets the last admin be removed. For a
 
 If another admin has lost their phone and their recovery codes, choose **Reset second factor** beside them in **Settings**, and enter a fresh code from your own authenticator. Their old authenticator and recovery codes stop working at once, and they are signed out everywhere. They are emailed a link, which works for 72 hours, to set up their authenticator again. The page it opens asks for their password, which does not change. If they have forgotten that too, set a new one on the server first with `sudo snug reset-password`. Every admin is emailed.
 
-The link stops working after 72 hours, or after five wrong passwords. Until they finish, they show as *Resetting*, with **Send a new link** beside them: enter a fresh code from your own authenticator, and they are emailed a new link, which asks for their password in the same way. Any earlier link stops working, and every admin is emailed.
+The link stops working after 72 hours, or after five wrong passwords. Until they finish, they show as *Resetting*, with **Send a new link** beside them: enter a fresh code from your own authenticator, and they are emailed a new link, which asks for their password in the same way. Any earlier link stops working, and every admin is emailed. After ten wrong passwords across their links, Snug sends no more: run `sudo snug reset-password` and then `sudo snug reset-2fa` on the server instead.
 
 To replace your own authenticator, see [Replacing your authenticator](#replacing-your-authenticator).
 
