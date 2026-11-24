@@ -16,9 +16,15 @@ Links for a whole firm: one link for several people or everyone at an email doma
 ### Changed
 
 - The first-open email is now sent the first time each person opens a link, not only the first time anyone does.
+- After a wrong code, the code page no longer names the email address, and says "That code is not right, or it has expired." for every wrong code, without counting the tries left.
+- One link now sends at most 30 codes an hour, to everyone it admits.
+- Blocking someone on a link now also ends their sessions and code on it, so if they are unblocked they need a new code.
+- A new setup link for an admin who is resetting allows only the wrong passwords that remain of the ten.
+- Updating: a link made before 1.4.0 for an address that is not a plain one, such as one at an internationalised domain or with a quoted part, opens for nobody after the update. Its page says so: revoke it and create a new one. A code sent just before the update stops working, and the reader asks for another. Going back to 1.3.0 or earlier needs a backup made before the update.
 
 ### Fixed
 
+- A request for a code refused by another limit no longer uses up that inbox's allowance of ten codes an hour.
 - An admin whose link to set up their authenticator again had expired, or been used up by wrong passwords, could not sign in and could not be invited, since they were already an admin. Another admin can now choose *Send a new link* beside them in Settings. The page for a used link says who can send another.
 
 ## [1.3.0] - 2026-11-24

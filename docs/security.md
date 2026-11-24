@@ -8,7 +8,7 @@ A link is for the people it lists: email addresses, or a whole domain such as `n
 
 With **Require email verification** ticked, as it is unless you untick it, the visitor must also type a code that Snug emails to their own address, which the link must list or whose domain it must list. A forwarded link is then useless to anyone it is not for. On a link for a domain, anyone at that domain can open it under their own address, so list a domain only where everyone with an address there may see the document, and block anyone who should not. A link for more than one person, or for a domain, always asks for a code. With it unticked, on a link for one person, anyone who has the link can open it.
 
-Each person reads under their own address, and every request checks that the link still admits that address, so blocking one person, or removing an address or domain, stops them at once.
+Each person reads under their own address, and every request checks that the link still admits that address, so blocking one person stops them at once, and ends their sessions, so they need a new code if you unblock them. A link's addresses and domains cannot be changed once it is made: to stop one listed by mistake, revoke the link and create a new one.
 
 Revoking a link, or letting it expire, stops it at once, including on pages already open. A room's documents are checked on every request, so a document removed from a room stops opening through that room's links straight away.
 
@@ -46,7 +46,7 @@ Turning off downloads on a link removes the download button, and a request for t
 
 ## The NDA record
 
-When an investor accepts the NDA, Snug records the name they type, their email address, the link, the time, their IP address and browser, and a SHA-256 hash of the exact text they accepted. Each acceptance is kept for that link and that version, and editing the NDA asks everyone to accept the new version.
+When an investor accepts the NDA, Snug records the name they type, their email address, the link, the time, their IP address and browser, and a SHA-256 hash of the exact text they accepted. Each person on a link accepts for themselves, and each acceptance is kept for that link, that version, and that address, and editing the NDA asks everyone to accept the new version.
 
 This is a record of acceptance, not a signature. The email address is only as sure as the link's verification, and nothing checks who typed the name. Whether a record like this binds anyone is a question for your lawyer.
 

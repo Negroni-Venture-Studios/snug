@@ -225,23 +225,25 @@ def _code_page(
     link: Link,
     token: str,
     *,
+    sent_to: str = "",
     error: str = "",
     spent: bool = False,
     neutral: bool = False,
     status: int = 200,
 ) -> HttpResponse:
-    # Show the address only if this request carried it, so the page never
-    # tells a stranger who the link was sent to. In neutral mode it is never
-    # shown, and the forms carry back whatever was typed: the code proves
-    # only the address it was sent to.
+    # Only the page for a code just sent names the address it went to. Every
+    # other reply, to a code posted with any address, reads the same whether
+    # or not the link admits it (security audit of 1.4.0, F10), and in
+    # neutral mode the address is never named. The forms carry back what was
+    # typed: the code proves only the address it was sent to.
     typed = _typed_email(request)
-    shown = plain_address(typed) if _matches(typed, link) and not neutral else ""
+    shown = "" if neutral else sent_to
     context = _context(
         link,
         token,
         shown=shown,
         address=typed,
-        resend=typed if neutral else shown,
+        resend=shown or typed,
         error=error,
         spent=spent,
         neutral=neutral,
@@ -700,6 +702,34 @@ def _still_neutral(link: Link) -> bool:
     return until is not None and until > timezone.now()
 
 
+def _send_limit(link: Link, address: str) -> str:
+    """Why a code to this address on this link is refused, or "" to send it.
+
+    Codes to one address on this link come first, then the link's places for
+    new addresses: any address at a domain is a right one, so a link sends
+    codes to at most ten different addresses an hour, and a stranger cannot
+    use it to email a firm's staff (issue #174). Then the link's own codes in
+    the hour, and last the inbox's allowance across every link, so a request
+    refused for any other reason spends none of it (security audit of 1.4.0,
+    F12 and N1).
+    """
+    now = ratelimit.clock()
+    pair = f"{link.pk}:{address}"
+    if not ratelimit.allow(limits.SEND_PER_LINK, pair, now):
+        return TOO_MANY
+    if not ratelimit.exceeded(limits.ADDRESS_SEEN_ON_LINK, pair, now):
+        if not ratelimit.allow(limits.NEW_ADDRESSES_PER_LINK, str(link.pk), now):
+            return TOO_MANY_PEOPLE
+        # Marked as soon as it takes a place, so a retry takes no other.
+        ratelimit.hit(limits.ADDRESS_SEEN_ON_LINK, pair, now)
+    if not ratelimit.allow(limits.CODES_PER_LINK, str(link.pk), now):
+        return TOO_MANY_PEOPLE
+    if not ratelimit.allow(limits.SEND_PER_EMAIL, address, now):
+        ratelimit.give_back(limits.CODES_PER_LINK, str(link.pk), now)
+        return TOO_MANY_CODES
+    return ""
+
+
 @never_cache
 @require_POST
 @viewer_gate
@@ -728,31 +758,13 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
 
     # The plain address the link admitted, which is the one the code goes to.
     address = plain_address(typed)
-    # Codes to one address on this link, to one inbox across every link, and,
-    # since any address at a domain is a right one, to how many different
-    # addresses the link sends in an hour (issue #174): a stranger cannot use
-    # a domain link to email a firm's staff.
-    per_link = ratelimit.allow(limits.SEND_PER_LINK, f"{link.pk}:{address}")
-    per_inbox = per_link and ratelimit.allow(limits.SEND_PER_EMAIL, address)
-    new_address = per_inbox and not ratelimit.exceeded(
-        limits.ADDRESS_SEEN_ON_LINK, f"{link.pk}:{address}"
-    )
-    per_addresses = not new_address or ratelimit.allow(limits.NEW_ADDRESSES_PER_LINK, str(link.pk))
-    if not (per_link and per_inbox and per_addresses):
+    refusal = _send_limit(link, address)
+    if refusal:
         if neutral:
             if _first_refusal(request, limits.SEND_PER_IP, link):
                 _audit(request, "viewer.code_refused", link, typed, reason="rate_limited")
             return _neutral_page(request, link, token)
-        # Each limit says how long it lasts: 15 minutes for a link, an hour for an inbox.
-        return _send_refused(
-            request,
-            link,
-            token,
-            typed,
-            TOO_MANY if not per_link else TOO_MANY_CODES if not per_inbox else TOO_MANY_PEOPLE,
-        )
-    if new_address:
-        ratelimit.hit(limits.ADDRESS_SEEN_ON_LINK, f"{link.pk}:{address}")
+        return _send_refused(request, link, token, typed, refusal)
     if neutral:
         # Sent without waiting, so the reply takes as long as a wrong
         # address's would. A failure is logged by mail.send, not shown.
@@ -769,7 +781,7 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
         return _gate_page(request, link, token, error=error, typed=typed, status=503)
 
     _audit(request, "viewer.code_sent", link, address)
-    return _code_page(request, link, token)
+    return _code_page(request, link, token, sent_to=address)
 
 
 @never_cache
@@ -781,7 +793,8 @@ def verify_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
     if not ratelimit.allow(limits.CHECK_PER_IP, _ip(request)):
         if _first_refusal(request, limits.CHECK_PER_IP, link):
             _audit(request, "viewer.code_wrong", link, _typed_email(request), reason="rate_limited")
-        return _code_page(request, link, token, error=TOO_MANY, status=429)
+        neutral = _still_neutral(link)
+        return _code_page(request, link, token, error=TOO_MANY, neutral=neutral, status=429)
 
     address = plain_address(_typed_email(request))
     # A code proves only the address it was sent to, and only while the link
@@ -804,20 +817,20 @@ def verify_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
         limited=result.limited,
     )
     if _still_neutral(link):
-        # In neutral mode, "tries left" would mean a code was sent, and
-        # "expired" or the daily cap that none was or one was: each answers a
-        # guess about the address. So every wrong code reads the same.
+        # In neutral mode the daily cap, too, would say whether a code was
+        # sent, so every wrong code reads the same.
         error = "That code is not right."
         return _code_page(request, link, token, error=error, neutral=True, status=400)
     if result.limited:
+        # The link's cap, read before any code is looked for, so it reads
+        # the same for every address.
         error = "Too many attempts on this link today. Try again tomorrow."
         return _code_page(request, link, token, error=error, spent=True, status=429)
-    if result.tries_left:
-        tries = "1 try" if result.tries_left == 1 else f"{result.tries_left} tries"
-        error = f"That code is not right. You have {tries} left."
-        return _code_page(request, link, token, error=error, status=400)
-    error = "That code has expired or been used up."
-    return _code_page(request, link, token, error=error, spent=True, status=400)
+    # The address comes from the form, so tries left, or "expired", would
+    # tell anyone whether that person has a live code (security audit of
+    # 1.4.0, F11). One wording for every wrong code.
+    error = "That code is not right, or it has expired."
+    return _code_page(request, link, token, error=error, status=400)
 
 
 @never_cache

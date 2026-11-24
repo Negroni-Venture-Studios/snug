@@ -114,8 +114,7 @@ def authorise(
 
     session = sessions.lookup(request, link)
     # The session's address must still be admitted on every request, so
-    # narrowing the link's entries, or blocking one person, ends their access
-    # at once (issue #174).
+    # blocking one person ends their access at once (issue #174).
     if (
         session is None
         or not link.admits(session.email)

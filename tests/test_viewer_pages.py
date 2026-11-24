@@ -296,7 +296,7 @@ def test_plain_replies_return_once_any_neutral_code_has_expired(
     later = timezone.now() + timedelta(minutes=11)
     monkeypatch.setattr("django.utils.timezone.now", lambda: later)
     response = post(browser, path(issued, "/code"), {"code": "000000"})
-    assert "expired or been used up" in response.content.decode()
+    assert "That code is not right, or it has expired." in response.content.decode()
 
 
 @pytest.mark.usefixtures("email_on", "neutral")
@@ -416,18 +416,27 @@ def test_the_right_code_opens_the_document(browser: Client, issued: service.Issu
 
 
 @pytest.mark.usefixtures("email_on")
-def test_a_wrong_code_says_how_many_tries_are_left(browser: Client, issued: service.Issued) -> None:
+def test_a_wrong_code_is_answered_without_counting_tries(
+    browser: Client, issued: service.Issued
+) -> None:
+    # Tries left would tell anyone who posts an address whether that person
+    # has a live code (security audit of 1.4.0, F11).
     post(browser, path(issued, "/code/send"), {"email": INVESTOR})
-    wrong = f"{(int(sent_code()) + 1) % 1_000_000:06d}"
+    code = sent_code()
+    wrong = f"{(int(code) + 1) % 1_000_000:06d}"
     response = post(browser, path(issued, "/code"), {"email": INVESTOR, "code": wrong})
     assert response.status_code == 400
-    assert "That code is not right. You have 4 tries left." in response.content.decode()
+    page = response.content.decode()
+    assert "That code is not right, or it has expired." in page
+    assert "tries left" not in page and "Send a new code" in page
     assert sessions.COOKIE not in browser.cookies
     assert AuditEvent.objects.filter(action="viewer.code_wrong").exists()
-    for _ in range(3):
+    for _ in range(4):
         post(browser, path(issued, "/code"), {"email": INVESTOR, "code": wrong})
-    last = post(browser, path(issued, "/code"), {"email": INVESTOR, "code": wrong}).content.decode()
-    assert "Send a new code" in last and "tries left" not in last
+    # Five wrong tries use the code up, so even the right one now fails.
+    used_up = post(browser, path(issued, "/code"), {"email": INVESTOR, "code": code})
+    assert used_up.status_code == 400
+    assert "That code is not right, or it has expired." in used_up.content.decode()
 
 
 @pytest.mark.usefixtures("email_on")
@@ -447,7 +456,10 @@ def test_the_code_page_does_not_echo_a_forged_address(
     page = post(
         browser, path(issued, "/code"), {"email": STRANGER, "code": "000000"}
     ).content.decode()
-    assert STRANGER not in page and INVESTOR not in page
+    # Only the forms carry back what was typed; the page names nobody.
+    assert INVESTOR not in page
+    assert STRANGER not in page.replace(f'name="email" value="{STRANGER}"', "")
+    assert "your email address" in page
 
 
 def test_getting_the_code_page_goes_back_to_the_start(
@@ -539,5 +551,5 @@ def test_an_expired_code_reads_the_same_as_no_code(document: Document) -> None:
         replies.append((response.status_code, response.content.decode().split("<main", 1)[-1]))
     (status_a, page_a), (status_b, page_b) = replies
     assert status_a == status_b
-    assert ("expired or been used up" in page_a) == ("expired or been used up" in page_b)
+    assert ("or it has expired" in page_a) == ("or it has expired" in page_b)
     assert ("Too many attempts" in page_a) == ("Too many attempts" in page_b)

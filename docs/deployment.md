@@ -145,7 +145,7 @@ sudo snug update
 
 A server updated from 1.1.3 or earlier ran that release's `snug update`, which checks nothing. Run `sudo snug update` once more on it: that run checks every file and pins both images by digest.
 
-`snug update` never moves a server back: if the newest release on GitHub is older than the one the server runs, it changes nothing and says so. To download from another branch or tag, older or not, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`. A branch, a release candidate, or a release before 1.2.0 has no published checksums, so its files and images are used without checking, and `snug update` says so. For a release from 1.2.0 on, `snug update` stops if it cannot download them.
+`snug update` never moves a server back: if the newest release on GitHub is older than the one the server runs, it changes nothing and says so. Snug 1.4.0 changes the database in a way older releases cannot use: on 1.3.0 or earlier they can neither send a code nor create a link. To go back past 1.4.0, restore a backup made before the update, as [backups.md](backups.md) explains. To download from another branch or tag, older or not, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`. A branch, a release candidate, or a release before 1.2.0 has no published checksums, so its files and images are used without checking, and `snug update` says so. For a release from 1.2.0 on, `snug update` stops if it cannot download them.
 
 `sudo snug update --with-office` also installs LibreOffice, and `sudo snug update --without-office` removes it, as [office.md](office.md) explains. On a server running Snug 1.0.0, run `sudo snug update` first: 1.0.0's command does not pass either option on.
 

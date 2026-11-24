@@ -15,10 +15,17 @@ SEND_PER_IP = Limit("viewer.send.ip", limit=20, window=WINDOW)
 # request on the link gets the same neutral reply for the rest of the hour,
 # so guessing learns nothing, while the right address still gets a code.
 WRONG_EMAIL_PER_LINK = Limit("viewer.wrong_email.link", limit=10, window=60 * 60)
-# Codes actually sent: to one address on a link, and to one inbox across
-# every link.
+# Codes to one address on a link, counted for each request that reaches it.
 SEND_PER_LINK = Limit("viewer.send.link", limit=5, window=WINDOW)
+# Codes actually sent to one inbox, across every link that admits it, so any
+# of those links can use up its allowance for the hour (decided 24 November
+# 2026, security audit of 1.4.0, F12). Checked last, so a refused request
+# spends none of it.
 SEND_PER_EMAIL = Limit("viewer.send.email", limit=10, window=60 * 60)
+# Codes actually sent by one link, to everyone it admits. Without it a link
+# for a domain could send 100 an hour, ten to each of ten new addresses
+# (security audit of 1.4.0, N1). A link for one address never reaches it.
+CODES_PER_LINK = Limit("viewer.send.codes.link", limit=30, window=60 * 60)
 # A link for a domain admits any address there, so it could be used to email
 # a firm's staff: each link sends codes to at most this many different
 # addresses an hour (issue #174). An address is new on the link the first time

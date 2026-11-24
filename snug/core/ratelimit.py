@@ -31,6 +31,11 @@ class Limit:
         return moment - moment % self.window
 
 
+def clock() -> float:
+    """The limiter's time, for a caller that passes one `now` to several calls."""
+    return time.time()
+
+
 def hit(limit: Limit, identity: str, now: float | None = None) -> int:
     """Count one attempt. Returns the number of attempts in this window."""
     key, start = limit.key(identity), limit._start(now)
@@ -49,6 +54,18 @@ def hit(limit: Limit, identity: str, now: float | None = None) -> int:
 def allow(limit: Limit, identity: str, now: float | None = None) -> bool:
     """Count one attempt, then say whether it is within the limit."""
     return hit(limit, identity, now) <= limit.limit
+
+
+def give_back(limit: Limit, identity: str, now: float | None = None) -> None:
+    """Uncount one attempt that `allow()` or `hit()` counted at the same `now`.
+
+    For a request refused by a later limit, so that this one counts only
+    the work that was done. Pass the same `now` to both, so the attempt is
+    taken from the window it was counted in.
+    """
+    RateLimitWindow.objects.filter(
+        key=limit.key(identity), window_start=limit._start(now), count__gt=0
+    ).update(count=F("count") - 1)
 
 
 def exceeded(limit: Limit, identity: str, now: float | None = None) -> bool:

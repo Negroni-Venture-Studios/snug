@@ -67,7 +67,7 @@ def test_verifying_by_email_then_reading(live_server: Any, page: Page, document:
 
     page.get_by_label("Six-digit code").fill("000000" if code.group(0) != "000000" else "111111")
     page.get_by_role("button", name="Continue").click()
-    expect(page.get_by_role("alert")).to_contain_text("4 tries left")
+    expect(page.get_by_role("alert")).to_contain_text("That code is not right, or it has expired")
 
     page.get_by_label("Six-digit code").fill(code.group(0))
     page.get_by_role("button", name="Continue").click()

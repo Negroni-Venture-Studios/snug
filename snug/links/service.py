@@ -15,7 +15,7 @@ from snug.core import mail
 from snug.core.models import company_name
 from snug.documents import storage
 from snug.documents.models import Document
-from snug.links.models import Link, is_domain, new_ref
+from snug.links.models import Link, LinkPerson, is_domain, new_ref
 
 if TYPE_CHECKING:
     from snug.rooms.models import Room
@@ -105,6 +105,27 @@ def extend(link: Link, expires_at: datetime | None) -> None:
     """A later expiry, or none, for the same link. Its URL keeps working."""
     link.expires_at = expires_at
     link.save(update_fields=["expires_at"])
+
+
+def block(link: Link, address: str, by: Admin | None) -> bool:
+    """Stop one person on a link. Returns True if they were not blocked already.
+
+    Their sessions and code on this link end with it, so unblocking them later
+    needs a new code (security audit of 1.4.0, F13). Done again for someone
+    already blocked, it tidies anything left.
+    """
+    from snug.viewer.models import VerificationCode, ViewerSession
+
+    with transaction.atomic():
+        person, _ = LinkPerson.objects.select_for_update().get_or_create(link=link, email=address)
+        newly = person.blocked_at is None
+        if newly:
+            person.blocked_at = timezone.now()
+            person.blocked_by = by
+            person.save(update_fields=["blocked_at", "blocked_by"])
+        ViewerSession.objects.filter(link=link, email=address).delete()
+        VerificationCode.objects.filter(link=link, email=address).delete()
+    return newly
 
 
 def revoke(link: Link, by: Admin | None) -> None:

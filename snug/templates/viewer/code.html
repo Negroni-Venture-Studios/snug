@@ -25,7 +25,7 @@
     <form class="form resend" method="post" action="{% url 'viewer:send_code' token=token %}">
       {% csrf_token %}
       <input type="hidden" name="email" value="{{ resend }}">
-      <p class="small">{% if spent %}<button class="btn" type="submit">Send a new code</button>{% else %}Nothing arrived? Check your spam folder, or <button class="linkish" type="submit">send a new code</button>.{% endif %}</p>
+      <p class="small">{% if spent or error %}<button class="btn" type="submit">Send a new code</button>{% else %}Nothing arrived? Check your spam folder, or <button class="linkish" type="submit">send a new code</button>.{% endif %}</p>
     </form>
   </div>
   {% include "viewer/_about.html" %}
