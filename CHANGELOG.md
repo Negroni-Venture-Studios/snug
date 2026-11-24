@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- `sudo snug setup` on a running server can now change the backup bucket or its key, keeping the two passwords that encrypt the backups. Before, there was no supported way to correct a wrong bucket or key, and making new settings meant new passwords that could not read the backups already made.
+
 ## [1.3.0] - 2026-11-24
 
 For keeping track of a raise with many links: *Extend* for a link's expiry, filters on the Links page, links and last views on the Documents list, and a weekly email digest.
