@@ -34,7 +34,7 @@ from snug.core.models import SiteSettings, company_name
 from snug.documents import storage
 from snug.documents.models import PART_SECONDS, DocumentVersion
 from snug.documents.storage import RENDER_WIDTHS
-from snug.links.models import Link, plain_address
+from snug.links.models import Link, LinkPerson, plain_address
 from snug.nda import terms
 from snug.rendering import pages as rendering
 from snug.rendering.sandbox import WorkerError
@@ -790,6 +790,8 @@ def verify_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
     if result.ok and _matches(address, link):
         response = _see_other(token)
         sessions.begin(request, response, link, email=address, verified=True)
+        # Listed on the link's page from now on, so they can be blocked.
+        LinkPerson.objects.get_or_create(link=link, email=address)
         _audit(request, "viewer.verified", link, address)
         return response
 

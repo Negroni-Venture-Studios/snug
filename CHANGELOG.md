@@ -6,7 +6,12 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- A link can now be for several people, or for everyone at a firm's email domain, such as `northfield.com`: enter them under *Who it is for*, separated by commas. Each person verifies their own address and reads under it, with their own watermark, NDA acceptance, and first-open email. A link's page, opened from its recipient on the Links page, lists the people who have verified on it, and *Block* stops one person at once while the link keeps working for the rest. Free email domains such as gmail.com are refused as domains.
 - `sudo snug setup` on a running server can now change the backup bucket or its key, keeping the two passwords that encrypt the backups. Before, there was no supported way to correct a wrong bucket or key, and making new settings meant new passwords that could not read the backups already made.
+
+### Changed
+
+- The first-open email is now sent the first time each person opens a link, not only the first time anyone does.
 
 ### Fixed
 

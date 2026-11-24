@@ -149,6 +149,19 @@ class Link(models.Model):
         return ", ".join(self.entry_list)
 
     @property
+    def addresses(self) -> list[str]:
+        """The single addresses it lists, which can be emailed the link."""
+        return [entry for entry in self.entry_list if not is_domain(entry)]
+
+    @property
+    def domains(self) -> list[str]:
+        return [entry for entry in self.entry_list if is_domain(entry)]
+
+    @property
+    def for_one_person(self) -> bool:
+        return bool(self.email)
+
+    @property
     def has_domain(self) -> bool:
         return any(is_domain(entry) for entry in self.entry_list)
 

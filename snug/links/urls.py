@@ -12,4 +12,7 @@ urlpatterns = [
     path("<str:ref>/revoke", views.link_revoke, name="revoke"),
     path("<str:ref>/reissue", views.link_reissue, name="reissue"),
     path("<str:ref>/extend", views.link_extend, name="extend"),
+    path("<str:ref>/block", views.link_block, name="block"),
+    path("<str:ref>/unblock", views.link_unblock, name="unblock"),
+    path("<str:ref>", views.link_detail, name="detail"),
 ]

@@ -4,9 +4,11 @@ Snug controls who can open each document, and marks what they see with their ema
 
 ## Who can open a document
 
-Each link is for one person. Its address holds a random token, which Snug shows you once and stores only as a hash, so nobody can guess a link or read one back out of the database.
+A link is for the people it lists: email addresses, or a whole domain such as `northfield.com`, which admits any address there and no other. Its address holds a random token, which Snug shows you once and stores only as a hash, so nobody can guess a link or read one back out of the database.
 
-With **Require email verification** ticked, as it is unless you untick it, the visitor must also type a code that Snug emails to the link's address. A forwarded link is then useless to anyone without access to that inbox. With it unticked, anyone who has the link can open it.
+With **Require email verification** ticked, as it is unless you untick it, the visitor must also type a code that Snug emails to their own address, which the link must list or whose domain it must list. A forwarded link is then useless to anyone it is not for. On a link for a domain, anyone at that domain can open it under their own address, so list a domain only where everyone with an address there may see the document, and block anyone who should not. A link for more than one person, or for a domain, always asks for a code. With it unticked, on a link for one person, anyone who has the link can open it.
+
+Each person reads under their own address, and every request checks that the link still admits that address, so blocking one person, or removing an address or domain, stops them at once.
 
 Revoking a link, or letting it expire, stops it at once, including on pages already open. A room's documents are checked on every request, so a document removed from a room stops opening through that room's links straight away.
 

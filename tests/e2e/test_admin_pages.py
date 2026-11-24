@@ -229,6 +229,40 @@ def test_the_weekly_digest_is_turned_on_in_settings(live_server: Any, page: Page
     assert Admin.objects.get(email=EMAIL).notify_weekly_digest
 
 
+def test_one_person_is_blocked_and_unblocked_on_a_firms_link(live_server: Any, page: Page) -> None:
+    from django.utils import timezone
+
+    from snug.documents.models import Document
+    from snug.links import service
+    from snug.links.models import LinkPerson
+
+    deck = Document.objects.create(title="Seed deck")
+    issued = service.create(
+        document=deck,
+        entries=["northfield.example"],
+        note="Northfield Capital",
+        expires_at=None,
+        require_verification=True,
+        allow_download=True,
+        created_by=None,
+    )
+    LinkPerson.objects.create(
+        link=issued.link, email="priya@northfield.example", first_opened_at=timezone.now()
+    )
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/links/")
+    page.get_by_role("link", name="northfield.example").click()
+    expect(page.get_by_role("heading", name="northfield.example")).to_be_visible()
+    page.get_by_role("link", name="Block").click()
+    page.get_by_role("button", name="Block").click()
+    expect(page).to_have_url(re.compile(rf"/admin/links/{issued.link.ref}#people$"))
+    expect(page.get_by_text("Blocked priya@northfield.example.")).to_be_visible()
+    assert not issued.link.admits("priya@northfield.example")
+    page.get_by_role("button", name="Unblock").click()
+    expect(page.get_by_text("Unblocked priya@northfield.example.")).to_be_visible()
+    assert issued.link.admits("priya@northfield.example")
+
+
 # ---------------------------------------------------------------- upload progress
 
 
