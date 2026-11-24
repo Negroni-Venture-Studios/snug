@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -31,6 +32,8 @@ from snug.rooms.models import Room
 ISSUED = "snug.issued_link"
 ISSUED_COOKIE = f"{'__Host-' if settings.CONFIG.https else ''}snug-issued"
 ISSUED_SECONDS = 300
+# The Links page's status filter: value and label.
+STATUSES = (("active", "Active"), ("expired", "Expired"), ("revoked", "Revoked"))
 
 
 def _admin(request: HttpRequest) -> Admin:
@@ -282,7 +285,36 @@ def link_issued(request: HttpRequest) -> HttpResponse:
 @require_safe
 def link_list(request: HttpRequest) -> HttpResponse:
     links = Link.objects.select_related("document", "room")
-    return render(request, "links/list.html", {"tab": "links", "links": links})
+    now = timezone.now()
+    status = request.GET.get("status", "")
+    live = Q(expires_at__isnull=True) | Q(expires_at__gt=now)
+    if status == "active":
+        links = links.filter(live, revoked_at__isnull=True)
+    elif status == "expired":
+        links = links.filter(revoked_at__isnull=True, expires_at__lte=now)
+    elif status == "revoked":
+        links = links.filter(revoked_at__isnull=False)
+    else:
+        status = ""
+    query = " ".join(request.GET.get("q", "").split())[:254]
+    if query:
+        ref = query.upper().removeprefix("L-")
+        links = links.filter(
+            Q(email__icontains=query)
+            | Q(note__icontains=query)
+            | Q(ref=ref)
+            | Q(document__title__icontains=query)
+            | Q(room__name__icontains=query)
+        )
+    context = {
+        "tab": "links",
+        "links": links,
+        "status": status,
+        "q": query,
+        "statuses": STATUSES,
+        "filtered": bool(status or query),
+    }
+    return render(request, "links/list.html", context)
 
 
 def _confirm(request: HttpRequest, ref: str, action: str) -> tuple[Link, HttpResponse | None]:

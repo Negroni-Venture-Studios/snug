@@ -6,9 +6,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
-- A weekly digest by email: every Monday morning, who read what and for how long, links opened for the first time, downloads, and links that expire in the coming week. Each admin turns it on under *Your account* in Settings; it is off until they do.
 - *Extend*, beside *Revoke* on a link, gives it a later last day, or no expiry, and keeps the same link working, so you no longer have to send a new link to give someone more time. It also makes an expired link work again. Each extension is in the audit log.
 - The Documents list shows how many active links open each document, directly or through a room, and the day it was last viewed.
+- The Links page has filters: by status, and by a search over the email address, note, reference, and the document's or room's title.
+- A weekly digest by email: every Monday morning, who read what and for how long, links opened for the first time, downloads, and links that expire in the coming week. Each admin turns it on under *Your account* in Settings; it is off until they do.
 
 ## [1.2.0] - 2026-11-23
 
