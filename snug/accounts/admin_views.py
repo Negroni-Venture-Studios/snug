@@ -69,7 +69,9 @@ def _settings_page(request: HttpRequest, *, status: int = 200, **extra: Any) -> 
         "docs_url": version.docs_url(),
         "admins": admins,
         "email_enabled": mail.enabled(),
-        "done": next((k for k in ("invited", "removed", "reset") if request.GET.get(k) == "1"), ""),
+        "done": next(
+            (k for k in ("invited", "removed", "reset", "resent") if request.GET.get(k) == "1"), ""
+        ),
         # Which section was just saved, so it can say so in place.
         "saved": request.GET.get("saved", ""),
         "privacy_url": SiteSettings.load().privacy_url,
@@ -1021,25 +1023,30 @@ def remove_view(request: HttpRequest) -> HttpResponse:
 def reset_view(request: HttpRequest) -> HttpResponse:
     by = _admin(request)
     target = _target(request)
+    # An admin whose reset link expired or was used up has no authenticator,
+    # so cannot sign in, and cannot be invited again: they get a new link (#223).
+    action = "resend" if target.is_active and target.totp_confirmed_at is None else "reset"
     if request.method == "GET":
-        return _change_page(request, target, "reset")
+        return _change_page(request, target, action)
     if target == by:
         error = (
             "To replace your own authenticator, use Replace your authenticator, under Your account."
         )
-        return _change_page(request, target, "reset", error=error, status=400)
-    if target.totp_confirmed_at is None:
+        return _change_page(request, target, action, error=error, status=400)
+    if not target.is_active:
         error = f"{target.email} has not finished setting up. Invite them again instead."
-        return _change_page(request, target, "reset", error=error, status=400)
+        return _change_page(request, target, action, error=error, status=400)
     if not mail.enabled():
         error = (
             "Resetting needs email, to send them a setup link. On the server, run "
             "sudo snug reset-2fa with their email address."
         )
-        return _change_page(request, target, "reset", error=error, status=503)
-    refused = _refused(request, target, "reset")
+        return _change_page(request, target, action, error=error, status=503)
+    refused = _refused(request, target, action)
     if refused:
         return refused
+    if action == "resend":
+        return _resend(request, target, by)
 
     # Send first: if the email fails, nothing changes, rather than leaving
     # them with no authenticator and no way to set up a new one.
@@ -1057,6 +1064,52 @@ def reset_view(request: HttpRequest) -> HttpResponse:
         ),
     )
     return redirect("/admin/settings/?reset=1#admins")
+
+
+# Wrong passwords on all of an admin's reset links since their last reset,
+# after which no new link is sent: each would be five more guesses for
+# whoever reads their mailbox.
+RESEND_PASSWORD_FAILURES = 10
+
+
+def _password_failures_since_reset(target: Admin) -> int:
+    reset = (
+        AuditEvent.objects.filter(action="admin.second_factor_reset", target=target.email)
+        .order_by("-at")
+        .values_list("at", flat=True)
+        .first()
+    )
+    failures = AuditEvent.objects.filter(
+        action="admin.setup_failed", target=target.email, details__reason="password"
+    )
+    return (failures.filter(at__gte=reset) if reset else failures).count()
+
+
+def _resend(request: HttpRequest, target: Admin, by: Admin) -> HttpResponse:
+    """A new reset link for an admin who has none that works, replacing any other.
+
+    It asks for their current password, as the first did.
+    """
+    if _password_failures_since_reset(target) >= RESEND_PASSWORD_FAILURES:
+        error = (
+            f"Their links have had {RESEND_PASSWORD_FAILURES} wrong passwords since the reset, "
+            "so Snug sends no more. On the server, run sudo snug reset-password and then "
+            "sudo snug reset-2fa, with their email address."
+        )
+        return _change_page(request, target, "resend", error=error, status=400)
+    token = setup.new_token()
+    if not setup.send_reset(target, token, by):
+        error = "The email could not be sent, so nothing has changed. Try again."
+        return _change_page(request, target, "resend", error=error, status=503)
+    setup.issue(target, AdminSetup.Purpose.RESET, by, token=token)
+    _audit(request, "admin.setup_link_resent", by.email, target.email)
+    setup.alert_admins(
+        subject=f"{target.email} was sent a new setup link",
+        what=(
+            f"{by.email} sent {target.email} a new link to set up their authenticator, at {_now()}."
+        ),
+    )
+    return redirect("/admin/settings/?resent=1#admins")
 
 
 # ---------------------------------------------------------------- setup
