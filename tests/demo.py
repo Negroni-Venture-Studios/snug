@@ -22,7 +22,7 @@ from snug.core.models import SiteSettings, SystemCheck
 from snug.documents.ingest import ingest
 from snug.documents.models import Document
 from snug.links import service
-from snug.links.models import Link
+from snug.links.models import Link, LinkPerson
 from snug.nda import terms
 from snug.rooms.models import Folder, Room, RoomDocument
 from tests.demo_deck import deck_pdf
@@ -119,6 +119,7 @@ class Demo:
     room_link: service.Issued
     model_link: service.Issued
     nda_link: service.Issued
+    firm_link: service.Issued
 
 
 def _visits(link: Link, document: Document, reader: Reader, now: datetime) -> None:
@@ -294,6 +295,31 @@ def build(admin: Admin) -> Demo:
         created_by=admin,
     )
     service.revoke(old.link, admin)
+    # A link for a whole firm (issue #174): two partners have opened it, a
+    # third has verified, and one who left has been blocked.
+    firm_link = service.create(
+        room=room,
+        entries=["harbourcap.example"],
+        note="Harbour Capital",
+        expires_at=now + timedelta(days=30),
+        require_verification=True,
+        allow_download=True,
+        created_by=admin,
+    )
+    people: list[tuple[str, datetime | None, datetime | None]] = [
+        ("eleanor@harbourcap.example", now - timedelta(days=2, hours=3), None),
+        ("raj@harbourcap.example", now - timedelta(hours=20), None),
+        ("tom@harbourcap.example", None, None),
+        ("leaver@harbourcap.example", now - timedelta(days=6), now - timedelta(days=1)),
+    ]
+    for email, first_open, blocked in people:
+        LinkPerson.objects.create(
+            link=firm_link.link,
+            email=email,
+            first_opened_at=first_open,
+            blocked_at=blocked,
+            blocked_by=admin if blocked else None,
+        )
     _event(
         now - timedelta(minutes=5),
         "admin.login",
@@ -311,4 +337,4 @@ def build(admin: Admin) -> Demo:
     backup = settings.CONFIG.data_dir / "backup"
     backup.mkdir(parents=True, exist_ok=True)
     (backup / "last-success").write_text((now - timedelta(minutes=2)).isoformat())
-    return Demo(deck, model, demo_video, room, links, room_link, model_link, nda_link)
+    return Demo(deck, model, demo_video, room, links, room_link, model_link, nda_link, firm_link)

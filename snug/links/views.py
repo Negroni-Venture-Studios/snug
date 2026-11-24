@@ -2,14 +2,13 @@
 
 import base64
 import binascii
+import re
 import secrets
 from datetime import date, datetime, time, timedelta
 from typing import Any
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -24,7 +23,15 @@ from snug.core import mail, notices
 from snug.core.client import client_ip, user_agent
 from snug.documents.models import Document
 from snug.links import service
-from snug.links.models import MAX_MESSAGE, Link
+from snug.links.freemail import FREE_MAIL
+from snug.links.models import (
+    MAX_MESSAGE,
+    Link,
+    LinkPerson,
+    is_domain,
+    plain_address,
+    plain_domain,
+)
 from snug.nda import terms as nda_terms
 from snug.office import previews
 from snug.rooms.models import Room
@@ -93,11 +100,42 @@ def _unmask(masked: str, pad: str) -> str | None:
 
 
 def _deliver(request: HttpRequest, issued: service.Issued, wanted: bool) -> bool | None:
-    if not wanted:
+    # A domain has no one address to send to: the founder copies the link.
+    if not wanted or not any(not is_domain(entry) for entry in issued.link.entry_list):
         return None
     sent = service.send_link_email(issued, _admin(request))
     _audit(request, "link.emailed" if sent else "link.email_failed", issued.link)
     return sent
+
+
+_SEPARATORS = re.compile(r"[\s,;]+")
+
+
+def parse_entries(raw: str) -> tuple[list[str], str]:
+    """Who a link is for, from the form: addresses and domains, and an error or ""."""
+    entries: list[str] = []
+    for item in _SEPARATORS.split(raw.strip()):
+        if not item:
+            continue
+        entry = item.casefold()
+        if "@" in entry:
+            if not plain_address(entry):
+                return [], WHO_ERROR
+        elif not plain_domain(entry):
+            return [], WHO_ERROR
+        elif entry in FREE_MAIL:
+            return [], (
+                f"{entry} is a free email service, so a link for it would open for anyone. "
+                "Enter the addresses instead."
+            )
+        if entry not in entries:
+            entries.append(entry)
+    if not entries:
+        return [], WHO_ERROR
+    return entries, ""
+
+
+WHO_ERROR = "Enter email addresses or domains, such as priya@northfield.com or northfield.com."
 
 
 def _parse_expiry(raw: str) -> tuple[datetime | None, str | None]:
@@ -178,7 +216,8 @@ def _new_link(
     if request.method == "GET":
         return render(request, "links/new.html", context)
 
-    email = Admin.objects.normalize_email(request.POST.get("email", ""))
+    who = request.POST.get("email", "")
+    entries, who_error = parse_entries(who)
     note = " ".join(request.POST.get("note", "").split())[:200]
     message = request.POST.get("message", "").strip()
     expires_at, expiry_error = _parse_expiry(request.POST.get("expires", "").strip())
@@ -190,7 +229,7 @@ def _new_link(
     nda_text = request.POST.get("nda_text", "")
     write_nda = require_nda and nda_terms.current() is None
     values = {
-        "email": email,
+        "email": who[:2000],
         "note": note,
         "message": message[: MAX_MESSAGE * 2],
         "expires": request.POST.get("expires", ""),
@@ -204,10 +243,15 @@ def _new_link(
     error = expiry_error
     if len(message) > MAX_MESSAGE:
         error = "Keep the message to 1,000 characters or fewer."
-    try:
-        validate_email(email)
-    except ValidationError:
-        error = "Enter the email address of the person this link is for."
+    if who_error:
+        context["who_error"] = who_error
+    elif (len(entries) > 1 or any(is_domain(entry) for entry in entries)) and not (
+        require_verification
+    ):
+        error = (
+            "A link for more than one person, or for a domain, needs email verification, "
+            "so Snug knows who is reading. Tick Require email verification."
+        )
     problem = nda_terms.first_problem(nda_text) if write_nda else ""
     if problem:
         context["nda_error"] = (
@@ -215,7 +259,7 @@ def _new_link(
             if problem == "missing"
             else nda_terms.TOO_LONG
         )
-    if error or problem:
+    if error or problem or who_error:
         return render(request, "links/new.html", {**context, "error": error}, status=400)
     if write_nda:
         nda_terms.publish_first(request, nda_text, by=_admin(request), written_on="link form")
@@ -224,7 +268,7 @@ def _new_link(
         issued = service.create(
             document=document,
             room=room,
-            email=email,
+            entries=entries,
             note=note,
             message=message,
             expires_at=expires_at,
@@ -402,3 +446,78 @@ def link_extend(request: HttpRequest, ref: str) -> HttpResponse:
         "Its address is unchanged, so there is nothing new to send."
     )
     return notices.saved(request, link.target_url(), "links", text)
+
+
+# ---------------------------------------------------------------- a link's page, and its people
+
+
+@never_cache
+@login_required
+@require_safe
+def link_detail(request: HttpRequest, ref: str) -> HttpResponse:
+    """Who a link is for, and each person on it, with blocking for a link to more than one."""
+    link = get_object_or_404(Link.objects.select_related("document", "room"), ref=ref)
+    context = {
+        "tab": "links",
+        "link": link,
+        "people": link.people.select_related("blocked_by"),
+        "notice": notices.take(request),
+    }
+    return render(request, "links/detail.html", context)
+
+
+def _person(request: HttpRequest, link: Link) -> tuple[str, str]:
+    """The address in the request, and why it cannot be blocked or unblocked, or ""."""
+    source = request.POST if request.method == "POST" else request.GET
+    address = plain_address(source.get("email", "")[:254])
+    if link.for_one_person:
+        return address, "This link is for one person. To stop it, revoke it."
+    if not address or not link.listed(address):
+        return address, "That address cannot open this link anyway."
+    return address, ""
+
+
+@never_cache
+@login_required
+@require_http_methods(["GET", "POST"])
+def link_block(request: HttpRequest, ref: str) -> HttpResponse:
+    link = get_object_or_404(Link.objects.select_related("document", "room"), ref=ref)
+    address, refused = _person(request, link)
+    context = {"tab": "links", "link": link, "email": address, "error": refused}
+    if request.method == "GET" or refused:
+        return render(request, "links/block.html", context, status=400 if refused else 200)
+    person, _ = LinkPerson.objects.get_or_create(link=link, email=address)
+    if person.blocked_at is None:
+        person.blocked_at = timezone.now()
+        person.blocked_by = _admin(request)
+        person.save(update_fields=["blocked_at", "blocked_by"])
+        _audit_person(request, "link.person_blocked", link, address)
+    text = f"Blocked {address}. They can no longer open {link.label}, including pages already open."
+    return notices.saved(request, reverse("links:detail", kwargs={"ref": link.ref}), "people", text)
+
+
+@never_cache
+@login_required
+@require_http_methods(["POST"])
+def link_unblock(request: HttpRequest, ref: str) -> HttpResponse:
+    link = get_object_or_404(Link.objects.select_related("document", "room"), ref=ref)
+    address, _ = _person(request, link)
+    unblocked = LinkPerson.objects.filter(
+        link=link, email=address, blocked_at__isnull=False
+    ).update(blocked_at=None, blocked_by=None)
+    if unblocked:
+        _audit_person(request, "link.person_unblocked", link, address)
+    text = f"Unblocked {address}. They can open {link.label} again, with a new code."
+    return notices.saved(request, reverse("links:detail", kwargs={"ref": link.ref}), "people", text)
+
+
+def _audit_person(request: HttpRequest, action: str, link: Link, email: str) -> None:
+    record(
+        action,
+        actor_type=AuditEvent.ActorType.ADMIN,
+        actor=_admin(request).email,
+        target=email,
+        ip_address=client_ip(request),
+        user_agent=user_agent(request),
+        details={"link": link.label, **link.target_details()},
+    )

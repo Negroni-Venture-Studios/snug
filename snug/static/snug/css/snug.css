@@ -633,11 +633,16 @@ input[type="file"]::file-selector-button {
 .link-rows { display: grid; grid-template-columns: minmax(12rem, 1.4fr) 5.5rem minmax(9rem, 1fr) 7rem auto; column-gap: 1.5rem; }
 .link-rows .item { grid-column: 1 / -1; grid-template-columns: subgrid; }
 .link-actions { display: flex; gap: 0.25rem; justify-content: flex-end; }
+/* The people on a link, on its own page. */
+.people-rows .item { grid-template-columns: minmax(13rem, 1fr) 7rem 7rem; }
+.people-rows + .filters { margin-top: 1rem; }
 .empty-line { color: var(--text-2); font-size: 0.9rem; padding: 0.9rem 0; border-bottom: 1px solid var(--border); }
 .form-foot.left { justify-content: flex-start; border-top: none; padding-top: 0; }
 @media (max-width: 860px) {
     .link-rows { display: block; }
     .link-rows .item { grid-template-columns: 1fr auto; }
     .link-rows .item > .muted { display: none; }
+    .people-rows .item { grid-template-columns: 1fr auto; }
+    .people-rows .item > .r { grid-column: 1 / -1; text-align: left; }
     .link-actions { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: wrap; }
 }

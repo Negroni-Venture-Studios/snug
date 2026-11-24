@@ -1,0 +1,30 @@
+{% extends "snug/admin_base.html" %}
+{% load snug %}
+{% block title %}{{ link.label }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'links:list' %}">Links</a> / <a href="{{ link.target_url }}">{{ link.target_title }}</a> / <span class="mono">{{ link.label }}</span></div>
+<div class="title-row"><div><h1 class="page-title">{{ link.recipient }}</h1><div class="page-meta"><span class="mono">{{ link.label }}</span><span>{{ link.target_title }}</span>{% if link.note %}<span>{{ link.note }}</span>{% endif %}<span>{% if link.status == "active" %}Active{% elif link.status == "expired" %}Expired{% else %}Revoked{% endif %}</span></div></div></div>
+
+<section class="section" id="people">
+  <div class="section-head stacked"><h2>People</h2><p>{% if link.for_one_person %}This link is for one person. To stop it, revoke it.{% else %}Everyone who has verified their address on this link. Blocking one person stops them at once, including pages already open, and the link keeps working for everyone else.{% endif %}</p></div>
+  {% include "snug/partials/saved.html" with here="people" %}
+  <div class="rows people-rows">
+    {% for person in people %}
+    <div class="item">
+      <div class="who"><span class="email">{{ person.email }}</span><span class="note">{% if person.first_opened_at %}First opened {{ person.first_opened_at|date:"j M" }}{% else %}Not opened yet{% endif %}</span></div>
+      {% if person.blocked_at %}<span class="status status-off">Blocked</span>{% else %}<span class="status status-ok">Can open it</span>{% endif %}
+      <span class="r link-actions">{% if not link.for_one_person %}{% if person.blocked_at %}<form method="post" action="{% url 'links:unblock' link.ref %}">{% csrf_token %}<input type="hidden" name="email" value="{{ person.email }}"><button class="btn btn-quiet" type="submit">Unblock</button></form>{% else %}<a class="btn btn-quiet btn-danger" href="{% url 'links:block' link.ref %}?email={{ person.email|urlencode:'@' }}">Block</a>{% endif %}{% endif %}</span>
+    </div>
+    {% empty %}
+    <p class="empty-line">Nobody has verified their address on this link yet.</p>
+    {% endfor %}
+  </div>
+  {% if not link.for_one_person %}
+  <form class="filters" method="get" action="{% url 'links:block' link.ref %}">
+    <label class="visually-hidden" for="block-email">Address to block</label>
+    <input class="wide" id="block-email" name="email" type="email" placeholder="Block someone else, by their address">
+    <button class="btn" type="submit">Block</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

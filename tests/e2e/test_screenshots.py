@@ -121,6 +121,7 @@ def test_take_the_documentation_screenshots(
         "people": "/admin/people/",
         "links": "/admin/links/",
         "link-new": f"/admin/links/for/{built.deck.token}",
+        "link-people": f"/admin/links/{built.firm_link.link.ref}",
         "room": f"/admin/rooms/{built.room.token}",
         "audit": "/admin/audit/",
         "settings": "/admin/settings/",

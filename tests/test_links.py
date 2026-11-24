@@ -202,7 +202,7 @@ def test_verification_can_be_turned_off(client: Client, document: Document) -> N
 @pytest.mark.parametrize(
     ("fields", "message"),
     [
-        ({"email": "not-an-email"}, "Enter the email address"),
+        ({"email": "not-an-email"}, "Enter email addresses or domains"),
         ({"expires": "2020-01-01"}, "must be in the future"),
         ({"expires": "next tuesday"}, "Enter the expiry as a date"),
     ],

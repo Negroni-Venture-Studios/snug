@@ -50,6 +50,23 @@ _NOT_PLAIN = frozenset(' \t\r\n"(),:;<>[]\\')
 _DOMAIN_LABEL = re.compile(r"[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?")
 
 
+def plain_domain(entry: str) -> str:
+    """The domain in lower case if it is one a link can list, such as fund.com, else "".
+
+    Labels of letters, digits and hyphens, at least two, and a top level with
+    a letter, so an IP address is not a domain.
+    """
+    domain = entry.strip().casefold()
+    labels = domain.split(".")
+    if len(domain) > 253 or len(labels) < 2:
+        return ""
+    if not all(len(label) <= 63 and _DOMAIN_LABEL.fullmatch(label) for label in labels):
+        return ""
+    if labels[-1].isdigit():
+        return ""
+    return domain
+
+
 def plain_address(email: str) -> str:
     """The address in lower case if it is a plain one, as codes are sent to, else "".
 
@@ -159,6 +176,19 @@ class Link(models.Model):
     def recipient(self) -> str:
         """Who the link is for, as admins read it: "priya@northfield.example", or "fund.com"."""
         return ", ".join(self.entry_list)
+
+    @property
+    def addresses(self) -> list[str]:
+        """The single addresses it lists, which can be emailed the link."""
+        return [entry for entry in self.entry_list if not is_domain(entry)]
+
+    @property
+    def domains(self) -> list[str]:
+        return [entry for entry in self.entry_list if is_domain(entry)]
+
+    @property
+    def for_one_person(self) -> bool:
+        return bool(self.email)
 
     @property
     def has_domain(self) -> bool:

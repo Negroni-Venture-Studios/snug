@@ -63,15 +63,15 @@ A Word, PowerPoint, or Excel file's page has a box for a description investors s
   <img alt="The People page: each investor's documents, with a strip of shaded cells, their visits, downloads, total time, and when they were last seen." src="images/screenshots/people-light.png">
 </picture>
 
-You are emailed the first time each link is opened. To stop it, untick *Email me when someone first opens a link* under *Your account* in Settings.
+You are emailed the first time each person opens a link. To stop it, untick *Email me when someone first opens a link* under *Your account* in Settings.
 
 To get a summary of the week's reading every Monday morning, tick *Email me a summary of the week* in the same place. It is off until you turn it on. It lists who read each document and for how long, links opened for the first time, the number of downloads, and links that expire in the coming week. Nothing is sent after a week with none of these.
 
 ## Sharing a document
 
-Each link is for one person. On a document's page, choose *New link*, and fill in:
+A link is usually for one person, but can be for several, or for everyone at a firm. On a document's page, choose *New link*, and fill in:
 
-- **Email address**: the person you are sending it to. *Require email verification* is ticked to begin with, so they must type a code Snug emails to that address before they see anything.
+- **Who it is for**: the email address of the person you are sending it to, or several separated by commas. A domain such as `northfield.com` lets anyone there open the link with their own address, so one link serves a fund's partners and anyone they forward it to inside the fund. Free email services such as gmail.com cannot be used as a domain, since anyone can have an address there; enter those addresses one by one. *Require email verification* is ticked to begin with, so each person must type a code Snug emails to their own address before they see anything. A link for more than one person, or for a domain, always needs it.
 - **Note for yourself**: who they are, such as "Partner at Northfield Capital". Only admins see it.
 - **Message for them**: optional. They see it in the email with the link, and in the *About this link* panel.
 - **Expires**: optional. The link stops working at the end of that day.
@@ -79,12 +79,19 @@ Each link is for one person. On a document's page, choose *New link*, and fill i
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/link-new-dark.png">
-  <img alt="The form for a new link: email address, a note for yourself, a message for them, and an expiry date, beside a note that the link is shown only once." src="images/screenshots/link-new-light.png">
+  <img alt="The form for a new link: who it is for, a note for yourself, a message for them, and an expiry date, beside a note that the link is shown only once." src="images/screenshots/link-new-light.png">
 </picture>
 
-*Create and email* sends it; *Create and copy* shows the link once, to send yourself. If it is lost, send a new link.
+*Create and email* sends it to each address you listed; *Create and copy* shows the link once, to send yourself. A domain has no one address to send to, so copy the link and send it to someone there yourself. If it is lost, send a new link.
 
-*Links* lists every link, newest first. To find one, choose a status (active, expired, or revoked), or search for part of an email address, a note, a reference such as L-7KQ4, or a document's or room's title, then choose *Filter*. *Revoke* stops a link at once, even for someone reading it at the time. *New link* replaces it with a fresh one for the same person, with the same settings and history. *Extend* gives a link with an expiry a later last day, or none, and the same link keeps working. It also makes an expired link work again.
+Everyone on a link reads under their own address: their own watermark, NDA acceptance, reading time, and first-open email. Choose the link's recipient on the Links page to see who has verified their address on it. To stop one person, choose *Block* beside them, or type their address in the box below the list: they lose access at once, even to a page they have open, and the link keeps working for everyone else. *Unblock* lets them back in with a new code.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/link-people-dark.png">
+  <img alt="A link for harbourcap.example: the people who have verified on it, each with when they first opened it, three who can open it with a Block button, and one blocked with an Unblock button, then a box to block someone else by address." src="images/screenshots/link-people-light.png">
+</picture>
+
+*Links* lists every link, newest first. To find one, choose a status (active, expired, or revoked), or search for part of an email address, a note, a reference such as L-7KQ4, or a document's or room's title, then choose *Filter*. *Revoke* stops a link at once, even for someone reading it at the time. *New link* replaces it with a fresh one for the same people, with the same settings and history. *Extend* gives a link with an expiry a later last day, or none, and the same link keeps working. It also makes an expired link work again.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/links-dark.png">

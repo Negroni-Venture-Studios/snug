@@ -1,0 +1,14 @@
+{% extends "snug/admin_base.html" %}
+{% load snug %}
+{% block title %}Block on {{ link.label }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'links:list' %}">Links</a> / <a href="{% url 'links:detail' link.ref %}"><span class="mono">{{ link.label }}</span></a> / Block</div>
+{% if error %}
+<div class="title-row"><div><h1 class="page-title">Block someone on {{ link.label }}</h1></div></div>
+<div class="notice notice-error" role="alert">{% icon "warning-circle" %}<span>{{ error }}</span></div>
+<div class="form-foot left"><a class="btn" href="{% url 'links:detail' link.ref %}">Back</a></div>
+{% else %}
+<div class="title-row"><div><h1 class="page-title">Block {{ email }} on {{ link.label }}?</h1><div class="page-meta">They can no longer open {{ link.target_title }} through this link, including any page they have open. Everyone else on the link carries on. You can unblock them later.</div></div></div>
+<form class="form-foot left" method="post" action="{% url 'links:block' link.ref %}">{% csrf_token %}<input type="hidden" name="email" value="{{ email }}"><a class="btn" href="{% url 'links:detail' link.ref %}">Cancel</a><button class="btn btn-primary" type="submit">Block</button></form>
+{% endif %}
+{% endblock %}
