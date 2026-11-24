@@ -170,12 +170,18 @@ class Link(models.Model):
 
     @property
     def entry_list(self) -> list[str]:
-        return [line for line in self.entries.split() if line]
+        # Only plain addresses and domains, whatever wrote the entries: an
+        # entry of any other form admits nobody (security audit of 1.4.0, F14).
+        return [
+            entry
+            for entry in self.entries.split()
+            if plain_address(entry) == entry or plain_domain(entry) == entry
+        ]
 
     @property
     def recipient(self) -> str:
         """Who the link is for, as admins read it: "priya@northfield.example", or "fund.com"."""
-        return ", ".join(self.entry_list)
+        return ", ".join(self.entry_list) or "nobody"
 
     @property
     def addresses(self) -> list[str]:

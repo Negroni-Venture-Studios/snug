@@ -879,7 +879,7 @@ def email_test_view(request: HttpRequest) -> HttpResponse:
 @login_required
 @require_POST
 def notifications_view(request: HttpRequest) -> HttpResponse:
-    """Whether this admin is emailed the first time each link is opened, and weekly."""
+    """Whether this admin is emailed the first time each person opens a link, and weekly."""
     admin = _admin(request)
     first_open = request.POST.get("first_open") == "on"
     weekly = request.POST.get("weekly_digest") == "on"
@@ -1090,7 +1090,8 @@ def _resend(request: HttpRequest, target: Admin, by: Admin) -> HttpResponse:
 
     It asks for their current password, as the first did.
     """
-    if _password_failures_since_reset(target) >= RESEND_PASSWORD_FAILURES:
+    remaining = RESEND_PASSWORD_FAILURES - _password_failures_since_reset(target)
+    if remaining <= 0:
         error = (
             f"Their links have had {RESEND_PASSWORD_FAILURES} wrong passwords since the reset, "
             "so Snug sends no more. On the server, run sudo snug reset-password and then "
@@ -1101,7 +1102,12 @@ def _resend(request: HttpRequest, target: Admin, by: Admin) -> HttpResponse:
     if not setup.send_reset(target, token, by):
         error = "The email could not be sent, so nothing has changed. Try again."
         return _change_page(request, target, "resend", error=error, status=503)
-    setup.issue(target, AdminSetup.Purpose.RESET, by, token=token)
+    # Only what remains of the ten: a link sent at nine allows one more
+    # (security audit of 1.4.0, F15).
+    per_link = limits.RESET_CODE_FAILURES_PER_LINK
+    setup.issue(
+        target, AdminSetup.Purpose.RESET, by, token=token, failures=max(0, per_link - remaining)
+    )
     _audit(request, "admin.setup_link_resent", by.email, target.email)
     setup.alert_admins(
         subject=f"{target.email} was sent a new setup link",

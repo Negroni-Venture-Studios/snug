@@ -1,10 +1,10 @@
 {% extends "snug/admin_base.html" %}
 {% load snug %}
-{% block title %}Block on {{ link.label }}{% endblock %}
+{% block title %}{% if unblock %}Unblock{% else %}Block{% endif %} on {{ link.label }}{% endblock %}
 {% block content %}
 <div class="crumbs"><a href="{% url 'links:list' %}">Links</a> / <a href="{% url 'links:detail' link.ref %}"><span class="mono">{{ link.label }}</span></a> / Block</div>
 {% if error %}
-<div class="title-row"><div><h1 class="page-title">Block someone on {{ link.label }}</h1></div></div>
+<div class="title-row"><div><h1 class="page-title">{% if unblock %}Unblock{% else %}Block{% endif %} someone on {{ link.label }}</h1></div></div>
 <div class="notice notice-error" role="alert">{% icon "warning-circle" %}<span>{{ error }}</span></div>
 <div class="form-foot left"><a class="btn" href="{% url 'links:detail' link.ref %}">Back</a></div>
 {% else %}

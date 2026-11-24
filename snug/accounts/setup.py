@@ -55,8 +55,13 @@ def issue(
     token: str | None = None,
     *,
     hours: int = SETUP_HOURS,
+    failures: int = 0,
 ) -> str:
-    """A new setup link for this admin, replacing any other. Returns the token, once."""
+    """A new setup link for this admin, replacing any other. Returns the token, once.
+
+    `failures` starts the link with attempts already counted, for a link that
+    should allow fewer than the usual number.
+    """
     token = token or new_token()
     with transaction.atomic():
         AdminSetup.objects.filter(admin=admin).delete()
@@ -66,6 +71,7 @@ def issue(
             token_hash=_hash(token),
             created_by=by,
             expires_at=timezone.now() + timedelta(hours=hours),
+            failures=failures,
         )
     return token
 

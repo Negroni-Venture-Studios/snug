@@ -24,10 +24,11 @@ from snug.viewer.models import VerificationCode
 
 CODE_MINUTES = 10
 MAX_FAILURES = 5
-# With five tries per code, this allows ten codes' worth of guesses a day: a
-# one-in-20,000 chance of guessing right, and each new code emails the owner.
-# Only checks against a live code count, so using up the day takes about ten
-# codes, each emailed to the link's owner and rate limited per link. An
+# With five tries per code, this allows ten codes' worth of guesses a day for
+# each link: a one-in-20,000 chance of guessing right. Only checks against a
+# live code count, so using up the day takes about ten codes, each rate
+# limited. On a link for one address each code is emailed to its owner; on a
+# link for a domain it can go to an address there that nobody reads. An
 # expired code is deleted before it is looked for, so it counts as no code.
 CHECKS_PER_LINK_PER_DAY = ratelimit.Limit("viewer.code.check.link", limit=50, window=24 * 60 * 60)
 _CODE = re.compile(r"[0-9]{6}")
@@ -80,6 +81,11 @@ def check(link: Link, email: str, typed: str) -> Result:
     # spent, it read "Too many attempts" where no code read "expired", which
     # once the neutral period ended said whether one had been sent.
     VerificationCode.objects.filter(link=link, expires_at__lte=timezone.now()).delete()
+    # The day's cap is read before any code is looked for, so a spent cap
+    # reads the same for every address, with a live code or not (security
+    # audit of 1.4.0, F11).
+    if ratelimit.exceeded(CHECKS_PER_LINK_PER_DAY, str(link.pk)):
+        return Result(ok=False, tries_left=0, limited=True)
     live = VerificationCode.objects.filter(link=link, email=_address(email)).first()
     if live is None:
         # Nothing to guess, so nothing is counted: posting codes to a link

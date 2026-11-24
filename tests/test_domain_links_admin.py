@@ -245,3 +245,60 @@ def test_verifying_records_the_person(document: Document) -> None:
     visitor.post(f"/v/{issued.token}/code", {"email": PRIYA, "code": code}, secure=True)
     person = LinkPerson.objects.get()
     assert person.email == PRIYA and person.first_opened_at is None
+
+
+# ---------------------------------------------------------------- a block ends sessions and codes
+# Security audit of 1.4.0, F13: unblocking brought back the sessions from
+# before the block, where the notice has them coming back with a new code.
+
+
+def block_and_unblock(client: Client, link: Link, email: str) -> None:
+    for action in ("block", "unblock"):
+        response = client.post(f"/admin/links/{link.ref}/{action}", {"email": email}, secure=True)
+        assert response.status_code == 302
+
+
+def test_after_an_unblock_an_old_session_needs_a_new_code(
+    client: Client, document: Document
+) -> None:
+    from snug.viewer.models import ViewerSession
+
+    issued = firm_link(document)
+    priya = session_for(issued.link, PRIYA)
+    block_and_unblock(client, issued.link, PRIYA)
+    with pytest.raises(NotVerified):
+        authorise(priya, issued.token)
+    assert not ViewerSession.objects.filter(link=issued.link, email=PRIYA).exists()
+
+
+def test_a_code_from_before_a_block_does_not_work_after_an_unblock(
+    client: Client, document: Document
+) -> None:
+    from snug.viewer import codes
+
+    issued = firm_link(document)
+    code = codes.issue(issued.link, PRIYA)
+    block_and_unblock(client, issued.link, PRIYA)
+    assert not codes.check(issued.link, PRIYA, code).ok
+
+
+def test_a_block_leaves_other_people_and_other_links_alone(
+    client: Client, document: Document
+) -> None:
+    issued, other = firm_link(document), firm_link(document)
+    tomas = session_for(issued.link, "tomas@northfield.example")
+    elsewhere = session_for(other.link, PRIYA)
+    block_and_unblock(client, issued.link, PRIYA)
+    assert authorise(tomas, issued.token).session.email == "tomas@northfield.example"
+    assert authorise(elsewhere, other.token).session.email == PRIYA
+
+
+def test_unblocking_someone_the_link_does_not_admit_says_so(
+    client: Client, document: Document
+) -> None:
+    issued = firm_link(document)
+    data = {"email": "sam@eastgate.example"}
+    response = client.post(f"/admin/links/{issued.link.ref}/unblock", data, secure=True)
+    assert response.status_code == 400
+    assert "cannot open this link anyway" in response.content.decode()
+    assert not AuditEvent.objects.filter(action="link.person_unblocked").exists()

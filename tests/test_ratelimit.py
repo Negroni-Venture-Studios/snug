@@ -58,3 +58,15 @@ def test_allow_counts_first_then_decides() -> None:
     limit = ratelimit.Limit("test.allow", limit=2, window=60)
     assert [ratelimit.allow(limit, "a", now=NOW) for _ in range(3)] == [True, True, False]
     assert ratelimit.exceeded(limit, "a", now=NOW)
+
+
+def test_give_back_uncounts_one_attempt_in_its_own_window() -> None:
+    for _ in range(3):
+        assert ratelimit.allow(LIMIT, "a", now=1000)
+    ratelimit.give_back(LIMIT, "a", now=1000)
+    assert ratelimit.allow(LIMIT, "a", now=1000)
+    assert not ratelimit.allow(LIMIT, "a", now=1000)
+    # In another window there is nothing to give back, and nothing goes below zero.
+    ratelimit.give_back(LIMIT, "a", now=2000)
+    ratelimit.give_back(LIMIT, "b", now=1000)
+    assert ratelimit.hit(LIMIT, "b", now=1000) == 1

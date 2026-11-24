@@ -12,7 +12,7 @@ import pytest
 from django.core import mail as django_mail
 from django.test import Client
 
-from snug.accounts import setup
+from snug.accounts import limits, setup
 from snug.accounts.models import Admin, AdminSetup
 from snug.audit.models import AuditEvent, record
 from tests.test_admin_changes import admin, change, client, other
@@ -140,3 +140,28 @@ def test_wrong_passwords_before_the_reset_do_not_count(
     change(client, admin, "reset", OTHER)  # a fresh reset starts the count again
     AdminSetup.objects.all().delete()
     assert change(client, admin, "reset", OTHER).status_code == 302
+
+
+# Security audit of 1.4.0, F15: a new link gives only the wrong passwords that
+# remain of the ten, so four, five and five could be checked across three.
+def wrong_passwords(count: int) -> None:
+    for _ in range(count):
+        record(
+            "admin.setup_failed",
+            actor_type=AuditEvent.ActorType.VIEWER,
+            target=OTHER,
+            details={"reason": "password"},
+        )
+
+
+@pytest.mark.parametrize(("before", "allowed"), [(0, 5), (4, 5), (6, 4), (9, 1)])
+def test_a_new_link_allows_only_what_remains_of_ten(
+    client: Client, admin: Admin, stuck: Admin, before: int, allowed: int
+) -> None:
+    wrong_passwords(before)
+    assert change(client, admin, "reset", OTHER).status_code == 302
+    row = AdminSetup.objects.get()
+    attempts = 0
+    while setup.attempt(row, limits.RESET_CODE_FAILURES_PER_LINK):
+        attempts += 1
+    assert attempts == allowed

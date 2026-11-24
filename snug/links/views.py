@@ -486,11 +486,7 @@ def link_block(request: HttpRequest, ref: str) -> HttpResponse:
     context = {"tab": "links", "link": link, "email": address, "error": refused}
     if request.method == "GET" or refused:
         return render(request, "links/block.html", context, status=400 if refused else 200)
-    person, _ = LinkPerson.objects.get_or_create(link=link, email=address)
-    if person.blocked_at is None:
-        person.blocked_at = timezone.now()
-        person.blocked_by = _admin(request)
-        person.save(update_fields=["blocked_at", "blocked_by"])
+    if service.block(link, address, _admin(request)):
         _audit_person(request, "link.person_blocked", link, address)
     text = f"Blocked {address}. They can no longer open {link.label}, including pages already open."
     return notices.saved(request, reverse("links:detail", kwargs={"ref": link.ref}), "people", text)
@@ -501,7 +497,16 @@ def link_block(request: HttpRequest, ref: str) -> HttpResponse:
 @require_http_methods(["POST"])
 def link_unblock(request: HttpRequest, ref: str) -> HttpResponse:
     link = get_object_or_404(Link.objects.select_related("document", "room"), ref=ref)
-    address, _ = _person(request, link)
+    address, refused = _person(request, link)
+    if refused:
+        context = {
+            "tab": "links",
+            "link": link,
+            "email": address,
+            "error": refused,
+            "unblock": True,
+        }
+        return render(request, "links/block.html", context, status=400)
     unblocked = LinkPerson.objects.filter(
         link=link, email=address, blocked_at__isnull=False
     ).update(blocked_at=None, blocked_by=None)

@@ -4,6 +4,7 @@
 {% block content %}
 <div class="crumbs"><a href="{% url 'links:list' %}">Links</a> / <a href="{{ link.target_url }}">{{ link.target_title }}</a> / <span class="mono">{{ link.label }}</span></div>
 <div class="title-row"><div><h1 class="page-title">{{ link.recipient }}</h1><div class="page-meta"><span class="mono">{{ link.label }}</span><span>{{ link.target_title }}</span>{% if link.note %}<span>{{ link.note }}</span>{% endif %}<span>{% if link.status == "active" %}Active{% elif link.status == "expired" %}Expired{% else %}Revoked{% endif %}</span></div></div></div>
+{% if not link.entry_list %}<div class="notice notice-error" role="alert">{% icon "warning-circle" %}<span>This link opens for nobody. It was made before Snug 1.4.0 for an address that Snug no longer accepts. Revoke it, then create a new link.</span></div>{% endif %}
 
 <section class="section" id="people">
   <div class="section-head stacked"><h2>People</h2><p>{% if link.for_one_person %}This link is for one person. To stop it, revoke it.{% else %}Everyone who has verified their address on this link. Blocking one person stops them at once, including pages already open, and the link keeps working for everyone else.{% endif %}</p></div>

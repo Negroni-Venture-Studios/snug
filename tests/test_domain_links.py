@@ -3,11 +3,12 @@
 A link lists addresses and domains. Anyone it admits verifies their own
 address and reads under it: their own session, code, NDA acceptance and
 first-open email. Every request checks the session's address is still
-admitted, so narrowing the link, or blocking one person, ends their access
+admitted, so blocking one person ends their access
 at once while everyone else carries on.
 """
 
 import re
+import types
 from typing import Any
 
 import pytest
@@ -18,7 +19,7 @@ from django.utils import timezone
 
 from snug.analytics import notify
 from snug.audit.models import AuditEvent
-from snug.core import mail
+from snug.core import mail, ratelimit
 from snug.documents.models import Document, DocumentVersion
 from snug.links import service
 from snug.links.models import Link, LinkPerson
@@ -336,3 +337,89 @@ def test_a_tagged_address_listed_on_its_own_matches_exactly(document: Document) 
 def test_a_blocked_person_cannot_come_back_with_a_tag(firm: service.Issued) -> None:
     LinkPerson.objects.create(link=firm.link, email=PRIYA, blocked_at=timezone.now())
     assert not firm.link.admits("priya+again@northfield.example")
+
+
+# ---------------------------------------------------------------- the order of the send limits
+# Security audit of 1.4.0, F12 and N1: the allowance of codes to one inbox
+# counts only codes about to be sent, and one link sends at most 30 an hour.
+
+
+def counted(limit: ratelimit.Limit, identity: str) -> int:
+    from snug.core.models import RateLimitWindow
+
+    windows = RateLimitWindow.objects.filter(key=limit.key(identity))
+    return sum(windows.values_list("count", flat=True))
+
+
+def ask(issued: service.Issued, email: str, number: int) -> Any:
+    client = Client(REMOTE_ADDR=f"198.51.{number // 200}.{number % 200 + 1}")
+    return post(client, f"/v/{issued.token}/code/send", {"email": email})
+
+
+@pytest.mark.usefixtures("email_on")
+def test_a_request_refused_for_too_many_people_spends_no_inbox_allowance(
+    firm: service.Issued, document: Document, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(mail, "in_background", lambda task: task())
+    for number in range(limits.NEW_ADDRESSES_PER_LINK.limit):
+        assert ask(firm, f"partner{number}@northfield.example", number).status_code == 200
+    for number in range(10):
+        assert ask(firm, TOMAS, 100 + number).status_code == 429
+    assert counted(limits.SEND_PER_EMAIL, TOMAS) == 0
+    own = for_firm(document, entries=[TOMAS])
+    assert ask(own, TOMAS, 150).status_code == 200
+
+
+@pytest.mark.usefixtures("email_on")
+def test_an_address_refused_by_its_inbox_takes_one_place_on_the_link(
+    firm: service.Issued, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(mail, "in_background", lambda task: task())
+    for _ in range(limits.SEND_PER_EMAIL.limit):
+        ratelimit.hit(limits.SEND_PER_EMAIL, TOMAS)
+    for number in range(4):
+        response = ask(firm, TOMAS, number)
+        assert response.status_code == 429
+        assert "Too many codes have been sent to this address" in response.content.decode()
+    assert counted(limits.NEW_ADDRESSES_PER_LINK, str(firm.link.pk)) == 1
+    # Nor do the refusals use up the link's own allowance of codes.
+    assert counted(limits.CODES_PER_LINK, str(firm.link.pk)) == 0
+    assert not django_mail.outbox
+
+
+@pytest.mark.usefixtures("email_on")
+def test_one_inbox_gets_ten_codes_an_hour_across_every_link(
+    firm: service.Issued, document: Document, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Decided 24 November 2026: one allowance for each inbox, whichever link
+    # admits it, so a domain link can use up a colleague's codes for an hour.
+    hour = 1_800_000_000 - 1_800_000_000 % 3600 + 1
+    clock = {"now": float(hour)}
+    monkeypatch.setattr(ratelimit, "time", types.SimpleNamespace(time=lambda: clock["now"]))
+    monkeypatch.setattr(mail, "in_background", lambda task: task())
+    for number in range(limits.SEND_PER_EMAIL.limit):
+        if number == limits.SEND_PER_LINK.limit:
+            clock["now"] += limits.WINDOW  # the next 15 minutes, in the same hour
+        assert ask(firm, PRIYA, number).status_code == 200
+    own = for_firm(document, entries=[PRIYA])
+    response = ask(own, PRIYA, 50)
+    assert response.status_code == 429
+    assert "Too many codes have been sent to this address" in response.content.decode()
+    clock["now"] = hour + 3600.0
+    assert ask(own, PRIYA, 51).status_code == 200
+
+
+@pytest.mark.usefixtures("email_on")
+def test_one_link_sends_at_most_thirty_codes_an_hour(
+    firm: service.Issued, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(mail, "in_background", lambda task: task())
+    # Ten people, three codes each: within every other limit.
+    for number in range(limits.CODES_PER_LINK.limit):
+        email = f"partner{number % 10}@northfield.example"
+        assert ask(firm, email, number).status_code == 200
+    assert limits.CODES_PER_LINK.limit == 30 and len(django_mail.outbox) == 30
+    refused = ask(firm, "partner0@northfield.example", 60)
+    assert refused.status_code == 429
+    assert "This link has sent codes to many people" in refused.content.decode()
+    assert len(django_mail.outbox) == 30

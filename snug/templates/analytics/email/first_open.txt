@@ -6,6 +6,6 @@ Where: {% if where %}{{ where }}{% else %}Not known{% endif %}
 This is the first time they have opened link {{ ref }}. See what they opened:
 {{ person_url }}
 
-Every admin of {{ company|default:"this Snug instance" }} gets an email like this the first time each link is opened. To stop them, untick the box under Your account in Settings:
+Every admin of {{ company|default:"this Snug instance" }} gets an email like this the first time each person opens a link. To stop them, untick the box under Your account in Settings:
 {{ settings_url }}
 {% endautoescape %}

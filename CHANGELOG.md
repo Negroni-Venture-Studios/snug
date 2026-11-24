@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-24
+
+Links for a whole firm: one link for several people or everyone at an email domain, each reading under their own address, and blocking one person on a link. Also, changing the backup bucket or key on a running server, and a new setup link for an admin stuck resetting.
+
 ### Added
 
 - A link can now be for several people, or for everyone at a firm's email domain, such as `northfield.com`: enter them under *Who it is for*, separated by commas. Each person verifies their own address and reads under it, with their own watermark, NDA acceptance, and first-open email. A link's page, opened from its recipient on the Links page, lists the people who have verified on it, and *Block* stops one person at once while the link keeps working for the rest. Free email domains such as gmail.com are refused as domains.
@@ -12,9 +16,15 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 ### Changed
 
 - The first-open email is now sent the first time each person opens a link, not only the first time anyone does.
+- After a wrong code, the code page no longer names the email address, and says "That code is not right, or it has expired." for every wrong code, without counting the tries left.
+- One link now sends at most 30 codes an hour, to everyone it admits.
+- Blocking someone on a link now also ends their sessions and code on it, so if they are unblocked they need a new code.
+- A new setup link for an admin who is resetting allows only the wrong passwords that remain of the ten.
+- Updating: a link made before 1.4.0 for an address that is not a plain one, such as one at an internationalised domain or with a quoted part, opens for nobody after the update. Its page says so: revoke it and create a new one. A code sent just before the update stops working, and the reader asks for another. Going back to 1.3.0 or earlier needs a backup made before the update.
 
 ### Fixed
 
+- A request for a code refused by another limit no longer uses up that inbox's allowance of ten codes an hour.
 - An admin whose link to set up their authenticator again had expired, or been used up by wrong passwords, could not sign in and could not be invited, since they were already an admin. Another admin can now choose *Send a new link* beside them in Settings. The page for a used link says who can send another.
 
 ## [1.3.0] - 2026-11-24
@@ -326,7 +336,8 @@ External security audits found these.
 - Project documents: README, contributing guide, security policy, code of conduct, trademarks note, and agent instructions.
 - DESIGN.md, recording the architecture, the agreed decisions, and the front-end design, with clickable mockups and the Snug logo in `docs/design/`.
 
-[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.2...v1.1.3
