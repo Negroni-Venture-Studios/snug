@@ -879,7 +879,7 @@ def email_test_view(request: HttpRequest) -> HttpResponse:
 @login_required
 @require_POST
 def notifications_view(request: HttpRequest) -> HttpResponse:
-    """Whether this admin is emailed the first time each link is opened, and weekly."""
+    """Whether this admin is emailed the first time each person opens a link, and weekly."""
     admin = _admin(request)
     first_open = request.POST.get("first_open") == "on"
     weekly = request.POST.get("weekly_digest") == "on"

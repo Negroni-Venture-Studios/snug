@@ -36,7 +36,7 @@ class Admin(AbstractBaseUser):
     # The last 30-second time step accepted, so a code can never be replayed.
     totp_last_step = models.BigIntegerField(default=0)
     totp_confirmed_at = models.DateTimeField(null=True, blank=True)
-    # Whether to email this admin the first time each link is opened.
+    # Whether to email this admin the first time each person opens a link.
     notify_first_open = models.BooleanField(default=True)
     # Whether to email this admin a summary of the week's reading on Mondays
     # (snug.analytics.digest), and when the last one was claimed for them.
