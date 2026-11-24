@@ -24,7 +24,7 @@ from snug.analytics.models import PageView, Visit
 from snug.audit.models import AuditEvent, record
 from snug.core import mail
 from snug.documents.models import Document
-from snug.links.models import Link
+from snug.links.models import Link, LinkPerson
 from tests.test_overview import make_link
 
 pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("email_on")]
@@ -61,11 +61,13 @@ def a_week_of_reading(now: datetime) -> dict[str, Link]:
     model = Document.objects.create(title="Financial model")
     priya = make_link("priya@northfield.example", document=deck)
     priya.note = "Partner, Northfield"
-    priya.first_opened_at = now - timedelta(days=2)
+    LinkPerson.objects.create(
+        link=priya, email=priya.email, first_opened_at=now - timedelta(days=2)
+    )
     priya.save()
     sam = make_link("sam@eastgate.example", document=deck)
-    sam.first_opened_at = now - timedelta(days=30)  # opened before this week
-    sam.save()
+    # Opened before this week.
+    LinkPerson.objects.create(link=sam, email=sam.email, first_opened_at=now - timedelta(days=30))
     lena = make_link("lena@foxglove.example", document=model)
     lena.expires_at = now + timedelta(days=3)
     lena.save()

@@ -1,4 +1,9 @@
-"""Links: one per person, for one document or one room.
+"""Links: for one document or one room, and for the people it lists.
+
+A link lists who may open it: email addresses, and whole domains such as
+fund.com, which admit any address there (issue #174). Each person still
+verifies their own address and reads under it. A link for one address is a
+list of one, and its `email` is that address.
 
 The token in a link's URL is 256 random bits, and only its SHA-256 hash is
 stored. A leaked database or backup therefore exposes no working links. The
@@ -6,10 +11,14 @@ full link is shown once, when it is created or reissued.
 """
 
 import hashlib
+import re
 import secrets
 from datetime import date, datetime, timedelta
+from typing import Any
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import models
 from django.utils import timezone
 
@@ -35,12 +44,56 @@ def new_ref() -> str:
 MAX_MESSAGE = 1000
 
 
+# Characters a mail header could read as a second recipient, a comment, or a
+# quoted part, which a plain address never has.
+_NOT_PLAIN = frozenset(' \t\r\n"(),:;<>[]\\')
+_DOMAIN_LABEL = re.compile(r"[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?")
+
+
+def plain_address(email: str) -> str:
+    """The address in lower case if it is a plain one, as codes are sent to, else "".
+
+    Plain means one @, nothing in `_NOT_PLAIN`, and a domain of letters,
+    digits and hyphens. Checked with string operations and a pattern over one
+    bounded domain label at a time, so no input can make it slow.
+    """
+    address = email.strip().casefold()
+    if len(address) > 254 or address.count("@") != 1 or not _NOT_PLAIN.isdisjoint(address):
+        return ""
+    local, _, domain = address.partition("@")
+    labels = domain.split(".")
+    if not local or ".." in address or len(labels) < 2:
+        return ""
+    if not all(len(label) <= 63 and _DOMAIN_LABEL.fullmatch(label) for label in labels):
+        return ""
+    try:
+        validate_email(address)
+    except ValidationError:
+        return ""
+    return address
+
+
+def domain_of(email: str) -> str:
+    return email.rpartition("@")[2].casefold()
+
+
+def is_domain(entry: str) -> bool:
+    """An entry is a domain, such as fund.com, or else an email address."""
+    return "@" not in entry
+
+
 class Link(models.Model):
     # SHA-256 of the URL token. The token itself is never stored.
     token_hash = models.CharField(max_length=64, unique=True)
     # A short, non-secret reference for watermarks, emails and the audit log.
     ref = models.CharField(max_length=8, unique=True)
-    email = models.EmailField()
+    # Who may open it, one entry per line, in lower case: an email address,
+    # or a domain such as fund.com, which admits any address there and only
+    # there (subdomains are entries of their own).
+    entries = models.TextField()
+    # The address, for a link to one person, and empty for any other; kept
+    # from `entries` on saving.
+    email = models.EmailField(blank=True)
     note = models.CharField(max_length=200, blank=True)
     # The cover message: plain text from the founder, shown to the investor.
     message = models.TextField(blank=True)
@@ -89,7 +142,54 @@ class Link(models.Model):
         )
 
     def __str__(self) -> str:
-        return f"L-{self.ref} for {self.email}"
+        return f"L-{self.ref} for {self.recipient}"
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        listed = self.entry_list
+        self.email = listed[0] if len(listed) == 1 and not is_domain(listed[0]) else ""
+        if "update_fields" in kwargs and "entries" in kwargs["update_fields"]:
+            kwargs["update_fields"] = [*kwargs["update_fields"], "email"]
+        super().save(*args, **kwargs)
+
+    @property
+    def entry_list(self) -> list[str]:
+        return [line for line in self.entries.split() if line]
+
+    @property
+    def recipient(self) -> str:
+        """Who the link is for, as admins read it: "priya@northfield.example", or "fund.com"."""
+        return ", ".join(self.entry_list)
+
+    @property
+    def has_domain(self) -> bool:
+        return any(is_domain(entry) for entry in self.entry_list)
+
+    def listed(self, email: str) -> bool:
+        """Whether one of the link's entries admits this address, blocked or not."""
+        # Only a plain address is compared, so the domain checked is the one
+        # mail is delivered to: "x@evil.example, y@fund.com" admits nobody.
+        address = plain_address(email)
+        if not address:
+            return False
+        for entry in self.entry_list:
+            if address == entry:
+                return True
+            # Through a domain, not an address with a + tag: most mail servers
+            # deliver priya+x@fund.com to priya@fund.com, so it would let a
+            # blocked person back in under another name (commit security
+            # review, 24 November 2026). Listed on its own, it matches exactly.
+            if is_domain(entry) and domain_of(address) == entry and "+" not in address:
+                return True
+        return False
+
+    def admits(self, email: str) -> bool:
+        """Whether this address may open the link: listed, and not blocked on it."""
+        return self.listed(email) and not (
+            self.pk is not None
+            and LinkPerson.objects.filter(
+                link=self, email=plain_address(email), blocked_at__isnull=False
+            ).exists()
+        )
 
     @property
     def target_title(self) -> str:
@@ -168,3 +268,28 @@ class Link(models.Model):
             .filter(token_hash=hash_token(token))
             .first()
         )
+
+
+class LinkPerson(models.Model):
+    """One person on a link: someone who opened it, or whom an admin blocked on it.
+
+    Their first open is claimed here, once, for the first-open email. A blocked
+    address is refused by `Link.admits`, so their session ends at once, while
+    everyone else on the link carries on.
+    """
+
+    link = models.ForeignKey(Link, on_delete=models.CASCADE, related_name="people")
+    # In lower case, as `Link.admits` compares it.
+    email = models.EmailField()
+    first_opened_at = models.DateTimeField(null=True, blank=True)
+    blocked_at = models.DateTimeField(null=True, blank=True)
+    blocked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+
+    class Meta:
+        ordering = ("email",)
+        constraints = (models.UniqueConstraint(fields=("link", "email"), name="link_person_once"),)
+
+    def __str__(self) -> str:
+        return f"{self.email} on {self.link.label}"

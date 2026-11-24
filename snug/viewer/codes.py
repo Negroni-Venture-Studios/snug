@@ -1,10 +1,11 @@
-"""Six-digit codes, emailed to prove a viewer can read the link's inbox.
+"""Six-digit codes, emailed to prove a viewer can read an inbox the link admits.
 
 A code is single use, lasts ten minutes and survives at most five wrong
-attempts. Each link has at most one live code: asking for another replaces it,
-with five fresh tries, so the checks for each link are also capped per day.
-The code is kept only as an HMAC over the link's current token hash, so
-reissuing the link also ends its code.
+attempts. Each address on a link has at most one live code: asking for another
+replaces it, with five fresh tries, and the checks for each link are also
+capped per day. A code proves only the address it was sent to (issue #174).
+It is kept only as an HMAC over the link's current token hash and that
+address, so reissuing the link also ends its codes.
 """
 
 import re
@@ -41,43 +42,55 @@ class Result:
     limited: bool = False  # this link's checks for the day are used up
 
 
-def _digest(link: Link, code: str) -> str:
+def _address(email: str) -> str:
+    return email.strip().casefold()
+
+
+def _digest(link: Link, email: str, code: str) -> str:
     return salted_hmac(
-        "snug.viewer.code", f"{link.pk}:{link.token_hash}:{code}", algorithm="sha256"
+        "snug.viewer.code",
+        f"{link.pk}:{link.token_hash}:{_address(email)}:{code}",
+        algorithm="sha256",
     ).hexdigest()
 
 
-def issue(link: Link) -> str:
-    """A new code for this link, replacing any other. Returns it, once."""
+def issue(link: Link, email: str) -> str:
+    """A new code for this address on this link, replacing its last. Returns it, once."""
     code = f"{secrets.randbelow(1_000_000):06d}"
     with transaction.atomic():
-        VerificationCode.objects.filter(link=link).delete()
+        VerificationCode.objects.filter(link=link, email=_address(email)).delete()
         VerificationCode.objects.create(
             link=link,
-            code_hash=_digest(link, code),
+            email=_address(email),
+            code_hash=_digest(link, email, code),
             expires_at=timezone.now() + timedelta(minutes=CODE_MINUTES),
         )
     return code
 
 
-def check(link: Link, typed: str) -> Result:
-    """Try a code. A correct code is used up; a wrong one counts against it."""
+def discard(link: Link, email: str) -> None:
+    """Forget this address's code, as when emailing it failed."""
+    VerificationCode.objects.filter(link=link, email=_address(email)).delete()
+
+
+def check(link: Link, email: str, typed: str) -> Result:
+    """Try a code for this address. A correct code is used up; a wrong one counts against it."""
     # An expired code reads exactly as no code (follow-up audit of 1.2.0, a
     # remaining path for F6): left until housekeeping, with the day's checks
     # spent, it read "Too many attempts" where no code read "expired", which
     # once the neutral period ended said whether one had been sent.
     VerificationCode.objects.filter(link=link, expires_at__lte=timezone.now()).delete()
-    live = VerificationCode.objects.filter(link=link).first()
+    live = VerificationCode.objects.filter(link=link, email=_address(email)).first()
     if live is None:
         # Nothing to guess, so nothing is counted: posting codes to a link
         # with no live code must not lock out the person it was sent to.
         return Result(ok=False, tries_left=0)
     if not ratelimit.allow(CHECKS_PER_LINK_PER_DAY, str(link.pk)):
         return Result(ok=False, tries_left=0, limited=True)
-    return _attempt(link, live, typed)
+    return _attempt(link, live, email, typed)
 
 
-def _attempt(link: Link, live: VerificationCode, typed: str) -> Result:
+def _attempt(link: Link, live: VerificationCode, email: str, typed: str) -> Result:
     # Claim a try before comparing. The guarded update counts it only while
     # tries remain and the code is unexpired, so requests racing on the same
     # code cannot make more than five comparisons between them.
@@ -89,7 +102,7 @@ def _attempt(link: Link, live: VerificationCode, typed: str) -> Result:
         return Result(ok=False, tries_left=0)
 
     code = _SEPARATORS.sub("", typed)
-    if _CODE.fullmatch(code) and constant_time_compare(live.code_hash, _digest(link, code)):
+    if _CODE.fullmatch(code) and constant_time_compare(live.code_hash, _digest(link, email, code)):
         # Deleting is the use: of two requests with the same code, only one
         # deletes the row, so a code can never be used twice.
         deleted, _ = VerificationCode.objects.filter(pk=live.pk).delete()

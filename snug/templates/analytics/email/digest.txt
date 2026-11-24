@@ -4,12 +4,12 @@
 {% for reader in document.readers %}- {{ reader.email }}{% if reader.note %} ({{ reader.note }}){% endif %}, {{ reader.time }}
 {% endfor %}{% endfor %}{% if week.first_opens %}
 Opened for the first time
-{% for link in week.first_opens %}- {{ link.email }}, {{ link.label }}, {{ link.target_title }}
+{% for person in week.first_opens %}- {{ person.email }}, {{ person.link.label }}, {{ person.link.target_title }}
 {% endfor %}{% endif %}
 Downloads: {{ week.downloads }}
 {% if week.expiring %}
 Links that expire in the next 7 days
-{% for link in week.expiring %}- {{ link.email }}, {{ link.label }}, {{ link.target_title }}, last day {{ link.last_day|date:"j F" }}
+{% for link in week.expiring %}- {{ link.recipient }}, {{ link.label }}, {{ link.target_title }}, last day {{ link.last_day|date:"j F" }}
 {% endfor %}
 To give someone more time, use Extend beside the link in Snug.
 {% endif %}

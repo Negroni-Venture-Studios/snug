@@ -24,7 +24,7 @@ from snug.analytics.models import PageView
 from snug.audit.models import AuditEvent
 from snug.core import mail
 from snug.core.models import company_name
-from snug.links.models import Link
+from snug.links.models import Link, LinkPerson
 
 DAYS = 7
 SEND_AT = time(8, 0)  # Monday, in the instance's time zone
@@ -82,7 +82,7 @@ class Week:
     start: datetime
     end: datetime
     documents: list[DocumentWeek]
-    first_opens: list[Link]
+    first_opens: list[LinkPerson]
     downloads: int
     expiring: list[Link]
 
@@ -131,9 +131,9 @@ def build(now: datetime) -> Week:
         end=now,
         documents=documents,
         first_opens=list(
-            links.filter(first_opened_at__gte=start, first_opened_at__lt=now).order_by(
-                "first_opened_at"
-            )
+            LinkPerson.objects.select_related("link__document", "link__room")
+            .filter(first_opened_at__gte=start, first_opened_at__lt=now)
+            .order_by("first_opened_at")
         ),
         downloads=AuditEvent.objects.filter(
             action="viewer.downloaded", at__gte=start, at__lt=now

@@ -34,7 +34,7 @@ from snug.core.models import SiteSettings, company_name
 from snug.documents import storage
 from snug.documents.models import PART_SECONDS, DocumentVersion
 from snug.documents.storage import RENDER_WIDTHS
-from snug.links.models import Link
+from snug.links.models import Link, plain_address
 from snug.nda import terms
 from snug.rendering import pages as rendering
 from snug.rendering.sandbox import WorkerError
@@ -49,12 +49,12 @@ from snug.viewer.access import (
     check_place,
     find_link,
 )
-from snug.viewer.models import VerificationCode
 
 CHECK_ATTRIBUTE = "snug_viewer_check"
 TOO_MANY = "Too many attempts. Wait 15 minutes, then try again."
 # Ten codes to one inbox, counted by the hour (limits.SEND_PER_EMAIL).
 TOO_MANY_CODES = "Too many codes have been sent to this address. Try again in an hour."
+TOO_MANY_PEOPLE = "This link has sent codes to many people in the last hour. Try again later."
 # Downloads are counted by the hour (limits.DOWNLOAD_PER_LINK).
 TOO_MANY_DOWNLOADS = "Too many downloads on this link. Try again in an hour."
 
@@ -160,7 +160,7 @@ def _audit(request: HttpRequest, action: str, link: Link, actor: str, **details:
         action,
         actor_type=AuditEvent.ActorType.VIEWER,
         actor=actor[:254],
-        target=link.email,
+        target=link.recipient[:254],
         ip_address=address,
         user_agent=user_agent(request),
         country=geoip.country(address or "") or "",
@@ -173,7 +173,8 @@ def _typed_email(request: HttpRequest) -> str:
 
 
 def _matches(typed: str, link: Link) -> bool:
-    return typed.casefold() == link.email.casefold()
+    """Whether the link admits this address: listed, and not blocked on it."""
+    return link.admits(typed)
 
 
 def _context(link: Link, token: str, **extra: Any) -> dict[str, Any]:
@@ -208,9 +209,11 @@ def _gate_page(
     status: int = 200,
 ) -> HttpResponse:
     """The landing page for a browser with no session for this link."""
-    if status == 200:
-        # While the investor opens the link, or fetches their code, the first
-        # pages are stamped for them (snug.rendering.pages.stamp_ahead).
+    if status == 200 and link.email:
+        # While the investor opens a link for them alone, or fetches their
+        # code, the first pages are stamped for them
+        # (snug.rendering.pages.stamp_ahead). A link for a domain does not
+        # yet know who is reading.
         rendering.stamp_ahead(link)
     template = "viewer/verify.html" if link.require_verification else "viewer/open.html"
     context = _context(link, token, error=error, typed=typed)
@@ -229,13 +232,15 @@ def _code_page(
 ) -> HttpResponse:
     # Show the address only if this request carried it, so the page never
     # tells a stranger who the link was sent to. In neutral mode it is never
-    # shown, and the resend form carries back whatever was typed.
+    # shown, and the forms carry back whatever was typed: the code proves
+    # only the address it was sent to.
     typed = _typed_email(request)
-    shown = link.email if _matches(typed, link) and not neutral else ""
+    shown = plain_address(typed) if _matches(typed, link) and not neutral else ""
     context = _context(
         link,
         token,
         shown=shown,
+        address=typed,
         resend=typed if neutral else shown,
         error=error,
         spent=spent,
@@ -244,7 +249,9 @@ def _code_page(
     return render(request, "viewer/code.html", context, status=status)
 
 
-def _send(link: Link, code: str, company: str, via: mail.Outgoing | None = None) -> bool:
+def _send(
+    link: Link, email: str, code: str, company: str, via: mail.Outgoing | None = None
+) -> bool:
     """Email the code. `company` and `via` are read by the caller: this may run on
     another thread, which must not touch the database."""
     context = {
@@ -254,7 +261,7 @@ def _send(link: Link, code: str, company: str, via: mail.Outgoing | None = None)
         "minutes": codes.CODE_MINUTES,
     }
     return mail.send(
-        to=link.email,
+        to=email,
         subject=f"Your code for {company or link.target_title}: {code}",
         text=render_to_string("viewer/email/code.txt", context),
         html=render_to_string("viewer/email/code.html", context),
@@ -559,7 +566,11 @@ def viewer_nda(view: Callable[..., HttpResponse]) -> Callable[..., HttpResponse]
 def nda(request: HttpRequest, access: Access, token: str) -> HttpResponse:
     """The NDA, to accept before anything the link shares is shown."""
     version = terms.current()
-    if version is None or not terms.required(access.link) or terms.accepted(access.link, version):
+    if (
+        version is None
+        or not terms.required(access.link)
+        or terms.accepted(access.link, version, access.session.email)
+    ):
         return _see_other(token)
     context = _context(access.link, token, nda=version, errors={}, name="")
     if request.method == "GET":
@@ -715,32 +726,49 @@ def send_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
         )
         return _gate_page(request, link, token, error=error, typed=typed, status=400)
 
-    per_link = ratelimit.allow(limits.SEND_PER_LINK, str(link.pk))
-    if not per_link or not ratelimit.allow(limits.SEND_PER_EMAIL, link.email):
+    # The plain address the link admitted, which is the one the code goes to.
+    address = plain_address(typed)
+    # Codes to one address on this link, to one inbox across every link, and,
+    # since any address at a domain is a right one, to how many different
+    # addresses the link sends in an hour (issue #174): a stranger cannot use
+    # a domain link to email a firm's staff.
+    per_link = ratelimit.allow(limits.SEND_PER_LINK, f"{link.pk}:{address}")
+    per_inbox = per_link and ratelimit.allow(limits.SEND_PER_EMAIL, address)
+    new_address = per_inbox and not ratelimit.exceeded(
+        limits.ADDRESS_SEEN_ON_LINK, f"{link.pk}:{address}"
+    )
+    per_addresses = not new_address or ratelimit.allow(limits.NEW_ADDRESSES_PER_LINK, str(link.pk))
+    if not (per_link and per_inbox and per_addresses):
         if neutral:
             if _first_refusal(request, limits.SEND_PER_IP, link):
                 _audit(request, "viewer.code_refused", link, typed, reason="rate_limited")
             return _neutral_page(request, link, token)
         # Each limit says how long it lasts: 15 minutes for a link, an hour for an inbox.
         return _send_refused(
-            request, link, token, typed, TOO_MANY if not per_link else TOO_MANY_CODES
+            request,
+            link,
+            token,
+            typed,
+            TOO_MANY if not per_link else TOO_MANY_CODES if not per_inbox else TOO_MANY_PEOPLE,
         )
+    if new_address:
+        ratelimit.hit(limits.ADDRESS_SEEN_ON_LINK, f"{link.pk}:{address}")
     if neutral:
         # Sent without waiting, so the reply takes as long as a wrong
         # address's would. A failure is logged by mail.send, not shown.
-        code = codes.issue(link)
+        code = codes.issue(link, address)
         company = company_name()
         via = mail.outgoing()
-        mail.in_background(lambda: _send(link, code, company, via))
-        _audit(request, "viewer.code_sent", link, link.email, background=True)
+        mail.in_background(lambda: _send(link, address, code, company, via))
+        _audit(request, "viewer.code_sent", link, address, background=True)
         return _neutral_page(request, link, token)
-    if not _send(link, codes.issue(link), company_name()):
-        VerificationCode.objects.filter(link=link).delete()
-        _audit(request, "viewer.code_failed_to_send", link, link.email)
+    if not _send(link, address, codes.issue(link, address), company_name()):
+        codes.discard(link, address)
+        _audit(request, "viewer.code_failed_to_send", link, address)
         error = "We could not send the code. Try again in a few minutes."
         return _gate_page(request, link, token, error=error, typed=typed, status=503)
 
-    _audit(request, "viewer.code_sent", link, link.email)
+    _audit(request, "viewer.code_sent", link, address)
     return _code_page(request, link, token)
 
 
@@ -755,11 +783,14 @@ def verify_code(request: HttpRequest, link: Link, token: str) -> HttpResponse:
             _audit(request, "viewer.code_wrong", link, _typed_email(request), reason="rate_limited")
         return _code_page(request, link, token, error=TOO_MANY, status=429)
 
-    result = codes.check(link, request.POST.get("code", "")[:20])
-    if result.ok:
+    address = plain_address(_typed_email(request))
+    # A code proves only the address it was sent to, and only while the link
+    # still admits it.
+    result = codes.check(link, address, request.POST.get("code", "")[:20])
+    if result.ok and _matches(address, link):
         response = _see_other(token)
-        sessions.begin(request, response, link, verified=True)
-        _audit(request, "viewer.verified", link, link.email)
+        sessions.begin(request, response, link, email=address, verified=True)
+        _audit(request, "viewer.verified", link, address)
         return response
 
     _audit(
@@ -796,6 +827,10 @@ def open_link(request: HttpRequest, link: Link, token: str) -> HttpResponse:
         return response
     if not ratelimit.allow(limits.OPEN_PER_IP, _ip(request)):
         return _gate_page(request, link, token, error=TOO_MANY, status=429)
-    sessions.begin(request, response, link, verified=False)
+    # Only a link for one address may skip verification (snug.links.service),
+    # so this is who it was sent to.
+    if not link.email:
+        return response
+    sessions.begin(request, response, link, email=link.email, verified=False)
     _audit(request, "viewer.opened", link, link.email)
     return response

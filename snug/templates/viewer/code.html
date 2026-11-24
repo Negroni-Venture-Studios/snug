@@ -13,7 +13,7 @@
     {% if not spent %}
     <form class="form" method="post" action="{% url 'viewer:verify_code' token=token %}" novalidate>
       {% csrf_token %}
-      <input type="hidden" name="email" value="{{ shown }}">
+      <input type="hidden" name="email" value="{{ address }}">
       <div class="field"><label for="code">Six-digit code</label>
         <input id="code" name="code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="9" required autofocus{% if error %} aria-invalid="true" aria-describedby="code-error"{% endif %}>
         {% if error %}<div class="error" id="code-error" role="alert">{% icon "warning-circle" %}{{ error }}</div>{% endif %}</div>

@@ -1,5 +1,6 @@
 """Creating, reissuing, extending and revoking links, and emailing them."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -14,7 +15,7 @@ from snug.core import mail
 from snug.core.models import company_name
 from snug.documents import storage
 from snug.documents.models import Document
-from snug.links.models import Link, new_ref
+from snug.links.models import Link, is_domain, new_ref
 
 if TYPE_CHECKING:
     from snug.rooms.models import Room
@@ -48,7 +49,8 @@ def create(
     *,
     document: Document | None = None,
     room: "Room | None" = None,
-    email: str,
+    email: str = "",
+    entries: "list[str] | None" = None,
     note: str,
     message: str = "",
     expires_at: datetime | None,
@@ -60,10 +62,16 @@ def create(
 ) -> Issued:
     if (document is None) == (room is None):
         raise ValueError("A link shares one document or one room.")
+    listed = [entry.strip().casefold() for entry in (entries or [email]) if entry.strip()]
+    if not listed:
+        raise ValueError("A link is for at least one address or domain.")
+    if (len(listed) > 1 or is_domain(listed[0])) and not require_verification:
+        # Without a code, Snug could not tell who on the list is reading.
+        raise ValueError("Only a link for one address can skip verification.")
     for _ in range(REF_ATTEMPTS):
         link = Link(
             ref=new_ref(),
-            email=email,
+            entries="\n".join(dict.fromkeys(listed)),
             note=note,
             message=message,
             document=document,
@@ -123,8 +131,16 @@ def send_link_email(issued: Issued, sender: Admin) -> bool:
         if company
         else f"{issued.link.target_title} has been shared with you"
     )
+    # To each address the link lists. A domain has no one address to send
+    # to, so the founder sends the link themselves.
+    addresses = [entry for entry in issued.link.entry_list if not is_domain(entry)]
+    sent = [_send_link(address, sender, subject, context) for address in addresses]
+    return bool(sent) and all(sent)
+
+
+def _send_link(to: str, sender: Admin, subject: str, context: Mapping[str, object]) -> bool:
     return mail.send(
-        to=issued.link.email,
+        to=to,
         subject=subject,
         text=render_to_string("links/email/link.txt", context),
         html=render_to_string("links/email/link.html", context),

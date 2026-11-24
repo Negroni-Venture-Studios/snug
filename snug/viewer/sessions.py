@@ -47,8 +47,10 @@ def lookup(request: HttpRequest, link: Link) -> ViewerSession | None:
     ).first()
 
 
-def begin(request: HttpRequest, response: HttpResponse, link: Link, *, verified: bool) -> None:
-    """Give this browser a session for this link, and a fresh cookie.
+def begin(
+    request: HttpRequest, response: HttpResponse, link: Link, *, email: str, verified: bool
+) -> None:
+    """Give this browser a session for this link and this person, and a fresh cookie.
 
     The cookie is rotated each time: the browser's sessions for other links
     move to the new token, and the old token stops working.
@@ -67,7 +69,7 @@ def begin(request: HttpRequest, response: HttpResponse, link: Link, *, verified:
             token_hash=new_hash,
             link=link,
             link_token_hash=link.token_hash,
-            email=link.email,
+            email=email.strip().casefold(),
             verified=verified,
             expires_at=timezone.now() + timedelta(days=days),
         )

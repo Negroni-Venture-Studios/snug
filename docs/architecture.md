@@ -105,10 +105,10 @@ Every view under `/v/` that shows anything goes through one function, `snug.view
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/authorise-dark.svg">
-  <img alt="authorise() checks five things in order: the link is live, the session belongs to this link and email, the NDA is accepted, the visitor is in the UK if required, and the document belongs to the link or its room. Each failure leads to its own page; success returns the link, session, and document to the view." src="images/diagrams/authorise-light.svg">
+  <img alt="authorise() checks five things in order: the link is live, the session belongs to this link and to an address it admits, the NDA is accepted, the visitor is in the UK if required, and the document belongs to the link or its room. Each failure leads to its own page; success returns the link, session, and document to the view." src="images/diagrams/authorise-light.svg">
 </picture>
 
-Each check raises its own exception, and the decorator `viewer_content` turns each into a response: `Unavailable` into one 404 page, the same for an unknown, expired, or revoked link and for a document outside the link, `NotVerified` into the link's own page, which asks for a code or has a button to open the link, `NeedsNda` into a redirect to the NDA, and `OutsideUK` into a 403, recorded in the audit log. On success the view gets an `Access` with the link, the session, and the document.
+Each check raises its own exception, and the decorator `viewer_content` turns each into a response: `Unavailable` into one 404 page, the same for an unknown, expired, or revoked link and for a document outside the link, `NotVerified` into the link's own page, which asks for a code or has a button to open the link, `NeedsNda` into a redirect to the NDA, and `OutsideUK` into a 403, recorded in the audit log. On success the view gets an `Access` with the link, the session, and the document. A link lists the addresses and domains it admits (`Link.entries`), and the session is bound to the one address its visitor verified: the second check asks `Link.admits` whether that address is still listed and not blocked on the link (`LinkPerson`), on every request.
 
 Three views come before a session exists: sending a code, checking it, and opening a link without one. They use `viewer_gate`, which checks only that the link is live and the visitor's country. The NDA page uses `viewer_nda`, which runs `authorise()` without the NDA check it exists to pass.
 

@@ -42,7 +42,10 @@ class NdaAcceptance(models.Model):
     class Meta:
         ordering = ("-accepted_at",)
         constraints = (
-            models.UniqueConstraint(fields=("link", "version"), name="nda_one_acceptance_per_link"),
+            # Each person on a link accepts for themselves (issue #174).
+            models.UniqueConstraint(
+                fields=("link", "version", "email"), name="nda_one_acceptance_per_person"
+            ),
         )
 
     def __str__(self) -> str:

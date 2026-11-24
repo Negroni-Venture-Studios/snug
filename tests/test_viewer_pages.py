@@ -307,7 +307,9 @@ def test_in_neutral_mode_the_daily_cap_reads_like_a_wrong_code(
     # would also say that an address was right.
     from snug.viewer import codes
 
-    monkeypatch.setattr(codes, "check", lambda link, typed: codes.Result(False, 0, limited=True))
+    monkeypatch.setattr(
+        codes, "check", lambda link, email, typed: codes.Result(False, 0, limited=True)
+    )
     response = post(Client(), path(issued, "/code"), {"code": "000000"})
     assert response.status_code == 400
     page = response.content.decode()
@@ -335,7 +337,9 @@ def test_background_sending_really_sends(issued: service.Issued) -> None:
     from snug.viewer import views
 
     via = mail.outgoing()  # read on the request thread, as the view does
-    thread = mail.in_background(lambda: views._send(issued.link, "123456", "Fernlea Robotics", via))
+    thread = mail.in_background(
+        lambda: views._send(issued.link, issued.link.email, "123456", "Fernlea Robotics", via)
+    )
     thread.join(timeout=5)
     assert [message.to for message in django_mail.outbox] == [[INVESTOR]]
 

@@ -353,7 +353,7 @@ def test_a_second_acceptance_posted_at_once_is_not_recorded(
     browser = opened(issued)
     assert accept(browser, issued).status_code == 303
     # The second request read the NDA as not yet accepted, before the first wrote.
-    monkeypatch.setattr(terms, "accepted", lambda link, version: False)
+    monkeypatch.setattr(terms, "accepted", lambda link, version, email: False)
     response = accept(browser, issued, name="P Shah")
     assert response.status_code == 303 and response["Location"] == f"/v/{issued.token}"
     assert NdaAcceptance.objects.get().name == "Priya Shah"
