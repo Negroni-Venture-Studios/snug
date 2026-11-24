@@ -172,7 +172,13 @@ class Link(models.Model):
         if not address:
             return False
         for entry in self.entry_list:
-            if address == entry or (is_domain(entry) and domain_of(address) == entry):
+            if address == entry:
+                return True
+            # Through a domain, not an address with a + tag: most mail servers
+            # deliver priya+x@fund.com to priya@fund.com, so it would let a
+            # blocked person back in under another name (commit security
+            # review, 24 November 2026). Listed on its own, it matches exactly.
+            if is_domain(entry) and domain_of(address) == entry and "+" not in address:
                 return True
         return False
 

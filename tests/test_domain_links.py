@@ -130,6 +130,9 @@ def test_a_link_for_one_address_keeps_its_email(document: Document) -> None:
         ("priya(comment)@northfield.example", False),
         ("priya..x@northfield.example", False),
         (f"{PRIYA}\n", True),  # surrounding whitespace is trimmed
+        # A + tag reaches the same inbox, so through a domain it would let a
+        # blocked person back in under another name.
+        ("priya+deck@northfield.example", False),
     ],
 )
 def test_who_a_link_admits(firm: service.Issued, email: str, admitted: bool) -> None:
@@ -322,3 +325,14 @@ def test_a_second_recipient_cannot_be_slipped_in(firm: service.Issued) -> None:
     response = post(client, f"/v/{firm.token}/code/send", {"email": typed})
     assert response.status_code == 400
     assert not django_mail.outbox
+
+
+def test_a_tagged_address_listed_on_its_own_matches_exactly(document: Document) -> None:
+    link = for_firm(document, entries=["northfield.example", "priya+deals@northfield.example"]).link
+    assert link.admits("priya+deals@northfield.example")
+    assert not link.admits("priya+other@northfield.example")
+
+
+def test_a_blocked_person_cannot_come_back_with_a_tag(firm: service.Issued) -> None:
+    LinkPerson.objects.create(link=firm.link, email=PRIYA, blocked_at=timezone.now())
+    assert not firm.link.admits("priya+again@northfield.example")
