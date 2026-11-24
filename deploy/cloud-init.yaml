@@ -152,16 +152,7 @@ runcmd:
     # the snug command, as snug update does on a running server.
     base="https://raw.githubusercontent.com/Negroni-Venture-Studios/snug/$ref/deploy"
     curl -fsSL --retry 5 -o update.sh "$base/update.sh"
-    if grep -q -e '--files-only' update.sh; then
-      sh update.sh --files-only
-    else
-      # A release from before 1.2.0, which publishes no checksums. Remove
-      # this once 1.2.0 is out.
-      for name in compose.yaml Caddyfile litestream.yml backup.sh restore.sh setup.sh office.sh snug snug.env.example; do
-        curl -fsSL --retry 5 -o "$name" "$base/$name"
-      done
-      install -m 755 snug /usr/local/bin/snug
-    fi
+    sh update.sh --files-only
     cp snug.env.example snug.env
     chmod 600 snug.env
     ln -sf snug.env .env

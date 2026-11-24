@@ -4,6 +4,10 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-24
+
+For keeping track of a raise with many links: *Extend* for a link's expiry, filters on the Links page, links and last views on the Documents list, and a weekly email digest.
+
 ### Added
 
 - *Extend*, beside *Revoke* on a link, gives it a later last day, or no expiry, and keeps the same link working, so you no longer have to send a new link to give someone more time. It also makes an expired link work again. Each extension is in the audit log.
@@ -309,7 +313,8 @@ External security audits found these.
 - Project documents: README, contributing guide, security policy, code of conduct, trademarks note, and agent instructions.
 - DESIGN.md, recording the architecture, the agreed decisions, and the front-end design, with clickable mockups and the Snug logo in `docs/design/`.
 
-[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/Negroni-Venture-Studios/snug/compare/v1.1.1...v1.1.2

@@ -143,7 +143,7 @@ sudo snug update
 
 `snug update` downloads the files in `/opt/snug` from the newest release on GitHub, as cloud-init does, and checks each one against the checksums published with the release. It pins Snug's two images by the digests published with the release, such as `snug:1.2.0@sha256:…`, so Docker refuses any other image pushed under the release's tag. If anything is missing or does not match, it changes nothing and says so. It replaces the files only once every one has arrived and been checked, and if it is interrupted while replacing them, the next `snug update` finishes the job first. `snug.env` and `backup/` are never touched. It then installs the new `snug` command, pulls the new images, and restarts the containers that changed. Snug applies any database migrations when it starts.
 
-A server updated to 1.2.0 from 1.1.3 ran 1.1.3's `snug update`, which checks nothing. Run `sudo snug update` once more on it: that run checks every file and pins both images by digest.
+A server updated from 1.1.3 or earlier ran that release's `snug update`, which checks nothing. Run `sudo snug update` once more on it: that run checks every file and pins both images by digest.
 
 `snug update` never moves a server back: if the newest release on GitHub is older than the one the server runs, it changes nothing and says so. To download from another branch or tag, older or not, set `SNUG_REF`, as in `sudo env SNUG_REF=some-branch snug update`. A branch, a release candidate, or a release before 1.2.0 has no published checksums, so its files and images are used without checking, and `snug update` says so. For a release from 1.2.0 on, `snug update` stops if it cannot download them.
 
