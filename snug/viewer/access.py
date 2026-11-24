@@ -113,16 +113,19 @@ def authorise(
     link = find_link(token)
 
     session = sessions.lookup(request, link)
+    # The session's address must still be admitted on every request, so
+    # narrowing the link's entries, or blocking one person, ends their access
+    # at once (issue #174).
     if (
         session is None
-        or session.email != link.email
+        or not link.admits(session.email)
         or (link.require_verification and not session.verified)
     ):
         raise NotVerified(link)
 
     if check_nda and terms.required(link):
         version = terms.current()
-        if version is not None and not terms.accepted(link, version):
+        if version is not None and not terms.accepted(link, version, session.email):
             raise NeedsNda(link)
 
     check_place(request, link)

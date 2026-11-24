@@ -38,9 +38,11 @@ class ViewerSession(models.Model):
 
 
 class VerificationCode(models.Model):
-    """The live six-digit code for a link. A new code replaces the old one."""
+    """The live six-digit code for one address on a link. A new code replaces the old one."""
 
     link = models.ForeignKey(Link, on_delete=models.CASCADE, related_name="+")
+    # The address it was sent to, in lower case. It proves that address alone.
+    email = models.EmailField()
     code_hash = models.CharField(max_length=64)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()

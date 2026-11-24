@@ -132,7 +132,7 @@ def test_what_the_email_says() -> None:
     anchor = summary.anchor(INVESTOR)
     assert f"/admin/people/#{anchor}" in body
     assert "/admin/settings/#notifications" in body
-    assert "first time anyone has opened" in body
+    assert "first time they have opened" in body
     html = message.alternatives[0][0]
     assert f'/admin/people/#{anchor}">' in html
 
@@ -152,7 +152,7 @@ def test_an_admin_who_turned_it_off_hears_nothing(admins: list[Admin]) -> None:
 
 def test_the_link_is_claimed_once() -> None:
     link = Link.objects.get(pk=Link.find(open_link(document=deck())).pk)  # type: ignore[union-attr]
-    claims: list[Callable[[], bool]] = [lambda: notify.claim(link) for _ in range(3)]
+    claims: list[Callable[[], bool]] = [lambda: notify.claim(link, link.email) for _ in range(3)]
     assert [claim() for claim in claims] == [True, False, False]
 
 

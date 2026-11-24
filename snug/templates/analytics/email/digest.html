@@ -7,10 +7,10 @@
 <ul>{% for reader in document.readers %}<li>{{ reader.email }}{% if reader.note %} ({{ reader.note }}){% endif %}, {{ reader.time }}</li>{% endfor %}</ul>
 {% endfor %}
 {% if week.first_opens %}<p><strong>Opened for the first time</strong></p>
-<ul>{% for link in week.first_opens %}<li>{{ link.email }}, {{ link.label }}, {{ link.target_title }}</li>{% endfor %}</ul>{% endif %}
+<ul>{% for person in week.first_opens %}<li>{{ person.email }}, {{ person.link.label }}, {{ person.link.target_title }}</li>{% endfor %}</ul>{% endif %}
 <p><strong>Downloads:</strong> {{ week.downloads }}</p>
 {% if week.expiring %}<p><strong>Links that expire in the next 7 days</strong></p>
-<ul>{% for link in week.expiring %}<li>{{ link.email }}, {{ link.label }}, {{ link.target_title }}, last day {{ link.last_day|date:"j F" }}</li>{% endfor %}</ul>
+<ul>{% for link in week.expiring %}<li>{{ link.recipient }}, {{ link.label }}, {{ link.target_title }}, last day {{ link.last_day|date:"j F" }}</li>{% endfor %}</ul>
 <p>To give someone more time, use <em>Extend</em> beside the link in Snug.</p>{% endif %}
 <p>All reading so far is on the <a href="{{ people_url }}">People page</a>.</p>
 <p>You get this summary every Monday morning because you turned it on. To stop it, untick the box under Your account in <a href="{{ settings_url }}">Settings</a>.</p>

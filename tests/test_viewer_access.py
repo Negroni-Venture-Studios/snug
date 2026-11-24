@@ -61,7 +61,7 @@ def browser(response: HttpResponse | None = None, cookie: str | None = None) -> 
 
 def verified_browser(link: Link, request: HttpRequest | None = None) -> HttpRequest:
     response = HttpResponse()
-    sessions.begin(request or browser(), response, link, verified=True)
+    sessions.begin(request or browser(), response, link, email=link.email, verified=True)
     return browser(response)
 
 
@@ -155,7 +155,7 @@ def test_an_unverified_session_does_not_open_a_link_that_needs_verification(
 ) -> None:
     open_link = issue(document, require_verification=False)
     response = HttpResponse()
-    sessions.begin(browser(), response, open_link.link, verified=False)
+    sessions.begin(browser(), response, open_link.link, email=open_link.link.email, verified=False)
     request = browser(response)
     assert authorise(request, open_link.token).session.verified is False
     Link.objects.filter(pk=open_link.link.pk).update(require_verification=True)
@@ -194,7 +194,7 @@ def test_the_checks_run_in_order(issued: service.Issued) -> None:
 
 def test_the_session_cookie(issued: service.Issued) -> None:
     response = HttpResponse()
-    sessions.begin(browser(), response, issued.link, verified=True)
+    sessions.begin(browser(), response, issued.link, email=issued.link.email, verified=True)
     cookie = response.cookies[sessions.COOKIE]
     assert sessions.COOKIE.startswith("__Host-")
     assert cookie["httponly"] and cookie["secure"] and cookie["path"] == "/"
@@ -230,7 +230,7 @@ def test_session_lifetime_follows_the_configuration(
     config = replace(django_settings.CONFIG, viewer_session_days=2)
     setattr(settings, "CONFIG", config)  # noqa: B010 - pytest-django's settings fixture
     response = HttpResponse()
-    sessions.begin(browser(), response, issued.link, verified=True)
+    sessions.begin(browser(), response, issued.link, email=issued.link.email, verified=True)
     assert int(response.cookies[sessions.COOKIE]["max-age"]) == 2 * 24 * 60 * 60
     row = ViewerSession.objects.get()
     assert timedelta(days=2) - (row.expires_at - timezone.now()) < timedelta(minutes=1)
@@ -244,32 +244,32 @@ def test_a_cookie_that_is_too_long_is_ignored(issued: service.Issued) -> None:
 
 
 def test_a_code_works_once(issued: service.Issued) -> None:
-    code = codes.issue(issued.link)
+    code = codes.issue(issued.link, issued.link.email)
     assert len(code) == 6 and code.isascii() and code.isdigit()
-    assert codes.check(issued.link, code).ok
-    assert not codes.check(issued.link, code).ok
+    assert codes.check(issued.link, issued.link.email, code).ok
+    assert not codes.check(issued.link, issued.link.email, code).ok
 
 
 def test_codes_are_not_stored(issued: service.Issued) -> None:
-    code = codes.issue(issued.link)
+    code = codes.issue(issued.link, issued.link.email)
     for value in VerificationCode.objects.values().get().values():
         assert code not in str(value)
 
 
 def test_a_new_code_replaces_the_old_one(issued: service.Issued) -> None:
-    old = codes.issue(issued.link)
-    new = codes.issue(issued.link)
+    old = codes.issue(issued.link, issued.link.email)
+    new = codes.issue(issued.link, issued.link.email)
     if old != new:  # one in a million they match
-        assert not codes.check(issued.link, old).ok
-    assert codes.check(issued.link, new).ok
+        assert not codes.check(issued.link, issued.link.email, old).ok
+    assert codes.check(issued.link, issued.link.email, new).ok
 
 
 def test_five_wrong_codes_end_the_code(issued: service.Issued) -> None:
-    code = codes.issue(issued.link)
+    code = codes.issue(issued.link, issued.link.email)
     wrong = f"{(int(code) + 1) % 1_000_000:06d}"
-    left = [codes.check(issued.link, wrong).tries_left for _ in range(5)]
+    left = [codes.check(issued.link, issued.link.email, wrong).tries_left for _ in range(5)]
     assert left == [4, 3, 2, 1, 0]
-    result = codes.check(issued.link, code)
+    result = codes.check(issued.link, issued.link.email, code)
     assert not result.ok and result.tries_left == 0
     assert not VerificationCode.objects.exists()
 
@@ -280,26 +280,26 @@ def test_a_guess_read_before_the_fifth_failure_is_still_refused(
     # The race: a request reads the code while it has tries left, and other
     # requests use them up before it compares. The try is claimed before the
     # comparison, so even the correct code is then refused.
-    code = codes.issue(issued.link)
+    code = codes.issue(issued.link, issued.link.email)
     stale = VerificationCode.objects.get()
     VerificationCode.objects.update(failures=codes.MAX_FAILURES)
-    result = codes._attempt(issued.link, stale, code)
+    result = codes._attempt(issued.link, stale, issued.link.email, code)
     assert not result.ok and result.tries_left == 0
 
 
 def test_a_correct_code_also_uses_a_try(issued: service.Issued) -> None:
-    code = codes.issue(issued.link)
+    code = codes.issue(issued.link, issued.link.email)
     VerificationCode.objects.update(failures=codes.MAX_FAILURES - 1)
-    assert codes.check(issued.link, code).ok
+    assert codes.check(issued.link, issued.link.email, code).ok
 
 
 def test_checks_per_link_are_capped_each_day(issued: service.Issued) -> None:
     # Asking for a new code gives five fresh tries, so the total is capped too.
     for _ in range(codes.CHECKS_PER_LINK_PER_DAY.limit):
-        codes.issue(issued.link)
-        codes.check(issued.link, "000000")
-    code = codes.issue(issued.link)
-    result = codes.check(issued.link, code)
+        codes.issue(issued.link, issued.link.email)
+        codes.check(issued.link, issued.link.email, "000000")
+    code = codes.issue(issued.link, issued.link.email)
+    result = codes.check(issued.link, issued.link.email, code)
     assert not result.ok and result.limited
 
 
@@ -307,20 +307,20 @@ def test_checks_without_a_live_code_do_not_use_up_the_day(issued: service.Issued
     # Anyone with the link can post codes. Without a live code there is
     # nothing to guess, so those posts must not lock the real person out.
     for _ in range(codes.CHECKS_PER_LINK_PER_DAY.limit + 5):
-        assert not codes.check(issued.link, "000000").limited
-    code = codes.issue(issued.link)
-    assert codes.check(issued.link, code).ok
+        assert not codes.check(issued.link, issued.link.email, "000000").limited
+    code = codes.issue(issued.link, issued.link.email)
+    assert codes.check(issued.link, issued.link.email, code).ok
 
 
 def test_an_expired_code_is_refused(issued: service.Issued) -> None:
-    code = codes.issue(issued.link)
+    code = codes.issue(issued.link, issued.link.email)
     VerificationCode.objects.update(expires_at=timezone.now() - timedelta(seconds=1))
-    result = codes.check(issued.link, code)
+    result = codes.check(issued.link, issued.link.email, code)
     assert not result.ok and result.tries_left == 0
 
 
 def test_codes_expire_after_ten_minutes(issued: service.Issued) -> None:
-    codes.issue(issued.link)
+    codes.issue(issued.link, issued.link.email)
     row = VerificationCode.objects.get()
     assert timedelta(minutes=10) - (row.expires_at - timezone.now()) < timedelta(seconds=30)
 
@@ -328,37 +328,37 @@ def test_codes_expire_after_ten_minutes(issued: service.Issued) -> None:
 def test_one_links_code_does_not_open_another(document: Document) -> None:
     a = issue(document)
     b = issue(document)
-    code = codes.issue(a.link)
-    assert not codes.check(b.link, code).ok
-    assert codes.check(a.link, code).ok
+    code = codes.issue(a.link, a.link.email)
+    assert not codes.check(b.link, b.link.email, code).ok
+    assert codes.check(a.link, a.link.email, code).ok
 
 
 def test_reissuing_a_link_ends_its_code(issued: service.Issued) -> None:
-    code = codes.issue(issued.link)
+    code = codes.issue(issued.link, issued.link.email)
     service.reissue(issued.link)
-    assert not codes.check(issued.link, code).ok
+    assert not codes.check(issued.link, issued.link.email, code).ok
 
 
 @pytest.mark.parametrize("typed", ["", "12345", "1234567", "abcdef", "١٢٣٤٥٦", "12 34 56x"])
 def test_malformed_codes_are_wrong(issued: service.Issued, typed: str) -> None:
-    codes.issue(issued.link)
-    result = codes.check(issued.link, typed)
+    codes.issue(issued.link, issued.link.email)
+    result = codes.check(issued.link, issued.link.email, typed)
     assert not result.ok and result.tries_left == 4
 
 
 def test_spaces_and_dashes_in_a_code_are_forgiven(issued: service.Issued) -> None:
-    code = codes.issue(issued.link)
-    assert codes.check(issued.link, f" {code[:3]} {code[3:]} ").ok
+    code = codes.issue(issued.link, issued.link.email)
+    assert codes.check(issued.link, issued.link.email, f" {code[:3]} {code[3:]} ").ok
 
 
 def test_without_a_code_nothing_matches(issued: service.Issued) -> None:
-    result = codes.check(issued.link, "123456")
+    result = codes.check(issued.link, issued.link.email, "123456")
     assert not result.ok and result.tries_left == 0
 
 
 def test_cookies_parse(issued: service.Issued) -> None:
     # The cookie survives a real Set-Cookie round trip.
     response = HttpResponse()
-    sessions.begin(browser(), response, issued.link, verified=True)
+    sessions.begin(browser(), response, issued.link, email=issued.link.email, verified=True)
     parsed = SimpleCookie(response.cookies.output(header="").strip())
     assert parsed[sessions.COOKIE].value == response.cookies[sessions.COOKIE].value

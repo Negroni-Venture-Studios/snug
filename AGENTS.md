@@ -62,7 +62,7 @@ Write the test that proves the change, and confirm it fails for the reason you e
 
 1. **One authorisation path.** Every request for viewer content goes through a single function, which checks in order:
    - the link exists, is not revoked, and has not expired;
-   - the session is valid and bound to this link and this email address;
+   - the session is valid, bound to this link, and for an email address the link still admits (listed, directly or by its domain, and not blocked);
    - the NDA has been accepted, if one is required;
    - the geographic restriction is met, if one is set;
    - the requested document belongs to the link's document or room.

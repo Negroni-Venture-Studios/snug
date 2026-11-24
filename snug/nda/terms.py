@@ -1,8 +1,8 @@
 """Publishing the NDA, checking acceptance, and recording it.
 
 One NDA for the instance, versioned (decided 5 November 2026). A room, or a
-link to a single document, requires it or not. Acceptance is per link and per
-version: publishing a new version asks everyone to accept again.
+link to a single document, requires it or not. Acceptance is per person on a link,
+and per version: publishing a new version asks everyone to accept again.
 """
 
 import hashlib
@@ -95,24 +95,27 @@ def required(link: Link) -> bool:
     return link.room.require_nda if link.room is not None else link.require_nda
 
 
-def accepted(link: Link, version: NdaVersion) -> bool:
-    return NdaAcceptance.objects.filter(link=link, version=version).exists()
+def accepted(link: Link, version: NdaVersion, email: str) -> bool:
+    """Whether this person has accepted this version on this link."""
+    return NdaAcceptance.objects.filter(
+        link=link, version=version, email=email.strip().casefold()
+    ).exists()
 
 
 def accept(
     link: Link, version: NdaVersion, *, name: str, email: str, ip: str | None, user_agent: str
 ) -> tuple[NdaAcceptance, bool]:
-    """Record acceptance of this version on this link, and whether this call recorded it.
+    """Record this person's acceptance of this version on this link, and whether this call did.
 
-    A link holds one acceptance of each version: if it already has one, from an
-    earlier or a simultaneous request, that record is kept and returned.
+    Each person on a link holds one acceptance of each version: if they already
+    have one, from an earlier or a simultaneous request, that record is kept.
     """
     return NdaAcceptance.objects.get_or_create(
         link=link,
         version=version,
+        email=email.strip().casefold(),
         defaults={
             "name": name,
-            "email": email,
             "ip_address": ip,
             "user_agent": user_agent[:512],
             "text_sha256": version.sha256,

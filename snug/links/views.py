@@ -47,7 +47,7 @@ def _audit(request: HttpRequest, action: str, link: Link, **details: Any) -> Non
         action,
         actor_type=AuditEvent.ActorType.ADMIN,
         actor=_admin(request).email,
-        target=link.email,
+        target=link.recipient[:254],
         ip_address=client_ip(request),
         user_agent=user_agent(request),
         details={"link": link.label, **link.target_details(), **details},
@@ -300,7 +300,7 @@ def link_list(request: HttpRequest) -> HttpResponse:
     if query:
         ref = query.upper().removeprefix("L-")
         links = links.filter(
-            Q(email__icontains=query)
+            Q(entries__icontains=query)
             | Q(note__icontains=query)
             | Q(ref=ref)
             | Q(document__title__icontains=query)
@@ -398,7 +398,7 @@ def link_extend(request: HttpRequest, ref: str) -> HttpResponse:
     )
     after = f"it now works until {_long_date(until)}" if until else "it now has no expiry"
     text = (
-        f"Extended {link.label} for {link.email}, and {after}. "
+        f"Extended {link.label} for {link.recipient}, and {after}. "
         "Its address is unchanged, so there is nothing new to send."
     )
     return notices.saved(request, link.target_url(), "links", text)

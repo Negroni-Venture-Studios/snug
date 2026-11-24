@@ -6,7 +6,7 @@
   <div class="gate">
     {% include "viewer/_shared.html" %}
     {% if email_enabled %}
-    <p class="lede">Enter the email address that received this link. We will email you a six-digit code.</p>
+    <p class="lede">{% if link.has_domain %}Enter your work email address.{% else %}Enter the email address that received this link.{% endif %} We will email you a six-digit code.</p>
     <form class="form" method="post" action="{% url 'viewer:send_code' token=token %}" novalidate>
       {% csrf_token %}
       <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" inputmode="email" value="{{ typed }}" required autofocus{% if error %} aria-invalid="true" aria-describedby="email-error"{% endif %}>

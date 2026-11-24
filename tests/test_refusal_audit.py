@@ -117,7 +117,7 @@ def test_neutral_refusals_are_audited_once(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr("snug.core.mail.in_background", lambda task: task())
     issued = link()
     fill(viewer_limits.WRONG_EMAIL_PER_LINK, str(issued.link.pk))
-    fill(viewer_limits.SEND_PER_LINK, str(issued.link.pk))
+    fill(viewer_limits.SEND_PER_LINK, f"{issued.link.pk}:{INVESTOR}")
     client = Client(REMOTE_ADDR=IP)
     for _ in range(MORE):
         response = post(client, f"/v/{issued.token}/code/send", {"email": INVESTOR})

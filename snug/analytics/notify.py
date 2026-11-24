@@ -1,4 +1,4 @@
-"""First-open emails: the first time a link shows anyone a document.
+"""First-open emails: the first time a link shows each person a document.
 
 Every working admin is emailed, unless they have turned it off under Your
 account in Settings. The email says who, what, when and where, with a link
@@ -19,18 +19,23 @@ from snug.core import countries, geoip, mail
 from snug.core.client import client_ip
 from snug.core.models import company_name
 from snug.documents.models import Document
-from snug.links.models import Link
+from snug.links.models import Link, LinkPerson
 from snug.viewer.access import Access
 
 
-def claim(link: Link) -> bool:
-    """Mark the link opened. True for the one call that does; every later one is False.
+def claim(link: Link, email: str) -> bool:
+    """Mark this person's first open of the link. True for the one call that does.
 
-    A single conditional update, so two pages loading together cannot both claim it.
+    A single conditional update, so two pages loading together cannot both
+    claim it. The link's own first open is kept too, for the digest.
     """
-    claimed = Link.objects.filter(pk=link.pk, first_opened_at__isnull=True).update(
-        first_opened_at=timezone.now()
-    )
+    now = timezone.now()
+    address = email.strip().casefold()
+    LinkPerson.objects.get_or_create(link=link, email=address)
+    claimed = LinkPerson.objects.filter(
+        link=link, email=address, first_opened_at__isnull=True
+    ).update(first_opened_at=now)
+    Link.objects.filter(pk=link.pk, first_opened_at__isnull=True).update(first_opened_at=now)
     return claimed == 1
 
 
@@ -41,7 +46,7 @@ def _when(moment: datetime) -> str:
 
 def first_open(request: HttpRequest, access: Access, document: Document) -> None:
     """Call when a visit begins. Emails the admins if this is the link's first open."""
-    if not claim(access.link):
+    if not claim(access.link, access.session.email):
         return
     recipients = sorted(
         Admin.objects.filter(is_active=True, notify_first_open=True).values_list("email", flat=True)
