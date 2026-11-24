@@ -1,0 +1,21 @@
+{% autoescape off %}{% if week.documents %}{{ week.people }} {{ week.people|pluralize:"person,people" }} read {{ week.documents|length }} document{{ week.documents|length|pluralize }}, for {{ week.time }} in all.{% else %}Nobody read anything this week.{% endif %}
+{% for document in week.documents %}
+{{ document.title }}: {{ document.readers|length }} {{ document.readers|length|pluralize:"person,people" }}, {{ document.time }}
+{% for reader in document.readers %}- {{ reader.email }}{% if reader.note %} ({{ reader.note }}){% endif %}, {{ reader.time }}
+{% endfor %}{% endfor %}{% if week.first_opens %}
+Opened for the first time
+{% for link in week.first_opens %}- {{ link.email }}, {{ link.label }}, {{ link.target_title }}
+{% endfor %}{% endif %}
+Downloads: {{ week.downloads }}
+{% if week.expiring %}
+Links that expire in the next 7 days
+{% for link in week.expiring %}- {{ link.email }}, {{ link.label }}, {{ link.target_title }}, last day {{ link.last_day|date:"j F" }}
+{% endfor %}
+To give someone more time, use Extend beside the link in Snug.
+{% endif %}
+All reading so far, on the People page:
+{{ people_url }}
+
+You get this summary every Monday morning because you turned it on. To stop it, untick the box under Your account in Settings:
+{{ settings_url }}
+{% endautoescape %}

@@ -184,6 +184,21 @@ def test_a_link_is_extended_from_the_links_page(live_server: Any, page: Page) ->
     assert Link.find(issued.token) is not None
 
 
+def test_the_weekly_digest_is_turned_on_in_settings(live_server: Any, page: Page) -> None:
+    from snug.accounts.models import Admin
+
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/settings/#notifications")
+    box = page.get_by_label("Email me a summary of the week")
+    expect(box).not_to_be_checked()
+    box.check()
+    page.locator("#notifications").get_by_role("button", name="Save").click()
+    expect(page).to_have_url(re.compile(r"saved=notifications#notifications$"))
+    expect(page.get_by_text("every Monday morning.", exact=False).first).to_be_visible()
+    expect(page.get_by_label("Email me a summary of the week")).to_be_checked()
+    assert Admin.objects.get(email=EMAIL).notify_weekly_digest
+
+
 # ---------------------------------------------------------------- upload progress
 
 
