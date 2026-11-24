@@ -1,0 +1,12 @@
+{% extends "snug/admin_base.html" %}
+{% load snug %}
+{% block title %}Extend link{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'links:list' %}">Links</a> / <a href="{{ link.target_url }}">{{ link.target_title }}</a> / <span class="mono">{{ link.label }}</span></div>
+<div class="title-row"><div><h1 class="page-title">Extend the link for {{ link.email }}?</h1><div class="page-meta">{% if link.status == "expired" %}It expired on {{ last_day }}. A later date makes the same link work again.{% else %}It works until {{ last_day }}.{% endif %} Its address stays the same, so there is nothing new to send.</div></div></div>
+<form class="panel form" method="post" action="{% url 'links:extend' link.ref %}" novalidate>
+  {% csrf_token %}
+  <div class="field"><label for="expires">Works until</label><input id="expires" name="expires" type="date" min="{{ earliest }}" value="{{ value }}"{% if error %} aria-invalid="true" aria-describedby="expires-error"{% endif %} autofocus>{% if error %}<div class="error" id="expires-error" role="alert">{% icon "warning-circle" %}{{ error }}</div>{% else %}<div class="hint">The last day it works. Leave empty for no expiry.</div>{% endif %}</div>
+  <div class="form-foot left"><a class="btn" href="{{ link.target_url }}">Cancel</a><button class="btn btn-primary" type="submit">Extend link</button></div>
+</form>
+{% endblock %}

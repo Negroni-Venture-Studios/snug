@@ -154,6 +154,36 @@ def test_the_link_form_shows_the_box_only_when_asked(live_server: Any, page: Pag
     expect(box).to_be_hidden()
 
 
+def test_a_link_is_extended_from_the_links_page(live_server: Any, page: Page) -> None:
+    from django.utils import timezone
+
+    from snug.documents.models import Document
+    from snug.links import service
+    from snug.links.models import Link
+
+    deck = Document.objects.create(title="Seed deck")
+    issued = service.create(
+        document=deck,
+        email="priya@northfield.example",
+        note="",
+        expires_at=datetime.now(UTC) + timedelta(days=3),
+        require_verification=True,
+        allow_download=True,
+        created_by=None,
+    )
+    later = timezone.localdate() + timedelta(days=24)
+    sign_in(live_server, page)
+    page.goto(f"{live_server.url}/admin/links/")
+    page.get_by_role("link", name="Extend").click()
+    expect(page.get_by_role("heading", name="Extend the link for priya@northfield.example?"))
+    page.get_by_label("Works until").fill(later.isoformat())
+    page.get_by_role("button", name="Extend link").click()
+    expect(page).to_have_url(re.compile(rf"/admin/documents/{deck.token}#links$"))
+    expect(page.get_by_text(f"it now works until {later.day} {later:%B %Y}")).to_be_visible()
+    assert Link.objects.get(pk=issued.link.pk).last_day == later
+    assert Link.find(issued.token) is not None
+
+
 # ---------------------------------------------------------------- upload progress
 
 
@@ -248,6 +278,8 @@ def test_admin_pages_fit_a_phone(live_server: Any, page: Page) -> None:
     RoomDocument.objects.create(room=room, document=deck)
     link = make_link("priya.someone-long@northfield-capital.example", room=room)
     visit(link, deck, ago=timedelta(hours=1), seconds=95)
+    # An expiry, so the row has all three buttons: New link, Extend and Revoke.
+    type(link).objects.filter(pk=link.pk).update(expires_at=link.created_at + timedelta(days=9))
     sign_in(live_server, page)
     for path in ("", "documents/", "rooms/", "links/", "people/", "audit/", "settings/"):
         page.goto(f"{live_server.url}/admin/{path}")
@@ -469,7 +501,12 @@ def test_every_row_list_keeps_its_columns(
         "allow_download": True,
         "created_by": None,
     }
-    service.create(document=deck, email="sam@eastgate.example", **fields)
+    # Three buttons, with Extend, beside a row with none.
+    service.create(
+        document=deck,
+        email="sam@eastgate.example",
+        **{**fields, "expires_at": datetime.now(UTC) + timedelta(days=9)},
+    )
     gone = service.create(document=deck, email="flow-check@northfield.example", **fields)
     service.revoke(gone.link, by=None)
     room = Room.objects.create(name="Series A data room")

@@ -82,11 +82,11 @@ Each link is for one person. On a document's page, choose *New link*, and fill i
 
 *Create and email* sends it; *Create and copy* shows the link once, to send yourself. If it is lost, send a new link.
 
-*Links* lists every link, newest first. *Revoke* stops a link at once, even for someone reading it at the time. *New link* replaces it with a fresh one for the same person, with the same settings and history.
+*Links* lists every link, newest first. *Revoke* stops a link at once, even for someone reading it at the time. *New link* replaces it with a fresh one for the same person, with the same settings and history. *Extend* gives a link with an expiry a later last day, or none, and the same link keeps working. It also makes an expired link work again.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/links-dark.png">
-  <img alt="The Links page: each link with its recipient, note, and document, whether it is active or revoked, its settings and expiry, and buttons for a new link or to revoke it." src="images/screenshots/links-light.png">
+  <img alt="The Links page: each link with its recipient, note, and document, whether it is active or revoked, its settings and expiry, and buttons for a new link, to extend one with an expiry, or to revoke it." src="images/screenshots/links-light.png">
 </picture>
 
 ## Rooms

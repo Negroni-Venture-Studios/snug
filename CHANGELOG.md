@@ -6,6 +6,7 @@ All notable changes to Snug are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- *Extend*, beside *Revoke* on a link, gives it a later last day, or no expiry, and keeps the same link working, so you no longer have to send a new link to give someone more time. It also makes an expired link work again. Each extension is in the audit log.
 - The Documents list shows how many active links open each document, directly or through a room, and the day it was last viewed.
 
 ## [1.2.0] - 2026-11-23

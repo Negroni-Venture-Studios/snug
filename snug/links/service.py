@@ -1,4 +1,4 @@
-"""Creating, reissuing and revoking links, and emailing them."""
+"""Creating, reissuing, extending and revoking links, and emailing them."""
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -91,6 +91,12 @@ def reissue(link: Link) -> Issued:
     link.reissued_at = timezone.now()
     link.save(update_fields=["token_hash", "reissued_at"])
     return Issued(link=link, token=token)
+
+
+def extend(link: Link, expires_at: datetime | None) -> None:
+    """A later expiry, or none, for the same link. Its URL keeps working."""
+    link.expires_at = expires_at
+    link.save(update_fields=["expires_at"])
 
 
 def revoke(link: Link, by: Admin | None) -> None:
