@@ -38,6 +38,10 @@ class Admin(AbstractBaseUser):
     totp_confirmed_at = models.DateTimeField(null=True, blank=True)
     # Whether to email this admin the first time each link is opened.
     notify_first_open = models.BooleanField(default=True)
+    # Whether to email this admin a summary of the week's reading on Mondays
+    # (snug.analytics.digest), and when the last one was claimed for them.
+    notify_weekly_digest = models.BooleanField(default=False)
+    digest_sent_at = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD = "email"
     EMAIL_FIELD = "email"

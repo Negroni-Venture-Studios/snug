@@ -40,7 +40,7 @@ Inside the Snug container there are three kinds of process:
 | `snug/rooms/` | Rooms, their folders, and the documents in them |
 | `snug/viewer/` | Everything an investor sees, under `/v/`, and the one authorisation path |
 | `snug/nda/` | The NDA's versions and each acceptance |
-| `snug/analytics/` | Visits and reading time, the People page, the charts, first-open emails, and deleting old reading data |
+| `snug/analytics/` | Visits and reading time, the People page, the charts, first-open emails, the weekly digest, and deleting old reading data |
 | `snug/audit/` | The audit log and its CSV export |
 | `snug/core/` | Shared parts: the Overview, settings stored in the database, email, rate limits, `snug doctor`, GeoIP, branding, and middleware |
 | `snug/templates/`, `snug/static/` | The pages, the stylesheet, the fonts, the icons, and the scripts |

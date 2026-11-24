@@ -65,6 +65,8 @@ A Word, PowerPoint, or Excel file's page has a box for a description investors s
 
 You are emailed the first time each link is opened. To stop it, untick *Email me when someone first opens a link* under *Your account* in Settings.
 
+To get a summary of the week's reading every Monday morning, tick *Email me a summary of the week* in the same place. It is off until you turn it on. It lists who read each document and for how long, links opened for the first time, the number of downloads, and links that expire in the coming week. Nothing is sent after a week with none of these.
+
 ## Sharing a document
 
 Each link is for one person. On a document's page, choose *New link*, and fill in:

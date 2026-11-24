@@ -10,7 +10,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from snug.accounts.models import AdminSetup
-from snug.analytics import retention
+from snug.analytics import digest, retention
 from snug.audit.models import AuditEvent, record
 from snug.core import doctor, geoip, ratelimit
 from snug.core.models import SiteSettings, SystemCheck
@@ -61,6 +61,11 @@ class Command(BaseCommand):
             previews.drive_in_background()
         except Exception as error:  # noqa: BLE001 - never let it stop housekeeping
             self.stdout.write(f"Office previews: failed ({type(error).__name__}).")
+        # The weekly digest, for admins who want it: once a week, from Monday 08:00.
+        try:
+            self.stdout.write(f"Weekly digest: {digest.send_due(timezone.now())} sent.")
+        except Exception as error:  # noqa: BLE001 - never let it stop housekeeping
+            self.stdout.write(f"Weekly digest: failed ({type(error).__name__}).")
         self.stdout.write(
             f"Housekeeping: reading data: {visits} visit{'s' if visits != 1 else ''}; "
             f"codes: {codes}; viewer sessions: {viewer_sessions}; setup links: {setups}; "

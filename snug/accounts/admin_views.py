@@ -877,13 +877,27 @@ def email_test_view(request: HttpRequest) -> HttpResponse:
 @login_required
 @require_POST
 def notifications_view(request: HttpRequest) -> HttpResponse:
-    """Whether this admin is emailed the first time each link is opened."""
+    """Whether this admin is emailed the first time each link is opened, and weekly."""
     admin = _admin(request)
-    wanted = request.POST.get("first_open") == "on"
-    if admin.notify_first_open != wanted:
-        admin.notify_first_open = wanted
-        admin.save(update_fields=["notify_first_open"])
-        _audit(request, "admin.notifications_changed", admin.email, admin.email, first_open=wanted)
+    first_open = request.POST.get("first_open") == "on"
+    weekly = request.POST.get("weekly_digest") == "on"
+    changed: dict[str, bool] = {}
+    fields: list[str] = []
+    if admin.notify_first_open != first_open:
+        admin.notify_first_open = first_open
+        changed["first_open"] = first_open
+        fields.append("notify_first_open")
+    if admin.notify_weekly_digest != weekly:
+        admin.notify_weekly_digest = weekly
+        changed["weekly_digest"] = weekly
+        fields.append("notify_weekly_digest")
+        if weekly:
+            # Counted as sent now, so the first covers a whole week of reading.
+            admin.digest_sent_at = timezone.now()
+            fields.append("digest_sent_at")
+    if changed:
+        admin.save(update_fields=fields)
+        _audit(request, "admin.notifications_changed", admin.email, admin.email, **changed)
     return redirect("/admin/settings/?saved=notifications#notifications")
 
 
