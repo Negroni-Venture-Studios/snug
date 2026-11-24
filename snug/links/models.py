@@ -44,15 +44,27 @@ def new_ref() -> str:
 MAX_MESSAGE = 1000
 
 
-# A plain address: one @, and nothing a mail header could read as a second
-# recipient, a comment, or a quoted part (spaces, commas, quotes, brackets).
-_PLAIN_ADDRESS = re.compile(r"[^\s@\"(),:;<>\[\]\\]+@[a-z0-9]([a-z0-9.-]*[a-z0-9])?")
+# Characters a mail header could read as a second recipient, a comment, or a
+# quoted part, which a plain address never has.
+_NOT_PLAIN = frozenset(' \t\r\n"(),:;<>[]\\')
+_DOMAIN_LABEL = re.compile(r"[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?")
 
 
 def plain_address(email: str) -> str:
-    """The address in lower case if it is a plain one, as codes are sent to, else ""."""
+    """The address in lower case if it is a plain one, as codes are sent to, else "".
+
+    Plain means one @, nothing in `_NOT_PLAIN`, and a domain of letters,
+    digits and hyphens. Checked with string operations and a pattern over one
+    bounded domain label at a time, so no input can make it slow.
+    """
     address = email.strip().casefold()
-    if not _PLAIN_ADDRESS.fullmatch(address) or ".." in address:
+    if len(address) > 254 or address.count("@") != 1 or not _NOT_PLAIN.isdisjoint(address):
+        return ""
+    local, _, domain = address.partition("@")
+    labels = domain.split(".")
+    if not local or ".." in address or len(labels) < 2:
+        return ""
+    if not all(len(label) <= 63 and _DOMAIN_LABEL.fullmatch(label) for label in labels):
         return ""
     try:
         validate_email(address)
